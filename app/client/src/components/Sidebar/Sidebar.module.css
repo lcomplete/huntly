@@ -1,0 +1,42 @@
+.sidebar {
+  @apply text-[0.85rem];
+}
+.sidebox {
+  @apply border-b-gray-300 pb-3 pt-2;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+.folderHead, .sideItem {
+  @apply hover:bg-slate-200;
+  cursor: pointer;
+}
+.folderHead {
+  @apply text-gray-600 flex items-center py-1 pl-1;
+}
+.folderChild {
+  @apply pl-2;
+}
+.folderIcon {
+  @apply p-1 pt-0;
+  .arrowDown {
+    @apply transform rotate-90;
+  }
+  svg {
+    @apply text-xs block;
+  }
+}
+
+.sideList {
+  .sideItem {
+    @apply flex items-center py-1 pl-3;
+    .itemIcon {
+      @apply pr-1;
+      svg {
+        @apply block;
+      }
+    }
+    .itemName {
+      @apply leading-7 block;
+    }
+  }
+}

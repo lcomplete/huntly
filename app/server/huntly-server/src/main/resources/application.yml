@@ -1,0 +1,41 @@
+app:
+  id: huntly-server
+
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:db.sqlite?date_class=TEXT
+    hikari:
+      maximum-pool-size: 1
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    database-platform: com.huntly.server.data.dialect.SQLiteDialect
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher # use this to make springfox work
+      
+huntly:
+  jwtSecret: MTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2YzMTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2Yz
+  jwtExpirationDays: 365
+
+server:
+  servlet:
+    context-path: /api
+    
+ 
+
+    
+#springfox:
+#  documentation:
+#    swagger-ui:
+#      base-url: /documentation
+
+#debug: true
+
+#
+#logging:
+#  level:
+#    com:
+#      smart: debug

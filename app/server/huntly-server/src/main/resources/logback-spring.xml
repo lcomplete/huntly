@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty name="AppID" scope="context" source="app.id"/>
+
+    <springProfile name="dev,default">
+        <springProperty name="logEnv" scope="context" source="spring.profiles.active" defaultValue="dev"/>
+    </springProfile>
+    <springProfile name="uat">
+        <springProperty name="logEnv" scope="context" source="spring.profiles.active" defaultValue="uat"/>
+        <springProperty name="logstashAddress" scope="context" source="logstash.address"
+                        defaultValue=""/>
+    </springProfile>
+    <springProfile name="pro">
+        <springProperty name="logEnv" scope="context" source="spring.profiles.active" defaultValue="pro"/>
+        <springProperty name="logstashAddress" scope="context" source="logstash.address"
+                        defaultValue=""/>
+    </springProfile>
+
+    <property name="AppVersion" value="0.1.0"/>
+    <property name="BaseDir" value="${LOG_PATH:-/tmp/logs}/${AppID}"/>
+    <property name="BackupDir" value="${BaseDir}/backups"/>
+
+    <property name="logfile" value="${LOG_FILE:-${BaseDir}/logging/${AppID}-spring.log}"/>
+
+    <property name="LogPattern"
+              value="[${AppID}@${AppVersion}]${logEnv} %d{yyyy-MM-dd HH:mm:ssZZ} %-5p [%t] %C.%M\\(%F:%L\\) - %m%n"/>
+
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LogPattern}</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <springProfile name="uat,pro">
+        <appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+            <destination>${logstashAddress}</destination>
+            <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                    </timestamp>
+                </providers>
+                <customFields>{"applicationName":"${AppID}-${logEnv}"}</customFields>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <root level="Info">
+        <appender-ref ref="Console"/>
+        <springProfile name="uat,pro">
+            <appender-ref ref="logstash"/>
+        </springProfile>
+    </root>
+
+    <jmxConfigurator/>
+</configuration>

@@ -1,0 +1,31 @@
+.mainSize {
+    font-size: 15px;
+    font-weight: 400;
+}
+
+.mainColor,.mainColor a {
+    color: rgb(15, 20, 25) !important;
+}
+
+.secondaryColor,.secondaryColor a {
+    color: rgb(83, 100, 113) !important;
+}
+
+.mainBorder{
+    border: 1px solid rgb(207, 217, 222);
+    border-radius: 16px;
+}
+.cardLink{
+    text-decoration: none;
+}
+.cardLink:hover {
+    text-decoration: none !important;
+    background: #ccc;
+}
+.tweet a, .mainLink{
+    color: rgb(29, 155, 240);
+    text-decoration: none;
+}
+.tweet a:hover, .mainLink:hover{
+    text-decoration: underline;
+}
