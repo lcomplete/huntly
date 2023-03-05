@@ -311,21 +311,21 @@ export const ConnectorSetting = () => {
               >
                 save
               </Button>
-              <Divider style={{marginTop: 20, marginBottom: 20}}/>
-              {(
-                <>
-              <pre style={{textAlign: "left"}}>
-              <strong>Values</strong>
-              <br/>
-                {JSON.stringify(values, null, 2)}
-              </pre>
-                  <pre style={{textAlign: "left"}}>
-              <strong>Errors</strong>
-              <br/>
-                    {JSON.stringify(errors, null, 2)}
-              </pre>
-                </>
-              )}
+              {/*<Divider style={{marginTop: 20, marginBottom: 20}}/>*/}
+              {/*{(*/}
+              {/*  <>*/}
+              {/*<pre style={{textAlign: "left"}}>*/}
+              {/*<strong>Values</strong>*/}
+              {/*<br/>*/}
+              {/*  {JSON.stringify(values, null, 2)}*/}
+              {/*</pre>*/}
+              {/*    <pre style={{textAlign: "left"}}>*/}
+              {/*<strong>Errors</strong>*/}
+              {/*<br/>*/}
+              {/*      {JSON.stringify(errors, null, 2)}*/}
+              {/*</pre>*/}
+              {/*  </>*/}
+              {/*)}*/}
             </Form>
           )}
         </Formik>
