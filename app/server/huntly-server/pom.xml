@@ -13,7 +13,7 @@
     <artifactId>huntly-server</artifactId>
     <version>1.0-SNAPSHOT</version>
     
-    <name>server</name>
+    <name>huntly-server</name>
     <description>huntly api server</description>
 
     <properties>
