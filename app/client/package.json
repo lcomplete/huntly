@@ -5,7 +5,7 @@
   "proxy": "http://localhost:8080",
   "scripts": {
     "start": "react-scripts start",
-    "api-generate": "cd ./src/api/ && openapi-generator-cli generate -i http://localhost:8080/api/v3/api-docs -g typescript-axios -o .",
+    "api-generate": "cd ./src/api/ && openapi-generator-cli generate -i http://localhost:8080/v3/api-docs -g typescript-axios -o .",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
