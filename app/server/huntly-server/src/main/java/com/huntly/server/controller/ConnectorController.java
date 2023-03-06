@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull;
  * @author lcomplete
  */
 @RestController
-@RequestMapping("/connector")
+@RequestMapping("/api/connector")
 public class ConnectorController {
 
     private final ConnectorService connectorService;

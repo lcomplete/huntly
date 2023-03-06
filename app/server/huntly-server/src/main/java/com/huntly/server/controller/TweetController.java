@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Validated
 @RestController
-@RequestMapping("/tweet")
+@RequestMapping("/api/tweet")
 @Slf4j
 public class TweetController {
 

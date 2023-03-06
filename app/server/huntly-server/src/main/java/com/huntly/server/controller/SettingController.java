@@ -24,7 +24,7 @@ import java.util.List;
  * @author lcomplete
  */
 @RestController
-@RequestMapping("setting")
+@RequestMapping("/api/setting")
 public class SettingController {
     private final TwitterUserSettingService twitterUserSettingService;
 

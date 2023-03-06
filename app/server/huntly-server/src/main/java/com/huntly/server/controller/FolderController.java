@@ -13,7 +13,7 @@ import javax.validation.constraints.NotNull;
  */
 @Validated
 @RestController
-@RequestMapping("/folder")
+@RequestMapping("/api/folder")
 public class FolderController {
 
     private final FolderService folderService;

@@ -14,7 +14,7 @@ import java.util.List;
  * @author lcomplete
  */
 @RestController
-@RequestMapping("/search")
+@RequestMapping("/api/search")
 public class SearchController {
 
     private final LuceneService luceneService;

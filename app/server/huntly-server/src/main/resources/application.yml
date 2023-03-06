@@ -22,7 +22,7 @@ huntly:
 
 server:
   servlet:
-    context-path: /api
+    context-path: /
     
  
 

@@ -25,7 +25,7 @@ public class WebSecurityConfig {
     UserDetailsServiceImpl userDetailsService;
     
     @Autowired
-    private UnAuthEntryPointJwt unauthorizedHandler;
+    UnAuthEntryPointJwt unauthorizedHandler;
     
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -56,10 +56,10 @@ public class WebSecurityConfig {
                 .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests()
-                .antMatchers("/auth/**").permitAll()
+                .antMatchers("/api/auth/**").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/v3/api-docs").permitAll()
-                .anyRequest().authenticated();
+                .antMatchers("/api/**").authenticated();
 
         http.authenticationProvider(authenticationProvider());
 

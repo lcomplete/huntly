@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  */
 @Validated
 @RestController
-@RequestMapping("/page")
+@RequestMapping("/api/page")
 public class PageController {
 
     private final CapturePageService capturePageService;
