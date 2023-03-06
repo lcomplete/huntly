@@ -27,6 +27,16 @@ Password: huntlydemo
 
 # Usage
 
+## Running in docker
+
+```bash
+docker run -d --name=huntly -p 8080:8080 jonnyan404/huntly
+```
+
+- The variable `PORT` can customize the port.
+
+By default it runs on port 8080, you can open the [http://localhost:8080/](http://localhost:8080/) port for access.
+
 ## Running the server side
 
 Download the jar package from [Releases](https://github.com/lcomplete/huntly/releases), in which the react client is also packaged.
