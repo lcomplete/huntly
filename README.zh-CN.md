@@ -27,6 +27,17 @@ Password: huntlydemo
 
 # 使用
 
+## Docker运行服务端
+
+```bash
+docker run -d --name=huntly -p 8080:8080 jonnyan404/huntly
+```
+
+- 提供变量 `PORT` 自定义端口
+
+默认以 8080 端口运行，你可以打开 [http://localhost:8080/](http://localhost:8080/) 端口进行访问
+
+
 ## 运行服务端
 
 下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 jar 包，react 客户端也打包在其中。
