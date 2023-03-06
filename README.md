@@ -11,7 +11,15 @@ Huntly is a self-hosted information management tool, in simple terms, contains t
 - Connect to other services, currently GitHub is supported, so it's also a Github Stars management tool.
 - In the future, it may support connections to services like Pocket, Hypothes, etc.
 
-Translated with www.DeepL.com/Translator (free version)
+---
+
+Demo: [http://huntly.rom666.com:8000/](http://huntly.rom666.com:8000/)
+
+Username: demo
+
+Password: huntlydemo
+
+---
 
 # Requirements
 
