@@ -48,14 +48,14 @@ docker run -d --name huntly -p <host port>:80 -v <host directory>:/data lcomplet
 下载后在命令行中 cd 到当前目录，通过以下 Java 命令运行：
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-client-0.1.0-SNAPSHOT.jar
+java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar
 ```
 
 默认以 8080 端口运行，你可以打开 [http://localhost:8080/](http://localhost:8080/) 端口进行访问，若需要使用其他端口，比如 80 端口，可运行以下命令：
 
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-client-0.1.0-SNAPSHOT.jar --server.port=80
+java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar --server.port=80
 ```
 
 注意，Jar 包名称需要根据下载的包名做适当的修改。

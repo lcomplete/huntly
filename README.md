@@ -48,14 +48,14 @@ Download the jar package from [Releases](https://github.com/lcomplete/huntly/rel
 After downloading, cd to the current directory from the command line and run it with the following Java command.
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-client-0.1.0-SNAPSHOT.jar
+java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar
 ```
 
 By default it runs on port 8080, you can open the [http://localhost:8080/](http://localhost:8080/) port for access, or if you need to use another port, such as port 80, you can run the following command.
 
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-client-0.1.0-SNAPSHOT.jar --server.port=80
+java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar --server.port=80
 ```
 
 Note that the Jar package name needs to be modified appropriately according to the downloaded package name.
