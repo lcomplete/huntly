@@ -19,23 +19,8 @@ spring:
 huntly:
   jwtSecret: MTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2YzMTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2Yz
   jwtExpirationDays: 365
+  connectorFetchCorePoolSize: 4
 
 server:
   servlet:
     context-path: /
-    
- 
-
-    
-#springfox:
-#  documentation:
-#    swagger-ui:
-#      base-url: /documentation
-
-#debug: true
-
-#
-#logging:
-#  level:
-#    com:
-#      smart: debug

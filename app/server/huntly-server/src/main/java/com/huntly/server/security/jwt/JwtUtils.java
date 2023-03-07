@@ -2,10 +2,10 @@ package com.huntly.server.security.jwt;
 
 import java.util.Date;
 
+import com.huntly.server.config.HuntlyProperties;
 import com.huntly.server.security.services.UserDetailsImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -15,11 +15,14 @@ import io.jsonwebtoken.*;
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    @Value("${huntly.jwtSecret}")
-    private String jwtSecret;
+    private final String jwtSecret;
 
-    @Value("${huntly.jwtExpirationDays}")
-    private int jwtExpirationDays;
+    private final int jwtExpirationDays;
+
+    public JwtUtils(HuntlyProperties huntlyProperties) {
+        this.jwtSecret = huntlyProperties.getJwtSecret();
+        this.jwtExpirationDays = huntlyProperties.getJwtExpirationDays();
+    }
 
     public int getJwtExpirationSeconds() {
         return jwtExpirationDays * 24 * 60 * 60;

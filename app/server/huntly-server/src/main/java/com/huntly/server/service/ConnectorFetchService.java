@@ -1,6 +1,7 @@
 package com.huntly.server.service;
 
 import com.huntly.interfaces.external.model.CapturePage;
+import com.huntly.server.config.HuntlyProperties;
 import com.huntly.server.connector.ConnectorType;
 import com.huntly.server.connector.InfoConnector;
 import com.huntly.server.connector.InfoConnectorFactory;
@@ -27,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 @Slf4j
 public class ConnectorFetchService {
+    private final HuntlyProperties huntlyProperties;
+
     private final ConnectorService connectorService;
 
     private final CapturePageService capturePageService;
@@ -37,19 +40,23 @@ public class ConnectorFetchService {
 
     private final GlobalSettingService globalSettingService;
 
-    ThreadPoolExecutor fetchExecutor = new ThreadPoolExecutor(
-            30, 50,
-            300, TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(10000),
-            r -> new Thread(r, "connector_fetch_thread")
-    );
+    ThreadPoolExecutor fetchExecutor;
 
-    public ConnectorFetchService(ConnectorService connectorService, CapturePageService capturePageService, EventPublisher eventPublisher, GlobalSettingService globalSettingService) {
+    public ConnectorFetchService(HuntlyProperties huntlyProperties, ConnectorService connectorService, CapturePageService capturePageService, EventPublisher eventPublisher, GlobalSettingService globalSettingService) {
+        this.huntlyProperties = huntlyProperties;
         this.connectorService = connectorService;
         this.capturePageService = capturePageService;
         this.eventPublisher = eventPublisher;
         this.globalSettingService = globalSettingService;
         inProcessConnectorIds = Collections.synchronizedSet(new HashSet<>());
+
+        fetchExecutor = new ThreadPoolExecutor(
+                ObjectUtils.defaultIfNull(huntlyProperties.getConnectorFetchCorePoolSize(), AppConstants.DEFAULT_CONNECTOR_FETCH_CORE_POOL_SIZE),
+                ObjectUtils.defaultIfNull(huntlyProperties.getConnectorFetchMaxPoolSize(), AppConstants.DEFAULT_CONNECTOR_FETCH_MAX_POOL_SIZE),
+                300, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(10000),
+                r -> new Thread(r, "connector_fetch_thread")
+        );
     }
 
     public void fetchAllConnectPages() {
