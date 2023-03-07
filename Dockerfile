@@ -5,7 +5,8 @@ ENV JAR_FILE="/app/server/huntly-server/target/huntly-server-*.jar"
 
 COPY app .
 
-RUN cd server && mvn clean package -Dmaven.test.skip=true -Dhttps.protocols=TLSv1.2 -U \
+RUN echo 'registry "https://registry.npmmirror.com"' > ~/.yarnrc \
+  && cd server && mvn clean package -Dmaven.test.skip=true -Dhttps.protocols=TLSv1.2 -U \
   && mv ${JAR_FILE}  /app/server.jar
 
 
