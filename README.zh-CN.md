@@ -29,6 +29,20 @@ Password: huntlydemo
 
 ## 运行服务端
 
+可以使用 docker 或者 java 运行服务端。
+
+### 使用 docker 运行
+
+```sh
+docker run -d --name huntly -p <host port>:80 -v <host directory>:/data lcomplete/huntly:<tag>
+```
+
+\<host port\> 和 \<host directory\> 替换为自己想使用的。
+
+\<tag\> 替换为版本号，目前版本为 `0.1.0` 。
+
+### 使用 Java 命令运行
+
 下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 jar 包，react 客户端也打包在其中。
 
 下载后在命令行中 cd 到当前目录，通过以下 Java 命令运行：

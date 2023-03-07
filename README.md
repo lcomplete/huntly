@@ -29,6 +29,20 @@ Password: huntlydemo
 
 ## Running the server side
 
+You can use docker or java to run the server.
+
+### Run with docker
+
+```sh
+docker run -d --name huntly -p <host port>:80 -v <host directory>:/data lcomplete/huntly:<tag>
+```
+
+\<host port\> and \<host directory\> Replace with the ones you want to use.
+
+\<tag\> Replace with the version number, which is currently `0.1.0`.
+
+### Run with the Java command
+
 Download the jar package from [Releases](https://github.com/lcomplete/huntly/releases), in which the react client is also packaged.
 
 After downloading, cd to the current directory from the command line and run it with the following Java command.
