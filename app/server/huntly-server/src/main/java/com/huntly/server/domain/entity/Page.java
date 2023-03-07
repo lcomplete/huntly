@@ -7,9 +7,24 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.time.Instant;
 
+/**
+ * @author lcomplete
+ */
 @Data
 @Entity
-@Table(name = "page")
+@Table(name = "page", indexes = {
+        @Index(name = "idx_page_connector_id", columnList = "connector_id"),
+        @Index(name = "idx_page_connector_type", columnList = "connector_type"),
+        @Index(name = "idx_page_content_type", columnList = "content_type"),
+        @Index(name = "idx_page_folder_id", columnList = "folder_id"),
+        @Index(name = "idx_page_library_saved_at", columnList = "library_save_status, saved_at DESC"),
+        @Index(name = "idx_page_library_archived_at", columnList = "library_save_status, archived_at DESC"),
+        @Index(name = "idx_page_starred_at", columnList = "is_starred, starred_at DESC"),
+        @Index(name = "idx_page_read_later_at", columnList = "is_read_later, read_later_at DESC"),
+        @Index(name = "idx_page_last_read_at", columnList = "last_read_at DESC"),
+        @Index(name = "idx_page_connected_at", columnList = "connected_at DESC"),
+        @Index(name = "idx_page_created_at", columnList = "created_at DESC"),
+})
 @DynamicUpdate
 public class Page implements Serializable {
 
@@ -28,7 +43,7 @@ public class Page implements Serializable {
 
     @Column(name = "connector_type")
     private Integer connectorType;
-    
+
     @Column(name = "folder_id")
     private Integer folderId;
 
@@ -46,9 +61,6 @@ public class Page implements Serializable {
 
     @Column(name = "is_show_on_page_list")
     private Boolean showOnPageList;
-    
-    //@Column(name = "pub_date")
-    //private String pubDate;
 
     @Column(name = "description")
     private String description;
@@ -67,7 +79,7 @@ public class Page implements Serializable {
 
     @Column(name = "content_type")
     private Integer contentType;
-    
+
     @Column(name = "read_count")
     private Integer readCount;
 
@@ -76,7 +88,7 @@ public class Page implements Serializable {
 
     @Column(name = "created_at")
     private Instant createdAt;
-    
+
     @Column(name = "updated_at")
     private Instant updatedAt;
 
@@ -94,7 +106,7 @@ public class Page implements Serializable {
 
     @Column(name = "archived_at")
     private Instant archivedAt;
-    
+
     @Column(name = "saved_at")
     private Instant savedAt;
 
@@ -115,8 +127,8 @@ public class Page implements Serializable {
 
     @Column(name = "thumb_url")
     private String thumbUrl;
-    
-    @Column(name="page_json_properties")
+
+    @Column(name = "page_json_properties")
     private String pageJsonProperties;
 
     @Transient
