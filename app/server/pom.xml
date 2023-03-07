@@ -12,10 +12,10 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.huntly</groupId>
     <artifactId>integrated</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>Integrated huntly</name>
-
+    
     <properties>
         <java.version>11</java.version>
         <project.groupId>com.huntly</project.groupId>

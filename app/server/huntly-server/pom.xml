@@ -7,11 +7,10 @@
     <parent>
         <groupId>com.huntly</groupId>
         <artifactId>integrated</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
     
     <artifactId>huntly-server</artifactId>
-    <version>1.0-SNAPSHOT</version>
     
     <name>huntly-server</name>
     <description>huntly api server</description>
