@@ -2,9 +2,12 @@ package com.huntly.server.domain.constant;
 
 import lombok.experimental.UtilityClass;
 
+/**
+ * @author lcomplete
+ */
 @UtilityClass
 public class AppConstants {
-    public static final String LUCENE_INDEX_PATH = "lucene";
+    public static final String DEFAULT_LUCENE_DIR = "lucene";
 
     public static final Integer DEFAULT_FETCH_INTERVAL_SECONDS = 600;
 

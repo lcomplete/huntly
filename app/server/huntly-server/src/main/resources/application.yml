@@ -4,7 +4,7 @@ app:
 spring:
   datasource:
     driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:db.sqlite?date_class=TEXT
+    url: jdbc:sqlite:${huntly.dataDir:}db.sqlite?date_class=TEXT
     hikari:
       maximum-pool-size: 1
   jpa:
@@ -15,7 +15,7 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher # use this to make springfox work
-      
+
 huntly:
   jwtSecret: MTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2YzMTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2Yz
   jwtExpirationDays: 365

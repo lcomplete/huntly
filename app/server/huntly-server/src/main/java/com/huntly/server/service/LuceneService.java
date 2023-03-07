@@ -6,6 +6,7 @@ import com.huntly.interfaces.external.model.ContentType;
 import com.huntly.interfaces.external.model.LibrarySaveStatus;
 import com.huntly.interfaces.external.model.SearchOption;
 import com.huntly.interfaces.external.query.SearchQuery;
+import com.huntly.server.config.HuntlyProperties;
 import com.huntly.server.connector.ConnectorType;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.constant.DocFields;
@@ -57,9 +58,9 @@ public class LuceneService implements DisposableBean {
 
     private IndexWriter writer;
 
-    public LuceneService(PageRepository pageRepository, PageListService pageListService) {
+    public LuceneService(PageRepository pageRepository, PageListService pageListService, HuntlyProperties huntlyProperties) {
         this.pageListService = pageListService;
-        indexDirPath = AppConstants.LUCENE_INDEX_PATH;
+        indexDirPath = ObjectUtils.defaultIfNull(huntlyProperties.getLuceneDir(), AppConstants.DEFAULT_LUCENE_DIR);
         this.pageRepository = pageRepository;
     }
 
