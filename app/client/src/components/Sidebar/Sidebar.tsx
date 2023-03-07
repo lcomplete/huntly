@@ -106,7 +106,7 @@ const Sidebar = () => {
     data: view,
   } = useQuery(['folder-connector-view'], async () => (await
     ConnectorControllerApiFactory().getFolderConnectorViewUsingGET()).data, {
-    refetchInterval: 3000,
+    refetchInterval: 5000,
     refetchIntervalInBackground: true,
   });
 
