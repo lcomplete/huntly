@@ -19,7 +19,7 @@ spring:
 huntly:
   jwtSecret: MTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2YzMTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2Yz
   jwtExpirationDays: 365
-  connectorFetchCorePoolSize: 4
+  connectorFetchCorePoolSize: 3
 
 server:
   servlet:
