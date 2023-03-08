@@ -34,5 +34,5 @@ jobs:
           distribution: 'temurin'
       - name: Run the Maven verify phase
         run: cd app/server && mvn clean package -Dmaven.test.skip=true -DignoreSnapshots=true -Dhttps.protocols=TLSv1.2 -U
-      - run: |
-          app/server/huntly-server/target/huntly-server-*.jar
+      - name: 查看jar文件
+        run: ls app/server/huntly-server/target/huntly-server-*.jar
