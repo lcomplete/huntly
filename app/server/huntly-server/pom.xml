@@ -218,7 +218,7 @@
                             <goal>yarn</goal>
                         </goals>
                         <configuration>
-                            <arguments>install  --registry=https://registry.npmmirror.com --strict-ssl=false --verbose</arguments>
+                            <arguments>install  --registry=https://registry.npmmirror.com --strict-ssl=false</arguments>
                         </configuration>
                     </execution>
 

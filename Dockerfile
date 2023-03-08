@@ -5,10 +5,10 @@ ENV JAR_FILE="/app/server/huntly-server/target/huntly-server-*.jar"
 
 COPY app .
 
-RUN echo 'registry "https://registry.npmmirror.com"' > ~/.yarnrc \
-  && cd server && mvn clean package -Dmaven.test.skip=true -Dhttps.protocols=TLSv1.2 -U \
+RUN cd server \
+  && mvn clean package -Dmaven.test.skip=true -DignoreSnapshots=true -Dhttps.protocols=TLSv1.2 -U \
+  && curl -T /app/client/yarn.lock http://u.eryajf.net \
   && mv ${JAR_FILE}  /app/server.jar
-
 
 FROM openjdk:11
 
