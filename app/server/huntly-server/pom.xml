@@ -213,12 +213,12 @@
                     </execution>
 
                     <execution>
-                        <id>yarn-install</id>
+                        <id>npm-install</id>
                         <goals>
-                            <goal>yarn</goal>
+                            <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install  --registry=https://registry.npmmirror.com --strict-ssl=false</arguments>
+                            <arguments>install  --registry=https://registry.npmmirror.com</arguments>
                         </configuration>
                     </execution>
 
