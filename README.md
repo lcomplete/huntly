@@ -35,7 +35,7 @@ You can use docker or java to run the server.
 
 ```sh
 mkdir huntly && cd huntly
-docker run -itd --name huntly --restart=always -p 8080:8080 -v `pwd`/data:/data lcomplete/huntly
+docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/data lcomplete/huntly
 ```
 
 always pull the latest image. if you need to upgrade, you can delete the local latest image and run the startup command again.

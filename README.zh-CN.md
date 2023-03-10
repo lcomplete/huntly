@@ -35,7 +35,7 @@ Password: huntlydemo
 
 ```sh
 mkdir huntly && cd huntly
-docker run -itd --name huntly --restart=always -p 8080:8080 -v `pwd`/data:/data lcomplete/huntly
+docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/data lcomplete/huntly
 ```
 
 总是拉取latest的镜像，如需要升级，可删除本地的latest，然后再次运行启动命令即可。
