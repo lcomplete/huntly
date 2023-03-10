@@ -95,7 +95,7 @@ class GithubConnectorTest {
                 "LCBwbGVhc2UgY3JlYXRlIGFwcHJvcHJpYXRlIHRlc3RzIGZvciBpdCBhcyB3\n" +
                 "ZWxsIGJlZm9yZSBzdWJtaXR0aW5nIGFueSBjb2RlIGNoYW5nZXMuCg==";
         String decodedContent = GithubConnector.decodeReadmeContent(content);
-        System.out.println(decodedContent);
+        //System.out.println(decodedContent);
         assertThat(decodedContent).isNotBlank();
     }
 }
