@@ -1,0 +1,54 @@
+name: huntly server build workflow
+
+on:
+  # This line enables manual triggering of this workflow.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set Node.js 18.7.0
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.7.0"
+          cache: "yarn"
+          cache-dependency-path: "app/client/yarn.lock"
+      
+      - name: Setup yarn
+        run: npm install -g yarn --version 1.22.19
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v3
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install client dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: |
+          cd app/client
+          yarn install --frozen-lockfile
+
+      - name: Create client bundle
+        run: |
+          cd app/client
+          yarn build
+
+      # Upload the build artifact so that it can be used by the test & deploy job in the workflow
+      - name: Upload server build bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: client-build
+          path: app/client/build/
+      
