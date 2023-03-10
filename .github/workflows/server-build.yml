@@ -1,0 +1,67 @@
+name: huntly server build workflow
+
+on:
+  # This line enables manual triggering of this workflow.
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set Node.js 18.7.0
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.7.9"
+          cache: "yarn"
+          cache-dependency-path: "app/client/yarn.lock"
+      
+      - name: Setup yarn
+        run: npm install -g yarn --version 1.22.19
+
+      - name: Install client dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Create client bundle
+        run: yarn build
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+
+      # Retrieve maven dependencies from cache. After a successful run, these dependencies are cached again
+      - name: Cache maven dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-maven-dependencies
+        with:
+          # maven dependencies are stored in `~/.m2` on Linux/macOS
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        run: mvn clean package --file app/server/pom.xml
+
+      - name: Move to dist
+        run: mv app/server/target/huntly-*.jar app/server/dist/
+
+      # Upload the build artifact so that it can be used by the test & deploy job in the workflow
+      - name: Upload server build bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: server-build
+          path: app/server/dist/
+      

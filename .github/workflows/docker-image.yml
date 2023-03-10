@@ -4,11 +4,11 @@ name: build docker image
 
 # Controls when the action will run.
 on:
-  push:
-    branches:
-      - main
-  release:
-    types: [created,published] # 表示在创建新的 Release 时触发
+  #push:
+  #  branches:
+  #    - main
+  #release:
+  #  types: [created,published] # 表示在创建新的 Release 时触发
 
   # Allows you to run this workflow manually from the Actions tab
   # 可以手动触发
