@@ -34,12 +34,11 @@ Password: huntlydemo
 ### 使用 docker 运行
 
 ```sh
-docker run -d --name huntly -p <host port>:80 -v <host directory>:/data lcomplete/huntly:<tag>
+mkdir huntly && cd huntly
+docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/data lcomplete/huntly
 ```
 
-\<host port\> 和 \<host directory\> 替换为自己想使用的。
-
-\<tag\> 替换为版本号，目前版本为 `0.1.0` 。
+总是拉取latest的镜像，如需要升级，可删除本地的latest，然后再次运行启动命令即可。
 
 ### 使用 Java 命令运行
 

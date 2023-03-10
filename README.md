@@ -34,12 +34,12 @@ You can use docker or java to run the server.
 ### Run with docker
 
 ```sh
-docker run -d --name huntly -p <host port>:80 -v <host directory>:/data lcomplete/huntly:<tag>
+mkdir huntly && cd huntly
+docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/data lcomplete/huntly
 ```
 
-\<host port\> and \<host directory\> Replace with the ones you want to use.
+always pull the latest image. if you need to upgrade, you can delete the local latest image and run the startup command again.
 
-\<tag\> Replace with the version number, which is currently `0.1.0`.
 
 ### Run with the Java command
 
