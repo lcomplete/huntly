@@ -22,7 +22,7 @@ jobs:
       - name: Set Node.js 18.7.0
         uses: actions/setup-node@v3
         with:
-          node-version: "18.7.9"
+          node-version: "18.7.0"
           cache: "yarn"
           cache-dependency-path: "app/client/yarn.lock"
       
