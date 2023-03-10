@@ -21,7 +21,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <frontend-src-dir>../../client</frontend-src-dir>
-        <node.version>v18.7.0</node.version>
+        <node.version>v18.12.1</node.version>
         <yarn.version>v1.22.19</yarn.version>
         <frontend-maven-plugin.version>1.12.1</frontend-maven-plugin.version>
     </properties>
