@@ -46,7 +46,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Build with Maven
-        run: mvn clean package --file app/server/pom.xml
+        run: |
+          cd app/server
+          mvn clean package
 
       - name: Move to dist
         run: mv app/server/target/huntly-*.jar app/server/dist/
