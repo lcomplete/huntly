@@ -1,4 +1,4 @@
-name: huntly server build workflow
+name: huntly client build workflow
 
 on:
   # This line enables manual triggering of this workflow.
