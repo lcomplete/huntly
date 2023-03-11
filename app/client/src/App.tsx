@@ -44,7 +44,7 @@ function App() {
 
   useEffect(() => {
     const location = window.location;
-    if (location.pathname !== '/signin' && location.pathname != "signup") {
+    if (location.pathname !== '/signin' && location.pathname !== "signup") {
       AuthControllerApiFactory().loginUserInfoUsingGET().then((res) => {
         if (res.data.username === null) {
           window.location.href = `/signin?${createSearchParams({

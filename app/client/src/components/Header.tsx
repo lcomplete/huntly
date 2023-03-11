@@ -2,7 +2,7 @@ import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
 import SearchBox from "./SearchBox";
 import React, {useCallback, useEffect, useState} from "react";
 import {WindowStateListenerType} from "../domain/electronTypes";
-import {IconButton, Modal} from "@mui/material";
+import {IconButton} from "@mui/material";
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SettingModal from "./SettingModal";
 

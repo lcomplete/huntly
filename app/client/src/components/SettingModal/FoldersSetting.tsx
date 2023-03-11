@@ -4,8 +4,7 @@ import {
   IconButton,
   List,
   ListItem,
-  ListItemAvatar, ListItemButton, ListItemText, SpeedDial,
-  SpeedDialAction, SpeedDialIcon
+  ListItemAvatar, ListItemButton, ListItemText
 } from "@mui/material";
 import React from "react";
 import {SettingControllerApiFactory} from "../../api";
@@ -14,7 +13,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import FolderIcon from '@mui/icons-material/Folder';
 import RssFeedIcon from "@mui/icons-material/RssFeed";
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
-import SaveIcon from '@mui/icons-material/Save';
 import {styled} from "@mui/material/styles";
 import FolderFormDialog from "./FolderFormDialog";
 import FeedsFormDialog from "./FeedsFormDialog";

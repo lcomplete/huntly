@@ -1,5 +1,4 @@
 import CardMedia from "@mui/material/CardMedia";
-import SmartMoment from "../SmartMoment";
 import * as React from "react";
 import Tweet from "./Tweet";
 import {TweetProperties} from "../../interfaces/tweetProperties";

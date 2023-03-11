@@ -1,6 +1,5 @@
 import Typography from "@mui/material/Typography";
 import {
-  Box,
   Button, Checkbox,
   Dialog,
   DialogActions,
@@ -8,16 +7,15 @@ import {
   Divider, FormControl,
   FormControlLabel,
   InputAdornment, InputLabel, MenuItem,
-  Paper, Select,
+  Select,
   TextField
 } from "@mui/material";
 import React, {useState} from "react";
-import {ConnectorControllerApiFactory, FolderControllerApiFactory, SettingControllerApiFactory} from "../../api";
+import {SettingControllerApiFactory} from "../../api";
 import {useSnackbar} from "notistack";
-import {Formik, Form, Field, ErrorMessage, useFormik, FieldArray, getIn} from 'formik';
+import {Formik, Form, useFormik, FieldArray, getIn} from 'formik';
 import * as yup from 'yup';
 import {useQuery} from "@tanstack/react-query";
-import {safeInt} from "../../common/typeUtils";
 import Alert from "@mui/material/Alert";
 import DeleteIcon from "@mui/icons-material/Delete";
 

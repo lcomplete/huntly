@@ -16,27 +16,27 @@
 .folderChild {
   @apply pl-2;
 }
-.folderIcon {
-  @apply p-1 pt-0;
-  .arrowDown {
-    @apply transform rotate-90;
-  }
-  svg {
-    @apply text-xs block;
-  }
-}
+/*.folderIcon {*/
+/*  @apply p-1 pt-0;*/
+/*  .arrowDown {*/
+/*    @apply transform rotate-90;*/
+/*  }*/
+/*  svg {*/
+/*    @apply text-xs block;*/
+/*  }*/
+/*}*/
 
-.sideList {
-  .sideItem {
-    @apply flex items-center py-1 pl-3;
-    .itemIcon {
-      @apply pr-1;
-      svg {
-        @apply block;
-      }
-    }
-    .itemName {
-      @apply leading-7 block;
-    }
-  }
-}
+/*.sideList {*/
+/*  .sideItem {*/
+/*    @apply flex items-center py-1 pl-3;*/
+/*    .itemIcon {*/
+/*      @apply pr-1;*/
+/*      svg {*/
+/*        @apply block;*/
+/*      }*/
+/*    }*/
+/*    .itemName {*/
+/*      @apply leading-7 block;*/
+/*    }*/
+/*  }*/
+/*}*/

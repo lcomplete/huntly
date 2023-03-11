@@ -89,7 +89,7 @@ const Sidebar = () => {
   function connectorToTreeItems(connectorItems: Array<ConnectorItem>): NavTreeViewItem[] {
     return connectorItems.map(connectorItem => {
       // const icon = connectorItem.type == 'rss' ? RssFeedIcon : LabelImportantIcon;
-      const icon = connectorItem.type == ConnectorType.RSS ? RssFeedIcon : navLabels.github.labelIcon;
+      const icon = connectorItem.type === ConnectorType.RSS ? RssFeedIcon : navLabels.github.labelIcon;
       return {
         labelText: connectorItem.name,
         labelIcon: icon,

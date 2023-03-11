@@ -1,6 +1,5 @@
 import {Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField} from "@mui/material";
 import React, {useEffect, useState} from "react";
-import {useQuery} from "@tanstack/react-query";
 import {Folder, FolderControllerApiFactory, SettingControllerApiFactory} from "../../api";
 import {useFormik} from "formik";
 import * as yup from "yup";

@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React from "react";
 import {CssBaseline, StyledEngineProvider} from "@mui/material";
 import Sidebar from "./Sidebar/Sidebar";
 import {Outlet, ScrollRestoration} from "react-router-dom";

@@ -24,7 +24,7 @@ export default function Tweet({
   if (tweetProps.medias) {
     if (tweetProps.medias.length > 2) {
       imageStyles = {height: 180, width: isInQuote ? 280 : 320, mt: 1};
-    } else if (tweetProps.medias.length == 2) {
+    } else if (tweetProps.medias.length === 2) {
       imageStyles = {height: isInQuote ? 300 : 330, width: isInQuote ? 280 : 320};
     } else {
       if (tweetProps.medias[0].rawSize.width > tweetProps.medias[0].rawSize.height) {
@@ -35,10 +35,10 @@ export default function Tweet({
     }
   }
   const hasVideo = tweetProps.medias && tweetProps.medias.some((media) => {
-    return media.type == 'video';
+    return media.type === 'video';
   });
   const videoMedia = hasVideo ? tweetProps.medias.filter((media) => {
-    return media.type == 'video';
+    return media.type === 'video';
   })[0] : null;
   const maxBitrateVideo = videoMedia ? videoMedia.videoInfo.variants.sort((a, b) => {
     return b.bitrate - a.bitrate;
@@ -56,7 +56,7 @@ export default function Tweet({
   let mentionIndexStart = 0;
   if (userMentions && userMentions.length > 0) {
     userMentions.forEach((userMention) => {
-      if (userMention.indices[0] == mentionIndexStart) {
+      if (userMention.indices[0] === mentionIndexStart) {
         replyMentions.push(userMention);
         mentionIndexStart = userMention.indices[1] + 1;
       }

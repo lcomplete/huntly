@@ -6,7 +6,7 @@ export function safeInt(text: unknown, defaultValue = 0) {
 
 export function mapArrayTo<Source, Target>(sources: Source[], setter: (source: Source, target: Target) => void): Target[] {
   const targets: Target[] = [];
-  sources.map(source => {
+  sources.forEach(source => {
     const target = mapTo(source, setter);
     targets.push(target);
   })
