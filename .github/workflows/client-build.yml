@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: "18.12.1"
           cache: "yarn"
-          cache-dependency-path: "app/client/yarn.lock"
+          #cache-dependency-path: "app/client/yarn.lock"
       
       - name: Setup yarn
         run: npm install -g yarn --version 1.22.19
