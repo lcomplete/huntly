@@ -44,6 +44,8 @@ jobs:
         run: |
           cd app/client
           yarn build
+        env:
+          CI: false
 
       # Upload the build artifact so that it can be used by the test & deploy job in the workflow
       - name: Upload server build bundle
