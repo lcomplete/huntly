@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: build docker image
+name: huntly docker image build workflow
 
 # Controls when the action will run.
 on:
@@ -27,6 +27,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Set Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.12.1"
+          cache: "yarn"
+          cache-dependency-path: "app/client/yarn.lock"
+      
+      - name: Setup yarn
+        run: npm install -g yarn --version 1.22.19
+
+      - name: Install client dependencies
+        run: |
+          cd app/client
+          yarn install
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+
+      # Retrieve maven dependencies from cache. After a successful run, these dependencies are cached again
+      - name: Cache maven dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-maven-dependencies
+        with:
+          # maven dependencies are stored in `~/.m2` on Linux/macOS
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        run: |
+          cd app/server
+          mvn clean package
+        env:
+          CI: false
 
       - name: Inject slug/short variables
         uses: rlespinasse/github-slug-action@v4

@@ -52,7 +52,9 @@ jobs:
           CI: false
 
       - name: Move to dist
-        run: mv app/server/huntly-server/target/huntly-*.jar app/server/dist/
+        run: |
+          mkdir app/server/dist/
+          mv app/server/huntly-server/target/huntly-*.jar app/server/dist/
 
       # Upload the build artifact so that it can be used by the test & deploy job in the workflow
       - name: Upload server build bundle

@@ -1,15 +1,15 @@
 # Huntly
 
-**English** | [中文](./README.zh-CN.md)
+**中文** | [English](./README.en.md)
 
-Huntly is a self-hosted information management tool, in simple terms, contains the following features.
+Huntly 是一个自托管的信息管理工具，简单来说，它包含以下功能：
 
-- RSS subscription and reading.
-- Automatically saves the pages that have been viewed， then you can saves them as read later, favorites or archives.
-- There is a special treatment for Twitter sites that automatically saves the requested tweet timeline, recording whether it has been viewed or not, and in huntly you can even revisit these tweets in a more convenient way.
-- You can search by title, content, type, favorite method, and other dimensions.
-- Connect to other services, currently GitHub is supported, so it's also a Github stars management tool.
-- In the future, it may support connections to services like Pocket, Hypothesis, etc.
+- RSS 订阅和阅读。
+- 自动保存浏览过的网页，随后以保存、稍后读、收藏或存档的方式将其保存。
+- 针对推特网站有特殊的处理，会自动保存请求过的推特 timeline，记录是否浏览过，在 huntly 中你甚至可以用更方便的方式重新查看这些推文。
+- 可以从标题、内容、类型、收藏方式等维度进行搜索。
+- 连接其他服务，目前支持 GitHub，所以它也是一个 Github stars 管理工具。
+- 未来可能会支持连接到 Pocket、Hypothesis 等服务。
 
 ---
 
@@ -21,61 +21,58 @@ Password: huntlydemo
 
 ---
 
-# Requirements
+# 运行前提
 
 - Java 11
 
-# Usage
+# 使用
 
-## Running the server side
+## 运行服务端
 
-You can use docker or java to run the server.
+可以使用 docker 或者 java 运行服务端。
 
-### Run with docker
+### 使用 docker 运行
 
 ```sh
 mkdir huntly && cd huntly
 docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/data lcomplete/huntly
 ```
 
-always pull the latest image. if you need to upgrade, you can delete the local latest image and run the startup command again.
+总是拉取latest的镜像，如需要升级，可删除本地的latest，然后再次运行启动命令即可。
 
+### 使用 Java 命令运行
 
-### Run with the Java command
+下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 jar 包，react 客户端也打包在其中。
 
-Download the jar package from [Releases](https://github.com/lcomplete/huntly/releases), in which the react client is also packaged.
-
-After downloading, cd to the current directory from the command line and run it with the following Java command.
+下载后在命令行中 cd 到当前目录，通过以下 Java 命令运行：
 
 ```sh
 java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar
 ```
 
-By default it runs on port 8080, you can open the [http://localhost:8080/](http://localhost:8080/) port for access, or if you need to use another port, such as port 80, you can run the following command.
+默认以 8080 端口运行，你可以打开 [http://localhost:8080/](http://localhost:8080/) 端口进行访问，若需要使用其他端口，比如 80 端口，可运行以下命令：
 
 
 ```sh
 java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar --server.port=80
 ```
 
-Note that the Jar package name needs to be modified appropriately according to the downloaded package name.
+注意，Jar 包名称需要根据下载的包名做适当的修改。
 
-## Install the browser extension
+## 安装浏览器插件
 
-Note: The plugin is still under development and is not yet available on the Google Play Store.
+注：插件目前还在开发中，尚未上架谷歌商店。
 
-Download the browser-extension.zip from [Releases](https://github.com/lcomplete/huntly/releases) and unpack it.
+下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 browser-extension.zip ，将其解压缩。
 
-Manage the extension in your browser, enable developer mode, and load the unpacked extension.
+在浏览器中管理扩展，启用开发者模式，加载已解包的扩展即可。
 
-## Browser extension settings
+## 浏览器插件设置
 
-Click the huntly extension icon, choose to set huntly's server address, for example, when using the demo server, then set it to http://huntly.rom666.com:8000/, for the remote address, in formal use, it is highly recommended to use the https protocol, after all, the browsing history is quite private. If the server is running locally, then set it to the local address.
+点击插件图标，选择设置 huntly 的服务端地址，比如在使用 demo 服务器时，则将其设置为 http://huntly.rom666.com:8000/ ，对于远程地址，在正式使用时，强烈建议使用 https 协议，毕竟浏览记录是相当私密的。若服务端在本机运行，则设置为本地地址即可。
 
-## Login and enjoy it
+## 登录并使用
 
-When you open huntly website for the first time, you will be prompted to register an administrator user, currently only single user is supported.
+首次打开 huntly 网站时，会提示注册一个管理员用户，目前仅支持单用户。
 
-After registration, you will be automatically logged into the system, and the huntly extension will only send browsing history to the server if you are logged in.
-
-Enjoy it.
+注册后将自动登录到系统中，在登录的情况下，huntly 插件才能将浏览记录发送到服务端。
