@@ -7,19 +7,15 @@ on:
   #push:
   #  branches:
   #    - main
-  #release:
-  #  types: [created,published] # 表示在创建新的 Release 时触发
+  release:
+    types: [created,published] # 表示在创建新的 Release 时触发
 
   # Allows you to run this workflow manually from the Actions tab
   # 可以手动触发
   workflow_dispatch:
     inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
       tags:
-        description: 'Test scenario tags'
+        description: 'docker tagname'
 
 jobs:
   buildx:
@@ -98,4 +94,4 @@ jobs:
           # 给清单打上多个标签
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.GITHUB_REPOSITORY_NAME_PART }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.GITHUB_REPOSITORY_NAME_PART }}:${{ env.GITHUB_REF_NAME }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.GITHUB_REPOSITORY_NAME_PART }}:${{ github.event.inputs.tags || env.GITHUB_REF_NAME }}
