@@ -22,23 +22,23 @@ jobs:
       - name: Setup yarn
         run: npm install -g yarn --version 1.22.19
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+      #- name: Get yarn cache directory path
+      #  id: yarn-cache-dir-path
+      #  run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - uses: actions/cache@v3
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+      #- uses: actions/cache@v3
+      #  id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      #  with:
+      #    path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+      #    key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-yarn-
 
       - name: Install client dependencies
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        #if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: |
           cd app/client
-          yarn install --frozen-lockfile
+          yarn install
 
       - name: Create client bundle
         run: |
