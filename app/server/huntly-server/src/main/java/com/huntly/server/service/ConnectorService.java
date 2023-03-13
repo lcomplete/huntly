@@ -3,8 +3,11 @@ package com.huntly.server.service;
 import com.huntly.interfaces.external.dto.ConnectorItem;
 import com.huntly.interfaces.external.dto.FolderConnectorView;
 import com.huntly.interfaces.external.dto.FolderConnectors;
+import com.huntly.interfaces.external.model.GitHubSetting;
 import com.huntly.server.connector.ConnectorProperties;
 import com.huntly.server.connector.ConnectorType;
+import com.huntly.server.connector.github.GithubConnector;
+import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.ConnectorSetting;
 import com.huntly.server.domain.entity.Folder;
@@ -18,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -169,8 +173,7 @@ public class ConnectorService {
     }
 
     public void saveGithubPersonalToken(String token) {
-        var connectors = connectorRepository.findByType(ConnectorType.GITHUB.getCode());
-        var connector = connectors.isEmpty() ? null : connectors.get(0);
+        var connector = getGitHubConnector();
         if (connector == null) {
             connector = new Connector();
             connector.setType(ConnectorType.GITHUB.getCode());
@@ -220,5 +223,60 @@ public class ConnectorService {
                 connectorRepository.save(connector);
             }
         }
+    }
+
+    private Connector getGitHubConnector() {
+        var connectors = connectorRepository.findByType(ConnectorType.GITHUB.getCode());
+        return connectors.isEmpty() ? null : connectors.get(0);
+    }
+
+    public GitHubSetting getGitHubSetting() {
+        var connector = getGitHubConnector();
+        int fetchIntervalMinutes = AppConstants.DEFAULT_FETCH_INTERVAL_SECONDS / 60;
+        if (connector == null) {
+            var defaultSetting = new GitHubSetting();
+            defaultSetting.setFetchIntervalMinutes(fetchIntervalMinutes);
+            defaultSetting.setFetchPageSize(AppConstants.GITHUB_DEFAULT_FETCH_PAGE_SIZE);
+            defaultSetting.setEnabled(true);
+            defaultSetting.setName("GitHub");
+            return defaultSetting;
+        }
+        GitHubSetting setting = new GitHubSetting();
+        setting.setConnectorId(connector.getId());
+        setting.setTokenSet(StringUtils.isNotBlank(connector.getApiToken()));
+        setting.setEnabled(connector.getEnabled());
+        setting.setFetchPageSize(connector.getFetchPageSize());
+        setting.setName(connector.getName());
+        if (connector.getFetchIntervalSeconds() != null) {
+            fetchIntervalMinutes = connector.getFetchIntervalSeconds() / 60;
+        }
+        setting.setFetchIntervalMinutes(fetchIntervalMinutes);
+        return setting;
+    }
+
+    public Connector saveGitHubSetting(GitHubSetting gitHubSetting) {
+        if (gitHubSetting == null) {
+            return null;
+        }
+
+        var connector = gitHubSetting.getConnectorId() > 0 ?
+                connectorRepository.findById(gitHubSetting.getConnectorId()).orElse(null) : null;
+        if (connector == null) {
+            connector = new Connector();
+            connector.setCreatedAt(Instant.now());
+            connector.setDisplaySequence(1);
+            connector.setType(ConnectorType.GITHUB.getCode());
+            connector.setInboxCount(0);
+        }
+        connector.setName(gitHubSetting.getName());
+        connector.setCrawlFullContent(false);
+        connector.setEnabled(gitHubSetting.getEnabled());
+        if (StringUtils.isNotBlank(gitHubSetting.getApiToken())) {
+            connector.setApiToken(gitHubSetting.getApiToken());
+        }
+        connector.setFetchPageSize(gitHubSetting.getFetchPageSize());
+        connector.setEnabled(gitHubSetting.getEnabled());
+        connector.setFetchIntervalSeconds(gitHubSetting.getFetchIntervalMinutes() * 60);
+        return connectorRepository.save(connector);
     }
 }

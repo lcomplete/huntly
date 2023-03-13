@@ -12,6 +12,7 @@ import com.huntly.interfaces.external.model.CapturePage;
 import com.huntly.interfaces.external.model.GithubRepoProperties;
 import com.huntly.server.connector.ConnectorProperties;
 import com.huntly.server.connector.InfoConnector;
+import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.exceptions.ConnectorFetchException;
 import com.huntly.server.util.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +65,7 @@ public class GithubConnector extends InfoConnector {
     }
 
     public List<CapturePage> fetchNewestPages() {
-        return fetchPages(100, 1);
+        return fetchPages(AppConstants.GITHUB_DEFAULT_FETCH_PAGE_SIZE, 1);
     }
 
     public List<CapturePage> fetchPages(int perPage, int page) {

@@ -1,10 +1,13 @@
 package com.huntly.server.service;
 
+import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.GlobalSetting;
 import com.huntly.server.domain.model.ProxySetting;
 import com.huntly.server.repository.GlobalSettingRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 /**
  * @author lcomplete
@@ -18,7 +21,13 @@ public class GlobalSettingService {
     }
 
     public GlobalSetting getGlobalSetting() {
-        return settingRepository.findAll().stream().findFirst().orElse(new GlobalSetting());
+        var defaultSetting = new GlobalSetting();
+        defaultSetting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
+        var setting = settingRepository.findAll().stream().findFirst().orElse(defaultSetting);
+        if (setting.getColdDataKeepDays() == null || setting.getColdDataKeepDays() <= 0) {
+            setting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
+        }
+        return setting;
     }
 
     public ProxySetting getProxySetting() {
@@ -30,5 +39,24 @@ public class GlobalSettingService {
             return proxySetting;
         }
         return null;
+    }
+
+    public GlobalSetting saveGlobalSetting(GlobalSetting globalSetting) {
+        if (globalSetting == null) {
+            return null;
+        }
+
+        GlobalSetting dbSetting = globalSetting.getId() != null && globalSetting.getId() > 0 ?
+                settingRepository.findById(globalSetting.getId()).orElse(null) : null;
+        if (dbSetting == null) {
+            dbSetting = new GlobalSetting();
+            dbSetting.setCreatedAt(globalSetting.getCreatedAt());
+        }
+        dbSetting.setProxyHost(globalSetting.getProxyHost());
+        dbSetting.setProxyPort(globalSetting.getProxyPort());
+        dbSetting.setEnableProxy(globalSetting.getEnableProxy());
+        dbSetting.setColdDataKeepDays(Optional.of(globalSetting.getColdDataKeepDays()).orElse(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS));
+        dbSetting.setUpdatedAt(globalSetting.getUpdatedAt());
+        return settingRepository.save(dbSetting);
     }
 }

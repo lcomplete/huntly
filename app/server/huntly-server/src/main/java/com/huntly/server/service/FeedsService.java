@@ -120,7 +120,7 @@ public class FeedsService {
         feedsSetting.setEnabled(connector.getEnabled());
         feedsSetting.setFolderId(connector.getFolderId());
         feedsSetting.setSubscribeUrl(connector.getSubscribeUrl());
-        Integer fetchIntervalMinutes = AppConstants.DEFAULT_FETCH_INTERVAL_SECONDS / 60;
+        int fetchIntervalMinutes = AppConstants.DEFAULT_FETCH_INTERVAL_SECONDS / 60;
         if (connector.getFetchIntervalSeconds() != null) {
             fetchIntervalMinutes = connector.getFetchIntervalSeconds() / 60;
         }

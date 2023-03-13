@@ -28,7 +28,7 @@ public class ColdDataClearTask {
     public void autoClearColdData() {
         log.info("auto clear cold data");
         GlobalSetting setting = settingService.getGlobalSetting();
-        int coldDataKeepDays = setting != null && setting.getColdDataKeepDays() != null
+        int coldDataKeepDays = setting != null && setting.getColdDataKeepDays() != null && setting.getColdDataKeepDays() > 0
                 ? setting.getColdDataKeepDays() : AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS;
         Instant coldDataUpdateBefore = Instant.now().minus(coldDataKeepDays, ChronoUnit.DAYS);
 

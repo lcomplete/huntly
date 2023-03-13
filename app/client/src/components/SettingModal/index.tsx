@@ -1,9 +1,6 @@
 import React, {useEffect} from "react";
 import {
   Box,
-  Button, Dialog,
-  DialogActions,
-  DialogTitle,
   List,
   ListItemButton,
   ListItemIcon,
@@ -16,13 +13,16 @@ import {ConnectorSetting} from "./ConnectorSetting";
 import {FeedsSetting} from "./FeedsSetting";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import FoldersSetting from "./FoldersSetting";
-import LogoutIcon from '@mui/icons-material/Logout';
 import {AuthControllerApiFactory} from "../../api";
+import AccountBoxIcon from '@mui/icons-material/AccountBox';
+import AccountSetting from "./AccountSetting";
+import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
+import GeneralSetting from "./GeneralSetting";
 
 type SettingModalProps = {
   open: boolean,
   defaultIndex?: number,
-  onClose: ()=>void,
+  onClose: () => void,
 }
 
 export default function SettingModal(props: SettingModalProps) {
@@ -34,7 +34,7 @@ export default function SettingModal(props: SettingModalProps) {
   ) => {
     setSelectedIndex(index);
   };
-  
+
   const style = {
     width: 1000,
     height: 660,
@@ -42,12 +42,6 @@ export default function SettingModal(props: SettingModalProps) {
     bgcolor: 'background.paper',
     boxShadow: 24,
   };
-
-  function signOut() {
-    AuthControllerApiFactory().singOutUsingPOST().then((res) => {
-      window.location.href = '/signin';
-    });
-  }
 
   return (
     <Modal open={props.open} onClose={props.onClose} className={'flex justify-center items-center'}>
@@ -59,48 +53,64 @@ export default function SettingModal(props: SettingModalProps) {
               onClick={(event) => handleListItemClick(event, 0)}
             >
               <ListItemIcon>
-                <HubIcon />
+                <HubIcon/>
               </ListItemIcon>
-              <ListItemText primary="Connect" />
+              <ListItemText primary="Connect"/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 1}
               onClick={(event) => handleListItemClick(event, 1)}
             >
               <ListItemIcon>
-                <RssFeedIcon />
+                <RssFeedIcon/>
               </ListItemIcon>
-              <ListItemText primary="Feeds" />
+              <ListItemText primary="Feeds"/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 2}
               onClick={(event) => handleListItemClick(event, 2)}
             >
               <ListItemIcon>
-                <FolderOpenIcon />
+                <FolderOpenIcon/>
               </ListItemIcon>
-              <ListItemText primary="Folders" />
+              <ListItemText primary="Folders"/>
             </ListItemButton>
             <ListItemButton
-              onClick={signOut}
+              selected={selectedIndex === 3}
+              onClick={(event) => handleListItemClick(event, 3)}
             >
               <ListItemIcon>
-                <LogoutIcon />
+                <SettingsApplicationsIcon/>
               </ListItemIcon>
-              <ListItemText primary="Sign out" />
+              <ListItemText primary="General"/>
+            </ListItemButton>
+            <ListItemButton
+              selected={selectedIndex === 4}
+              onClick={(event) => handleListItemClick(event, 4)}
+            >
+              <ListItemIcon>
+                <AccountBoxIcon/>
+              </ListItemIcon>
+              <ListItemText primary="Account"/>
             </ListItemButton>
           </List>
         </div>
-        
+
         <div className={'p-4 grow'}>
           {
-            selectedIndex === 0 && <ConnectorSetting />
+            selectedIndex === 0 && <ConnectorSetting/>
           }
           {
-            selectedIndex === 1 && <FeedsSetting />
+            selectedIndex === 1 && <FeedsSetting/>
           }
           {
-            selectedIndex === 2 && <FoldersSetting />
+            selectedIndex === 2 && <FoldersSetting/>
+          }
+          {
+            selectedIndex === 3 && <GeneralSetting/>
+          }
+          {
+            selectedIndex === 4 && <AccountSetting/>
           }
         </div>
       </Box>

@@ -25,9 +25,9 @@ export const ConnectorSetting = () => {
   const api = SettingControllerApiFactory();
 
   const {
-    data: tokenResult,
+    data: githubSetting,
     refetch: refetchTokenResult,
-  } = useQuery(["github_token_check"], async () => (await api.isGithubPersonalTokenSetUsingGET()).data);
+  } = useQuery(["github_setting"], async () => (await api.getGitHubSettingUsingGET()).data);
 
   const {
     data: twitterSettings,
@@ -36,18 +36,45 @@ export const ConnectorSetting = () => {
 
   const formikGithub = useFormik({
     initialValues: {
-      githubPersonalToken: ''
+      ...(githubSetting || {
+        // name: 'GitHub',
+        // apiToken: '',
+        // enabled: true,
+        // fetchIntervalMinutes: 0,
+        // fetchPageSize: 0
+      })
     },
     validationSchema: yup.object({
-      githubPersonalToken: yup.string().required('Token is required.')
+      name: yup.string().required('Name is required.'),
+      apiToken: yup.string().nullable(),
+      enabled: yup.boolean().nullable(),
+      fetchIntervalMinutes: yup.number().min(1, "Fetch interval can't less than 1.").required('Fetch interval is required.'),
+      fetchPageSize: yup.number().min(1, "Fetch page size can't less than 1.").required('Fetch page size is required.')
     }),
     onSubmit: (values) => {
-      saveToken(values.githubPersonalToken)
-    }
+      saveGithubSetting(values)
+    },
+    enableReinitialize: true
   })
 
   function deleteToken() {
     saveToken("");
+  }
+
+  function saveGithubSetting(setting) {
+    api.saveGitHubSettingUsingPOST(setting).then(() => {
+      enqueueSnackbar(`GitHub connector setting save success.`, {
+        variant: "success",
+        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+      });
+    }).catch((err) => {
+      enqueueSnackbar('Github connector setting save failed. Error: ' + err, {
+        variant: "error",
+        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+      });
+    }).finally(() => {
+      refetchTokenResult();
+    });
   }
 
   function saveToken(token) {
@@ -92,21 +119,64 @@ export const ConnectorSetting = () => {
       <Divider/>
       <form onSubmit={formikGithub.handleSubmit}>
         {
-          tokenResult && tokenResult.data && <div className={'mt-4'}>
+          githubSetting && githubSetting.tokenSet && <div className={'mt-4'}>
             <Alert severity={'info'}>Token has been set.</Alert>
           </div>
         }
-        <TextField fullWidth={true} size={'small'} margin={'normal'}
+        <TextField fullWidth={true} size={'small'} margin={'dense'}
                    label={'Fine-grained personal access tokens'}
-                   id={'githubPersonalToken'} name={'githubPersonalToken'}
-                   value={formikGithub.values.githubPersonalToken}
+                   id={'apiToken'} name={'apiToken'}
+                   value={formikGithub.values.apiToken || ''}
                    onChange={formikGithub.handleChange}
-                   error={formikGithub.touched.githubPersonalToken && Boolean(formikGithub.errors.githubPersonalToken)}
-                   helperText={formikGithub.touched.githubPersonalToken && formikGithub.errors.githubPersonalToken}
+                   error={formikGithub.touched.apiToken && Boolean(formikGithub.errors.apiToken)}
+                   helperText={formikGithub.touched.apiToken && formikGithub.errors.apiToken}
         />
+        <div className={'flex items-center mb-2 mt-1'}>
+          <TextField size={'small'} margin={'dense'}
+                     className={'w-[200px]'}
+                     label={'Display name'}
+                     id={'name'} name={'name'}
+                     value={formikGithub.values.name || ''}
+                     onChange={formikGithub.handleChange}
+                     error={formikGithub.touched.name && Boolean(formikGithub.errors.name)}
+                     helperText={formikGithub.touched.name && formikGithub.errors.name}
+          />
+          <TextField
+            margin="dense"
+            className={'w-[200px] ml-2'}
+            id="fetchIntervalMinutes"
+            label="Fetch interval minutes"
+            value={formikGithub.values.fetchIntervalMinutes || 0}
+            onChange={formikGithub.handleChange}
+            error={formikGithub.touched.fetchIntervalMinutes && Boolean(formikGithub.errors.fetchIntervalMinutes)}
+            helperText={formikGithub.touched.fetchIntervalMinutes && formikGithub.errors.fetchIntervalMinutes}
+            type="number"
+            variant="outlined"
+            size={"small"}
+          />
+          <TextField
+            margin="dense"
+            className={'w-[200px] ml-2'}
+            id="fetchPageSize"
+            label="Fetch page size"
+            value={formikGithub.values.fetchPageSize || 0}
+            onChange={formikGithub.handleChange}
+            error={formikGithub.touched.fetchPageSize && Boolean(formikGithub.errors.fetchPageSize)}
+            helperText={formikGithub.touched.fetchPageSize && formikGithub.errors.fetchPageSize}
+            type="number"
+            variant="outlined"
+            size={"small"}
+          />
+          <FormControlLabel className={'ml-2'}
+                            control={<Checkbox value={true} name={'enabled'} onChange={formikGithub.handleChange}
+                                               checked={!!formikGithub.values.enabled}/>
+                            }
+                            label="Enable"/>
+        </div>
+
         <Button color={'primary'} variant={'contained'} size={'medium'} type={'submit'}>Save</Button>
         {
-          tokenResult && tokenResult.data &&
+          githubSetting && githubSetting.tokenSet &&
           <Button color={'warning'} variant={'contained'} size={'medium'} type={'button'} sx={{ml: 2}}
                   onClick={showDeleteDialog}>Delete Token</Button>
         }

@@ -47,6 +47,9 @@ public class Connector implements Serializable {
     @Column(name = "fetch_interval_seconds")
     private Integer fetchIntervalSeconds;
 
+    @Column(name = "fetch_page_size")
+    private Integer fetchPageSize;
+
     @Column(name = "last_fetch_begin_at")
     private Instant lastFetchBeginAt;
 

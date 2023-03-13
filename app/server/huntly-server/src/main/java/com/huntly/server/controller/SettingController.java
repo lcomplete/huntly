@@ -6,9 +6,12 @@ import com.huntly.common.exceptions.RequestVerifyException;
 import com.huntly.common.util.XmlUtils;
 import com.huntly.interfaces.external.dto.PreviewFeedsInfo;
 import com.huntly.interfaces.external.model.FeedsSetting;
+import com.huntly.interfaces.external.model.GitHubSetting;
+import com.huntly.interfaces.external.model.LoginRequest;
 import com.huntly.server.connector.rss.FeedUtils;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.Folder;
+import com.huntly.server.domain.entity.GlobalSetting;
 import com.huntly.server.domain.entity.TwitterUserSetting;
 import com.huntly.server.service.*;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +21,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.security.Principal;
 import java.util.List;
 
 /**
@@ -36,12 +40,18 @@ public class SettingController {
 
     private final FolderService folderService;
 
-    public SettingController(TwitterUserSettingService twitterUserSettingService, ConnectorService connectorService, OPMLService opmlService, FeedsService feedsService, FolderService folderService) {
+    private final UserService userService;
+    
+    private final GlobalSettingService globalSettingService;
+
+    public SettingController(TwitterUserSettingService twitterUserSettingService, ConnectorService connectorService, OPMLService opmlService, FeedsService feedsService, FolderService folderService, UserService userService, GlobalSettingService globalSettingService) {
         this.twitterUserSettingService = twitterUserSettingService;
         this.connectorService = connectorService;
         this.opmlService = opmlService;
         this.feedsService = feedsService;
         this.folderService = folderService;
+        this.userService = userService;
+        this.globalSettingService = globalSettingService;
     }
 
     @PostMapping("github/save-token")
@@ -52,6 +62,16 @@ public class SettingController {
     @GetMapping("github/is-token-set")
     public ApiResult<Boolean> isGithubPersonalTokenSet() {
         return ApiResult.ok(connectorService.isGithubPersonalTokenSet());
+    }
+
+    @GetMapping("github/setting")
+    public GitHubSetting getGitHubSetting() {
+        return connectorService.getGitHubSetting();
+    }
+
+    @PostMapping("github/saveSetting")
+    public Connector saveGitHubSetting(@RequestBody GitHubSetting gitHubSetting) {
+        return connectorService.saveGitHubSetting(gitHubSetting);
     }
 
     @GetMapping("twitter/UserSettings")
@@ -84,7 +104,7 @@ public class SettingController {
     public PreviewFeedsInfo previewFeeds(@RequestParam String subscribeUrl) {
         return feedsService.previewFeeds(subscribeUrl);
     }
-    
+
     @GetMapping("feeds/setting")
     public FeedsSetting getFeedsSetting(@RequestParam Integer connectorId) {
         return feedsService.getFeedsSetting(connectorId);
@@ -94,7 +114,7 @@ public class SettingController {
     public Connector followFeed(@RequestParam String subscribeUrl) {
         return feedsService.followFeed(subscribeUrl);
     }
-    
+
     @PostMapping("feeds/delete")
     public void deleteFeed(@RequestParam Integer connectorId) {
         feedsService.delete(connectorId);
@@ -136,5 +156,20 @@ public class SettingController {
     @PostMapping("feeds/resort")
     public void resortConnectors(@RequestBody List<Integer> connectorIds) {
         connectorService.resortConnectors(connectorIds);
+    }
+
+    @PostMapping("user/updateLoginUser")
+    public void updateLoginUser(@RequestBody LoginRequest loginRequest, Principal principal) {
+        userService.updateLoginUser(loginRequest, principal.getName());
+    }
+
+    @GetMapping("general/globalSetting")
+    public GlobalSetting getGlobalSetting() {
+        return globalSettingService.getGlobalSetting();
+    }
+    
+    @PostMapping("general/saveGlobalSetting")
+    public GlobalSetting saveGlobalSetting(@RequestBody GlobalSetting globalSetting) {
+        return globalSettingService.saveGlobalSetting(globalSetting);
     }
 }

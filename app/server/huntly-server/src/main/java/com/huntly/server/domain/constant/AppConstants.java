@@ -18,4 +18,5 @@ public class AppConstants {
     public static final Integer DEFAULT_CONNECTOR_FETCH_CORE_POOL_SIZE = 3;
 
     public static final Integer DEFAULT_CONNECTOR_FETCH_MAX_POOL_SIZE = 30;
+    public static final Integer GITHUB_DEFAULT_FETCH_PAGE_SIZE = 20;
 }

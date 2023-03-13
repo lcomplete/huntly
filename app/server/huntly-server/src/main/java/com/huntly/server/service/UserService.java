@@ -1,6 +1,7 @@
 package com.huntly.server.service;
 
 import com.huntly.common.exceptions.BusinessException;
+import com.huntly.interfaces.external.model.LoginRequest;
 import com.huntly.server.domain.entity.User;
 import com.huntly.server.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,5 +46,14 @@ public class UserService {
 
     public Boolean isUserSet() {
         return !userRepository.findAll().isEmpty();
+    }
+
+    public void updateLoginUser(LoginRequest loginRequest, String currentUsername) {
+        userRepository.findByUsername(currentUsername).ifPresent(user->{
+            user.setUsername(loginRequest.getUsername());
+            user.setPassword(encoder.encode(loginRequest.getPassword()));
+            user.setUpdatedAt(Instant.now());
+            userRepository.save(user);
+        });
     }
 }
