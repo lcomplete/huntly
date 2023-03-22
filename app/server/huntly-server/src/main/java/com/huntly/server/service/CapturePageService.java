@@ -187,7 +187,7 @@ public class CapturePageService extends BasePageService {
         if (capturePage.getConnectorId() == null) {
             String urlWithoutHash = getUrlWithoutHash(url);
             if (!Objects.equals(urlWithoutHash, url)) {
-                var pageWithoutHash = pageRepository.findByUrlWithoutHash(urlWithoutHash);
+                var pageWithoutHash = pageRepository.findTop1ByUrlWithoutHash(urlWithoutHash);
                 AtomicBoolean maybeSamePage = new AtomicBoolean(false);
                 pageWithoutHash.ifPresent(p -> {
                     maybeSamePage.set(p.getTitle().equals(capturePage.getTitle())

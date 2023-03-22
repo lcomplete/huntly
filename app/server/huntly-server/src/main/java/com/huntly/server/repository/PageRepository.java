@@ -20,9 +20,9 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
 
     Optional<Page> findByUrl(String url);
     
-    Optional<Page> findByPageUniqueId(String pageUniqueId);
+    Optional<Page> findTop1ByPageUniqueId(String pageUniqueId);
     
-    Optional<Page> findByUrlWithoutHash(String urlWithoutHash);
+    Optional<Page> findTop1ByUrlWithoutHash(String urlWithoutHash);
 
     int countByConnectorIdAndMarkRead(Integer connectorId, Boolean markRead);
 

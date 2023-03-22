@@ -3,7 +3,6 @@ package com.huntly.server.service;
 import com.huntly.common.exceptions.NoSuchDataException;
 import com.huntly.interfaces.external.dto.PageOperateResult;
 import com.huntly.interfaces.external.model.LibrarySaveStatus;
-import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.Page;
 import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.event.EventPublisher;
@@ -13,7 +12,6 @@ import com.huntly.server.repository.PageRepository;
 import com.huntly.server.repository.SourceRepository;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -228,7 +226,7 @@ public class PageService extends BasePageService {
     }
 
     public Page recordReadTweetPage(String tweetId) {
-        var optPage = pageRepository.findByPageUniqueId(tweetId);
+        var optPage = pageRepository.findTop1ByPageUniqueId(tweetId);
         Page page = null;
         if (optPage.isPresent()) {
             page = optPage.get();
