@@ -33,10 +33,19 @@ public class GlobalSetting implements Serializable {
 
     @Column(name = "cold_data_keep_days")
     private Integer coldDataKeepDays;
+    
+    @Column(name = "open_api_key")
+    private String openApiKey;
+    
+    @Column(name = "auto_save_site_blacklists")
+    private String autoSaveSiteBlacklists;
 
     @Column(name = "created_at")
     private Instant createdAt;
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+    
+    @Transient
+    private Boolean changedOpenApiKey;
 }

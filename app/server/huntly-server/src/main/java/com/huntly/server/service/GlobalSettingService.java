@@ -27,6 +27,10 @@ public class GlobalSettingService {
         if (setting.getColdDataKeepDays() == null || setting.getColdDataKeepDays() <= 0) {
             setting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
         }
+        // if openApiKey is not blank, mask the string
+        if (StringUtils.isNotBlank(setting.getOpenApiKey())) {
+            setting.setOpenApiKey(StringUtils.repeat("*", setting.getOpenApiKey().length()));
+        }
         return setting;
     }
 
@@ -56,6 +60,10 @@ public class GlobalSettingService {
         dbSetting.setProxyPort(globalSetting.getProxyPort());
         dbSetting.setEnableProxy(globalSetting.getEnableProxy());
         dbSetting.setColdDataKeepDays(Optional.of(globalSetting.getColdDataKeepDays()).orElse(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS));
+        dbSetting.setAutoSaveSiteBlacklists(globalSetting.getAutoSaveSiteBlacklists());
+        if (Boolean.TRUE.equals(globalSetting.getChangedOpenApiKey())) {
+            dbSetting.setOpenApiKey(globalSetting.getOpenApiKey());
+        }
         dbSetting.setUpdatedAt(globalSetting.getUpdatedAt());
         return settingRepository.save(dbSetting);
     }
