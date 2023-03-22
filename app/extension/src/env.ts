@@ -1,0 +1,1 @@
+export const isDebugging = /dev/.test(process.env.NODE_ENV || '')

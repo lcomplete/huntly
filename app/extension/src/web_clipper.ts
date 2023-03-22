@@ -1,37 +1,42 @@
 import {isProbablyReaderable, Readability} from "@mozilla/readability";
 import {findSmallestFaviconUrl, getBaseURI, isNotBlank, toAbsoluteURI} from "./utils";
+import {log} from "./logger";
 
-console.log("web clipper script loaded");
+log("web clipper script loaded");
 
 chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
-  if (document.domain === "twitter.com") { //todo check more blacklist
+  if (document.domain === "twitter.com") {
     return;
   }
-  if (msg.type === "tab_complete") {
-    setTimeout(() => {
-      const webClipper = new WebClipper()
-      webClipper.trySavePureRead();
-    }, 2000);
+  if (msg.type !== "tab_complete") {
+    return;
   }
+  timeoutSavePureRead();
 });
+
+function timeoutSavePureRead() {
+  setTimeout(() => {
+    const webClipper = new WebClipper()
+    webClipper.trySavePureRead(true);
+  }, 2000);
+}
 
 class WebClipper {
 
-  trySavePureRead() {
+  trySavePureRead(autoSave = false) {
     if (!this.isMaybeReadable()) {
       return;
     }
 
-    this.savePureRead();
+    this.savePureRead(autoSave);
   }
 
   isMaybeReadable() {
     const huntlyMeta = document.querySelector("meta[data-huntly='1']"); // exclude huntly web app
-    // return !huntlyMeta && isProbablyReaderable(document, {minScore: 40, minContentLength: 40});
-    return !huntlyMeta;
+    return !huntlyMeta && isProbablyReaderable(document, {minScore: 20, minContentLength: 40});
   }
 
-  savePureRead() {
+  savePureRead(autoSave = false) {
     const documentClone = document.cloneNode(true) as Document;
     const baseURI = getBaseURI(documentClone);
     const documentURI = documentClone.documentURI;
@@ -71,15 +76,17 @@ class WebClipper {
         faviconUrl: faviconUrl || "",
       }
 
-      chrome.runtime.sendMessage<Message>({
-        type: "save_clipper",
-        payload: page
-      });
+      if (this.verifyPage(page)) {
+        chrome.runtime.sendMessage<Message>({
+          type: autoSave ? "auto_save_clipper" : "save_clipper",
+          payload: page
+        });
+      }
     }
   }
 
   verifyPage(page: PageModel) {
-    const isPageValid = isNotBlank(page.title) && isNotBlank(page.content) && isNotBlank(page.url) && page.thumbUrl && isNotBlank(page.description);
+    const isPageValid = isNotBlank(page.title) && isNotBlank(page.content) && isNotBlank(page.url) && isNotBlank(page.description);
     return isPageValid;
   }
 

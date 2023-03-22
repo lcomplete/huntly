@@ -1,4 +1,5 @@
 import {RequestInterceptor} from "./request_interceptor";
+import {log} from "./logger";
 
 
 //region settings
@@ -44,7 +45,7 @@ const siteInterceptorSettings: { [domain: string]: InterceptorSetting[] } = {
             }
           }
         } catch (e) {
-          console.log("userInfo intercept failed, error: " + e);
+          log("userInfo intercept failed, error: " + e);
         }
       }
       let browserScreenName = '';

@@ -13,6 +13,19 @@ export async function postData(baseUrl, url = '', data = {}) {
   return response.text(); // parses JSON response into native JavaScript objects
 }
 
+export async function getData(baseUrl, url = '') {
+  // Default options are marked with *
+  const response = await fetch(baseUrl + url, {
+    method: 'get', // *GET, POST, PUT, DELETE, etc.
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  });
+  return response.text(); // parses JSON response into native JavaScript objects
+}
+
 export function toAbsoluteURI(uri: string, baseURI: string, documentURI: string) {
   // Leave hash links alone if the base URI matches the document URI:
   if (baseURI == documentURI && uri.charAt(0) == "#") {
