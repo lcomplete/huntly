@@ -6,11 +6,12 @@ import * as yup from "yup";
 import Typography from "@mui/material/Typography";
 import {Button, Checkbox, Divider, FormControlLabel, TextField} from "@mui/material";
 import React from "react";
-import Alert from "@mui/material/Alert";
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 export default function GeneralSetting() {
   const {enqueueSnackbar} = useSnackbar();
   const api = SettingControllerApiFactory();
+  const [needChangeOpenApiKey,setNeedChangeOpenApiKey] = React.useState(false);
 
   const {
     data: globalSetting
@@ -23,11 +24,16 @@ export default function GeneralSetting() {
     },
     validationSchema: yup.object({
       proxyHost: yup.string().nullable(),
-      proxyPort: yup.number().nullable().min(1,'Proxy port can\'t less than 1'),
+      proxyPort: yup.number().nullable().min(1, 'Proxy port can\'t less than 1'),
       coldDataKeepDays: yup.number().min(1, 'Cold data retention days can\'t less than 1'),
       enableProxy: yup.boolean().nullable(),
+      openApiKey: yup.string().nullable(),
+      autoSaveSiteBlacklists: yup.string().nullable()
     }),
     onSubmit: async (values) => {
+      if(values.openApiKey!==formikGeneral.initialValues.openApiKey){
+        values.changedOpenApiKey = true;
+      }
       api.saveGlobalSettingUsingPOST(values).then((res) => {
         enqueueSnackbar('General setting save success.', {
           variant: "success",
@@ -50,7 +56,6 @@ export default function GeneralSetting() {
       <Divider/>
       <div className={'mt-3 flex items-center'}>
         <TextField
-          autoFocus
           margin="dense"
           size={"small"}
           className={'w-[200px]'}
@@ -82,14 +87,12 @@ export default function GeneralSetting() {
                           }
                           label="Enable"/>
       </div>
+
       <Typography variant={'h6'} className={'mt-4'}>
         Automation
       </Typography>
       <Divider/>
-      <div className={'mt-2 mb-2'}>
-        <Alert severity={"info"}>Browser history articles not saved to the library</Alert>
-      </div>
-      <div className={'mt-2'}>
+      <div className={'mt-2 flex items-center'}>
         <TextField
           margin="dense"
           className={'w-[200px]'}
@@ -103,7 +106,66 @@ export default function GeneralSetting() {
           variant="outlined"
           size={"small"}
         />
+        <div className={'flex items-center text-gray-400 ml-2'}>
+          <HelpOutlineIcon/>
+          Cold data: Unsaved browser history articles.
+        </div>
       </div>
+
+      <Typography variant={'h6'} className={'mt-4'}>
+        OpenApi
+      </Typography>
+      <Divider/>
+
+      <div className={'mt-2 flex items-center'}>
+        <TextField
+          margin="dense"
+          size={"small"}
+          fullWidth={true}
+          className={''}
+          id="openApiKey"
+          label="OpenApi secret key, used to generate article summaries"
+          value={formikGeneral.values.openApiKey || ""}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.openApiKey && Boolean(formikGeneral.errors.openApiKey)}
+          helperText={formikGeneral.touched.openApiKey && formikGeneral.errors.openApiKey}
+          type="text"
+          variant="outlined"
+          disabled={(formikGeneral.initialValues.openApiKey && formikGeneral.initialValues.openApiKey.length > 0) && !needChangeOpenApiKey}
+        />
+        {
+          formikGeneral.initialValues.openApiKey && formikGeneral.initialValues.openApiKey.length > 0 &&
+          <div>
+            <Button onClick={()=>{setNeedChangeOpenApiKey(true)}}>Change</Button>
+          </div>
+        }
+      </div>
+
+      <Typography variant={'h6'} className={'mt-4'}>
+        Website Blacklist
+      </Typography>
+      <Divider/>
+
+      <div className={'mt-2 flex items-center'}>
+        <TextField
+          margin="dense"
+          size={"small"}
+          fullWidth={true}
+          className={''}
+          id="autoSaveSiteBlacklists"
+          label="Blacklist, Prevent automatic saving, One per line, supports regular expressions."
+          value={formikGeneral.values.autoSaveSiteBlacklists || ""}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.autoSaveSiteBlacklists && Boolean(formikGeneral.errors.autoSaveSiteBlacklists)}
+          helperText={formikGeneral.touched.autoSaveSiteBlacklists && formikGeneral.errors.autoSaveSiteBlacklists}
+          type="text"
+          multiline={true}
+          rows={6}
+          variant="outlined"
+          disabled={formikGeneral.initialValues.openApiKey && formikGeneral.initialValues.openApiKey.length > 0}
+        />
+      </div>
+
       <div className={'mt-2'}>
         <Button
           type="submit"
