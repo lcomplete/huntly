@@ -162,7 +162,6 @@ export default function GeneralSetting() {
           multiline={true}
           rows={6}
           variant="outlined"
-          disabled={formikGeneral.initialValues.openApiKey && formikGeneral.initialValues.openApiKey.length > 0}
         />
       </div>
 
