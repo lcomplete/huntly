@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.4.2",
+    "baseui": "^12.2.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
