@@ -5,6 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * @author lcomplete
+ */
 @Component
 @Slf4j
 public class TweetTrackTask {
@@ -14,7 +17,7 @@ public class TweetTrackTask {
         this.tweetTrackService = tweetTrackService;
     }
     
-    @Scheduled(initialDelay = 1000 * 5, fixedRate = 1000 * 10)
+    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 10)
     public void trackRead() {
         tweetTrackService.trackNotSetReads();
     }

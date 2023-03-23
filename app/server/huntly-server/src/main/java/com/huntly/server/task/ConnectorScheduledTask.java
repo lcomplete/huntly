@@ -17,7 +17,7 @@ public class ConnectorScheduledTask {
         this.connectorFetchService = connectorFetchService;
     }
 
-    @Scheduled(initialDelay = 1000 * 5, fixedRate = 1000 * 60)
+    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 60)
     public void connectorFetchPages() {
         connectorFetchService.fetchAllConnectPages();
     }

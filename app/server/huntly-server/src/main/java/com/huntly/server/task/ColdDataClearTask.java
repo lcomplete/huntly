@@ -24,7 +24,7 @@ public class ColdDataClearTask {
         this.pageService = pageService;
     }
 
-    @Scheduled(initialDelay = 1000 * 10, fixedRate = 1000 * 60)
+    @Scheduled(initialDelay = 1000 * 10, fixedDelay = 1000 * 60)
     public void autoClearColdData() {
         log.info("auto clear cold data");
         GlobalSetting setting = settingService.getGlobalSetting();
