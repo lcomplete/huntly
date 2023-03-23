@@ -7,7 +7,6 @@ import {useSnackbar} from "notistack";
 import {useQuery} from "@tanstack/react-query";
 import {AuthControllerApiFactory, SettingControllerApiFactory} from "../../api";
 import LogoutIcon from '@mui/icons-material/Logout';
-import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 
 export default function AccountSetting() {
   const {enqueueSnackbar} = useSnackbar();
