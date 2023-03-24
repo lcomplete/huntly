@@ -37,26 +37,27 @@ function getServerUrl(callback) {
 }
 
 function checkBlacklist(serverBaseUri, sender, thenDo) {
-  getData(serverBaseUri, "setting/general/globalSetting").then((data) => {
-    const jsonData = JSON.parse(data);
-    const blacklist = jsonData.autoSaveSiteBlacklists != null ? jsonData.autoSaveSiteBlacklists.split("\n") : [];
-    // if current url is match blacklist regex, do not save
-    for (let i = 0; i < blacklist.length; i++) {
-      let regexStr = blacklist[i];
-      if (!regexStr.startsWith("^")) {
-        regexStr = "^" + regexStr;
+  getData(serverBaseUri, "setting/general/blacklist").then((data) => {
+    if (data) {
+      const jsonData = JSON.parse(data);
+      const blacklist = jsonData != null ? jsonData.split("\n") : [];
+      // if current url is match blacklist regex, do not save
+      for (let i = 0; i < blacklist.length; i++) {
+        let regexStr = blacklist[i];
+        if (!regexStr.startsWith("^")) {
+          regexStr = "^" + regexStr;
+        }
+        if (!regexStr.endsWith("$")) {
+          regexStr = regexStr + "$";
+        }
+        const regex = new RegExp(regexStr);
+        if (regex.test(sender.url)) {
+          log("current url is match blacklist regex, do not save", sender.url, blacklist[i]);
+          return;
+        }
       }
-      if (!regexStr.endsWith("$")) {
-        regexStr = regexStr + "$";
-      }
-      const regex = new RegExp(regexStr);
-      if (regex.test(sender.url)) {
-        log("current url is match blacklist regex, do not save", sender.url, blacklist[i]);
-        return;
-      }
-
-      thenDo();
     }
+    thenDo();
   });
 }
 
@@ -72,7 +73,14 @@ function autoSaveArticle(url, data, sender) {
   getServerUrl((serverBaseUri) => {
     checkBlacklist(serverBaseUri, sender, () => {
       postData(serverBaseUri, url, data).then(r => {
-        log("save success", r);
+        log("send data success", r);
+        if (r) {
+          const resp = JSON.parse(r);
+          chrome.tabs.sendMessage(sender.tab.id, {
+            type: "save_clipper_success",
+            payload: {id: resp.data}
+          })
+        }
       });
     });
   })

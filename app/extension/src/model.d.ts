@@ -17,6 +17,6 @@ interface PageModel {
 }
 
 interface Message {
-	type: "auto_save_clipper" | "save_clipper" | 'tab_complete' | 'auto_save_tweets' | 'read_tweet',
+	type: "auto_save_clipper" | "save_clipper" | 'tab_complete' | 'auto_save_tweets' | 'read_tweet' | 'parse_doc' | 'save_clipper_success',
 	payload?: object
 }
