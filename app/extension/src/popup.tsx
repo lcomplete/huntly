@@ -3,11 +3,11 @@ import ReactDOM from "react-dom";
 import './popup.css';
 import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import {Alert, Box, Button, CircularProgress, IconButton} from "@mui/material";
+import {Alert, Button, CircularProgress, IconButton, Tooltip} from "@mui/material";
 import {readSyncStorageSettings, StorageSettings} from "./storage";
 import {Options} from "./options";
 import {combineUrl, getData} from "./utils";
-import {log} from "./logger";
+import PersonPinIcon from '@mui/icons-material/PersonPin';
 
 const Popup = () => {
   const [storageSettings, setStorageSettings] = useState<StorageSettings>(null);
@@ -57,6 +57,10 @@ const Popup = () => {
     chrome.tabs.create({url: combineUrl(storageSettings.serverUrl, "/signin")});
   }
 
+  function openHuntly() {
+    chrome.tabs.create({url: storageSettings.serverUrl});
+  }
+
   return (
     <div style={{minWidth: "450px", minHeight: '200px'}}>
       <div className={'commonPadding header'}>
@@ -70,7 +74,14 @@ const Popup = () => {
             </div>
           }
         </div>
-        <div className={''}>
+        <div className={'flex items-center'}>
+          {
+            !loadingUser && username && <Tooltip title={'You are signed in.'} placement={'bottom'}>
+              <IconButton onClick={openHuntly}>
+                <PersonPinIcon className={'text-sky-600'}/>
+              </IconButton>
+            </Tooltip>
+          }
           <IconButton onClick={toggleShowOptions}>
             <SettingsOutlinedIcon className={'text-sky-600'}/>
           </IconButton>
@@ -98,7 +109,7 @@ const Popup = () => {
             {
               !loadingUser && !username && <div>
                 <div className={'mt-5'}>
-                  <Alert severity={'info'}>Please log in to start.</Alert>
+                  <Alert severity={'info'}>Please sign in to start.</Alert>
                 </div>
                 <div className={'mt-5 mb-10'}>
                   <Button fullWidth={true} color={"primary"} variant={'contained'} onClick={openSignIn}>Sign In</Button>
