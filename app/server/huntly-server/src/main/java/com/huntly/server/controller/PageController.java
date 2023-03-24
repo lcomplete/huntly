@@ -42,8 +42,9 @@ public class PageController {
     }
 
     @PostMapping("save")
-    public Page savePage(@Valid @RequestBody CapturePage capturePage) {
-        return capturePageService.save(capturePage);
+    public ApiResult<Long> savePage(@Valid @RequestBody CapturePage capturePage) {
+        var page =  capturePageService.save(capturePage);
+        return ApiResult.ok(page.getId());
     }
 
     @GetMapping("list")

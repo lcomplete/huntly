@@ -41,7 +41,7 @@ public class SettingController {
     private final FolderService folderService;
 
     private final UserService userService;
-    
+
     private final GlobalSettingService globalSettingService;
 
     public SettingController(TwitterUserSettingService twitterUserSettingService, ConnectorService connectorService, OPMLService opmlService, FeedsService feedsService, FolderService folderService, UserService userService, GlobalSettingService globalSettingService) {
@@ -167,7 +167,13 @@ public class SettingController {
     public GlobalSetting getGlobalSetting() {
         return globalSettingService.getGlobalSetting();
     }
-    
+
+    @GetMapping("general/blacklist")
+    public String getBlacklist() {
+        var globalSetting = globalSettingService.getGlobalSetting();
+        return globalSetting != null && globalSetting.getAutoSaveSiteBlacklists() != null ? globalSetting.getAutoSaveSiteBlacklists() : "";
+    }
+
     @PostMapping("general/saveGlobalSetting")
     public GlobalSetting saveGlobalSetting(@RequestBody GlobalSetting globalSetting) {
         return globalSettingService.saveGlobalSetting(globalSetting);
