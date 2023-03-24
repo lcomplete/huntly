@@ -1,63 +1,123 @@
 import React, {useEffect, useState} from "react";
 import ReactDOM from "react-dom";
+import './popup.css';
+import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import {Alert, Box, Button, CircularProgress, IconButton} from "@mui/material";
+import {readSyncStorageSettings, StorageSettings} from "./storage";
+import {Options} from "./options";
+import {combineUrl, getData} from "./utils";
+import {log} from "./logger";
 
 const Popup = () => {
-  const [serverUrl, setServerUrl] = useState<string>("");
+  const [storageSettings, setStorageSettings] = useState<StorageSettings>(null);
+  const [showOptions, setShowOptions] = useState(false);
+  const [username, setUsername] = useState<string>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
-    // Restores select box and checkbox state using the preferences
-    // stored in chrome.storage.
-    chrome.storage.sync.get(
-      {
-        serverUrl: "",
-      },
-      (items) => {
-        setServerUrl(items.serverUrl);
-      }
-    );
+    readSyncStorageSettings().then((settings) => {
+      setSettingsState(settings);
+    });
   }, []);
 
-  function goToOptions() {
-    chrome.runtime.openOptionsPage();
+  function setSettingsState(settings: StorageSettings) {
+    setStorageSettings(settings);
+    if (!settings.serverUrl) {
+      setShowOptions(true);
+    } else {
+      setLoadingUser(true);
+      getData(settings.serverUrl, "api/auth/loginUserInfo").then((data) => {
+        const result = JSON.parse(data);
+        setUsername(result.username);
+      }).catch(() => {
+        setUsername(null);
+      }).finally(() => {
+        setLoadingUser(false);
+      });
+    }
   }
 
-  function openHuntly() {
-    chrome.tabs.create({'url': serverUrl})
+  function toggleShowOptions() {
+    setShowOptions(!showOptions);
+    // chrome.runtime.openOptionsPage();
+  }
+
+  function getDomain(serverUrl: string) {
+    const url = new URL(serverUrl);
+    return url.hostname;
+  }
+
+  function handleOptionsChange(settings: StorageSettings) {
+    setShowOptions(false);
+    setSettingsState(settings);
+  }
+
+  function openSignIn() {
+    chrome.tabs.create({url: combineUrl(storageSettings.serverUrl, "/signin")});
   }
 
   return (
-    <div style={{minWidth: "300px", minHeight: '100px', paddingTop: '10px', textAlign: "center"}}>
-      {
-        serverUrl && <div>
-              <div>
-                  Server URL: {serverUrl}
-              </div>
-              <div style={{marginTop: '10px'}}>
-                  <button
-                      onClick={openHuntly}
-                      style={{marginRight: "5px"}}
-                  >
-                      Open Huntly
-                  </button>
-              </div>
-          </div>
-      }
+    <div style={{minWidth: "450px", minHeight: '200px'}}>
+      <div className={'commonPadding header'}>
+        <div className="flex items-center text-sky-600 font-bold">
+          <EnergySavingsLeafIcon className="h-4 w-4 mr-1"/>
+          Huntly
+          {
+            storageSettings && storageSettings.serverUrl && <div>
+              <a className={'ml-1 text-sm text-sky-500 no-underline hover:underline'} href={storageSettings.serverUrl}
+                 target={"_blank"}>{getDomain(storageSettings.serverUrl)} &gt;</a>
+            </div>
+          }
+        </div>
+        <div className={''}>
+          <IconButton onClick={toggleShowOptions}>
+            <SettingsOutlinedIcon className={'text-sky-600'}/>
+          </IconButton>
+        </div>
+      </div>
 
-      {
-        !serverUrl && <div>
-              <div>Huntly server url is not set yet.</div>
-              <div style={{marginTop: '10px'}}>
-                  <button onClick={goToOptions}>Set server url</button>
-              </div>
+      <div className={'commonPadding'}>
+        {
+          !storageSettings || !storageSettings.serverUrl && <div className={'mb-2'}>
+            <Alert severity={'info'}>Please set the huntly server url first.</Alert>
           </div>
-      }
+        }
+        {
+          showOptions && <div>
+            <Options onOptionsChange={handleOptionsChange}></Options>
+          </div>
+        }
+        {
+          !showOptions && <div>
+            {
+              loadingUser && <div className={'flex justify-center items-center h-[120px]'}>
+                <CircularProgress/>
+              </div>
+            }
+            {
+              !loadingUser && !username && <div>
+                <div className={'mt-5'}>
+                  <Alert severity={'info'}>Please log in to start.</Alert>
+                </div>
+                <div className={'mt-5 mb-10'}>
+                  <Button fullWidth={true} color={"primary"} variant={'contained'} onClick={openSignIn}>Sign In</Button>
+                </div>
+              </div>
+            }
+            {
+              !loadingUser && username && <div>
+
+              </div>
+            }
+          </div>
+        }
+      </div>
     </div>
   );
 };
 
 ReactDOM.render(
-  <React.StrictMode>
-    <Popup/>
-  </React.StrictMode>,
+  <Popup/>,
   document.getElementById("root")
 );

@@ -1,6 +1,7 @@
 export async function postData(baseUrl, url = '', data = {}) {
+  const fullUrl = combineUrl(baseUrl, url);
   // Default options are marked with *
-  const response = await fetch(baseUrl + url, {
+  const response = await fetch(fullUrl, {
     method: 'POST', // *GET, POST, PUT, DELETE, etc.
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
     credentials: 'same-origin', // include, *same-origin, omit
@@ -13,9 +14,20 @@ export async function postData(baseUrl, url = '', data = {}) {
   return response.text(); // parses JSON response into native JavaScript objects
 }
 
+export function combineUrl(baseUrl, url) {
+  if (!baseUrl.endsWith("/")) {
+    baseUrl = baseUrl + '/';
+  }
+  if (url.startsWith("/")) {
+    url = url.substring(1);
+  }
+  return baseUrl + url;
+}
+
 export async function getData(baseUrl, url = '') {
+  const fullUrl = combineUrl(baseUrl, url);
   // Default options are marked with *
-  const response = await fetch(baseUrl + url, {
+  const response = await fetch(fullUrl, {
     method: 'get', // *GET, POST, PUT, DELETE, etc.
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
     credentials: 'same-origin', // include, *same-origin, omit

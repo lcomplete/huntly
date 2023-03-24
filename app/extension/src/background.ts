@@ -1,13 +1,18 @@
 import {getData, postData} from "./utils";
 import {log} from "./logger";
+import {readSyncStorageSettings} from "./storage";
 
 chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
   if (msg.type === "auto_save_clipper") {
     autoSaveArticle("page/save", msg.payload, sender);
   } else if (msg.type === "save_clipper") {
     sendData("page/save", msg.payload);
-  } else if (msg.type === 'save_tweets') {
-    sendData("tweet/saveTweets", msg.payload);
+  } else if (msg.type === 'auto_save_tweets') {
+    readSyncStorageSettings().then((settings) => {
+      if (settings.autoSaveTweet) {
+        sendData("tweet/saveTweets", msg.payload);
+      }
+    });
   } else if (msg.type === 'read_tweet') {
     sendData("tweet/trackRead", msg.payload);
   }

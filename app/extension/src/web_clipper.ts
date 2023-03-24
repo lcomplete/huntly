@@ -1,6 +1,7 @@
 import {isProbablyReaderable, Readability} from "@mozilla/readability";
 import {findSmallestFaviconUrl, getBaseURI, isNotBlank, toAbsoluteURI} from "./utils";
 import {log} from "./logger";
+import {readSyncStorageSettings} from "./storage";
 
 log("web clipper script loaded");
 
@@ -11,29 +12,41 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
   if (msg.type !== "tab_complete") {
     return;
   }
-  timeoutSavePureRead();
+  readSyncStorageSettings().then((settings) => {
+    if (settings.autoSaveEnabled) {
+      timeoutSavePureRead({minScore: settings.autoSaveMinScore, minContentLength: settings.autoSaveMinContentLength});
+    }
+  });
 });
 
-function timeoutSavePureRead() {
+type AutoSaveSetting = {
+  minScore: number,
+  minContentLength: number
+}
+
+function timeoutSavePureRead(saveSetting: AutoSaveSetting) {
   setTimeout(() => {
     const webClipper = new WebClipper()
-    webClipper.trySavePureRead(true);
+    webClipper.autoSavePureRead(saveSetting);
   }, 2000);
 }
 
 class WebClipper {
 
-  trySavePureRead(autoSave = false) {
-    if (!this.isMaybeReadable()) {
+  autoSavePureRead(saveSetting: AutoSaveSetting) {
+    if (!this.isMaybeReadable(saveSetting)) {
       return;
     }
 
-    this.savePureRead(autoSave);
+    this.savePureRead(true);
   }
 
-  isMaybeReadable() {
+  isMaybeReadable(saveSetting: AutoSaveSetting) {
     const huntlyMeta = document.querySelector("meta[data-huntly='1']"); // exclude huntly web app
-    return !huntlyMeta && isProbablyReaderable(document, {minScore: 20, minContentLength: 40});
+    return !huntlyMeta && isProbablyReaderable(document, {
+      minScore: saveSetting.minScore,
+      minContentLength: saveSetting.minContentLength
+    });
   }
 
   savePureRead(autoSave = false) {
@@ -77,6 +90,7 @@ class WebClipper {
       }
 
       if (this.verifyPage(page)) {
+        // pass auto_save_clipper flat to background script, so that it can check the blacklist
         chrome.runtime.sendMessage<Message>({
           type: autoSave ? "auto_save_clipper" : "save_clipper",
           payload: page
@@ -86,8 +100,7 @@ class WebClipper {
   }
 
   verifyPage(page: PageModel) {
-    const isPageValid = isNotBlank(page.title) && isNotBlank(page.content) && isNotBlank(page.url) && isNotBlank(page.description);
-    return isPageValid;
+    return isNotBlank(page.title) && isNotBlank(page.content) && isNotBlank(page.url) && isNotBlank(page.description);
   }
 
 }

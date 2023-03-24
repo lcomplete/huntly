@@ -1,15 +1,8 @@
-.formWrapper{
-    padding-bottom: 10px;
-}
-.formWrapper label {
-    width: 80px;
-    text-align: right;
-    display: inline-block;
-    margin-right: 4px;
-}
-.formWrapper input {
-    width: 240px;
-}
-.formWrapper button{
-    margin-top: 10px;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.formHeader {
+    @apply text-lg font-medium text-gray-700 pb-2 mb-2;
+    border-bottom: 1px solid #ccc;
 }

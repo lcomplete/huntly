@@ -53,7 +53,7 @@ const siteInterceptorSettings: { [domain: string]: InterceptorSetting[] } = {
         browserScreenName = document.location.pathname.split('/')[1];
       }
       window.postMessage({
-        type: 'save_tweets',
+        type: 'auto_save_tweets',
         payload: {category, jsonData: responseText, loginScreenName, browserScreenName}
       });
       trackSeenTweets();
