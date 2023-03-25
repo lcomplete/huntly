@@ -92,7 +92,9 @@ const Popup = () => {
         const tab = tabs[0];
         if (tab) {
           chrome.tabs.sendMessage(tab.id, {type: 'parse_doc'}, function (response) {
-            setPage(response.page);
+            if(response) {
+              setPage(response.page);
+            }
             loadPageOperateResult(autoSavedPageId, response.page.url);
           });
         }

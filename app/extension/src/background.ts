@@ -1,4 +1,3 @@
-import {getData, postData} from "./utils";
 import {log} from "./logger";
 import {readSyncStorageSettings} from "./storage";
 import {autoSaveArticle, saveArticle, sendData} from "./services";
