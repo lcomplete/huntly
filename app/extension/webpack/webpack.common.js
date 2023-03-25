@@ -9,7 +9,6 @@ module.exports = {
     options: path.join(srcDir, 'options.tsx'),
     background: path.join(srcDir, 'background.ts'),
     content_script: path.join(srcDir, 'content_script.tsx'),
-    request_interceptor: path.join(srcDir, 'request_interceptor.ts'),
     tweet_interceptor: path.join(srcDir, 'tweet_interceptor.ts'),
     web_clipper: path.join(srcDir, 'web_clipper.ts'),
   },

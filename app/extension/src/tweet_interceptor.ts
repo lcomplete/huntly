@@ -1,6 +1,6 @@
 import {RequestInterceptor} from "./request_interceptor";
-import {log} from "./logger";
 
+// do not import other modules here, because this file will be injected into the page
 
 //region settings
 type CategoryUrlPattern = {
@@ -45,7 +45,7 @@ const siteInterceptorSettings: { [domain: string]: InterceptorSetting[] } = {
             }
           }
         } catch (e) {
-          log("userInfo intercept failed, error: " + e);
+          console.log("userInfo intercept failed, error: " + e);
         }
       }
       let browserScreenName = '';

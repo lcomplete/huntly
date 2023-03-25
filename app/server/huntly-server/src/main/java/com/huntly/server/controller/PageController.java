@@ -6,6 +6,7 @@ import com.huntly.interfaces.external.dto.PageItem;
 import com.huntly.interfaces.external.dto.PageOperateResult;
 import com.huntly.interfaces.external.model.CapturePage;
 import com.huntly.interfaces.external.query.PageListQuery;
+import com.huntly.interfaces.external.query.PageQuery;
 import com.huntly.server.domain.entity.Page;
 import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.service.CapturePageService;
@@ -45,6 +46,11 @@ public class PageController {
     public ApiResult<Long> savePage(@Valid @RequestBody CapturePage capturePage) {
         var page =  capturePageService.save(capturePage);
         return ApiResult.ok(page.getId());
+    }
+
+    @GetMapping("pageOperateResult")
+    public PageOperateResult getPageOperateResult(PageQuery query){
+        return pageService.getPageOperateResult(query);
     }
 
     @GetMapping("list")

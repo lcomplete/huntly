@@ -1,12 +1,13 @@
 import {getData, postData} from "./utils";
 import {log} from "./logger";
 import {readSyncStorageSettings} from "./storage";
+import {autoSaveArticle, saveArticle, sendData} from "./services";
 
 chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
   if (msg.type === "auto_save_clipper") {
-    autoSaveArticle("page/save", msg.payload, sender);
+    autoSaveArticle(msg.payload).then(handleSaveArticleResponse);
   } else if (msg.type === "save_clipper") {
-    sendData("page/save", msg.payload);
+    saveArticle(msg.payload);
   } else if (msg.type === 'auto_save_tweets') {
     readSyncStorageSettings().then((settings) => {
       if (settings.autoSaveTweet) {
@@ -18,72 +19,15 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
   }
 });
 
-function getServerUrl(callback) {
-  chrome.storage.sync.get(
-    {
-      "serverUrl": "",
-    },
-    (items) => {
-      let serverUrl = items.serverUrl;
-      if (serverUrl && serverUrl.startsWith("http")) {
-        if (!serverUrl.endsWith("/")) {
-          serverUrl = serverUrl + "/"
-        }
-        const serverBaseUri = serverUrl + "api/";
-        callback(serverBaseUri);
-      }
-    }
-  );
-}
-
-function checkBlacklist(serverBaseUri, sender, thenDo) {
-  getData(serverBaseUri, "setting/general/blacklist").then((data) => {
-    if (data) {
-      const jsonData = JSON.parse(data);
-      const blacklist = jsonData != null ? jsonData.split("\n") : [];
-      // if current url is match blacklist regex, do not save
-      for (let i = 0; i < blacklist.length; i++) {
-        let regexStr = blacklist[i];
-        if (!regexStr.startsWith("^")) {
-          regexStr = "^" + regexStr;
-        }
-        if (!regexStr.endsWith("$")) {
-          regexStr = regexStr + "$";
-        }
-        const regex = new RegExp(regexStr);
-        if (regex.test(sender.url)) {
-          log("current url is match blacklist regex, do not save", sender.url, blacklist[i]);
-          return;
-        }
-      }
-    }
-    thenDo();
-  });
-}
-
-function sendData(url, data) {
-  getServerUrl((serverBaseUri) => {
-    postData(serverBaseUri, url, data).then(r => {
-      log("save success", r);
-    });
-  })
-}
-
-function autoSaveArticle(url, data, sender) {
-  getServerUrl((serverBaseUri) => {
-    checkBlacklist(serverBaseUri, sender, () => {
-      postData(serverBaseUri, url, data).then(r => {
-        log("send data success", r);
-        if (r) {
-          const resp = JSON.parse(r);
-          chrome.tabs.sendMessage(sender.tab.id, {
-            type: "save_clipper_success",
-            payload: {id: resp.data}
-          })
-        }
-      });
-    });
-  })
+function handleSaveArticleResponse(resp: string) {
+  log("save article result", resp);
+  if (resp) {
+    const json = JSON.parse(resp);
+    chrome.runtime.sendMessage({
+      type: "save_clipper_success",
+      payload: {id: json.data}
+    })
+  }
 }
 
 chrome.tabs.onUpdated.addListener(function (tabId: number, changeInfo, tab) {

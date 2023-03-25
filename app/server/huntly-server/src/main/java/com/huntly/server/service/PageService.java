@@ -3,6 +3,7 @@ package com.huntly.server.service;
 import com.huntly.common.exceptions.NoSuchDataException;
 import com.huntly.interfaces.external.dto.PageOperateResult;
 import com.huntly.interfaces.external.model.LibrarySaveStatus;
+import com.huntly.interfaces.external.query.PageQuery;
 import com.huntly.server.domain.entity.Page;
 import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.event.EventPublisher;
@@ -11,6 +12,7 @@ import com.huntly.server.repository.ConnectorRepository;
 import com.huntly.server.repository.PageRepository;
 import com.huntly.server.repository.SourceRepository;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -74,6 +76,9 @@ public class PageService extends BasePageService {
 
     private PageOperateResult toPageOperateResult(Page page) {
         var result = new PageOperateResult();
+        if (page == null) {
+            return result;
+        }
         result.setId(page.getId());
         result.setStarred(page.getStarred());
         result.setReadLater(page.getReadLater());
@@ -242,5 +247,16 @@ public class PageService extends BasePageService {
 
     public List<Long> getColdDataPageIds(Instant coldDataUpdateBefore, int limit) {
         return pageRepository.getColdDataPageIds(coldDataUpdateBefore, PageRequest.ofSize(limit));
+    }
+
+    public PageOperateResult getPageOperateResult(PageQuery query) {
+        Page page = null;
+        if (query.getId() != null && query.getId() > 0) {
+            page = pageRepository.findById(query.getId()).orElse(null);
+        }
+        if (page == null && StringUtils.isNotBlank(query.getUrl())) {
+            page = pageRepository.findTop1ByUrl(query.getUrl()).orElse(null);
+        }
+        return toPageOperateResult(page);
     }
 }

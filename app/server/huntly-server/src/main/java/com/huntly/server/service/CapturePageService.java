@@ -111,7 +111,7 @@ public class CapturePageService extends BasePageService {
     }
 
     public Page saveTweetPage(Page page, String loginScreenName, String browserScreenName) {
-        var existPage = pageRepository.findByUrl(page.getUrl());
+        var existPage = pageRepository.findTop1ByUrl(page.getUrl());
         if (existPage.isPresent()) {
             var currentPage = existPage.get();
             currentPage.setContent(page.getContent());
@@ -170,14 +170,14 @@ public class CapturePageService extends BasePageService {
         String url = capturePage.getUrl();
         url = guessMainUrl(url);
         capturePage.setUrl(url);
-        var page = pageRepository.findByUrl(url);
+        var page = pageRepository.findTop1ByUrl(url);
         if (page.isPresent()) {
             return page;
         }
 
         // check other protocol url
         String otherProtocolUrl = UrlUtils.isHttpUrl(url) ? UrlUtils.getHttpsUrl(url) : UrlUtils.getHttpUrl(url);
-        page = pageRepository.findByUrl(otherProtocolUrl);
+        page = pageRepository.findTop1ByUrl(otherProtocolUrl);
         if (page.isPresent()) {
             return page;
         }

@@ -6,6 +6,12 @@ import {readSyncStorageSettings} from "./storage";
 log("web clipper script loaded");
 
 chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
+  if (msg.type === "parse_doc") {
+    const webClipper = new WebClipper()
+    const page = webClipper.parseDoc(document.cloneNode(true) as Document);
+    sendResponse({page});
+    return;
+  }
   if (document.domain === "twitter.com") {
     return;
   }
@@ -30,8 +36,6 @@ function timeoutSavePureRead(saveSetting: AutoSaveSetting) {
     webClipper.autoSavePureRead(saveSetting);
   }, 2000);
 }
-
-let savedPageId = 0;
 
 export class WebClipper {
 
@@ -124,14 +128,3 @@ export class WebClipper {
   }
 
 }
-
-chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
-  log(msg)
-  if (msg.type === "parse_doc") {
-    const webClipper = new WebClipper()
-    const page = webClipper.parseDoc(document.cloneNode(true) as Document);
-    sendResponse({page, savedPageId});
-  } else if (msg.type === "save_clipper_success") {
-    savedPageId = msg.payload["id"];
-  }
-});

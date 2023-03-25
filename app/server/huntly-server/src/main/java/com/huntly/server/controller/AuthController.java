@@ -52,7 +52,6 @@ public class AuthController {
     private void addJwtToCookie(HttpServletResponse response, String jwt) {
         Cookie cookie = new Cookie(AppConstants.AUTH_TOKEN_COOKIE_NAME, jwt);
         cookie.setHttpOnly(true);
-        //cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setMaxAge(jwtUtils.getJwtExpirationSeconds());
         response.addCookie(cookie);

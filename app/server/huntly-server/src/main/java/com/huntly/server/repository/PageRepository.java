@@ -18,7 +18,7 @@ import java.util.Optional;
 @Repository
 public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificationExecutor<Page>, JpaSpecificationExecutorWithProjection<Page>, JpaRepositoryWithLimit<Page, Long> {
 
-    Optional<Page> findByUrl(String url);
+    Optional<Page> findTop1ByUrl(String url);
     
     Optional<Page> findTop1ByPageUniqueId(String pageUniqueId);
     

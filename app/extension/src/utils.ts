@@ -25,10 +25,18 @@ export function combineUrl(baseUrl, url) {
 }
 
 export async function getData(baseUrl, url = '') {
+  return fetchData("GET", baseUrl, url);
+}
+
+export async function deleteData(baseUrl, url = '') {
+  return fetchData("DELETE", baseUrl, url);
+}
+
+export async function fetchData(method, baseUrl, url = '') {
   const fullUrl = combineUrl(baseUrl, url);
   // Default options are marked with *
   const response = await fetch(fullUrl, {
-    method: 'get', // *GET, POST, PUT, DELETE, etc.
+    method: method, // *GET, POST, PUT, DELETE, etc.
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
     credentials: 'same-origin', // include, *same-origin, omit
     headers: {
