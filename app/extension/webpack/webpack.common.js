@@ -10,7 +10,7 @@ module.exports = {
     background: path.join(srcDir, 'background.ts'),
     content_script: path.join(srcDir, 'content_script.tsx'),
     tweet_interceptor: path.join(srcDir, 'tweet_interceptor.ts'),
-    web_clipper: path.join(srcDir, 'web_clipper.ts'),
+    web_clipper: path.join(srcDir, 'web_clipper.tsx'),
   },
   output: {
     path: path.join(__dirname, "../dist/js"),

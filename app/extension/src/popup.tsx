@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from "react";
 import ReactDOM from "react-dom";
+import { createRoot } from 'react-dom/client';
 import './popup.css';
 import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
@@ -15,11 +16,9 @@ import {
   Tooltip, Typography
 } from "@mui/material";
 import {readSyncStorageSettings, StorageSettings} from "./storage";
-import {Options} from "./options";
-import {combineUrl, getData} from "./utils";
+import {combineUrl} from "./utils";
 import PersonPinIcon from '@mui/icons-material/PersonPin';
 import ArticleIcon from '@mui/icons-material/Article';
-import DeleteIcon from '@mui/icons-material/Delete';
 import SendIcon from '@mui/icons-material/Send';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -43,6 +42,7 @@ import {
 } from "./services";
 import {LibrarySaveStatus} from "./model/librarySaveStatus";
 import {PageOperateResult} from "./model/pageOperateResult";
+import {Settings} from "./settings";
 
 const Popup = () => {
     const [storageSettings, setStorageSettings] = useState<StorageSettings>(null);
@@ -261,6 +261,16 @@ const Popup = () => {
       </div>;
     }
 
+    function articlePreview() {
+      chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        const tab = tabs[0];
+        if (tab) {
+          chrome.tabs.sendMessage(tab.id, {type: 'article_preview'}, function (response) {
+          });
+        }
+      });
+    }
+
     return (
       <div style={{minWidth: "600px", minHeight: '200px'}} className={'mb-4'}>
         <div className={'commonPadding header'}>
@@ -296,7 +306,7 @@ const Popup = () => {
           }
           {
             showOptions && <div className={'flex justify-center'}>
-              <Options onOptionsChange={handleOptionsChange}></Options>
+              <Settings onOptionsChange={handleOptionsChange}></Settings>
             </div>
           }
           {
@@ -425,6 +435,10 @@ const Popup = () => {
                           </CardContent>
                         </div>
                       </Card>
+                      <div className={'mt-2 flex justify-center'}>
+                        <Button variant={"text"} color={"info"} size={"small"} startIcon={<ArticleIcon/>}
+                                onClick={articlePreview}>Article Preview</Button>
+                      </div>
                     </div>
                   </div>
                   }
@@ -445,10 +459,12 @@ const Popup = () => {
   }
 ;
 
-ReactDOM.render(
+const root = createRoot(
+  document.getElementById("root") as HTMLElement
+);
+root.render(
   <StyledEngineProvider injectFirst>
     <CssBaseline/>
     <Popup/>
-  </StyledEngineProvider>,
-  document.getElementById("root")
+  </StyledEngineProvider>
 );

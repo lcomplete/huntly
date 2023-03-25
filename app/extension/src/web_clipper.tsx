@@ -2,6 +2,9 @@ import {isProbablyReaderable, Readability} from "@mozilla/readability";
 import {findSmallestFaviconUrl, getBaseURI, isNotBlank, toAbsoluteURI} from "./utils";
 import {log} from "./logger";
 import {readSyncStorageSettings} from "./storage";
+import React from "react";
+import Article from "./article";
+import {createRoot} from "react-dom/client";
 
 log("web clipper script loaded");
 
@@ -11,7 +14,27 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     const page = webClipper.parseDoc(document.cloneNode(true) as Document);
     sendResponse({page});
     return;
+  } else if (msg.type === 'article_preview') {
+    const webClipper = new WebClipper();
+    const page = webClipper.parseDoc(document.cloneNode(true) as Document);
+    const rootId = "huntly_preview_unique_root";
+    let elRoot = document.getElementById(rootId);
+    if (!elRoot) {
+      const elPreview = document.createElement("div");
+      elPreview.setAttribute("id", rootId);
+      document.body.append(elPreview);
+      elRoot = elPreview;
+    }
+    if (elRoot.getAttribute("data-preview") !== "1") {
+      elRoot.setAttribute("data-preview", "1");
+      const root = createRoot(elRoot);
+      root.render(
+        <Article page={page}/>
+      );
+    }
+    return;
   }
+
   if (document.domain === "twitter.com") {
     return;
   }
@@ -48,7 +71,7 @@ export class WebClipper {
   }
 
   hasHuntlyMeta(doc) {
-     // exclude huntly web app
+    // exclude huntly web app
     return doc.querySelector("meta[data-huntly='1']");
   }
 
