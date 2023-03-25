@@ -147,18 +147,6 @@ jobs:
           cd release
           zip -r huntly-client-${{ steps.get_version.outputs.version-without-v }}.zip ./huntly-client/*
           zip -r huntly-browser-extension-${{ steps.get_version.outputs.version-without-v }}.zip ./huntly-extension/*
-
-
-      - name: Upload server-build to release
-        id: upload-server-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: release/huntly-server.jar
-          asset_name: huntly-server-${{ steps.get_version.outputs.version-without-v }}.jar
-          asset_content_type: application/java-archive
       
       - name: Upload client-build to release
         id: upload-client-asset
@@ -181,3 +169,14 @@ jobs:
           asset_path: release/huntly-browser-extension-${{ steps.get_version.outputs.version-without-v }}.zip
           asset_name: huntly-browser-extension-${{ steps.get_version.outputs.version-without-v }}.zip
           asset_content_type: application/zip
+
+      - name: Upload server-build to release
+        id: upload-server-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: release/huntly-server.jar
+          asset_name: huntly-server-${{ steps.get_version.outputs.version-without-v }}.jar
+          asset_content_type: application/java-archive
