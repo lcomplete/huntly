@@ -18,16 +18,18 @@ export type ButtonOptions = {
 }
 
 type SubHeaderProps = {
-  navLabel: NavLabel
+  navLabel: NavLabel,
   onMarkListAsRead?: () => void,
   onMarkAllAsRead?: () => void,
   onRefresh?: () => void,
-  buttonOptions?: ButtonOptions
+  buttonOptions?: ButtonOptions,
+  navLabelArea?: ReactElement
 }
 
 const SubHeader = (props: SubHeaderProps) => {
   const {
     navLabel,
+    navLabelArea,
     onMarkListAsRead,
     onMarkAllAsRead,
     onRefresh
@@ -38,62 +40,67 @@ const SubHeader = (props: SubHeaderProps) => {
   return <div className={'subheader w-full'}>
     <div className={'flex content-between border-b-gray-500 pl-3 pr-3 pt-1 pb-1'}>
       <div className={'flex items-center'}>
-        <SvgIcon component={navLabel.labelIcon} sx={{color: navLabel.iconColor}}/>
+        {
+          navLabel.iconUrl ? <Box component={'img'}
+                         sx={{mr: 1, width: 24, height: 24}} src={navLabel.iconUrl}/>
+            : <SvgIcon component={navLabel.labelIcon} sx={{color: navLabel.iconColor}}/>
+        }
         <span className={'ml-1'}>{navLabel.labelText}</span>
+        {navLabelArea}
       </div>
 
       <div className={'ml-auto'}>
         <div className={'flex'}>
           {
             buttonOptions.markRead && <div className={'group'}>
-              <Tooltip title={'Mark list as read'} placement={"left"}>
-                <IconButton onClick={onMarkListAsRead}>
-                  <CheckIcon/>
-                </IconButton>
-              </Tooltip>
-              <div className={"group-hover:flex hidden absolute flex-col"}>
-                <Tooltip title={'Mark all as read'} placement={"left"}>
-                  <IconButton onClick={onMarkAllAsRead}>
-                    <DoneAllIcon/>
-                  </IconButton>
-                </Tooltip>
+                  <Tooltip title={'Mark list as read'} placement={"left"}>
+                      <IconButton onClick={onMarkListAsRead}>
+                          <CheckIcon/>
+                      </IconButton>
+                  </Tooltip>
+                  <div className={"group-hover:flex hidden absolute flex-col"}>
+                      <Tooltip title={'Mark all as read'} placement={"left"}>
+                          <IconButton onClick={onMarkAllAsRead}>
+                              <DoneAllIcon/>
+                          </IconButton>
+                      </Tooltip>
+                  </div>
               </div>
-            </div>
           }
 
           {
             buttonOptions.viewSwitch && <div className={'group'}>
-              <Tooltip title={'Magazine view'} placement={"left"}>
-                <IconButton>
-                  <ListAltIcon/>
-                </IconButton>
-              </Tooltip>
-              <div className={"group-hover:flex hidden absolute flex-col"}>
-                <Tooltip title={'Column view'} placement={"left"}>
-                  <IconButton>
-                    <VerticalSplitOutlinedIcon/>
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={'List view'} placement={"left"}>
-                  <IconButton>
-                    <ViewHeadlineOutlinedIcon/>
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={'Expanded view'} placement={"left"}>
-                  <IconButton>
-                    <ViewDayOutlinedIcon/>
-                  </IconButton>
-                </Tooltip>
+                  <Tooltip title={'Magazine view'} placement={"left"}>
+                      <IconButton>
+                          <ListAltIcon/>
+                      </IconButton>
+                  </Tooltip>
+                  <div className={"group-hover:flex hidden absolute flex-col"}>
+                      <Tooltip title={'Column view'} placement={"left"}>
+                          <IconButton>
+                              <VerticalSplitOutlinedIcon/>
+                          </IconButton>
+                      </Tooltip>
+                      <Tooltip title={'List view'} placement={"left"}>
+                          <IconButton>
+                              <ViewHeadlineOutlinedIcon/>
+                          </IconButton>
+                      </Tooltip>
+                      <Tooltip title={'Expanded view'} placement={"left"}>
+                          <IconButton>
+                              <ViewDayOutlinedIcon/>
+                          </IconButton>
+                      </Tooltip>
+                  </div>
               </div>
-            </div>
           }
 
           {
             buttonOptions.refresh && <Tooltip title={'Refresh'} placement={"bottom"}>
-              <IconButton onClick={onRefresh}>
-                <RefreshIcon/>
-              </IconButton>
-            </Tooltip>
+                  <IconButton onClick={onRefresh}>
+                      <RefreshIcon/>
+                  </IconButton>
+              </Tooltip>
           }
 
         </div>

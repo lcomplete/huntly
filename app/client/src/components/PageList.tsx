@@ -2,7 +2,7 @@ import MagazineItem from "../components/MagazineItem";
 import {ApiResultOfint, PageControllerApiFactory, PageItem} from "../api";
 import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tanstack/react-query";
 import {useInView} from "react-intersection-observer";
-import React, {useEffect, useState} from "react";
+import React, {ReactElement, useEffect, useState} from "react";
 import {AlertTitle, Button} from "@mui/material";
 import Loading from "./Loading";
 import {NavLabel} from "./Sidebar/NavLabels";
@@ -40,6 +40,7 @@ type PageListFilter = {
 interface PageListProps {
   filters?: PageListFilter
   navLabel?: NavLabel,
+  navLabelArea?: ReactElement,
   onMarkAllAsRead?: () => AxiosPromise<ApiResultOfint>,
   buttonOptions?: ButtonOptions,
   showMarkReadOption?: boolean,
@@ -50,6 +51,7 @@ const PageList = (props: PageListProps) => {
   const {
     buttonOptions,
     navLabel,
+    navLabelArea,
     onMarkAllAsRead,
     showMarkReadOption
   } = props;
@@ -226,7 +228,7 @@ const PageList = (props: PageListProps) => {
     <>
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail}/>
       <SubHeader navLabel={navLabel} onMarkListAsRead={markListAsRead} onMarkAllAsRead={markAllAsRead}
-                 onRefresh={refreshPages}
+                 onRefresh={refreshPages} navLabelArea={navLabelArea}
                  buttonOptions={buttonOptions}/>
       <div className={'flex flex-auto'}>
         <div className="p-2 flex flex-col grow items-center">
