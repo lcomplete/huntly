@@ -49,6 +49,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Get version
+        id: get_version
+        uses: battila7/get-version-action@v2
+
       - name: Set Node.js
         uses: actions/setup-node@v3
         with:
