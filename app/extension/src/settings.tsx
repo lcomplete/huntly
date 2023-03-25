@@ -62,7 +62,7 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
       </Snackbar>
       <div>
         <div>
-          <div className={'formHeader'}>Configure server</div>
+          <div className={'formHeader'}>Configure server <a href={'https://github.com/lcomplete/huntly'} target={'_blank'} className={'text-sm'}>How to run the server-side &gt;</a></div>
         </div>
         {<Formik
           enableReinitialize={true}
