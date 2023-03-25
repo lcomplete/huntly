@@ -44,6 +44,8 @@ jobs:
   build-upload:
     runs-on: ubuntu-latest
     needs: create-release
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
