@@ -14,7 +14,7 @@ export default function PageDetailModal({
                                             onClose?: () => void
                                           }) {
   return <Drawer open={selectedPageId > 0} onClose={onClose} anchor={'right'}>
-    <div className={'w-[1300px] p-4'}>
+    <div className={'w-[1450px] p-4'}>
       {selectedPageId > 0 &&
           <PageDetailArea id={selectedPageId} onOperateSuccess={operateSuccess}/>
       }

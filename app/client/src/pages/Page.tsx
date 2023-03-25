@@ -21,8 +21,12 @@ const Page = () => {
 
   return (
     <MainContainer>
-      <div className={'p-4'}>
-        <PageDetailArea id={safeInt(id)} onOperateSuccess={operateSuccess}/>
+      <div className={'p-4 flex'}>
+        <div className={'grow'}>
+          <PageDetailArea id={safeInt(id)} onOperateSuccess={operateSuccess}/>
+        </div>
+        <div className={'w-[270px] sticky mt-3 top-28 self-start'}>
+        </div>
       </div>
     </MainContainer>
   );
