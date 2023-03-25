@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Huntly",
   "description": "Huntly - Automatic saving browsed contents",
-  "version": "1.0",
+  "version": "0.3.0",
   "options_ui": {
     "page": "options.html"
   },
