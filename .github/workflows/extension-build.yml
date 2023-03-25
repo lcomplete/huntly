@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-extension:
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
       #    restore-keys: |
       #      ${{ runner.os }}-yarn-
 
-      - name: Install client dependencies
+      - name: Install extension dependencies
         #if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: |
           cd app/extension

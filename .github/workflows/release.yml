@@ -1,39 +1,179 @@
-name: Release Drafter
+name: huntly release workflow
 
 on:
-  workflow_dispatch:
-  #push:
-    # branches to consider in the event; optional, defaults to all
-  #  branches:
-  #    - main
-  # pull_request event is required only for autolabeler
-  #pull_request:
-    # Only following types are handled by the action, but one can default to all as well
-  #  types: [opened, reopened, synchronize]
-  # pull_request_target event is required for autolabeler to support PRs from forks
-  # pull_request_target:
-  #   types: [opened, reopened, synchronize]
+  push:
+    tags: [ v\d+\.\d+\.\d+ ]
 
 permissions:
   contents: read
 
 jobs:
-  update_release_draft:
+  create-release:
     permissions:
-      contents: write  # for release-drafter/release-drafter to create a github release
-      pull-requests: write  # for release-drafter/release-drafter to add label to PR
+      contents: write
     runs-on: ubuntu-latest
-    steps:
-      # (Optional) GitHub Enterprise requires GHE_HOST variable set
-      #- name: Set GHE_HOST
-      #  run: |
-      #    echo "GHE_HOST=${GITHUB_SERVER_URL##https:\/\/}" >> $GITHUB_ENV
+    outputs:
+      release_id: ${{ steps.create-release.outputs.id }}
+      release_upload_url: ${{ steps.create-release.outputs.upload_url }}
 
-      # Drafts your next Release notes as Pull Requests are merged into "master"
-      - uses: release-drafter/release-drafter@v5
-        # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
-        # with:
-        #   config-name: my-config.yml
-        #   disable-autolabeler: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get version
+        id: get_version
+        uses: battila7/get-version-action@v2
+
+      - name: Get tag message
+        id: tag
+        run: |
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$(git tag -l --format='%(contents)' ${{ steps.get_version.outputs.version }})" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create-release
+        uses: ncipollo/release-action@v1
+        with:
+          draft: true
+          name: ${{ steps.get_version.outputs.version }}
+          tag: ${{ steps.get_version.outputs.version }}
+          body: "${{ steps.tag.outputs.message }}"
+
+  build-upload:
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.12.1"
+          cache: "yarn"
+          cache-dependency-path: "app/client/yarn.lock"
+      
+      - name: Setup yarn
+        run: npm install -g yarn --version 1.22.19
+
+      - name: Install client dependencies
+        run: |
+          cd app/client
+          yarn install
+
+      - name: Install extension dependencies
+        #if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: |
+          cd app/extension
+          yarn install
+
+      - name: Create extension bundle
+        run: |
+          cd app/extension
+          yarn build
+        env:
+          CI: false
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+
+      # Retrieve maven dependencies from cache. After a successful run, these dependencies are cached again
+      - name: Cache maven dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-maven-dependencies
+        with:
+          # maven dependencies are stored in `~/.m2` on Linux/macOS
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        run: |
+          cd app/server
+          mvn clean package
+        env:
+          CI: false
+
+      - name: Inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Available platforms
+        run: echo ${{ steps.buildx.outputs.platforms }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          # 所需要的体系结构，可以在 Available platforms 步骤中获取所有的可用架构
+          platforms: linux/arm64,linux/amd64
+          # 镜像推送时间
+          push: ${{ github.event_name != 'pull_request' }}
+          # 给清单打上多个标签
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.GITHUB_REPOSITORY_NAME_PART }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.GITHUB_REPOSITORY_NAME_PART }}:${{ steps.get_version.outputs.version-without-v }}
+
+      - name: package release file
+        run: |
+          mkdir release release/huntly-client release/huntly-extension
+          mv app/server/huntly-server/target/huntly-*.jar release/huntly-server.jar
+          mv app/client/build release/huntly-client
+          mv app/extension/dist/ release/huntly-extension
+          cd release
+          zip -r huntly-client-${{ steps.get_version.outputs.version-without-v }}.zip ./huntly-client/*
+          zip -r huntly-browser-extension-${{ steps.get_version.outputs.version-without-v }}.zip ./huntly-extension/*
+
+
+      - name: Upload server-build to release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: release/huntly-server.jar
+          asset_name: huntly-server-${{ steps.get_version.outputs.version-without-v }}.jar
+          asset_content_type: application/java-archive
+      
+      - name: Upload client-build to release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: release/huntly-client-${{ steps.get_version.outputs.version-without-v }}.zip
+          asset_name: huntly-client-${{ steps.get_version.outputs.version-without-v }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload extension-build to release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: release/huntly-browser-extension-${{ steps.get_version.outputs.version-without-v }}.zip
+          asset_name: huntly-browser-extension-${{ steps.get_version.outputs.version-without-v }}.zip
+          asset_content_type: application/zip 
