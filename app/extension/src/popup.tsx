@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from "react";
-import ReactDOM from "react-dom";
 import { createRoot } from 'react-dom/client';
 import './popup.css';
 import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
