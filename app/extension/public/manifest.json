@@ -7,11 +7,12 @@
     "page": "options.html"
   },
   "icons": {
-    "16": "icon.png",
-    "128": "icon.png"
+    "16": "favicon-16x16.png",
+    "32": "favicon-32x32.png",
+    "128": "favicon-128x128.png"
   },
   "action": {
-    "default_icon": "icon.png",
+    "default_icon": "favicon-32x32.png",
     "default_popup": "popup.html"
   },
   "web_accessible_resources": [
