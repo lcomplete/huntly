@@ -171,12 +171,12 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
                   control={<Switch value={true} checked={values.autoSaveEnabled} name={'autoSaveEnabled'}
                                    onChange={handleChange}/>} label="Enabled"/>
                 <div>
-                  <div>Probably readerable min score (the default is 20)</div>
+                  <div className={'text-sm'}>Probably readerable min score (the default is 20)</div>
                   <Slider value={values.autoSaveMinScore} aria-label="Probably readerable min score" max={200}
                           valueLabelDisplay={"auto"} name={'autoSaveMinScore'} onChange={handleChange}/>
                 </div>
                 <div>
-                  <div>The minimum length of a paragraph (the default is 40)</div>
+                  <div className={'text-sm'}>The minimum length of a paragraph (the default is 40)</div>
                   <Slider value={values.autoSaveMinContentLength} aria-label="The minimum length of a paragraph"
                           max={200} min={10}
                           valueLabelDisplay={"auto"} name={'autoSaveMinContentLength'} onChange={handleChange}/>
