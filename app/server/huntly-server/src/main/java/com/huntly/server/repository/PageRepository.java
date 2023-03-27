@@ -51,4 +51,14 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
     @Transactional
     @Query("UPDATE Page p SET p.markRead = :markRead WHERE p.markRead <> :markRead and p.connectorType = :connectorType")
     int updateMarkReadByConnectorType(Integer connectorType, boolean markRead);
+
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Page p SET p.folderId = :folderId WHERE p.connectorId = :connectorId")
+    void updateFolderIdByConnectorId(Integer connectorId, Integer folderId);
+
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Page p SET p.folderId = null, p.connectorId = null, p.connectorType = null WHERE p.connectorId = :connectorId")
+    void deleteConnectorId(Integer connectorId);
 }

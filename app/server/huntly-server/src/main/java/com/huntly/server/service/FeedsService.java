@@ -8,6 +8,7 @@ import com.huntly.server.connector.rss.FeedUtils;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.repository.ConnectorRepository;
+import com.huntly.server.repository.PageRepository;
 import com.huntly.server.util.HttpUtils;
 import com.huntly.server.util.SiteUtils;
 import com.rometools.rome.feed.synd.SyndFeed;
@@ -15,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * @author lcomplete
@@ -29,11 +31,14 @@ public class FeedsService {
 
     private final GlobalSettingService globalSettingService;
 
-    public FeedsService(ConnectorService connectorService, ConnectorFetchService connectorFetchService, ConnectorRepository connectorRepository, GlobalSettingService globalSettingService) {
+    private final PageRepository pageRepository;
+
+    public FeedsService(ConnectorService connectorService, ConnectorFetchService connectorFetchService, ConnectorRepository connectorRepository, GlobalSettingService globalSettingService, PageRepository pageRepository) {
         this.connectorService = connectorService;
         this.connectorFetchService = connectorFetchService;
         this.connectorRepository = connectorRepository;
         this.globalSettingService = globalSettingService;
+        this.pageRepository = pageRepository;
     }
 
     public Connector followFeed(String subscribeUrl) {
@@ -97,18 +102,24 @@ public class FeedsService {
 
     public Connector updateFeedsSetting(FeedsSetting feedsSetting) {
         Connector connector = requireOneFeedConnector(feedsSetting.getConnectorId());
+        Integer rawFolderId = connector.getFolderId();
         connector.setCrawlFullContent(feedsSetting.getCrawlFullContent());
         connector.setName(feedsSetting.getName());
         connector.setEnabled(feedsSetting.getEnabled());
         connector.setSubscribeUrl(feedsSetting.getSubscribeUrl());
         connector.setFolderId(feedsSetting.getFolderId() == null || feedsSetting.getFolderId().equals(0) ? null : feedsSetting.getFolderId());
         connector.setFetchIntervalSeconds(feedsSetting.getFetchIntervalMinutes() * 60);
-        return connectorRepository.save(connector);
+        var result = connectorRepository.save(connector);
+        if (!Objects.equals(rawFolderId, connector.getFolderId())) {
+            pageRepository.updateFolderIdByConnectorId(connector.getId(), connector.getFolderId());
+        }
+        return result;
     }
 
     public void delete(Integer connectorId) {
         Connector connector = requireOneFeedConnector(connectorId);
         connectorRepository.delete(connector);
+        pageRepository.deleteConnectorId(connectorId);
     }
 
     public FeedsSetting getFeedsSetting(Integer connectorId) {
