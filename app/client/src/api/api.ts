@@ -74,6 +74,31 @@ export interface ApiResultOfint {
 /**
  * 
  * @export
+ * @interface ApiResultOflong
+ */
+export interface ApiResultOflong {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOflong
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOflong
+     */
+    'data'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOflong
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
  * @interface ApiResultOfstring
  */
 export interface ApiResultOfstring {
@@ -95,6 +120,25 @@ export interface ApiResultOfstring {
      * @memberof ApiResultOfstring
      */
     'message'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ArticleContent
+ */
+export interface ArticleContent {
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticleContent
+     */
+    'content'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ArticleContent
+     */
+    'pageId'?: number;
 }
 /**
  * 
@@ -1021,21 +1065,64 @@ export interface Page {
 /**
  * 
  * @export
+ * @interface PageArticleContent
+ */
+export interface PageArticleContent {
+    /**
+     * 
+     * @type {number}
+     * @memberof PageArticleContent
+     */
+    'articleContentCategory'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PageArticleContent
+     */
+    'content'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageArticleContent
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageArticleContent
+     */
+    'pageId'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PageArticleContent
+     */
+    'updatedAt'?: string;
+}
+/**
+ * 
+ * @export
  * @interface PageDetail
  */
 export interface PageDetail {
     /**
      * 
-     * @type {Connector}
+     * @type {ConnectorItem}
      * @memberof PageDetail
      */
-    'connector'?: Connector;
+    'connector'?: ConnectorItem;
     /**
      * 
      * @type {Page}
      * @memberof PageDetail
      */
     'page'?: Page;
+    /**
+     * 
+     * @type {Array<PageArticleContent>}
+     * @memberof PageDetail
+     */
+    'pageContents'?: Array<PageArticleContent>;
     /**
      * 
      * @type {Source}
@@ -1381,30 +1468,6 @@ export interface SearchQuery {
 export interface Source {
     /**
      * 
-     * @type {number}
-     * @memberof Source
-     */
-    'crawlInterval'?: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof Source
-     */
-    'crawlType'?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof Source
-     */
-    'createDate'?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof Source
-     */
-    'displaySequence'?: number;
-    /**
-     * 
      * @type {string}
      * @memberof Source
      */
@@ -1415,12 +1478,6 @@ export interface Source {
      * @memberof Source
      */
     'faviconUrl'?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof Source
-     */
-    'folderId'?: number;
     /**
      * 
      * @type {string}
@@ -1438,24 +1495,6 @@ export interface Source {
      * @type {string}
      * @memberof Source
      */
-    'lastCrawlDate'?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof Source
-     */
-    'repeatReadCount'?: number;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof Source
-     */
-    'silent'?: boolean;
-    /**
-     * 
-     * @type {string}
-     * @memberof Source
-     */
     'siteName'?: string;
     /**
      * 
@@ -1463,24 +1502,6 @@ export interface Source {
      * @memberof Source
      */
     'subscribeUrl'?: string;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof Source
-     */
-    'subscribed'?: boolean;
-    /**
-     * 
-     * @type {string}
-     * @memberof Source
-     */
-    'subscribedDate'?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof Source
-     */
-    'unreadPageCount'?: number;
 }
 /**
  * 
@@ -2825,6 +2846,40 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
         },
         /**
          * 
+         * @summary fetchFullContentById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        fetchFullContentByIdUsingPOST: async (id: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('fetchFullContentByIdUsingPOST', 'id', id)
+            const localVarPath = `/api/page/fullContent/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary getPageDetailById
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -2845,6 +2900,46 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
             const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getPageOperateResult
+         * @param {number} [id] 
+         * @param {string} [url] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getPageOperateResultUsingGET: async (id?: number, url?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page/pageOperateResult`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (id !== undefined) {
+                localVarQueryParameter['id'] = id;
+            }
+
+            if (url !== undefined) {
+                localVarQueryParameter['url'] = url;
+            }
 
 
     
@@ -3337,6 +3432,40 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
         },
         /**
          * 
+         * @summary switchRawContentById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        switchRawContentByIdUsingPOST: async (id: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('switchRawContentByIdUsingPOST', 'id', id)
+            const localVarPath = `/api/page/rawContent/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary unMarkReadPage
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -3471,6 +3600,17 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary fetchFullContentById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async fetchFullContentByIdUsingPOST(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleContent>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.fetchFullContentByIdUsingPOST(id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
          * @summary getPageDetailById
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -3478,6 +3618,18 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          */
         async getPageDetailByIdUsingGET(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PageDetail>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getPageDetailByIdUsingGET(id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getPageOperateResult
+         * @param {number} [id] 
+         * @param {string} [url] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getPageOperateResultUsingGET(id?: number, url?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PageOperateResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getPageOperateResultUsingGET(id, url, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -3599,7 +3751,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async savePageUsingPOST(capturePage?: CapturePage, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Page>> {
+        async savePageUsingPOST(capturePage?: CapturePage, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOflong>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.savePageUsingPOST(capturePage, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -3623,6 +3775,17 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          */
         async starPageUsingPOST(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PageOperateResult>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.starPageUsingPOST(id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary switchRawContentById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async switchRawContentByIdUsingPOST(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleContent>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.switchRawContentByIdUsingPOST(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -3690,6 +3853,16 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
         },
         /**
          * 
+         * @summary fetchFullContentById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        fetchFullContentByIdUsingPOST(id: number, options?: any): AxiosPromise<ArticleContent> {
+            return localVarFp.fetchFullContentByIdUsingPOST(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
          * @summary getPageDetailById
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -3697,6 +3870,17 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          */
         getPageDetailByIdUsingGET(id: number, options?: any): AxiosPromise<PageDetail> {
             return localVarFp.getPageDetailByIdUsingGET(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getPageOperateResult
+         * @param {number} [id] 
+         * @param {string} [url] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getPageOperateResultUsingGET(id?: number, url?: string, options?: any): AxiosPromise<PageOperateResult> {
+            return localVarFp.getPageOperateResultUsingGET(id, url, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -3808,7 +3992,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        savePageUsingPOST(capturePage?: CapturePage, options?: any): AxiosPromise<Page> {
+        savePageUsingPOST(capturePage?: CapturePage, options?: any): AxiosPromise<ApiResultOflong> {
             return localVarFp.savePageUsingPOST(capturePage, options).then((request) => request(axios, basePath));
         },
         /**
@@ -3830,6 +4014,16 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          */
         starPageUsingPOST(id: number, options?: any): AxiosPromise<PageOperateResult> {
             return localVarFp.starPageUsingPOST(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary switchRawContentById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        switchRawContentByIdUsingPOST(id: number, options?: any): AxiosPromise<ArticleContent> {
+            return localVarFp.switchRawContentByIdUsingPOST(id, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -3897,6 +4091,18 @@ export class PageControllerApi extends BaseAPI {
 
     /**
      * 
+     * @summary fetchFullContentById
+     * @param {number} id id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageControllerApi
+     */
+    public fetchFullContentByIdUsingPOST(id: number, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).fetchFullContentByIdUsingPOST(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
      * @summary getPageDetailById
      * @param {number} id id
      * @param {*} [options] Override http request option.
@@ -3905,6 +4111,19 @@ export class PageControllerApi extends BaseAPI {
      */
     public getPageDetailByIdUsingGET(id: number, options?: AxiosRequestConfig) {
         return PageControllerApiFp(this.configuration).getPageDetailByIdUsingGET(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getPageOperateResult
+     * @param {number} [id] 
+     * @param {string} [url] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageControllerApi
+     */
+    public getPageOperateResultUsingGET(id?: number, url?: string, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).getPageOperateResultUsingGET(id, url, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -4062,6 +4281,18 @@ export class PageControllerApi extends BaseAPI {
      */
     public starPageUsingPOST(id: number, options?: AxiosRequestConfig) {
         return PageControllerApiFp(this.configuration).starPageUsingPOST(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary switchRawContentById
+     * @param {number} id id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageControllerApi
+     */
+    public switchRawContentByIdUsingPOST(id: number, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).switchRawContentByIdUsingPOST(id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -4372,6 +4603,36 @@ export const SettingControllerApiAxiosParamCreator = function (configuration?: C
             if (subscribeUrl !== undefined) {
                 localVarQueryParameter['subscribeUrl'] = subscribeUrl;
             }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getBlacklist
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBlacklistUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/setting/general/blacklist`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
 
 
     
@@ -5045,6 +5306,16 @@ export const SettingControllerApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary getBlacklist
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getBlacklistUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<string>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getBlacklistUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
          * @summary getFeedsSetting
          * @param {number} connectorId connectorId
          * @param {*} [options] Override http request option.
@@ -5279,6 +5550,15 @@ export const SettingControllerApiFactory = function (configuration?: Configurati
         },
         /**
          * 
+         * @summary getBlacklist
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBlacklistUsingGET(options?: any): AxiosPromise<string> {
+            return localVarFp.getBlacklistUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
          * @summary getFeedsSetting
          * @param {number} connectorId connectorId
          * @param {*} [options] Override http request option.
@@ -5497,6 +5777,17 @@ export class SettingControllerApi extends BaseAPI {
      */
     public followFeedUsingPOST(subscribeUrl: string, options?: AxiosRequestConfig) {
         return SettingControllerApiFp(this.configuration).followFeedUsingPOST(subscribeUrl, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getBlacklist
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SettingControllerApi
+     */
+    public getBlacklistUsingGET(options?: AxiosRequestConfig) {
+        return SettingControllerApiFp(this.configuration).getBlacklistUsingGET(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

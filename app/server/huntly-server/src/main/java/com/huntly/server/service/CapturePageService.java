@@ -252,10 +252,7 @@ public class CapturePageService extends BasePageService {
         Source source;
         if (existSource.isEmpty()) {
             source = new Source();
-            source.setDisplaySequence(0);
-            source.setFolderId(0);
             source.setDomain(page.getDomain());
-            source.setSilent(true);
         } else {
             source = existSource.get();
         }
@@ -268,9 +265,13 @@ public class CapturePageService extends BasePageService {
         if (StringUtils.isNotBlank(page.getFaviconUrl())) {
             source.setFaviconUrl(page.getFaviconUrl());
         }
-        if (Boolean.FALSE.equals(source.getSubscribed()) && StringUtils.isNotBlank(page.getSubscribeUrl())) {
+        if (StringUtils.isNotBlank(page.getSubscribeUrl())) {
             source.setSubscribeUrl(page.getSubscribeUrl());
         }
         return sourceRepository.save(source);
+    }
+
+    public Page findByUrl(String url) {
+        return pageRepository.findTop1ByUrl(url).orElse(null);
     }
 }

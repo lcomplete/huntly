@@ -3,6 +3,7 @@ package com.huntly.server.task;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.GlobalSetting;
 import com.huntly.server.service.GlobalSettingService;
+import com.huntly.server.service.PageArticleContentService;
 import com.huntly.server.service.PageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,10 +19,12 @@ public class ColdDataClearTask {
     private final GlobalSettingService settingService;
 
     private final PageService pageService;
+    private final PageArticleContentService pageArticleContentService;
 
-    public ColdDataClearTask(GlobalSettingService settingService, PageService pageService) {
+    public ColdDataClearTask(GlobalSettingService settingService, PageService pageService, PageArticleContentService pageArticleContentService) {
         this.settingService = settingService;
         this.pageService = pageService;
+        this.pageArticleContentService = pageArticleContentService;
     }
 
     @Scheduled(initialDelay = 1000 * 10, fixedDelay = 1000 * 60)
@@ -35,6 +38,7 @@ public class ColdDataClearTask {
         List<Long> coldPageIds = pageService.getColdDataPageIds(coldDataUpdateBefore, 200);
         for (Long pageId : coldPageIds) {
             pageService.delete(pageId);
+            pageArticleContentService.deleteByPageId(pageId);
         }
         log.info("cold data size: {}", coldPageIds.size());
     }

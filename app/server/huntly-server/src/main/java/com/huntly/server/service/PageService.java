@@ -1,16 +1,23 @@
 package com.huntly.server.service;
 
 import com.huntly.common.exceptions.NoSuchDataException;
+import com.huntly.interfaces.external.dto.ConnectorItem;
 import com.huntly.interfaces.external.dto.PageOperateResult;
 import com.huntly.interfaces.external.model.LibrarySaveStatus;
 import com.huntly.interfaces.external.query.PageQuery;
 import com.huntly.server.domain.entity.Page;
+import com.huntly.server.domain.enums.ArticleContentCategory;
+import com.huntly.server.domain.mapper.ConnectorItemMapper;
 import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.event.EventPublisher;
 import com.huntly.server.event.InboxChangedEvent;
 import com.huntly.server.repository.ConnectorRepository;
 import com.huntly.server.repository.PageRepository;
 import com.huntly.server.repository.SourceRepository;
+import com.huntly.server.util.HtmlText;
+import com.huntly.server.util.HtmlUtils;
+import com.huntly.server.util.HttpUtils;
+import com.huntly.server.util.SiteUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
@@ -30,12 +37,18 @@ public class PageService extends BasePageService {
 
     private final SourceRepository sourceRepository;
 
+    private final GlobalSettingService globalSettingService;
+
+    private final PageArticleContentService pageArticleContentService;
+
     private final EventPublisher eventPublisher;
 
-    public PageService(PageRepository pageRepository, LuceneService luceneService, ConnectorRepository connectorRepository, SourceRepository sourceRepository, EventPublisher eventPublisher) {
+    public PageService(PageRepository pageRepository, LuceneService luceneService, ConnectorRepository connectorRepository, SourceRepository sourceRepository, GlobalSettingService globalSettingService, PageArticleContentService pageArticleContentService, EventPublisher eventPublisher) {
         super(pageRepository, luceneService);
         this.connectorRepository = connectorRepository;
         this.sourceRepository = sourceRepository;
+        this.globalSettingService = globalSettingService;
+        this.pageArticleContentService = pageArticleContentService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -189,11 +202,14 @@ public class PageService extends BasePageService {
         PageDetail pageDetail = new PageDetail();
         pageDetail.setPage(page);
         if (page.getConnectorId() != null) {
-            pageDetail.setConnector(connectorRepository.findById(page.getConnectorId()).orElse(null));
+            var connector = connectorRepository.findById(page.getConnectorId()).orElse(null);
+            ConnectorItem connectorItem = connector != null ? ConnectorItemMapper.INSTANCE.fromConnector(connector) : null;
+            pageDetail.setConnector(connectorItem);
         }
         if (page.getSourceId() != null) {
             pageDetail.setSource(sourceRepository.findById(page.getSourceId()).orElse(null));
         }
+        pageDetail.setPageContents(pageArticleContentService.findContents(page.getId()));
         return pageDetail;
     }
 
@@ -258,5 +274,33 @@ public class PageService extends BasePageService {
             page = pageRepository.findTop1ByUrl(query.getUrl()).orElse(null);
         }
         return toPageOperateResult(page);
+    }
+
+    public Page fetchFullContent(Long id) {
+        var page = requireOne(id);
+        String rawContent = page.getContent();
+        var httpClient = HttpUtils.buildHttpClient(globalSettingService.getProxySetting());
+        String content = SiteUtils.parseArticleContent(page.getUrl(), httpClient);
+        if (StringUtils.isNotBlank(content)) {
+            HtmlText htmlText = HtmlUtils.clean(content, page.getUrl());
+            page.setContent(htmlText.getHtml());
+            page.setContentText(htmlText.getText());
+            page.setUpdatedAt(Instant.now());
+            pageArticleContentService.saveContent(page.getId(), rawContent, ArticleContentCategory.RAW_CONTENT);
+            save(page);
+        }
+        return page;
+    }
+
+    public Page switchRawContent(Long id) {
+        var page = requireOne(id);
+        var content = pageArticleContentService.findContent(page.getId(), ArticleContentCategory.RAW_CONTENT);
+        if (content != null) {
+            page.setContent(content.getContent());
+            page.setUpdatedAt(Instant.now());
+            save(page);
+            pageArticleContentService.deleteById(content.getId());
+        }
+        return page;
     }
 }

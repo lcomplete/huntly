@@ -21,12 +21,11 @@ const Layout = () => {
       />
       <div className="h-full layoutRoot">
         <Header />
-
-        <div className="main_window flex flex-row">
+        <div className="main_window flex flex-row h-full">
           <div className="main_sidebar">
             <Sidebar/>
           </div>
-          <div className="flex-auto">
+          <div className="flex-auto h-full">
             <Outlet/>
           </div>
         </div>

@@ -1,9 +1,9 @@
 package com.huntly.server.controller;
 
 import com.huntly.common.api.ApiResult;
-import com.huntly.common.util.NumberUtils;
 import com.huntly.interfaces.external.dto.PageItem;
 import com.huntly.interfaces.external.dto.PageOperateResult;
+import com.huntly.interfaces.external.model.ArticleContent;
 import com.huntly.interfaces.external.model.CapturePage;
 import com.huntly.interfaces.external.query.PageListQuery;
 import com.huntly.interfaces.external.query.PageQuery;
@@ -12,15 +12,12 @@ import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.service.CapturePageService;
 import com.huntly.server.service.PageListService;
 import com.huntly.server.service.PageService;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author lcomplete
@@ -141,4 +138,17 @@ public class PageController {
     public PageDetail getPageDetailById(@Valid @NotNull @PathVariable("id") Long id) {
         return pageService.getPageDetail(id);
     }
+    
+    @PostMapping("/fullContent/{id}")
+    public ArticleContent fetchFullContentById(@Valid @NotNull @PathVariable("id") Long id) {
+        Page page= pageService.fetchFullContent(id);
+        return new ArticleContent(page.getId(), page.getContent());
+    }
+    
+    @PostMapping("/rawContent/{id}")
+    public ArticleContent switchRawContentById(@Valid @NotNull @PathVariable("id") Long id) {
+        Page page= pageService.switchRawContent(id);
+        return new ArticleContent(page.getId(), page.getContent());
+    }
+    
 }

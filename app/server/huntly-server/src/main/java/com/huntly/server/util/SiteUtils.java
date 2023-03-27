@@ -4,12 +4,16 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import net.dankito.readability4j.Article;
+import net.dankito.readability4j.Readability4J;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -156,5 +160,45 @@ public class SiteUtils {
         }
 
         return true;
+    }
+
+    public static String parseArticleContent(String url, HttpClient client) {
+        try {
+            HttpRequest request = null;
+            try {
+                request = HttpRequest.newBuilder().uri(new URI(url))
+                        .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36")
+                        .build();
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            HttpResponse<String> response = null;
+            try {
+                response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            var responseText = response.body();
+
+            //HTMLDocument htmlDoc = new HTMLDocument(responseText);
+            //
+            //BoilerpipeExtractor extractor = CommonExtractors.ARTICLE_EXTRACTOR;
+            //TextDocument textDoc = new BoilerpipeSAXInput(htmlDoc.toInputSource()).getTextDocument();
+            //extractor.process(textDoc);
+            //
+            //HTMLHighlighter highlighter = HTMLHighlighter.newExtractingInstance();
+            //highlighter.setOutputHighlightOnly(true);
+            //String article = highlighter.process(textDoc, htmlDoc.toInputSource());
+
+            Readability4J readability4J = new Readability4J(url, responseText);
+            Article article = readability4J.parse();
+
+            return article.getContentWithUtf8Encoding();
+        } catch (Exception e) {
+            log.error("Error parsing article content", e);
+            return null;
+        }
     }
 }

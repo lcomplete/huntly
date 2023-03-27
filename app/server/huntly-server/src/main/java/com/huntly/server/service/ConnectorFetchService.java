@@ -7,6 +7,8 @@ import com.huntly.server.connector.InfoConnector;
 import com.huntly.server.connector.InfoConnectorFactory;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.Connector;
+import com.huntly.server.domain.entity.Page;
+import com.huntly.server.domain.enums.ArticleContentCategory;
 import com.huntly.server.event.EventPublisher;
 import com.huntly.server.event.InboxChangedEvent;
 import com.huntly.server.util.HttpUtils;
@@ -17,13 +19,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * @author lcomplete
  */
 @Service
 @Slf4j
@@ -34,6 +37,8 @@ public class ConnectorFetchService {
 
     private final CapturePageService capturePageService;
 
+    private final PageArticleContentService pageArticleContentService;
+
     private final EventPublisher eventPublisher;
 
     private final Set<Integer> inProcessConnectorIds;
@@ -42,10 +47,11 @@ public class ConnectorFetchService {
 
     ThreadPoolExecutor fetchExecutor;
 
-    public ConnectorFetchService(HuntlyProperties huntlyProperties, ConnectorService connectorService, CapturePageService capturePageService, EventPublisher eventPublisher, GlobalSettingService globalSettingService) {
+    public ConnectorFetchService(HuntlyProperties huntlyProperties, ConnectorService connectorService, CapturePageService capturePageService, PageArticleContentService pageArticleContentService, EventPublisher eventPublisher, GlobalSettingService globalSettingService, PageService pageService) {
         this.huntlyProperties = huntlyProperties;
         this.connectorService = connectorService;
         this.capturePageService = capturePageService;
+        this.pageArticleContentService = pageArticleContentService;
         this.eventPublisher = eventPublisher;
         this.globalSettingService = globalSettingService;
         inProcessConnectorIds = Collections.synchronizedSet(new HashSet<>());
@@ -114,10 +120,36 @@ public class ConnectorFetchService {
         }
         var pages = connector.getLastFetchBeginAt() == null ? infoConnector.fetchAllPages() : infoConnector.fetchNewestPages();
         boolean inboxChangedTriggered = false;
+        boolean isRssFetch = Objects.equals(connector.getType(), ConnectorType.RSS.getCode());
+        boolean isGithubFetch = Objects.equals(connector.getType(), ConnectorType.GITHUB.getCode());
+
         for (CapturePage page : pages) {
             page.setConnectorId(connector.getId());
-            infoConnector.fetchPageContent(page);
+            String rawContent = page.getContent();
+            Page existPage = capturePageService.findByUrl(page.getUrl());
+            String fullContent = fetchedFullContent(existPage);
+            boolean isCrawlFullContent = Boolean.TRUE.equals(connector.getCrawlFullContent());
+            boolean isExecuteFetch = false;
+
+            if (StringUtils.isNotBlank(fullContent)) {
+                page.setContent(fullContent);
+            } else if (isRssFetch && isCrawlFullContent) {
+                infoConnector.fetchPageContent(page);
+                isExecuteFetch = true;
+            } else if (isGithubFetch) {
+                // page is not exist or page update time is 24 hour ago
+                if (existPage == null || existPage.getUpdatedAt().isBefore(Instant.now().minus(24, ChronoUnit.HOURS))) {
+                    infoConnector.fetchPageContent(page);
+                    isExecuteFetch = true;
+                }
+            }
+
             var savedPage = capturePageService.save(page);
+
+            if (isRssFetch && isExecuteFetch) {
+                pageArticleContentService.saveContent(savedPage.getId(), rawContent, ArticleContentCategory.RAW_CONTENT);
+            }
+
             if (savedPage.getMarkRead() == null || Objects.equals(savedPage.getMarkRead(), false)) {
                 inboxChangedTriggered = true;
                 eventPublisher.publishInboxChangedEvent(new InboxChangedEvent(savedPage.getConnectorId()));
@@ -129,7 +161,8 @@ public class ConnectorFetchService {
             eventPublisher.publishInboxChangedEvent(new InboxChangedEvent(connector.getId()));
         }
 
-        if (Objects.equals(connector.getType(), ConnectorType.RSS.getCode())) {
+        // update rss connector site icon
+        if (isRssFetch) {
             if (StringUtils.isBlank(connector.getIconUrl())) {
                 var icon = SiteUtils.getFaviconFromHome(connector.getSubscribeUrl(), HttpUtils.buildHttpClient(globalSettingService.getProxySetting(), 10));
                 if (icon != null) {
@@ -137,6 +170,16 @@ public class ConnectorFetchService {
                 }
             }
         }
+    }
+
+    private String fetchedFullContent(Page existPage) {
+        if (existPage != null) {
+            var content = pageArticleContentService.findContent(existPage.getId(), ArticleContentCategory.RAW_CONTENT);
+            if (content != null) {
+                return existPage.getContent();
+            }
+        }
+        return null;
     }
 
     public static boolean isAtFetchTime(Connector connector) {

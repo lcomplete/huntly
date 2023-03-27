@@ -14,6 +14,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "page", indexes = {
         @Index(name = "idx_page_connector_id", columnList = "connector_id"),
+        @Index(name = "idx_page_url", columnList = "url"),
         @Index(name = "idx_page_connector_type", columnList = "connector_type"),
         @Index(name = "idx_page_content_type", columnList = "content_type"),
         @Index(name = "idx_page_folder_id", columnList = "folder_id"),
