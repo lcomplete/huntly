@@ -147,9 +147,11 @@ public class CapturePageService extends BasePageService {
                     switch (librarySaveType) {
                         case STARRED:
                             pageService.setPageStarred(page);
+                            pageService.setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
                             break;
                         case READ_LATER:
                             pageService.setPageReadLater(page);
+                            pageService.setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
                             break;
                         case MY_LIST:
                             pageService.setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
