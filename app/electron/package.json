@@ -1,0 +1,36 @@
+{
+  "private": true,
+  "main": "main/index.js",
+  "productName": "huntly",
+  "scripts": {
+    "clean": "rimraf dist main",
+    "dev": "npm run build-electron && electron .",
+    "build-electron": "tsc -p src",
+    "build": "npm run build-electron",
+    "pack-app": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "type-check": "tsc -p src/tsconfig.json",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "app-root-path": "^3.1.0",
+    "electron-is-dev": "^1.2.0",
+    "electron-window-state": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.40",
+    "@typescript-eslint/eslint-plugin": "^5.27.1",
+    "@typescript-eslint/parser": "^5.27.1",
+    "electron": "^19.0.3",
+    "electron-builder": "^23.0.3",
+    "eslint": "^8.17.0",
+    "rimraf": "^3.0.0",
+    "typescript": "^4.7.3"
+  },
+  "build": {
+    "asar": true,
+    "files": [
+      "main"
+    ]
+  }
+}
