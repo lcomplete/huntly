@@ -11,11 +11,11 @@ export default function Header() {
   const [fullScreen, setFullScreen] = useState(false);
   const [focused, setFocused] = useState(false);
   const [settingModalOpen, setSettingModalOpen] = useState(false);
-  const inBrowser = !window.electron;
-  const isMac = !inBrowser && window.electron.utilsBridge.isMac;
+  const inElectron = !!window.electron;
+  const isMac = inElectron && window.electron.utilsBridge.isMac;
 
   useEffect(() => {
-    if (inBrowser) {
+    if (!inElectron) {
       return;
     }
     const {utilsBridge} = window.electron;
@@ -51,10 +51,10 @@ export default function Header() {
   const openSettingModal = useCallback(() => {
     setSettingModalOpen(true);
   }, []);
-  
-  const closeSettingModal = useCallback(()=>{
+
+  const closeSettingModal = useCallback(() => {
     setSettingModalOpen(false);
-  },[]);
+  }, []);
 
   return <header className="title_bar">
     {!isMac && (
@@ -66,14 +66,19 @@ export default function Header() {
 
     <SearchBox/>
 
-    <IconButton className={'mr-2 absolute right-0'} onClick={openSettingModal}>
-      <SettingsOutlinedIcon className={'text-sky-600'}/>
-    </IconButton>
+    {
+      (!inElectron || isMac) && <IconButton className={'mr-2 absolute right-0'} onClick={openSettingModal}>
+        <SettingsOutlinedIcon className={'text-sky-600'}/>
+      </IconButton>
+    }
 
     <SettingModal open={settingModalOpen} onClose={closeSettingModal}></SettingModal>
 
-    {!isMac && !inBrowser && (
+    {!isMac && inElectron && (
       <div className="absolute right-0">
+        <IconButton className={'mr-2 nodrag'} onClick={openSettingModal}>
+          <SettingsOutlinedIcon className={'text-sky-600'}/>
+        </IconButton>
         <button className="btn-size-ctrl" onClick={minimize}>
           {/* <HorizontalRuleIcon fontSize="small" /> */}
           <svg viewBox="0 0 11 11">

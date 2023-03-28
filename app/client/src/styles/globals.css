@@ -56,6 +56,9 @@ a{
 .search-wrapper{
   -webkit-app-region: no-drag;
 }
+.nodrag{
+  -webkit-app-region: no-drag;
+}
 
 .main_window{
   margin-left: 270px;
