@@ -4,7 +4,6 @@ import com.huntly.jpa.spec.Specifications;
 import com.huntly.server.domain.entity.TweetTrack;
 import com.huntly.server.repository.TweetTrackRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -54,5 +53,9 @@ public class TweetTrackService {
             }
         });
         log.info("trackNotSetReads success: {}", successCount.get());
+    }
+
+    public Integer cleanHistoryTrack(Instant createdBefore) {
+        return tweetTrackRepository.deleteHistoryTrack(createdBefore);
     }
 }
