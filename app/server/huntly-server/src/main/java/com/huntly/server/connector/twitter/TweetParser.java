@@ -3,8 +3,6 @@ package com.huntly.server.connector.twitter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Lists;
 import com.huntly.interfaces.external.model.ContentType;
 import com.huntly.interfaces.external.model.InterceptTweets;
@@ -21,9 +19,7 @@ import org.springframework.util.CollectionUtils;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author lcomplete
@@ -155,6 +151,26 @@ public class TweetParser {
             tweetProperties.setCreatedAt(date.toInstant());
         } catch (ParseException e) {
             throw new RuntimeException(e);
+        }
+        // note tweet
+        var noteTweet = tweetResult.note_tweet;
+        if (noteTweet != null && noteTweet.note_tweet_results != null & noteTweet.note_tweet_results.result != null) {
+            var noteResult = noteTweet.note_tweet_results.result;
+            var entitySet = noteResult.entity_set;
+            tweetProperties.setNoteTweet(true);
+            tweetProperties.setFullText(noteResult.text);
+            if (tweet.entities == null) {
+                tweet.entities = new TweetsRoot.Entities();
+            }
+            if (entitySet != null && !CollectionUtils.isEmpty(entitySet.hashtags)) {
+                tweet.entities.hashtags = entitySet.hashtags;
+            }
+            if (entitySet != null && !CollectionUtils.isEmpty(entitySet.urls)) {
+                tweet.entities.urls = entitySet.urls;
+            }
+            if (entitySet != null && !CollectionUtils.isEmpty(entitySet.user_mentions)) {
+                tweet.entities.user_mentions = entitySet.user_mentions;
+            }
         }
         // media 
         if (tweet.entities != null && tweet.entities.media != null) {

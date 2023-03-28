@@ -41,6 +41,8 @@ public class TweetProperties {
     
     private String fullText;
     
+    private Boolean noteTweet;
+    
     private List<Integer> displayTextRange; 
     
     private TweetProperties quotedTweet;

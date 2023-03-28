@@ -503,6 +503,9 @@ public class TweetsRoot {
         public String source;
         public QuotedStatusResult quoted_status_result;
         public Legacy legacy;
+        
+        public NoteTweet note_tweet;
+        
         public String id;
         public AffiliatesHighlightedLabel affiliates_highlighted_label;
         public boolean has_graduated_access;
@@ -516,6 +519,27 @@ public class TweetsRoot {
         public QuotedRefResult quotedRefResult;
         
         public Card card;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class NoteTweet{
+        public Boolean is_expandable;
+        
+        public NoteTweetResults note_tweet_results;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class NoteTweetResults {
+        public NoteTweetResult result;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class NoteTweetResult{
+        public Entities entity_set;
+        
+        public String id;
+        
+        public String text;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
