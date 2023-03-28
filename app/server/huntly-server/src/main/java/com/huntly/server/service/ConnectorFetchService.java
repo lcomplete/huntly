@@ -137,6 +137,9 @@ public class ConnectorFetchService {
                 infoConnector.fetchPageContent(page);
                 isExecuteFetch = true;
             } else if (isGithubFetch) {
+                if (existPage != null) {
+                    page.setContent(existPage.getContent());
+                }
                 // page is not exist or page update time is 24 hour ago
                 if (existPage == null || existPage.getUpdatedAt().isBefore(Instant.now().minus(24, ChronoUnit.HOURS))) {
                     infoConnector.fetchPageContent(page);

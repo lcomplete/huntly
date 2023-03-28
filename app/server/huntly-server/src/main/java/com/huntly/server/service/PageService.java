@@ -55,6 +55,7 @@ public class PageService extends BasePageService {
     public void delete(Long id) {
         var page = requireOne(id);
         deleteById(id);
+        pageArticleContentService.deleteByPageId(id);
         sendInboxChangedEvent(page.getConnectorId());
     }
 
