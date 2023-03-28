@@ -20,6 +20,9 @@ export default function Tweet({
                                 page,
                                 isInQuote
                               }: { tweetProps: TweetProperties, page: PageItem, isInQuote?: boolean }) {
+  if (tweetProps.noteTweet) {
+    tweetProps.displayTextRange = [0, tweetProps.fullText.length];
+  }
   let imageStyles = {};
   if (tweetProps.medias) {
     if (tweetProps.medias.length > 2) {
@@ -177,99 +180,101 @@ export default function Tweet({
                   </div>
                 })
               }
-      </PhotoProvider>
+            </PhotoProvider>
+          </div>
+        }
+        {
+          hasVideo && <div>
+            <Player src={normalBitrateVideo.url} poster={videoMedia.mediaUrl}
+                    fluid={videoMedia.videoInfo.aspectRatio[0] > videoMedia.videoInfo.aspectRatio[1]}
+            >
+              <BigPlayButton position="center"/>
+              <ControlBar autoHide={true}>
+                <DownloadButton src={maxBitrateVideo.url} order={7}/>
+              </ControlBar>
+            </Player>
+          </div>
+        }
+        {
+          tweetProps.card && (tweetProps.card.type === "summary_large_image" || tweetProps.card.type === "summary") && tweetProps.card.url &&
+          <div>
+            {
+              tweetProps.card.type === "summary_large_image" &&
+              <a href={tweetProps.card.url} target={'_blank'} className={styles.cardLink}>
+                <Card className={`${styles.mainBorder} mt-2 w-11/12`}>
+                  <CardActionArea>
+                    <CardMedia
+                      component="img"
+                      height={260}
+                      image={tweetProps.card.imageUrl}
+                      alt={tweetProps.card.title}
+                    />
+                    <CardContent sx={{borderTop: '1px solid #ccc', pt: 1}}>
+                      <Typography variant="body2" color="text.secondary">
+                        {tweetProps.card.domain}
+                      </Typography>
+                      <Typography variant="body1" component="div">
+                        {tweetProps.card.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" className={`line-clamp-2`}>
+                        {tweetProps.card.description}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </a>
+            }
+            {
+              tweetProps.card.type !== "summary_large_image" &&
+              <a href={tweetProps.card.url} target={'_blank'} className={styles.cardLink}>
+                <Card className={`${styles.mainBorder} mt-2 flex mr-4`}>
+                  {
+                    tweetProps.card.thumbnailImageUrl &&
+                    <div className={'w-[130px] flex items-center shrink-0'}
+                         style={{backgroundColor: 'rgb(247,249,249)'}}>
+                      <CardMedia
+                        component="img"
+                        height={130}
+                        image={tweetProps.card.thumbnailImageUrl}
+                        alt={tweetProps.card.title}
+                      />
+                    </div>
+                  }
+                  {
+                    !tweetProps.card.thumbnailImageUrl &&
+                    <div className={'w-[130px] flex items-center shrink-0'}
+                         style={{backgroundColor: 'rgb(247,249,249)'}}>
+                      <CardMedia
+                        component={ArticleIcon}
+                        className={'grow'}
+                      />
+                    </div>
+                  }
+                  <div className={'flex items-center'}>
+                    <CardContent sx={{borderLeft: '1px solid #ccc'}}>
+                      <Typography variant="body2" color="text.secondary">
+                        {tweetProps.card.domain}
+                      </Typography>
+                      <Typography variant="body1" component="div">
+                        {tweetProps.card.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" className={`line-clamp-2`}>
+                        {tweetProps.card.description}
+                      </Typography>
+                    </CardContent>
+                  </div>
+                </Card>
+              </a>
+            }
+          </div>
+        }
+        {
+          // quoted tweet use border round style
+          tweetProps.quotedTweet && <div className={`${styles.mainBorder} p-3 mt-3`}>
+            <Tweet tweetProps={tweetProps.quotedTweet} page={page} isInQuote={true}/>
+          </div>
+        }
+      </div>
     </div>
-    }
-    {
-      hasVideo && <div>
-        <Player src={normalBitrateVideo.url} poster={videoMedia.mediaUrl}
-                fluid={videoMedia.videoInfo.aspectRatio[0] > videoMedia.videoInfo.aspectRatio[1]}
-        >
-          <BigPlayButton position="center"/>
-          <ControlBar autoHide={true}>
-            <DownloadButton src={maxBitrateVideo.url} order={7}/>
-          </ControlBar>
-        </Player>
-      </div>
-    }
-    {
-      tweetProps.card && (tweetProps.card.type === "summary_large_image" || tweetProps.card.type === "summary") && tweetProps.card.url &&
-      <div>
-        {
-          tweetProps.card.type === "summary_large_image" &&
-          <a href={tweetProps.card.url} target={'_blank'} className={styles.cardLink}>
-            <Card className={`${styles.mainBorder} mt-2 w-11/12`}>
-              <CardActionArea>
-                <CardMedia
-                  component="img"
-                  height={260}
-                  image={tweetProps.card.imageUrl}
-                  alt={tweetProps.card.title}
-                />
-                <CardContent sx={{borderTop: '1px solid #ccc', pt: 1}}>
-                  <Typography variant="body2" color="text.secondary">
-                    {tweetProps.card.domain}
-                  </Typography>
-                  <Typography variant="body1" component="div">
-                    {tweetProps.card.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" className={`line-clamp-2`}>
-                    {tweetProps.card.description}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </a>
-        }
-        {
-          tweetProps.card.type !== "summary_large_image" &&
-          <a href={tweetProps.card.url} target={'_blank'} className={styles.cardLink}>
-            <Card className={`${styles.mainBorder} mt-2 flex mr-4`}>
-              {
-                tweetProps.card.thumbnailImageUrl &&
-                <div className={'w-[130px] flex items-center shrink-0'} style={{backgroundColor: 'rgb(247,249,249)'}}>
-                  <CardMedia
-                    component="img"
-                    height={130}
-                    image={tweetProps.card.thumbnailImageUrl}
-                    alt={tweetProps.card.title}
-                  />
-                </div>
-              }
-              {
-                !tweetProps.card.thumbnailImageUrl &&
-                <div className={'w-[130px] flex items-center shrink-0'} style={{backgroundColor: 'rgb(247,249,249)'}}>
-                  <CardMedia
-                    component={ArticleIcon}
-                    className={'grow'}
-                  />
-                </div>
-              }
-              <div className={'flex items-center'}>
-                <CardContent sx={{borderLeft: '1px solid #ccc'}}>
-                  <Typography variant="body2" color="text.secondary">
-                    {tweetProps.card.domain}
-                  </Typography>
-                  <Typography variant="body1" component="div">
-                    {tweetProps.card.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" className={`line-clamp-2`}>
-                    {tweetProps.card.description}
-                  </Typography>
-                </CardContent>
-              </div>
-            </Card>
-          </a>
-        }
-      </div>
-    }
-    {
-      // quoted tweet use border round style
-      tweetProps.quotedTweet && <div className={`${styles.mainBorder} p-3 mt-3`}>
-        <Tweet tweetProps={tweetProps.quotedTweet} page={page} isInQuote={true}/>
-      </div>
-    }
   </div>
-</div>
-</div>
 }

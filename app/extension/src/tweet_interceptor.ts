@@ -109,10 +109,10 @@ function markReadTweetsInView() {
 
 function isElementInViewport(el: Element) {
   let rect = el.getBoundingClientRect();
+  const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
   return (
-    rect.top >= 0 &&
+    rect.top >= 0 && rect.top <= windowHeight && (rect.top + 100) <= windowHeight &&
     rect.left >= 0 &&
-    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
     rect.right <= (window.innerWidth || document.documentElement.clientWidth)
   );
 }

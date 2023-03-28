@@ -40,9 +40,10 @@ export interface TweetProperties {
   userMentions: UserMention[];
   urls: UrlEntity[];
   retweetedTweet?: TweetProperties;
+  noteTweet?: boolean;
 }
 
-export interface Card{
+export interface Card {
   type?: string;
   title: string;
   description: string;
@@ -66,13 +67,13 @@ export interface UrlEntity {
   indices: number[];
 }
 
-export interface VideInfo{
+export interface VideInfo {
   aspectRatio: number[];
   durationMillis: number;
   variants: Variant[];
 }
 
-export interface Variant{
+export interface Variant {
   bitrate: number;
   contentType: string;
   url: string;
