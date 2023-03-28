@@ -31,7 +31,7 @@ app.on("ready", async () => {
   const url = isDev
     ? 'http://localhost:3000/'
     : format({
-      pathname: join(__dirname, '../renderer/out/index.html'),
+      pathname: join(__dirname, './renderer/index.html'),
       protocol: 'file:',
       slashes: true,
     })
