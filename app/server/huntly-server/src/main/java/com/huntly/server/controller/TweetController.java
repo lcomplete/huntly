@@ -5,6 +5,8 @@ import com.huntly.interfaces.external.model.InterceptTweets;
 import com.huntly.interfaces.external.model.TweetId;
 import com.huntly.server.connector.twitter.TweetParser;
 import com.huntly.server.domain.entity.TweetTrack;
+import com.huntly.server.event.EventPublisher;
+import com.huntly.server.event.TweetPageCaptureEvent;
 import com.huntly.server.service.CapturePageService;
 import com.huntly.server.service.TweetTrackService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,11 +32,14 @@ public class TweetController {
     private final TweetParser tweetParser;
     
     private final TweetTrackService tweetTrackService;
+    
+    private final EventPublisher eventPublisher;
 
-    public TweetController(CapturePageService capturePageService, TweetParser tweetParser, TweetTrackService tweetTrackService) {
+    public TweetController(CapturePageService capturePageService, TweetParser tweetParser, TweetTrackService tweetTrackService, EventPublisher eventPublisher) {
         this.capturePageService = capturePageService;
         this.tweetParser = tweetParser;
         this.tweetTrackService = tweetTrackService;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostMapping("/saveTweets")
@@ -42,7 +47,8 @@ public class TweetController {
         var pages = tweetParser.tweetsToPages(tweets);
         AtomicInteger count = new AtomicInteger();
         pages.forEach(page -> {
-            capturePageService.saveTweetPage(page, tweets.getLoginScreenName(), tweets.getBrowserScreenName());
+            // SQLite only supports one connection. To avoid other threads from being unable to obtain the SQLite connection, asynchronous events are used 
+            eventPublisher.publishTweetPageCaptureEvent(new TweetPageCaptureEvent(page, tweets.getLoginScreenName(), tweets.getBrowserScreenName()));
             count.getAndIncrement();
         });
         return ApiResult.ok(count.get());

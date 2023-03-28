@@ -17,4 +17,8 @@ public class EventPublisher {
     public void publishInboxChangedEvent(InboxChangedEvent inboxChangedEvent){
         applicationEventPublisher.publishEvent(inboxChangedEvent);
     }
+
+    public void publishTweetPageCaptureEvent(TweetPageCaptureEvent tweetPageCaptureEvent) {
+        applicationEventPublisher.publishEvent(tweetPageCaptureEvent);
+    }
 }
