@@ -110,3 +110,10 @@ java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 首次打开 huntly 网站时，会提示注册一个管理员用户，目前仅支持单用户。
 
 注册后将自动登录到系统中，在登录的情况下，huntly 插件才能将浏览记录发送到服务端。
+
+## 请作者喝杯咖啡
+
+<p align="center">
+	<img height="360" src="static/images/wechat.JPG" />
+	<img height="360" src="static/images/zfb.JPG" />
+</p>

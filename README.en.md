@@ -112,3 +112,10 @@ When you open huntly website for the first time, you will be prompted to registe
 After registration, you will be automatically logged into the system, and the huntly extension will only send browsing history to the server if you are logged in.
 
 Enjoy it.
+
+## Buy me a coffee
+
+<p align="center">
+	<img height="360" src="static/images/wechat.JPG" />
+	<img height="360" src="static/images/zfb.JPG" />
+</p>
