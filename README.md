@@ -44,17 +44,54 @@ docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/
 下载后在命令行中 cd 到当前目录，通过以下 Java 命令运行：
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar
+java -Xms128m -Xmx1024m -jar huntly-server.jar
 ```
 
 默认以 8080 端口运行，你可以打开 [http://localhost:8080/](http://localhost:8080/) 端口进行访问，若需要使用其他端口，比如 80 端口，可运行以下命令：
 
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar --server.port=80
+java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 ```
 
 注意，Jar 包名称需要根据下载的包名做适当的修改。
+
+#### 安装为 windows 服务
+
+新建 Huntly 目录，以下操作在该目录中进行。
+
+下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 jar 包。
+
+下载 [WinSW exe](https://github.com/winsw/winsw/releases), 并将其重命名为 `app.exe` 。
+
+新建 `app.xml`，内容如下：
+
+```xml
+<service>
+  <id>huntly</id>
+  <name>huntly</name>
+  <description>huntly</description>
+  <executable>java</executable>
+  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=${server port}</arguments>
+  <log mode="roll"></log>
+</service>
+```
+
+打开终端运行命令：
+
+```sh
+.\app.exe install .\app.xml
+```
+
+执行完上面的命令后，Huntly 已经被安装为 windows 服务，并设置为开机自动启动。当前为未启动状态，使用以下命令启动服务：
+
+```sh
+.\app.exe start .\app.xml
+```
+
+若提示 java 命令无法执行，可将 `executable` 的值改为完整的 `java.exe` 路径。
+
+还支持 uninstall、stop、restart、status、refresh、customize 等命令，具体使用方式请查看 [https://github.com/winsw/winsw](https://github.com/winsw/winsw)。
 
 ### 安装浏览器插件
 
@@ -66,7 +103,7 @@ java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar --server.port=80
 
 ### 浏览器插件设置
 
-点击插件图标，选择设置 huntly 的服务端地址，比如在使用 demo 服务器时，则将其设置为 http://huntly.rom666.com:8000/ ，对于远程地址，在正式使用时，强烈建议使用 https 协议，毕竟浏览记录是相当私密的。若服务端在本机运行，则设置为本地地址即可。
+点击插件图标，选择设置 huntly 的服务端地址（huntly 网站首页地址），对于远程地址，在正式使用时，强烈建议使用 https 协议，毕竟浏览记录是相当私密的。若服务端在本机运行，则设置为本地地址即可。
 
 ### 登录并使用
 

@@ -44,17 +44,54 @@ Download the jar package from [Releases](https://github.com/lcomplete/huntly/rel
 After downloading, cd to the current directory from the command line and run it with the following Java command.
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar
+java -Xms128m -Xmx1024m -jar huntly-server.jar
 ```
 
 By default it runs on port 8080, you can open the [http://localhost:8080/](http://localhost:8080/) port for access, or if you need to use another port, such as port 80, you can run the following command.
 
 
 ```sh
-java -Xms128m -Xmx1024m -jar huntly-server-0.1.0-SNAPSHOT.jar --server.port=80
+java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 ```
 
 Note that the Jar package name needs to be modified appropriately according to the downloaded package name.
+
+#### Install as Windows Service
+
+Create a new directory named Huntly, and perform the following operations in this directory.
+
+Download the jar package from [Releases](https://github.com/lcomplete/huntly/releases).
+
+Download [WinSW exe](https://github.com/winsw/winsw/releases) and rename it to `app.exe`.
+
+Create a new file named `app.xml` with the following content:
+
+```xml
+<service>
+  <id>huntly</id>
+  <name>huntly</name>
+  <description>huntly</description>
+  <executable>java</executable>
+  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=${server port}</arguments>
+  <log mode="roll"></log>
+</service>
+```
+
+Open the terminal and run the command:
+
+```sh
+.\app.exe install .\app.xml
+```
+
+After executing the above command, Huntly has been installed as a Windows service and set to start automatically at boot. It is currently not started. Use the following command to start the service:
+
+```sh
+.\app.exe start .\app.xml
+```
+
+If you receive an error message that java cannot be executed, change the value of `executable` to the full path of `java.exe`.
+
+Other commands such as uninstall, stop, restart, status, refresh, customize are also supported. For specific usage instructions please refer to [https://github.com/winsw/winsw](https://github.com/winsw/winsw).
 
 ### Install the browser extension
 
@@ -66,7 +103,7 @@ Manage the extension in your browser, enable developer mode, and load the unpack
 
 ### Browser extension settings
 
-Click the huntly extension icon, choose to set huntly's server address, for example, when using the demo server, then set it to http://huntly.rom666.com:8000/, for the remote address, in formal use, it is highly recommended to use the https protocol, after all, the browsing history is quite private. If the server is running locally, then set it to the local address.
+Click the huntly extension icon, choose to set huntly's server address (home page url), for the remote address, in formal use, it is highly recommended to use the https protocol, after all, the browsing history is quite private. If the server is running locally, then set it to the local address.
 
 ### Login and enjoy it
 
