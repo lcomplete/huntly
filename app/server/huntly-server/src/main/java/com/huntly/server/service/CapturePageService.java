@@ -114,12 +114,6 @@ public class CapturePageService extends BasePageService {
         var existPage = pageRepository.findTop1ByUrl(page.getUrl());
         if (existPage.isPresent()) {
             var currentPage = existPage.get();
-            
-            // if currentPage updated at in 1 hour, then don't update
-            if (Instant.now().minusSeconds(3600).isBefore(currentPage.getUpdatedAt())) {
-                return currentPage;
-            }
-            
             currentPage.setContent(page.getContent());
             currentPage.setAuthor(page.getAuthor());
             currentPage.setContentType(page.getContentType());
