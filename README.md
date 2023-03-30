@@ -72,7 +72,7 @@ java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
   <name>huntly</name>
   <description>huntly</description>
   <executable>java</executable>
-  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=${server port}</arguments>
+  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=8123</arguments>
   <log mode="roll"></log>
 </service>
 ```
@@ -88,6 +88,8 @@ java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 ```sh
 .\app.exe start .\app.xml
 ```
+
+启动成功后可访问 [http://localhost:8123](http://localhost:8123) 。
 
 若提示 java 命令无法执行，可将 `executable` 的值改为完整的 `java.exe` 路径。
 

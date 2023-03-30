@@ -72,10 +72,12 @@ Create a new file named `app.xml` with the following content:
   <name>huntly</name>
   <description>huntly</description>
   <executable>java</executable>
-  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=${server port}</arguments>
+  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=8123</arguments>
   <log mode="roll"></log>
 </service>
 ```
+
+After successful startup, you can access [http://localhost:8123](http://localhost:8123).
 
 Open the terminal and run the command:
 
