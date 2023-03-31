@@ -97,9 +97,9 @@ java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 
 ### 安装浏览器插件
 
-注：插件目前还在开发中，尚未上架谷歌商店。
+插件已上架 chrome 应用商店，可直接在 [chrome 应用商店 huntly 扩展页面](https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm) 安装。
 
-下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 browser-extension.zip ，将其解压缩。
+如果你想使用最新的功能，可下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 browser-extension.zip ，将其解压缩。
 
 在浏览器中管理扩展，启用开发者模式，加载已解包的扩展即可。
 

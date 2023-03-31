@@ -97,11 +97,11 @@ Other commands such as uninstall, stop, restart, status, refresh, customize are 
 
 ### Install the browser extension
 
-Note: The plugin is still under development and is not yet available on the Google Play Store.
+The plugin has been uploaded to the Chrome Web Store and can be directly installed from the [Huntly extension page on the Chrome Web Store](https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm).
 
-Download the browser-extension.zip from [Releases](https://github.com/lcomplete/huntly/releases) and unpack it.
+If you want to use the latest features, you can download browser-extension.zip from [Releases](https://github.com/lcomplete/huntly/releases) and extract it.
 
-Manage the extension in your browser, enable developer mode, and load the unpacked extension.
+To manage extensions in your browser, enable developer mode and load the unpacked extension.
 
 ### Browser extension settings
 
