@@ -64,7 +64,6 @@ function App() {
 
             <div>
               <TextField
-                autoFocus
                 margin="dense"
                 id="port"
                 label="Server port"
