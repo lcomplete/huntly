@@ -3,11 +3,11 @@
 // Packages
 import {app, BrowserWindow, ipcMain, IpcMainEvent} from 'electron'
 import path, {join} from 'path';
-import isDev from "electron-is-dev";
 
 import {WindowManager} from "./window";
-import {format} from 'url';
-
+import SettingStore from "./settingStore";
+import {ChildProcessWithoutNullStreams, spawn} from "child_process";
+import kill from "tree-kill";
 
 app.on("ready", async () => {
   const mainWindow = new BrowserWindow({
@@ -17,10 +17,10 @@ app.on("ready", async () => {
     minHeight: 900,
     titleBarStyle: 'hidden',
     // titleBarOverlay: {height: 44},
-    trafficLightPosition:{x: 15, y: 15},
+    trafficLightPosition: {x: 15, y: 15},
     webPreferences: {
-      nodeIntegration: false,
-      // contextIsolation: false,
+      nodeIntegration: true,
+      contextIsolation: true,
       preload: join(__dirname, 'preload.js'),
     },
   })
@@ -28,23 +28,45 @@ app.on("ready", async () => {
   const windowManager = new WindowManager(mainWindow);
   windowManager.init();
 
-  const url = isDev
-    ? 'http://localhost:3000/'
-    : format({
-      pathname: join(__dirname, './renderer/index.html'),
-      protocol: 'file:',
-      slashes: true,
-    })
+  // const url = format({
+  //   pathname: join(__dirname, './renderer/index.html'),
+  //   protocol: 'file:',
+  //   slashes: true,
+  // });
 
-
-  mainWindow.loadURL(url)
+  mainWindow.loadFile(join(__dirname, './renderer/index.html'))
 })
 
 // Quit the app once all windows are closed
 app.on('window-all-closed', app.quit)
 
-// listen the channel `message` and resend the received message to the renderer process
-ipcMain.on('message', (event: IpcMainEvent, message: any) => {
-  console.log(message)
-  setTimeout(() => event.sender.send('message', 'hi from electron'), 500)
+app.on("before-quit", () => {
+  stopServer();
+});
+
+let javaProcess: ChildProcessWithoutNullStreams;
+
+ipcMain.on('server-start', (event: IpcMainEvent, message: any) => {
+  stopServer();
+  const serverPort = getServerPort();
+  if (serverPort) {
+    const jarPath = path.join(app.getAppPath(), "huntly-server.jar");
+    console.log({jarPath,serverPort});
+    javaProcess = spawn('java', ['-Xms128m', '-Xmx1024m', '-jar', jarPath, '--server.port=' + serverPort.toString()]);
+  }
 })
+
+ipcMain.on('server-port', (event: IpcMainEvent, message: any) => {
+  event.returnValue = getServerPort();
+})
+
+function stopServer() {
+  if (javaProcess && javaProcess.pid) {
+    kill(javaProcess.pid);
+  }
+}
+
+function getServerPort() {
+  const store = new SettingStore();
+  return store.getServerPort();
+}

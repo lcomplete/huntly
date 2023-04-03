@@ -5,6 +5,8 @@
 /.pnp
 .pnp.js
 
+huntly-server.jar*
+
 # testing
 /coverage
 
