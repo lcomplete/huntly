@@ -1,0 +1,48 @@
+{
+  "build": {
+    "beforeDevCommand": "yarn dev",
+    "beforeBuildCommand": "yarn build",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist",
+    "withGlobalTauri": false
+  },
+  "package": {
+    "productName": "tauri",
+    "version": "0.0.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": {
+        "all": false,
+        "open": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "icon": [
+        "icons/favicon-16x16.png",
+        "icons/favicon-32x32.png",
+        "icons/favicon-128x128.png",
+        "icons/icons.ico"
+      ],
+      "identifier": "com.tauri.dev",
+      "targets": "all"
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": false,
+        "title": "tauri",
+        "width": 800,
+        "height": 600
+      }
+    ]
+  }
+}
