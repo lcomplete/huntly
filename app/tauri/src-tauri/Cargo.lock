@@ -2361,6 +2361,7 @@ dependencies = [
 name = "tauri"
 version = "0.0.0"
 dependencies = [
+ "lazy_static",
  "serde",
  "serde_json",
  "tauri 1.2.4",

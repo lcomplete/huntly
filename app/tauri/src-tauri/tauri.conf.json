@@ -7,8 +7,8 @@
     "withGlobalTauri": false
   },
   "package": {
-    "productName": "tauri",
-    "version": "0.0.0"
+    "productName": "huntly",
+    "version": "0.3.4"
   },
   "tauri": {
     "allowlist": {
@@ -26,7 +26,7 @@
         "icons/favicon-128x128.png",
         "icons/icons.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "xyz.lcomplete.huntly",
       "targets": "all"
     },
     "security": {

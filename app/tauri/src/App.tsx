@@ -90,7 +90,7 @@ function App() {
                     onChange={formSettings.handleChange}
                   />
                 }
-                label="Auto Startup"
+                label="Auto startup"
               />
             </div>
             <div className={'mt-8'}>
