@@ -161,13 +161,13 @@ const PageOperationButtons = ({
   }
 
   function groupSaveAction(mainIcon, mainAction, mainTooltip, secondaryIcon, secondaryAction, secondaryTooltip) {
-    return <div className={"float-right group"}>
+    return <div className={"float-right group relative"}>
       <Tooltip title={mainTooltip} placement={"right"}>
         <IconButton onClick={mainAction} className={"group-hover:shadow-heavy group-hover:bg-white"}>
           {mainIcon}
         </IconButton>
       </Tooltip>
-      <div className={"group-hover:flex hidden absolute flex-col"}>
+      <div className={"group-hover:flex hidden absolute flex-col z-40"}>
         <Tooltip title={secondaryTooltip} placement={"right"}>
           <IconButton onClick={secondaryAction} className={"mt-2 bg-white shadow-heavy hover:bg-white"}>
             {secondaryIcon}
