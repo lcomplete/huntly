@@ -127,7 +127,7 @@ public class PageService extends BasePageService {
     }
 
     private void ensureSaveFirst(Page page) {
-        if (Objects.equals(page.getLibrarySaveStatus(), LibrarySaveStatus.NOT_SAVED.getCode())) {
+        if (page.getLibrarySaveStatus() == null || Objects.equals(page.getLibrarySaveStatus(), LibrarySaveStatus.NOT_SAVED.getCode())) {
             setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
         }
     }
