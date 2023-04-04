@@ -1,7 +1,7 @@
 package com.huntly.server.security;
 
-import com.huntly.server.security.jwt.UnAuthEntryPointJwt;
 import com.huntly.server.security.jwt.AuthTokenFilter;
+import com.huntly.server.security.jwt.UnAuthEntryPointJwt;
 import com.huntly.server.security.services.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -57,6 +57,7 @@ public class WebSecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests()
                 .antMatchers("/api/auth/**").permitAll()
+                .antMatchers("/api/health").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/v3/api-docs").permitAll()
                 .antMatchers("/api/**").authenticated();
