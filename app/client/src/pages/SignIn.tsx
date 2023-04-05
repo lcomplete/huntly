@@ -23,7 +23,7 @@ export default function SignIn() {
     api.isUserSetUsingGET().then(res => {
       setIsUserSet(res.data.data);
     });
-  });
+  }, []);
 
 
   const formikLogin = useFormik({
