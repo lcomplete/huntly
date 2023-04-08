@@ -16,6 +16,9 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "fs": {
+        "scope": ["$RESOURCE/*"]
       }
     },
     "bundle": {
@@ -27,10 +30,11 @@
         "icons/icons.ico"
       ],
       "identifier": "xyz.lcomplete.huntly",
-      "targets": "all"
+      "targets": "all",
+      "resources": ["./server_bin/*"]
     },
     "security": {
-      "csp": null
+      "csp": ""
     },
     "updater": {
       "active": false
@@ -39,10 +43,15 @@
       {
         "fullscreen": false,
         "resizable": false,
-        "title": "tauri",
-        "width": 800,
-        "height": 600
+        "title": "Huntly",
+        "width": 550,
+        "height": 500
       }
-    ]
+    ],
+    "systemTray": {
+      "iconPath": "icons/icons.ico",
+      "iconAsTemplate": true,
+      "menuOnLeftClick": true
+    }
   }
 }

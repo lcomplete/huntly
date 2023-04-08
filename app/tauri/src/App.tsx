@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 import { isString, useFormik } from "formik";
 import * as yup from "yup";
 import {
+  Alert,
   Button,
+  CircularProgress,
   FormControlLabel,
   Paper,
   Switch,
   TextField,
 } from "@mui/material";
 import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
+import { enable, isEnabled, disable } from "tauri-plugin-autostart-api";
 
 type AppSettings = {
   port: number;
@@ -22,14 +25,69 @@ function App() {
     port: 8123,
     auto_start_up: true,
   });
+  const [isServerRunning, setIsServerRunning] = useState<boolean | undefined>();
+  const [isServerStarting, setIsServerStarting] = useState<boolean>(false);
+  const timerRef = useRef<number>();
 
-  useEffect(()=>{
-    invoke("read_settings").then((result) => {
-      if(result && isString(result)){
-        setSettings(JSON.parse(result));
+  useEffect(() => {
+    invoke("read_settings").then(async (result) => {
+      if (result && isString(result)) {
+        const appSettings = JSON.parse(result) as AppSettings;
+        setSettings(appSettings);
+        if(appSettings.auto_start_up && !await isEnabled()){
+          enable();
+        }
+        else if(!appSettings.auto_start_up && await isEnabled()){
+          disable();
+        }
       }
     });
-  })
+  }, []);
+
+  useEffect(() => {
+    invoke("is_server_started").then((result) => {
+      if (!result) {
+        startServer();
+      }
+    });
+  }, []);
+
+  function startServer() {
+    invoke("start_server")
+      .then((result) => {
+        setIsServerStarting(true);
+      })
+      .catch(() => {
+        setIsServerStarting(false);
+        setIsServerRunning(false);
+      });
+  }
+
+  function checkServerRunning() {
+    invoke("is_server_running")
+      .then((result) => {
+        console.log(result);
+        if (result) {
+          setIsServerStarting(false);
+          setIsServerRunning(true);
+        } else {
+          setIsServerRunning(false);
+        }
+      })
+      .catch(() => {
+        setIsServerRunning(false);
+      })
+      .finally(() => {
+        timerRef.current = window.setTimeout(checkServerRunning, 1000);
+      });
+  }
+
+  useEffect(() => {
+    timerRef.current = window.setTimeout(checkServerRunning, 0);
+    return () => {
+      clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const formSettings = useFormik({
     enableReinitialize: true,
@@ -40,16 +98,32 @@ function App() {
       port: yup.number().required().min(80).max(65535),
       auto_start_up: yup.boolean().required(),
     }),
-    onSubmit: (values) => {
+    onSubmit: (values,helpers) => {
       invoke("save_settings", { settings: values }).then((result) => {
-        console.log(result);
+        if (settings.port !== values.port) {
+          restartServer();
+        }
+        if (settings.auto_start_up !== values.auto_start_up) {
+          if (values.auto_start_up) {
+            enable();
+          } else {
+            disable();
+          }
+        }
+        setSettings(values);
       });
     },
   });
 
+  function restartServer() {
+    invoke("stop_server").then((result) => {
+      startServer();
+    });
+  }
+
   return (
-    <div className={"flex items-center justify-center h-full bg-[#fafafa]"}>
-      <Paper className={"w-[530px] flex justify-center"} elevation={4}>
+    <div className={"flex items-center justify-center h-full"}>
+      <Paper className={"w-[530px] flex justify-center pb-14"} elevation={0}>
         <div className={"w-9/12"}>
           <form onSubmit={formSettings.handleSubmit} className={""}>
             <div className="mt-8 flex justify-center text-sky-600 font-bold">
@@ -93,7 +167,7 @@ function App() {
                 label="Auto startup"
               />
             </div>
-            <div className={'mt-8'}>
+            <div className={"mt-8"}>
               <Button
                 type="submit"
                 color="primary"
@@ -103,19 +177,33 @@ function App() {
                 save
               </Button>
             </div>
+            <div className={"mt-8 flex justify-center"}>
+              {isServerStarting && (
+                <div className="flex flex-col justify-center">
+                  <Alert severity="info" className="" icon={false}>
+                    <div className="flex items-center">
+                      <CircularProgress size={20} />
+                      <span className="ml-2">Starting server...</span>
+                    </div>
+                  </Alert>
+                </div>
+              )}
+              {!isServerStarting && isServerRunning && (
+                <div className="flex justify-center">
+                  <Alert severity="success">Server is running.
+                  <a href={"http://localhost:"+settings.port} target="_blank" className="ml-2">{"http://localhost:"+settings.port}</a>
+                  </Alert>
+                </div>
+              )}
+              {!isServerStarting &&
+                isServerRunning != undefined &&
+                !isServerRunning && (
+                  <div className="flex justify-center">
+                    <Alert severity="warning">Server is not running.</Alert>
+                  </div>
+                )}
+            </div>
           </form>
-
-          <div className={"text-center mt-20 mb-6 text-gray-400"}>
-            Copyright ©{" "}
-            <a
-              href={"https://twitter.com/lcomplete_wild"}
-              target={"_blank"}
-              className={"text-sky-600 hover:underline"}
-            >
-              lcomplete
-            </a>{" "}
-            2023.
-          </div>
         </div>
       </Paper>
     </div>

@@ -1601,6 +1601,12 @@ tailwindcss@^3.3.1:
     resolve "^1.22.1"
     sucrase "^3.29.0"
 
+"tauri-plugin-autostart-api@https://github.com/tauri-apps/tauri-plugin-autostart":
+  version "0.0.0"
+  resolved "https://github.com/tauri-apps/tauri-plugin-autostart#0c8e3ad92e00e7b0aed60fc8a639e77407105253"
+  dependencies:
+    "@tauri-apps/api" "^1.2.0"
+
 thenify-all@^1.0.0:
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/thenify-all/-/thenify-all-1.6.0.tgz#1a1918d402d8fc3f98fbf234db0bcc8cc10e9726"

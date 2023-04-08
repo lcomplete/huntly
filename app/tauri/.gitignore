@@ -25,3 +25,5 @@ dist-ssr
 
 app.settings.json
 **.jar
+
+/src-tauri/server_bin
