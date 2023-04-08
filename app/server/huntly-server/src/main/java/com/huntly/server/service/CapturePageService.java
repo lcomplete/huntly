@@ -118,6 +118,7 @@ public class CapturePageService extends BasePageService {
             currentPage.setAuthor(page.getAuthor());
             currentPage.setContentType(page.getContentType());
             currentPage.setPageJsonProperties(page.getPageJsonProperties());
+            currentPage.setCategory(page.getCategory());
             page = currentPage;
         } else {
             page.setCreatedAt(Instant.now());
