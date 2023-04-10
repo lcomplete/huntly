@@ -147,32 +147,32 @@ public class CapturePageService extends BasePageService {
                         case STARRED:
                             page.setStarred(true);
                             page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                            if (page.getSavedAt() != null) {
+                            if (page.getSavedAt() == null) {
                                 page.setSavedAt(Instant.now());
                             }
-                            if (page.getStarredAt() != null) {
+                            if (page.getStarredAt() == null) {
                                 page.setStarredAt(Instant.now());
                             }
                             break;
                         case READ_LATER:
                             page.setReadLater(true);
                             page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                            if (page.getSavedAt() != null) {
+                            if (page.getSavedAt() == null) {
                                 page.setSavedAt(Instant.now());
                             }
-                            if (page.getReadLaterAt() != null) {
+                            if (page.getReadLaterAt() == null) {
                                 page.setReadLaterAt(Instant.now());
                             }
                             break;
                         case MY_LIST:
                             page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                            if (page.getSavedAt() != null) {
+                            if (page.getSavedAt() == null) {
                                 page.setSavedAt(Instant.now());
                             }
                             break;
                         case ARCHIVE:
                             page.setLibrarySaveStatus(LibrarySaveStatus.ARCHIVED.getCode());
-                            if (page.getArchivedAt() != null) {
+                            if (page.getArchivedAt() == null) {
                                 page.setArchivedAt(Instant.now());
                             }
                             break;
