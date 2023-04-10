@@ -316,6 +316,8 @@ public class TweetParser {
                 }
             } else if (root.data.bookmark_timeline != null) {
                 timeline = root.data.bookmark_timeline.timeline;
+            } else if (root.data.bookmark_timeline_v2 != null) {
+                timeline = root.data.bookmark_timeline_v2.timeline;
             } else if (root.data.viewer != null && root.data.viewer.communities_timeline != null) {
                 timeline = root.data.viewer.communities_timeline.timeline;
             } else if (root.data.user != null) {

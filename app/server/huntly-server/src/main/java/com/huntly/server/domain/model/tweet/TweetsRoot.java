@@ -86,6 +86,8 @@ public class TweetsRoot {
         public Timeline threaded_conversation_with_injections_v2;
 
         public BookmarkTimeline bookmark_timeline;
+        
+        public BookmarkTimeline bookmark_timeline_v2;
 
         public Viewer viewer;
         
