@@ -36,14 +36,12 @@ public class CapturePageService extends BasePageService {
 
     private final TwitterUserSettingRepository twitterUserSettingRepository;
 
-    private final PageService pageService;
 
-    public CapturePageService(PageRepository pageRepository, LuceneService luceneService, SourceRepository sourceRepository, ConnectorRepository connectorRepository, TwitterUserSettingRepository twitterUserSettingRepository, PageService pageService) {
+    public CapturePageService(PageRepository pageRepository, LuceneService luceneService, SourceRepository sourceRepository, ConnectorRepository connectorRepository, TwitterUserSettingRepository twitterUserSettingRepository) {
         super(pageRepository, luceneService);
         this.sourceRepository = sourceRepository;
         this.connectorRepository = connectorRepository;
         this.twitterUserSettingRepository = twitterUserSettingRepository;
-        this.pageService = pageService;
     }
 
     public Page save(CapturePage capturePage) {
@@ -147,18 +145,36 @@ public class CapturePageService extends BasePageService {
                 if (librarySaveType != null) {
                     switch (librarySaveType) {
                         case STARRED:
-                            pageService.setPageStarred(page);
-                            pageService.setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
+                            page.setStarred(true);
+                            page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                            if (page.getSavedAt() != null) {
+                                page.setSavedAt(Instant.now());
+                            }
+                            if (page.getStarredAt() != null) {
+                                page.setStarredAt(Instant.now());
+                            }
                             break;
                         case READ_LATER:
-                            pageService.setPageReadLater(page);
-                            pageService.setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
+                            page.setReadLater(true);
+                            page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                            if (page.getSavedAt() != null) {
+                                page.setSavedAt(Instant.now());
+                            }
+                            if (page.getReadLaterAt() != null) {
+                                page.setReadLaterAt(Instant.now());
+                            }
                             break;
                         case MY_LIST:
-                            pageService.setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
+                            page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                            if (page.getSavedAt() != null) {
+                                page.setSavedAt(Instant.now());
+                            }
                             break;
                         case ARCHIVE:
-                            pageService.setPageLibrarySaveStatus(page, LibrarySaveStatus.ARCHIVED);
+                            page.setLibrarySaveStatus(LibrarySaveStatus.ARCHIVED.getCode());
+                            if (page.getArchivedAt() != null) {
+                                page.setArchivedAt(Instant.now());
+                            }
                             break;
                         default:
                             break;
