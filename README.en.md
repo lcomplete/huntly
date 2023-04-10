@@ -2,6 +2,22 @@
 
 **English** | [中文](./README.md)
 
+## Table of Contents
+
+- [Huntly](#huntly)
+  - [Table of Contents](#table-of-contents)
+  - [Screenshot](#screenshot)
+  - [Requirements](#requirements)
+  - [Usage](#usage)
+    - [Running the server side](#running-the-server-side)
+      - [Run with docker](#run-with-docker)
+      - [Run with the Java command](#run-with-the-java-command)
+      - [Install as Windows Service](#install-as-windows-service)
+    - [Install the browser extension](#install-the-browser-extension)
+    - [Browser extension settings](#browser-extension-settings)
+    - [Login and enjoy it](#login-and-enjoy-it)
+  - [Buy me a coffee](#buy-me-a-coffee)
+
 Huntly is a self-hosted information management tool, in simple terms, contains the following features.
 
 - RSS subscription and reading.
