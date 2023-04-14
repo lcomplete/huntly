@@ -19,7 +19,7 @@ spring:
     resources:
       cache:
         cachecontrol:
-          max-age: 365d
+          max-age: 7d
 
 huntly:
   jwtSecret: MTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2YzMTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2Yz
