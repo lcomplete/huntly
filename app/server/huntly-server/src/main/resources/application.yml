@@ -15,6 +15,11 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher # use this to make springfox work
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 365d
 
 huntly:
   jwtSecret: MTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2YzMTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2Yz
