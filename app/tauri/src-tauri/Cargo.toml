@@ -11,9 +11,10 @@ edition = "2021"
 
 [build-dependencies]
 tauri-build = { version = "1.2.1", features = [] }
+embed-resource = "2.1"
 
 [dependencies]
-tauri = { version = "1.2.4", features = ["shell-open", "system-tray"] }
+tauri = { version = "1.2.4", features = ["fs-read-file", "fs-write-file", "shell-open", "system-tray"] }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.11.16", features = ["json"] }

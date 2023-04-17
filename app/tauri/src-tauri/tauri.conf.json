@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "huntly",
-    "version": "0.3.4"
+    "version": "0.3.5"
   },
   "tauri": {
     "allowlist": {
@@ -18,7 +18,9 @@
         "open": true
       },
       "fs": {
-        "scope": ["$RESOURCE/*"]
+        "readFile": true,
+        "writeFile": true,
+        "scope": ["$APP/*", "$RESOURCE/*"]
       }
     },
     "bundle": {
@@ -29,7 +31,7 @@
         "icons/favicon-128x128.png",
         "icons/icons.ico"
       ],
-      "identifier": "xyz.lcomplete.huntly",
+      "identifier": "HuntlyLauncher",
       "targets": "all",
       "resources": ["./server_bin/*"]
     },

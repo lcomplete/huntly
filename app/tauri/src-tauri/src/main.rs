@@ -1,16 +1,17 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use reqwest::StatusCode;
+use std::os::windows::process::CommandExt;
+use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Mutex;
-
-use reqwest::StatusCode;
 use tauri::{
     command, AppHandle, CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu,
     SystemTrayMenuItem,
 };
 use tauri::{Manager, RunEvent, WindowEvent};
-use tauri_plugin_autostart::{MacosLauncher};
+use tauri_plugin_autostart::MacosLauncher;
 
 #[macro_use]
 extern crate lazy_static;
@@ -25,42 +26,52 @@ struct Settings {
     auto_start_up: bool,
 }
 
-fn get_settings_path() -> String {
-    if cfg!(debug_assertions) {
-        return "../app.settings.json".to_owned();
+fn get_settings_path(app: &AppHandle) -> String {
+    let app_dir = app.path_resolver().app_config_dir().unwrap();
+    if !app_dir.exists() {
+        std::fs::create_dir(app_dir).unwrap();
     }
-    return "app.settings.json".to_owned();
+    let path = app.path_resolver().app_config_dir().unwrap().join("app.settings.json");
+    return path.to_str().unwrap().to_owned();
+    // if cfg!(debug_assertions) {
+    //     return "../app.settings.json".to_owned();
+    // }
+    // return "app.settings.json".to_owned();
 }
 
 #[command]
-async fn save_settings(settings: Settings) {
+fn save_settings(app: AppHandle, settings: Settings) {
     let settings_str = serde_json::to_string(&settings).unwrap();
-    std::fs::write(get_settings_path(), settings_str).unwrap();
+    std::fs::write(get_settings_path(&app), settings_str).unwrap();
 }
 
 #[command]
-fn read_settings() -> String {
-    return std::fs::read_to_string(get_settings_path()).unwrap();
+fn read_settings(app: AppHandle) -> String {
+    return std_read_settings(&app);
+}
+
+fn std_read_settings(app: &AppHandle) -> String {
+    return std::fs::read_to_string(get_settings_path(app)).unwrap();
 }
 
 fn get_default_settings() -> Settings {
     Settings {
         port: 8123,
-        auto_start_up: true,
+        auto_start_up: false,
     }
 }
 
-fn get_settings() -> Settings {
-    let settings_str = read_settings();
+fn get_settings(app: &AppHandle) -> Settings {
+    let settings_str = std_read_settings(app);
     let settings: Settings = serde_json::from_str(&settings_str).unwrap();
     settings
 }
 
 #[command]
-async fn is_server_running() -> bool {
+async fn is_server_running(app: AppHandle) -> bool {
     match reqwest::get(format!(
         "http://localhost:{}/api/health",
-        get_settings().port
+        get_settings(&app).port
     ))
     .await
     {
@@ -77,26 +88,46 @@ fn is_server_started() -> bool {
 
 #[command]
 fn start_server(app: AppHandle) {
+    handle_start_server(&app);
+}
+
+fn handle_start_server(app: &AppHandle) {
     // 获取 Spring Boot Jar 文件路径
-    let settings: Settings = get_settings();
+    let settings: Settings = get_settings(app);
     let port = settings.port;
     let java_path = app
         .path_resolver()
         .resolve_resource("server_bin/jre11/bin/java.exe")
-        .unwrap()
-        .as_path()
-        .to_str()
-        .unwrap()
-        .to_owned();
-    let jar_file_path = get_jar_file_path(app);
-    let child = Command::new(java_path)
+        .unwrap();
+    let file_path = app
+        .path_resolver()
+        .resolve_resource("server_bin/huntly-server.jar")
+        .unwrap();
+    println!("jar file path:{}", canonicalize(file_path.as_os_str()));
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    let child = Command::new(canonicalize(java_path))
+        .creation_flags(CREATE_NO_WINDOW)
         .arg("-jar")
-        .arg(jar_file_path)
+        .arg(canonicalize(file_path))
         .arg(format!("--server.port={}", port))
         .spawn()
         .expect("failed to start spring boot application");
     let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
     *spring_boot_process = Some(child);
+}
+
+fn canonicalize<P: AsRef<Path>>(path: P) -> String {
+    let str = path
+        .as_ref()
+        .as_os_str()
+        .to_os_string()
+        .into_string()
+        .unwrap();
+    if str.starts_with("\\\\?\\") {
+        str.replace("\\\\?\\", "")
+    } else {
+        str
+    }
 }
 
 #[command]
@@ -113,37 +144,38 @@ fn stop_server() {
     println!("Backend gracefully shutdown.");
 }
 
-fn get_jar_file_path(app: AppHandle) -> String {
-    let file_path = app
-        .path_resolver()
-        .resolve_resource("server_bin/huntly-server.jar")
-        .unwrap()
-        .as_path()
-        .to_str()
-        .unwrap()
-        .to_owned();
-    println!("jar file path: {}", file_path);
-    file_path
-}
+// fn get_jar_file_path(app: AppHandle) -> String {
+//     let file_path = app
+//         .path_resolver()
+//         .resolve_resource("server_bin/huntly-server.jar")
+//         .unwrap()
+//         .into_os_string()
+//         .into_string()
+//         .unwrap();
+//     println!("jar file path:{}", file_path);
+//     file_path
+// }
 
 fn main() {
-    let settings_path = get_settings_path();
-    let metadata_settings = std::fs::metadata(settings_path);
-    match metadata_settings {
-        Ok(_) => {}
-        Err(_) => {
-            let default_settings = get_default_settings();
-            let settings_str = serde_json::to_string(&default_settings).unwrap();
-            std::fs::write(get_settings_path(), settings_str).unwrap();
-        }
-    }
-
     let app = tauri::Builder::default()
+        .setup(|app| {
+            let settings_path = get_settings_path(&app.app_handle());
+            let metadata_settings = std::fs::metadata(settings_path);
+            match metadata_settings {
+                Ok(_) => {}
+                Err(_) => {
+                    let default_settings = get_default_settings();
+                    let settings_str = serde_json::to_string(&default_settings).unwrap();
+                    let path = get_settings_path(&app.app_handle());
+                    std::fs::write(path, settings_str).unwrap();
+                }
+            }
+            Ok(())
+        })
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec!["--silently"]),
         ))
-        .setup(|_| Ok(()))
         .invoke_handler(tauri::generate_handler![
             save_settings,
             read_settings,
@@ -212,17 +244,18 @@ fn handler(app: &AppHandle, event: SystemTrayEvent) {
             }
             "open" => {
                 // open huntly server in web browser
-                let settings: Settings = get_settings();
+                let settings: Settings = get_settings(app);
                 let port = settings.port;
                 let url = format!("http://localhost:{}", port);
                 open_browser(url.as_str());
             }
             "restart" => {
                 stop_server();
-                start_server(app.clone());
+                handle_start_server(app);
             }
             "start" => {
-                start_server(app.clone());
+                stop_server();
+                handle_start_server(app);
             }
             "stop" => {
                 stop_server();
