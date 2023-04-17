@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use reqwest::StatusCode;
+#[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::{Child, Command};
@@ -31,7 +32,11 @@ fn get_settings_path(app: &AppHandle) -> String {
     if !app_dir.exists() {
         std::fs::create_dir(app_dir).unwrap();
     }
-    let path = app.path_resolver().app_config_dir().unwrap().join("app.settings.json");
+    let path = app
+        .path_resolver()
+        .app_config_dir()
+        .unwrap()
+        .join("app.settings.json");
     return path.to_str().unwrap().to_owned();
     // if cfg!(debug_assertions) {
     //     return "../app.settings.json".to_owned();
@@ -91,22 +96,35 @@ fn start_server(app: AppHandle) {
     handle_start_server(&app);
 }
 
+#[cfg(target_os = "windows")]
+fn cmdflags(cmd: &Command) {
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    cmd.creation_flags(CREATE_NO_WINDOW)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn cmdflags(cmd: &Command) {}
+
 fn handle_start_server(app: &AppHandle) {
     // 获取 Spring Boot Jar 文件路径
     let settings: Settings = get_settings(app);
     let port = settings.port;
+    let mut java_resource_path = "server_bin/jre11/bin/java.exe";
+    if cfg!(not(target_os = "windows")) {
+        java_resource_path = "server_bin/jre11/bin/java";
+    }
     let java_path = app
         .path_resolver()
-        .resolve_resource("server_bin/jre11/bin/java.exe")
+        .resolve_resource(java_resource_path)
         .unwrap();
     let file_path = app
         .path_resolver()
         .resolve_resource("server_bin/huntly-server.jar")
         .unwrap();
     println!("jar file path:{}", canonicalize(file_path.as_os_str()));
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-    let child = Command::new(canonicalize(java_path))
-        .creation_flags(CREATE_NO_WINDOW)
+    let mut cmd = Command::new(canonicalize(java_path));
+    cmdflags(&cmd);
+    let child = cmd
         .arg("-jar")
         .arg(canonicalize(file_path))
         .arg(format!("--server.port={}", port))
@@ -222,8 +240,14 @@ fn menu() -> SystemTray {
     SystemTray::new().with_menu(tray_menu)
 }
 
+#[cfg(target_os = "windows")]
 fn open_browser(url: &str) {
     let _ = Command::new("cmd").args(&["/C", "start"]).arg(url).spawn();
+}
+
+#[cfg(target_os = "macos")]
+fn open_browser(url: &str) {
+    let _ = Command::new("open").arg(url).spawn();
 }
 
 fn handler(app: &AppHandle, event: SystemTrayEvent) {
@@ -234,12 +258,17 @@ fn handler(app: &AppHandle, event: SystemTrayEvent) {
             size,
             ..
         } => {
-            let window = app.get_window("main").unwrap();
-            window.show().unwrap();
+            #[cfg(target_os = "windows")]
+            {
+                let window = app.get_window("main").unwrap();
+                window.show().unwrap();
+            }
         }
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
             "config" => {
                 let window = app.get_window("main").unwrap();
+                window.set_focus().unwrap();
+                window.unminimize().unwrap();
                 window.show().unwrap();
             }
             "open" => {
