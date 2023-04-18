@@ -5,11 +5,11 @@ use reqwest::StatusCode;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
-use std::process::{Child, Command};
+use std::process::{exit, Child, Command};
 use std::sync::Mutex;
 use tauri::{
-    command, AppHandle, CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem,
+    command, AppHandle, CustomMenuItem, Menu, MenuItem, Submenu, SystemTray, SystemTrayEvent,
+    SystemTrayMenu, SystemTrayMenuItem, ActivationPolicy,
 };
 use tauri::{Manager, RunEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
@@ -146,17 +146,34 @@ fn handle_start_server(app: &AppHandle) {
     println!("Starting Spring Boot application... ");
     let data_dir = get_app_data_dir(app);
     println!("data dir:{}", data_dir);
-    let child = cmd
-        .raw_arg("-jar")
-        .raw_arg(format!("\"{}\"", canonicalize(file_path)))
-        .raw_arg(format!("--server.port={}", port))
-        .raw_arg(format!("--huntly.dataDir=\"{}/\"", data_dir))
-        .raw_arg(format!("--huntly.luceneDir=\"{}/lucene\"", data_dir))
-        // .stdout(std::process::Stdio::piped())
-        .spawn()
-        .expect("failed to start spring boot application");
-    let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
-    *spring_boot_process = Some(child);
+    #[cfg(target_os = "windows")]
+    {
+        let child = cmd
+            .raw_arg("-jar")
+            .raw_arg(format!("\"{}\"", canonicalize(file_path)))
+            .raw_arg(format!("--server.port={}", port))
+            .raw_arg(format!("--huntly.dataDir=\"{}/\"", data_dir))
+            .raw_arg(format!("--huntly.luceneDir=\"{}/lucene\"", data_dir))
+            // .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("failed to start spring boot application");
+        let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
+        *spring_boot_process = Some(child);
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let child = cmd
+            .arg("-jar")
+            .arg(format!("{}", canonicalize(file_path)))
+            .arg(format!("--server.port={}", port))
+            .arg(format!("--huntly.dataDir={}/", data_dir))
+            .arg(format!("--huntly.luceneDir={}/lucene", data_dir))
+            // .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("failed to start spring boot application");
+        let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
+        *spring_boot_process = Some(child);
+    }
     println!("Spring Boot application started. ");
 }
 
@@ -189,7 +206,7 @@ fn stop_server() {
 }
 
 fn main() {
-    let app = tauri::Builder::default()
+    let mut app = tauri::Builder::default()
         .setup(|app| {
             let settings_path = get_settings_path(&app.app_handle());
             let metadata_settings = std::fs::metadata(settings_path);
@@ -216,11 +233,18 @@ fn main() {
             is_server_running,
             is_server_started
         ])
-        .system_tray(menu())
+        .system_tray(tray())
         .on_system_tray_event(handler)
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
+    #[cfg(target_os = "macos")]
+    {
+        app.set_activation_policy(ActivationPolicy::Accessory);
+    }
     app.run(|app, event| match event {
+        RunEvent::Exit { .. } => {
+            stop_server();
+        }
         RunEvent::ExitRequested { api, .. } => {
             stop_server();
         }
@@ -240,7 +264,7 @@ fn main() {
     })
 }
 
-fn menu() -> SystemTray {
+fn tray() -> SystemTray {
     let tray_menu = SystemTrayMenu::new()
         .add_item(CustomMenuItem::new("config", "Config"))
         .add_native_item(SystemTrayMenuItem::Separator)
@@ -311,7 +335,10 @@ fn handler(app: &AppHandle, event: SystemTrayEvent) {
                 #[cfg(target_os = "macos")]
                 {
                     let data_dir = get_app_data_dir(app);
-                    Command::new("open").args(&["-R", &data_dir]).spawn().unwrap;
+                    Command::new("open")
+                        .args(&["-R", &data_dir])
+                        .spawn()
+                        .unwrap();
                 }
             }
             "restart" => {
