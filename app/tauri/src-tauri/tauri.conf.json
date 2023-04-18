@@ -7,7 +7,7 @@
     "withGlobalTauri": false
   },
   "package": {
-    "productName": "huntly",
+    "productName": "Huntly",
     "version": "0.3.5"
   },
   "tauri": {
@@ -31,7 +31,7 @@
         "icons/favicon-128x128.png",
         "icons/icons.ico"
       ],
-      "identifier": "HuntlyLauncher",
+      "identifier": "lcomplete.huntly",
       "targets": "all",
       "resources": ["./server_bin/*"]
     },

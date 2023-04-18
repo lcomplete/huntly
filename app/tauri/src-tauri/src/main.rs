@@ -17,6 +17,8 @@ use tauri_plugin_autostart::MacosLauncher;
 #[macro_use]
 extern crate lazy_static;
 
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 lazy_static! {
     static ref SPRING_BOOT_PROCESS: Mutex<Option<Child>> = Mutex::new(None);
 }
@@ -38,10 +40,6 @@ fn get_settings_path(app: &AppHandle) -> String {
         .unwrap()
         .join("app.settings.json");
     return path.to_str().unwrap().to_owned();
-    // if cfg!(debug_assertions) {
-    //     return "../app.settings.json".to_owned();
-    // }
-    // return "app.settings.json".to_owned();
 }
 
 #[command]
@@ -96,15 +94,6 @@ fn start_server(app: AppHandle) {
     handle_start_server(&app);
 }
 
-#[cfg(target_os = "windows")]
-fn cmdflags(cmd: &Command) {
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-    cmd.creation_flags(CREATE_NO_WINDOW)
-}
-
-#[cfg(not(target_os = "windows"))]
-fn cmdflags(cmd: &Command) {}
-
 fn handle_start_server(app: &AppHandle) {
     // 获取 Spring Boot Jar 文件路径
     let settings: Settings = get_settings(app);
@@ -123,7 +112,10 @@ fn handle_start_server(app: &AppHandle) {
         .unwrap();
     println!("jar file path:{}", canonicalize(file_path.as_os_str()));
     let mut cmd = Command::new(canonicalize(java_path));
-    cmdflags(&cmd);
+    #[cfg(target_os = "windows")]
+    {
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
     let child = cmd
         .arg("-jar")
         .arg(canonicalize(file_path))
@@ -161,18 +153,6 @@ fn stop_server() {
 
     println!("Backend gracefully shutdown.");
 }
-
-// fn get_jar_file_path(app: AppHandle) -> String {
-//     let file_path = app
-//         .path_resolver()
-//         .resolve_resource("server_bin/huntly-server.jar")
-//         .unwrap()
-//         .into_os_string()
-//         .into_string()
-//         .unwrap();
-//     println!("jar file path:{}", file_path);
-//     file_path
-// }
 
 fn main() {
     let app = tauri::Builder::default()
@@ -242,7 +222,7 @@ fn menu() -> SystemTray {
 
 #[cfg(target_os = "windows")]
 fn open_browser(url: &str) {
-    let _ = Command::new("cmd").args(&["/C", "start"]).arg(url).spawn();
+    let _ = Command::new("cmd").creation_flags(CREATE_NO_WINDOW).args(&["/C", "start"]).arg(url).spawn();
 }
 
 #[cfg(target_os = "macos")]
