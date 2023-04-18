@@ -10,6 +10,7 @@
   - [Requirements](#requirements)
   - [Usage](#usage)
     - [Running the server side](#running-the-server-side)
+      - [Using the Server Installation Package](#using-the-server-installation-package)
       - [Run with docker](#run-with-docker)
       - [Run with the Java command](#run-with-the-java-command)
       - [Install as Windows Service](#install-as-windows-service)
@@ -40,8 +41,11 @@ Huntly is a self-hosted information management tool, in simple terms, contains t
 ## Usage
 
 ### Running the server side
+You can run the server using one of the following methods.
 
-You can use docker or java to run the server.
+#### Using the Server Installation Package
+
+Download the installation package for your corresponding operating system from [Releases](https://github.com/lcomplete/huntly/releases), and run it after installation.
 
 #### Run with docker
 
