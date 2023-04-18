@@ -47,7 +47,9 @@ Huntly 是一个自托管的信息管理工具，简单来说，它包含以下�
 
 #### 使用服务端安装包
 
-在 [Releases](https://github.com/lcomplete/huntly/releases) 中下载对应操作系统的安装包，安装后运行即可，若无法启动服务端，请尝试使用管理员模式启动。
+在 [Releases](https://github.com/lcomplete/huntly/releases) 中下载对应操作系统的安装包，安装后运行即可。
+
+**注：Windows 下需要以管理员身份运行。**
 
 #### 使用 docker 运行
 

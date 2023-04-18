@@ -45,7 +45,9 @@ You can run the server using one of the following methods.
 
 #### Using the Server Installation Package
 
-Download the installation package for your corresponding operating system from [Releases](https://github.com/lcomplete/huntly/releases), and run it after installation, if the server cannot be started, please try starting it in administrator mode.
+Download the installation package for your corresponding operating system from [Releases](https://github.com/lcomplete/huntly/releases), and run it after installation.
+
+**Note: Administrator privileges are required to run on Windows.**
 
 #### Run with docker
 
