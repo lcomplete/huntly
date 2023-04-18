@@ -20,7 +20,7 @@
       "fs": {
         "readFile": true,
         "writeFile": true,
-        "scope": ["$APP/*", "$RESOURCE/*"]
+        "scope": ["$APP/*", "$RESOURCE/*","server_bin/*"]
       }
     },
     "bundle": {

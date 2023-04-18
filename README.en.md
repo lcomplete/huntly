@@ -47,8 +47,6 @@ You can run the server using one of the following methods.
 
 Download the installation package for your corresponding operating system from [Releases](https://github.com/lcomplete/huntly/releases), and run it after installation.
 
-**Note: Administrator privileges are required to run on Windows.**
-
 #### Run with docker
 
 ```sh

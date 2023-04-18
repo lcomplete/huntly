@@ -29,6 +29,21 @@ struct Settings {
     auto_start_up: bool,
 }
 
+fn get_app_data_dir(app: &AppHandle) -> String {
+    let app_dir = app.path_resolver().app_data_dir().unwrap();
+    if !app_dir.exists() {
+        std::fs::create_dir(app_dir).unwrap();
+    }
+    return app
+        .path_resolver()
+        .app_data_dir()
+        .unwrap()
+        .as_os_str()
+        .to_os_string()
+        .into_string()
+        .unwrap();
+}
+
 fn get_settings_path(app: &AppHandle) -> String {
     let app_dir = app.path_resolver().app_config_dir().unwrap();
     if !app_dir.exists() {
@@ -110,20 +125,39 @@ fn handle_start_server(app: &AppHandle) {
         .path_resolver()
         .resolve_resource("server_bin/huntly-server.jar")
         .unwrap();
+    println!("java path:{}", canonicalize(java_path.as_os_str()));
     println!("jar file path:{}", canonicalize(file_path.as_os_str()));
-    let mut cmd = Command::new(canonicalize(java_path));
+    let java_path_str = canonicalize(java_path);
+    let cmd_path = java_path_str.clone();
+    // #[cfg(target_os = "windows")]
+    // {
+    //     cmd_path = "cmd".to_owned();
+    // }
+    // #[cfg(target_os = "macos")]
+    // {
+    //     cmd_path = java_path_str;
+    // }
+    let mut cmd = Command::new(cmd_path);
     #[cfg(target_os = "windows")]
     {
         cmd.creation_flags(CREATE_NO_WINDOW);
+        // cmd.raw_arg("/C").raw_arg(java_path_str);
     }
+    println!("Starting Spring Boot application... ");
+    let data_dir = get_app_data_dir(app);
+    println!("data dir:{}", data_dir);
     let child = cmd
-        .arg("-jar")
-        .arg(canonicalize(file_path))
-        .arg(format!("--server.port={}", port))
+        .raw_arg("-jar")
+        .raw_arg(format!("\"{}\"", canonicalize(file_path)))
+        .raw_arg(format!("--server.port={}", port))
+        .raw_arg(format!("--huntly.dataDir=\"{}/\"", data_dir))
+        .raw_arg(format!("--huntly.luceneDir=\"{}/lucene\"", data_dir))
+        // .stdout(std::process::Stdio::piped())
         .spawn()
         .expect("failed to start spring boot application");
     let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
     *spring_boot_process = Some(child);
+    println!("Spring Boot application started. ");
 }
 
 fn canonicalize<P: AsRef<Path>>(path: P) -> String {
@@ -211,6 +245,7 @@ fn menu() -> SystemTray {
         .add_item(CustomMenuItem::new("config", "Config"))
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(CustomMenuItem::new("open", "Open huntly"))
+        .add_item(CustomMenuItem::new("open_dir", "Open data directory"))
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(CustomMenuItem::new("start", "Start server"))
         .add_item(CustomMenuItem::new("stop", "Stop server"))
@@ -222,7 +257,11 @@ fn menu() -> SystemTray {
 
 #[cfg(target_os = "windows")]
 fn open_browser(url: &str) {
-    let _ = Command::new("cmd").creation_flags(CREATE_NO_WINDOW).args(&["/C", "start"]).arg(url).spawn();
+    let _ = Command::new("cmd")
+        .creation_flags(CREATE_NO_WINDOW)
+        .args(&["/C", "start"])
+        .arg(url)
+        .spawn();
 }
 
 #[cfg(target_os = "macos")]
@@ -257,6 +296,23 @@ fn handler(app: &AppHandle, event: SystemTrayEvent) {
                 let port = settings.port;
                 let url = format!("http://localhost:{}", port);
                 open_browser(url.as_str());
+            }
+            "open_dir" => {
+                #[cfg(target_os = "windows")]
+                {
+                    let data_dir = get_app_data_dir(app);
+                    println!("data_dir: {}", data_dir);
+                    Command::new("explorer")
+                        .creation_flags(CREATE_NO_WINDOW)
+                        .raw_arg(&format!("/open,\"{}\"", data_dir))
+                        .spawn()
+                        .unwrap();
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    let data_dir = get_app_data_dir(app);
+                    Command::new("open").args(&["-R", &data_dir]).spawn().unwrap;
+                }
             }
             "restart" => {
                 stop_server();
