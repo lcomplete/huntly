@@ -47,6 +47,12 @@ You can run the server using one of the following methods.
 
 Download the installation package for your corresponding operating system from [Releases](https://github.com/lcomplete/huntly/releases), and run it after installation.
 
+If you encounter the error message "Huntly.app" is damaged and can't be opened. You should move it to the Trash. while installing software on macOS, it may be due to security settings restrictions in macOS. To solve this problem, please try the following command in Terminal:
+
+```sh
+sudo xattr -r -d com.apple.quarantine /YOUR_PATH/ChatGPT.app
+```
+
 #### Run with docker
 
 ```sh

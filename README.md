@@ -49,6 +49,12 @@ Huntly 是一个自托管的信息管理工具，简单来说，它包含以下�
 
 在 [Releases](https://github.com/lcomplete/huntly/releases) 中下载对应操作系统的安装包，安装后运行即可。
 
+在 Mac 中，如果碰到 `"Huntly.app" is damaged and can't be opened` 的提示消息，请重新下载。下载后先执行以下命令再进行安装。
+
+```sh
+sudo xattr -r -d com.apple.quarantine /YOUR_PATH/huntly.dmg
+```
+
 #### 使用 docker 运行
 
 ```sh
