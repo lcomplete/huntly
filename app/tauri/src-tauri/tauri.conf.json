@@ -29,7 +29,9 @@
         "icons/favicon-16x16.png",
         "icons/favicon-32x32.png",
         "icons/favicon-128x128.png",
-        "icons/icons.ico"
+        "icons/favicon-128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
       ],
       "identifier": "lcomplete.huntly",
       "targets": "all",
@@ -51,7 +53,7 @@
       }
     ],
     "systemTray": {
-      "iconPath": "icons/icons.ico",
+      "iconPath": "icons/icon.ico",
       "iconAsTemplate": true,
       "menuOnLeftClick": true
     }
