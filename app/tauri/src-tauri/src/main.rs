@@ -9,8 +9,10 @@ use std::process::{exit, Child, Command};
 use std::sync::Mutex;
 use tauri::{
     command, AppHandle, CustomMenuItem, Menu, MenuItem, Submenu, SystemTray, SystemTrayEvent,
-    SystemTrayMenu, SystemTrayMenuItem, ActivationPolicy,
+    SystemTrayMenu, SystemTrayMenuItem
 };
+#[cfg(target_os = "macos")]
+use tauri::ActivationPolicy;
 use tauri::{Manager, RunEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 
