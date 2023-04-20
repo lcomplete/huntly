@@ -94,5 +94,5 @@ jobs:
       - name: Upload the build artifact
         uses: actions/upload-artifact@v3
         with:
-          name: tauri-build
+          name: tauri-build-${{ matrix.platform }}
           path: app/tauri/src-tauri/target/release/bundle
