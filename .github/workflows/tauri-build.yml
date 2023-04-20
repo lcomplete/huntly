@@ -1,0 +1,98 @@
+name: huntly tauri build workflow
+
+on:
+  # This line enables manual triggering of this workflow.
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-20.04'
+        # You can remove libayatana-appindicator3-dev if you don't use the system tray feature.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Rust setup
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Set Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.12.1"
+          cache: "yarn"
+          cache-dependency-path: "app/tauri/yarn.lock"
+      
+      - name: Setup yarn
+        run: npm install -g yarn --version 1.22.19
+
+      - name: Install client dependencies
+        run: |
+          cd app/tauri
+          yarn install
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+
+      # Retrieve maven dependencies from cache. After a successful run, these dependencies are cached again
+      - name: Cache maven dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-maven-dependencies
+        with:
+          # maven dependencies are stored in `~/.m2` on Linux/macOS
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        run: |
+          cd app/server
+          mvn clean package
+        env:
+          CI: false
+
+      - name: Move to server_bin
+        run: |
+          mkdir app/tauri/src-tauri/server_bin/
+          mv app/server/huntly-server/target/huntly-*.jar app/tauri/src-tauri/server_bin/huntly-server.jar
+      
+      - name: jlink
+        run: |
+          cd app/tauri/src-tauri/server_bin/
+          jlink --module-path $JAVA_HOME/jmods --add-modules java.base,java.desktop,java.logging,java.naming,java.sql,java.xml,jdk.unsupported --output jre11
+
+      - name: Install frontend dependencies
+        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
+        run: yarn install # Change this to npm, yarn or pnpm.
+
+      - name: Build the app
+        run: |
+          cd app/tauri
+          yarn tauri build
+
+      - name: Upload the build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tauri-build
+          path: app/tauri/src-tauri/target/release/bundle
