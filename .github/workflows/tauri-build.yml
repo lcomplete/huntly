@@ -80,7 +80,7 @@ jobs:
       - name: jlink
         run: |
           cd app/tauri/src-tauri/server_bin/
-          jlink --module-path $JAVA_HOME/jmods --add-modules java.base,java.desktop,java.logging,java.naming,java.sql,java.xml,jdk.unsupported --output jre11
+          jlink --module-path $JAVA_HOME/jmods --add-modules java.compiler,java.sql,java.naming,java.management,java.instrument,java.rmi,java.desktop,jdk.internal.vm.compiler.management,java.xml.crypto,java.scripting,java.security.jgss,jdk.httpserver,java.net.http,jdk.naming.dns,jdk.crypto.cryptoki,jdk.unsupported --verbose --strip-debug --compress 2 --no-header-files --no-man-pages --output jre11
 
       - name: Install frontend dependencies
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
