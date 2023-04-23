@@ -4,6 +4,7 @@ import React, {useCallback, useEffect, useState} from "react";
 import {WindowStateListenerType} from "../domain/electronTypes";
 import {IconButton} from "@mui/material";
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import DehazeIcon from '@mui/icons-material/Dehaze';
 import SettingModal from "./SettingModal";
 
 export default function Header() {
@@ -56,18 +57,30 @@ export default function Header() {
     setSettingModalOpen(false);
   }, []);
 
+  function toggleSidebar() {
+    const rootEl = document.getElementById('root');
+    rootEl?.classList.toggle('toggle-sidebar');
+  }
+
   return <header className="title_bar">
     {!isMac && (
-      <span className="pl-4 flex items-center text-sky-600 absolute font-bold">
-              <EnergySavingsLeafIcon className="h-4 w-4 mr-1"/>
-              Huntly
-            </span>
+      <span className="logo-area pl-4 flex items-center text-sky-600 absolute font-bold">
+        <span className={'slide-button'}>
+          <IconButton onClick={toggleSidebar}>
+            <DehazeIcon/>
+          </IconButton>
+        </span>
+        <EnergySavingsLeafIcon className="h-6 w-6 mr-1"/>
+        <span className={'logo-text'}>
+          Huntly
+        </span>
+      </span>
     )}
 
     <SearchBox/>
 
     {
-      (!inElectron || isMac) && <IconButton className={'mr-2 absolute right-0'} onClick={openSettingModal}>
+      (!inElectron || isMac) && <IconButton className={'setting-area mr-2 absolute right-0'} onClick={openSettingModal}>
         <SettingsOutlinedIcon className={'text-sky-600'}/>
       </IconButton>
     }

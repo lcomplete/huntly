@@ -143,7 +143,7 @@ export const ConnectorSetting = () => {
           />
           <TextField
             margin="dense"
-            className={'w-[200px] ml-2'}
+            className={'w-[180px] ml-2'}
             id="fetchIntervalMinutes"
             label="Fetch interval minutes"
             value={formikGithub.values.fetchIntervalMinutes || 0}
@@ -156,7 +156,7 @@ export const ConnectorSetting = () => {
           />
           <TextField
             margin="dense"
-            className={'w-[200px] ml-2'}
+            className={'w-[180px] ml-2'}
             id="fetchPageSize"
             label="Fetch page size"
             value={formikGithub.values.fetchPageSize || 0}

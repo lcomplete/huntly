@@ -142,7 +142,7 @@ export default function Tweet({
         }}/>
       </a>
     </div>
-    <div className={'ml-2 grow'}>
+    <div className={'tweet-area ml-2 grow'}>
       <span className={`font-bold ${styles.mainColor}`}>
         <a href={`https://twitter.com/${tweetProps.userScreeName}`} target={'_blank'}>{tweetProps.userName}</a>
       </span>

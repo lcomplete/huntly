@@ -108,6 +108,7 @@ const PageDetailArea = ({
       {error && <p>error...</p>}
       {detail && (
         <Paper
+          className={"page-detail-paper"}
           sx={{maxWidth: 800, minWidth: 800}}
           key={detail.page.id}
           elevation={2}

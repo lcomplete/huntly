@@ -232,7 +232,7 @@ const PageList = (props: PageListProps) => {
                  buttonOptions={buttonOptions}/>
       <div className={'flex flex-auto'}>
         <div className="p-2 flex flex-col grow items-center">
-          <div className={'w-[720px] flex flex-col items-center'}>
+          <div className={'page-list w-[720px] flex flex-col items-center'}>
             {showDoneTip && <div className={'w-full'}>
                 <TransitionAlert severity="success" color="info">
                     <AlertTitle>Well done!</AlertTitle>
@@ -267,7 +267,7 @@ const PageList = (props: PageListProps) => {
             }
           </div>
         </div>
-        <div className={'w-[270px] sticky mt-3 top-28 self-start'}>
+        <div className={'filter-options w-[270px] sticky mt-3 top-28 self-start'}>
           {props.filterComponent}
         </div>
       </div>

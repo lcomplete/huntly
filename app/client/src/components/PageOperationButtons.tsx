@@ -200,7 +200,7 @@ const PageOperationButtons = ({
   }
 
   return (
-    <div>
+    <div className={'shrink-0'}>
       <Box sx={{}}>
         {
           pageState.readLater ? (

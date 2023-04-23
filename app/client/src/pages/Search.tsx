@@ -130,7 +130,7 @@ export default function Search() {
 
       <div className={'flex flex-auto'}>
         <div className="p-2 flex flex-col grow items-center">
-          <div className={'w-[720px] flex flex-col items-center'}>
+          <div className={'page-list w-[720px] flex flex-col items-center'}>
             {isLoading && <Loading/>}
             {error && <p>Oops, something was broken.</p>}
             {!isLoading && !error && data &&
@@ -156,7 +156,7 @@ export default function Search() {
           </div>
         </div>
 
-        <div className={'w-[270px] sticky mt-3 top-28 self-start'}>
+        <div className={'filter-options w-[270px] sticky mt-3 top-28 self-start'}>
         </div>
       </div>
 

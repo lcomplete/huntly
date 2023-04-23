@@ -88,7 +88,7 @@ export default function MagazineItem({
           <Box sx={{}} className={"flex items-center justify-between mt-1 text-[15px]"}>
             <div className={'flex text-gray-500 items-center'}>
               <a href={page.url} target={"_blank"} className={'hover:underline'}>
-                <div className={"flex items-center"}>
+                <div className={"flex items-center flex-wrap"}>
                   {page.faviconUrl &&
                     <span className={"mr-2"}>
                         <CardMedia component={'img'} image={page.faviconUrl}
@@ -199,7 +199,7 @@ export default function MagazineItem({
 
         {page.thumbUrl &&
           <Link to={`/page/${page.id}`} className={'self-center'} onClick={(e) => onPageSelect(e, page.id)}>
-            <Box sx={{width: 160, height: 120, flexShrink: 0, marginLeft: 2}}>
+            <Box className={'page-item-thumb'} sx={{width: 160, height: 120, flexShrink: 0, marginLeft: 2}}>
               <CardMedia
                 component="img"
                 sx={{width: '100%', height: '100%'}}

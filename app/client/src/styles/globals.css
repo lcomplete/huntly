@@ -2,99 +2,205 @@
 @tailwind components;
 @tailwind utilities;
 
-#root{
-  --primary: #eeeff4;
-  --secondary: #f6f8fc;
-}
-body{
-  margin:0;
-  padding: 0;
-}
-html,body,#root{
-  @apply h-full;
-}
-a{
-  text-decoration: none;
-  color: inherit;
-}
-.layoutRoot{
-  @apply pt-12;
-}
-.title_bar{
-  z-index: 999;
-  top: 0;
-  left:0;
-  width: 100%;
-  -webkit-app-region: drag;
-  background: var(--primary);
-  @apply fixed h-12 items-center flex;
-}
-.main_sidebar{
-  position: fixed;
-  left:0;
-  background: var(--secondary);
-  color:#202124;
-  overflow-y: auto;
-  @apply w-[270px] h-full pr-3 pt-3 pb-3;
+#root {
+    --primary: #eeeff4;
+    --secondary: #f6f8fc;
 }
 
-.main_sidebar::-webkit-scrollbar,.scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-.main_sidebar::-webkit-scrollbar-track,.scrollbar::-webkit-scrollbar-track {
-  background-color: transparent;
-}
-.main_sidebar::-webkit-scrollbar-thumb,.scrollbar::-webkit-scrollbar-thumb {
-  background-color: #d6dee1;
-  border-radius: 8px;
-  background-clip: content-box;
-}
-.main_sidebar::-webkit-scrollbar-thumb:hover,.scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #a8bbbf;
+body {
+    margin: 0;
+    padding: 0;
 }
 
-.search-wrapper{
-  -webkit-app-region: no-drag;
-}
-.nodrag{
-  -webkit-app-region: no-drag;
+html, body, #root {
+    @apply h-full;
 }
 
-.main_window{
-  margin-left: 270px;
+a {
+    text-decoration: none;
+    color: inherit;
 }
+
+.layoutRoot {
+    @apply pt-12;
+}
+
+.title_bar {
+    z-index: 300;
+    top: 0;
+    left: 0;
+    width: 100%;
+    -webkit-app-region: drag;
+    background: var(--primary);
+    @apply fixed h-12 items-center flex;
+}
+
+.main_window {
+    padding-left: 270px;
+}
+
+.main_sidebar {
+    position: fixed;
+    left: 0;
+    background: var(--secondary);
+    color: #202124;
+    overflow-y: auto;
+    z-index: 200;
+    @apply w-[270px] h-full pr-3 pt-3 pb-3 shrink-0;
+}
+
+.slide-button {
+    display: none;
+}
+
+.page-detail-modal {
+    @apply w-[1450px] p-4;
+}
+
+@media (max-width: 1450px) {
+    .page-detail-modal {
+        @apply w-[1200px];
+    }
+}
+
+@media (max-width: 1200px) {
+    .page-detail-modal {
+        @apply w-[1000px];
+    }
+}
+
+@media (max-width: 1000px) {
+    .page-detail-modal {
+        @apply w-[100%];
+    }
+
+    .page-detail-paper {
+        width: 100%;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .logo-area {
+        position: relative;
+    }
+
+    .setting-area {
+        position: relative;
+    }
+
+    .logo-text {
+        display: none;
+    }
+
+    .search-box {
+        min-width: 0;
+        @apply grow;
+    }
+
+    .slide-button {
+        display: block;
+    }
+
+    .main_window {
+        padding-left: 0;
+    }
+
+    #root .main_sidebar {
+        display: none;
+    }
+
+    #root.toggle-sidebar .main_sidebar {
+        display: block !important;
+    }
+
+    #root.toggle-sidebar .main_window {
+        padding-left: 270px;
+    }
+
+    .page-list {
+        width: 100%;
+    }
+
+    .page-item-thumb {
+        width: 100px !important;
+        height: 100px !important;
+    }
+
+    .filter-options {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 950px) {
+    #root.toggle-sidebar .main_window {
+        padding-left: 0;
+    }
+}
+
+.main_sidebar::-webkit-scrollbar, .scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.main_sidebar::-webkit-scrollbar-track, .scrollbar::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+.main_sidebar::-webkit-scrollbar-thumb, .scrollbar::-webkit-scrollbar-thumb {
+    background-color: #d6dee1;
+    border-radius: 8px;
+    background-clip: content-box;
+}
+
+.main_sidebar::-webkit-scrollbar-thumb:hover, .scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #a8bbbf;
+}
+
+.search-wrapper {
+    -webkit-app-region: no-drag;
+    @apply flex justify-center grow;
+}
+
+.nodrag {
+    -webkit-app-region: no-drag;
+}
+
 .btn-size-ctrl {
-  -webkit-app-region: no-drag;
-  @apply border-0 bg-transparent hover:bg-slate-200 h-11 w-11;
-}
-.btn-size-ctrl svg {
-  @apply w-[0.6rem] h-[0.6rem];
-}
-.btn-size-close {
-  @apply hover:bg-red-400;
+    -webkit-app-region: no-drag;
+    @apply border-0 bg-transparent hover:bg-slate-200 h-11 w-11;
 }
 
-.subheader{
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  z-index: 100;
-  @apply sticky top-12;
+.btn-size-ctrl svg {
+    @apply w-[0.6rem] h-[0.6rem];
+}
+
+.btn-size-close {
+    @apply hover:bg-red-400;
+}
+
+.subheader {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    @apply sticky top-12;
 }
 
 .separator {
-  display: flex;
-  align-items: center;
-  text-align: center;
+    display: flex;
+    align-items: center;
+    text-align: center;
 }
+
 .separator::before,
 .separator::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid #ccc;
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ccc;
 }
+
 .separator:not(:empty)::before {
-  margin-right: .25em;
+    margin-right: .25em;
 }
+
 .separator:not(:empty)::after {
-  margin-left: .25em;
+    margin-left: .25em;
 }

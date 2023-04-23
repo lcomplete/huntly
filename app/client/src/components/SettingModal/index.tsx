@@ -46,7 +46,7 @@ export default function SettingModal(props: SettingModalProps) {
   return (
     <Modal open={props.open} onClose={props.onClose} className={'flex justify-center items-center'}>
       <Box className={'flex scrollbar'} sx={style}>
-        <div className={'w-1/4 h-full bg-[rgb(251,251,250)] sticky self-start top-0'}>
+        <div className={'w-[220px] h-full bg-[rgb(251,251,250)] sticky self-start top-0 left-0 shrink-0'}>
           <List component="nav" aria-label="setting items" className={''}>
             <ListItemButton
               selected={selectedIndex === 0}
@@ -96,22 +96,24 @@ export default function SettingModal(props: SettingModalProps) {
           </List>
         </div>
 
-        <div className={'p-4 grow'}>
-          {
-            selectedIndex === 0 && <ConnectorSetting/>
-          }
-          {
-            selectedIndex === 1 && <FeedsSetting/>
-          }
-          {
-            selectedIndex === 2 && <FoldersSetting/>
-          }
-          {
-            selectedIndex === 3 && <GeneralSetting/>
-          }
-          {
-            selectedIndex === 4 && <AccountSetting/>
-          }
+        <div className={'grow'}>
+          <div className={'p-4'}>
+            {
+              selectedIndex === 0 && <ConnectorSetting/>
+            }
+            {
+              selectedIndex === 1 && <FeedsSetting/>
+            }
+            {
+              selectedIndex === 2 && <FoldersSetting/>
+            }
+            {
+              selectedIndex === 3 && <GeneralSetting/>
+            }
+            {
+              selectedIndex === 4 && <AccountSetting/>
+            }
+          </div>
         </div>
       </Box>
     </Modal>

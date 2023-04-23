@@ -3,7 +3,7 @@ import {
   createBrowserRouter,
   createRoutesFromElements, createSearchParams,
   Route,
-  RouterProvider,
+  RouterProvider, 
 } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
@@ -54,7 +54,7 @@ function App() {
       });
     }
   }, []);
-
+  
   return (
     <RouterProvider router={router}/>
     // <Routes>
