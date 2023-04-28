@@ -86,6 +86,9 @@ public class Page implements Serializable {
 
     @Column(name = "read_cost_seconds")
     private Long readCostSeconds;
+    
+    @Column(name = "vote_score")
+    private Long voteScore;
 
     @Column(name = "created_at")
     private Instant createdAt;

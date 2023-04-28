@@ -21,7 +21,7 @@ const MyList = () => {
   return (
     <MainContainer>
       <PageList navLabel={navLabels.myList}
-                filters={{saveStatus: 'SAVED', sort: pageFilterOptions.defaultSortValue, asc: pageFilterOptions.asc}}
+                filters={{saveStatus: 'SAVED', sort: pageFilterOptions.defaultSortValue, asc: pageFilterOptions.asc, contentFilterType: pageFilterOptions.contentFilterType}}
                 buttonOptions={{markRead: false}}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />

@@ -112,10 +112,18 @@ public class TweetParser {
         page.setLanguage(tweet.lang);
         page.setPageUniqueId(tweetProperties.getTweetIdStr());
         page.setConnectedAt(tweetProperties.getCreatedAt());
+        page.setVoteScore(calcVoteScore(tweetProperties));
 
         page.setPageJsonProperties(JSONUtils.toJson(tweetProperties));
 
         return page;
+    }
+
+    private long calcVoteScore(TweetProperties tweetProperties) {
+        int retweetCount = ObjectUtils.defaultIfNull(tweetProperties.getRetweetCount(), 0) + ObjectUtils.defaultIfNull(tweetProperties.getQuoteCount(), 0);
+        int favoriteCount = ObjectUtils.defaultIfNull(tweetProperties.getFavoriteCount(), 0);
+        long tweetMilli = tweetProperties.getCreatedAt().toEpochMilli();
+        return (retweetCount * 8L + favoriteCount) * 10000000000L + tweetMilli / 1000L;
     }
 
 

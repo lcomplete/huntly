@@ -1061,6 +1061,12 @@ export interface Page {
      * @memberof Page
      */
     'urlWithoutHash'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof Page
+     */
+    'voteScore'?: number;
 }
 /**
  * 
@@ -1292,6 +1298,12 @@ export interface PageItem {
      * @memberof PageItem
      */
     'url'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageItem
+     */
+    'voteScore'?: number;
 }
 /**
  * 
@@ -2771,6 +2783,104 @@ export class FolderControllerApi extends BaseAPI {
 
 
 /**
+ * HealthControllerApi - axios parameter creator
+ * @export
+ */
+export const HealthControllerApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary health
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        healthUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/health`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * HealthControllerApi - functional programming interface
+ * @export
+ */
+export const HealthControllerApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = HealthControllerApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary health
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async healthUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<string>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.healthUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * HealthControllerApi - factory interface
+ * @export
+ */
+export const HealthControllerApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = HealthControllerApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary health
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        healthUsingGET(options?: any): AxiosPromise<string> {
+            return localVarFp.healthUsingGET(options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * HealthControllerApi - object-oriented interface
+ * @export
+ * @class HealthControllerApi
+ * @extends {BaseAPI}
+ */
+export class HealthControllerApi extends BaseAPI {
+    /**
+     * 
+     * @summary health
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HealthControllerApi
+     */
+    public healthUsingGET(options?: AxiosRequestConfig) {
+        return HealthControllerApiFp(this.configuration).healthUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
  * PageControllerApi - axios parameter creator
  * @export
  */
@@ -2958,21 +3068,26 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {boolean} [asc] 
          * @param {number} [connectorId] 
          * @param {number} [connectorType] 
+         * @param {number} [contentFilterType] 
          * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
          * @param {number} [count] 
+         * @param {string} [endDate] 
          * @param {string} [firstRecordAt] 
+         * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
          * @param {string} [lastRecordAt] 
+         * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
          * @param {boolean} [readLater] 
          * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT'} [sort] 
+         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
          * @param {number} [sourceId] 
          * @param {boolean} [starred] 
+         * @param {string} [startDate] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET: async (asc?: boolean, connectorId?: number, connectorType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, firstRecordAt?: string, folderId?: number, lastRecordAt?: string, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT', sourceId?: number, starred?: boolean, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        listPageItemsUsingGET: async (asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/page/list`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2997,6 +3112,10 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['connectorType'] = connectorType;
             }
 
+            if (contentFilterType !== undefined) {
+                localVarQueryParameter['contentFilterType'] = contentFilterType;
+            }
+
             if (contentType !== undefined) {
                 localVarQueryParameter['contentType'] = contentType;
             }
@@ -3005,10 +3124,20 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['count'] = count;
             }
 
+            if (endDate !== undefined) {
+                localVarQueryParameter['endDate'] = (endDate as any instanceof Date) ?
+                    (endDate as any).toISOString() :
+                    endDate;
+            }
+
             if (firstRecordAt !== undefined) {
                 localVarQueryParameter['firstRecordAt'] = (firstRecordAt as any instanceof Date) ?
                     (firstRecordAt as any).toISOString() :
                     firstRecordAt;
+            }
+
+            if (firstVoteScore !== undefined) {
+                localVarQueryParameter['firstVoteScore'] = firstVoteScore;
             }
 
             if (folderId !== undefined) {
@@ -3019,6 +3148,10 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['lastRecordAt'] = (lastRecordAt as any instanceof Date) ?
                     (lastRecordAt as any).toISOString() :
                     lastRecordAt;
+            }
+
+            if (lastVoteScore !== undefined) {
+                localVarQueryParameter['lastVoteScore'] = lastVoteScore;
             }
 
             if (markRead !== undefined) {
@@ -3043,6 +3176,12 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
 
             if (starred !== undefined) {
                 localVarQueryParameter['starred'] = starred;
+            }
+
+            if (startDate !== undefined) {
+                localVarQueryParameter['startDate'] = (startDate as any instanceof Date) ?
+                    (startDate as any).toISOString() :
+                    startDate;
             }
 
 
@@ -3638,22 +3777,27 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {boolean} [asc] 
          * @param {number} [connectorId] 
          * @param {number} [connectorType] 
+         * @param {number} [contentFilterType] 
          * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
          * @param {number} [count] 
+         * @param {string} [endDate] 
          * @param {string} [firstRecordAt] 
+         * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
          * @param {string} [lastRecordAt] 
+         * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
          * @param {boolean} [readLater] 
          * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT'} [sort] 
+         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
          * @param {number} [sourceId] 
          * @param {boolean} [starred] 
+         * @param {string} [startDate] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, firstRecordAt?: string, folderId?: number, lastRecordAt?: string, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT', sourceId?: number, starred?: boolean, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.listPageItemsUsingGET(asc, connectorId, connectorType, contentType, count, firstRecordAt, folderId, lastRecordAt, markRead, readLater, saveStatus, sort, sourceId, starred, options);
+        async listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -3888,22 +4032,27 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {boolean} [asc] 
          * @param {number} [connectorId] 
          * @param {number} [connectorType] 
+         * @param {number} [contentFilterType] 
          * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
          * @param {number} [count] 
+         * @param {string} [endDate] 
          * @param {string} [firstRecordAt] 
+         * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
          * @param {string} [lastRecordAt] 
+         * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
          * @param {boolean} [readLater] 
          * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT'} [sort] 
+         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
          * @param {number} [sourceId] 
          * @param {boolean} [starred] 
+         * @param {string} [startDate] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, firstRecordAt?: string, folderId?: number, lastRecordAt?: string, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT', sourceId?: number, starred?: boolean, options?: any): AxiosPromise<Array<PageItem>> {
-            return localVarFp.listPageItemsUsingGET(asc, connectorId, connectorType, contentType, count, firstRecordAt, folderId, lastRecordAt, markRead, readLater, saveStatus, sort, sourceId, starred, options).then((request) => request(axios, basePath));
+        listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: any): AxiosPromise<Array<PageItem>> {
+            return localVarFp.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -4132,23 +4281,28 @@ export class PageControllerApi extends BaseAPI {
      * @param {boolean} [asc] 
      * @param {number} [connectorId] 
      * @param {number} [connectorType] 
+     * @param {number} [contentFilterType] 
      * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
      * @param {number} [count] 
+     * @param {string} [endDate] 
      * @param {string} [firstRecordAt] 
+     * @param {number} [firstVoteScore] 
      * @param {number} [folderId] 
      * @param {string} [lastRecordAt] 
+     * @param {number} [lastVoteScore] 
      * @param {boolean} [markRead] 
      * @param {boolean} [readLater] 
      * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-     * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT'} [sort] 
+     * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
      * @param {number} [sourceId] 
      * @param {boolean} [starred] 
+     * @param {string} [startDate] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof PageControllerApi
      */
-    public listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, firstRecordAt?: string, folderId?: number, lastRecordAt?: string, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT', sourceId?: number, starred?: boolean, options?: AxiosRequestConfig) {
-        return PageControllerApiFp(this.configuration).listPageItemsUsingGET(asc, connectorId, connectorType, contentType, count, firstRecordAt, folderId, lastRecordAt, markRead, readLater, saveStatus, sort, sourceId, starred, options).then((request) => request(this.axios, this.basePath));
+    public listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

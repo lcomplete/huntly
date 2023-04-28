@@ -16,7 +16,9 @@ public enum PageListSort {
 
     STARRED_AT("starredAt"),
     
-    CONNECTED_AT("connectedAt");
+    CONNECTED_AT("connectedAt"),
+    
+    VOTE_SCORE("voteScore");
 
     //ID("id");
 

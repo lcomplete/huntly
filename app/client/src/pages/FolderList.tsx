@@ -27,6 +27,7 @@ const FolderList = () => {
       label: 'Recently connected'
     }],
     asc: false,
+    hideContentTypeFilter: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {

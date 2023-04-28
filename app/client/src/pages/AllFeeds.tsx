@@ -5,6 +5,7 @@ import {PageControllerApiFactory} from "../api";
 import {ConnectorType} from "../interfaces/connectorType";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
+import {getPageListFilter} from "../domain/utils";
 
 const AllFeeds = () => {
   function markAllAsRead() {
@@ -18,6 +19,7 @@ const AllFeeds = () => {
       label: 'Recently connected'
     }],
     asc: false,
+    hideContentTypeFilter: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {
@@ -28,10 +30,9 @@ const AllFeeds = () => {
     <MainContainer>
       <PageList navLabel={navLabels.allFeeds}
                 filters={{
-                  sort: pageFilterOptions.defaultSortValue,
+                  ...getPageListFilter(pageFilterOptions),
                   connectorType: ConnectorType.RSS,
                   markRead: false,
-                  asc: pageFilterOptions.asc
                 }}
                 showMarkReadOption={true}
                 onMarkAllAsRead={markAllAsRead}

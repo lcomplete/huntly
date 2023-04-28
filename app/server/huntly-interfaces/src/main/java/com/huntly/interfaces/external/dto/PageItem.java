@@ -67,6 +67,8 @@ public class PageItem {
     
     private String faviconUrl;
     
+    private Long voteScore;
+    
     //endregion
     
 }

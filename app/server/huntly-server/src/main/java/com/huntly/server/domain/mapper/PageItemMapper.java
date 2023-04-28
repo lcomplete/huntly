@@ -3,8 +3,8 @@ package com.huntly.server.domain.mapper;
 import com.huntly.interfaces.external.dto.PageItem;
 import com.huntly.interfaces.external.query.PageListSort;
 import com.huntly.server.domain.entity.Connector;
-import com.huntly.server.domain.entity.Source;
 import com.huntly.server.domain.entity.Page;
+import com.huntly.server.domain.entity.Source;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
@@ -20,6 +20,7 @@ public interface PageItemMapper {
             case SAVED_AT:
                 item.setRecordAt(page.getSavedAt());
                 break;
+            case VOTE_SCORE:
             case CREATED_AT:
                 item.setRecordAt(page.getCreatedAt());
                 break;

@@ -52,6 +52,7 @@ const ConnectorList = () => {
       label: 'Recently connected'
     }],
     asc: false,
+    hideContentTypeFilter: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {

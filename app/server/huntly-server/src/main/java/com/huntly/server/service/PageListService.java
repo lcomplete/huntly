@@ -2,6 +2,7 @@ package com.huntly.server.service;
 
 import com.huntly.interfaces.external.dto.CursorPageResult;
 import com.huntly.interfaces.external.dto.PageItem;
+import com.huntly.interfaces.external.model.ContentType;
 import com.huntly.interfaces.external.query.PageListQuery;
 import com.huntly.interfaces.external.query.PageListSort;
 import com.huntly.jpa.spec.Sorts;
@@ -15,6 +16,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,12 +60,18 @@ public class PageListService {
             listSort = listQuery.getSort();
         }
         var sortField = listSort.getSortField();
+        var sortFilterField = listSort.equals(PageListSort.VOTE_SCORE) ? PageListSort.CREATED_AT.getSortField() : sortField;
+        assert listQuery.getStartDate() != null;
         var specs = Specifications.<Page>and()
                 .ne(StringUtils.isNotBlank(sortField), sortField, (Object) null)
                 .gt(listQuery.getLastRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getLastRecordAt())
                 .lt(listQuery.getLastRecordAt() != null && !listQuery.isAsc(), sortField, listQuery.getLastRecordAt())
                 .lt(listQuery.getFirstRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getFirstRecordAt())
                 .gt(listQuery.getFirstRecordAt() != null && !listQuery.isAsc(), sortField, listQuery.getFirstRecordAt())
+                .gt(listQuery.getLastVoteScore() != null && listQuery.isAsc(), sortField, listQuery.getLastVoteScore())
+                .lt(listQuery.getLastVoteScore() != null && !listQuery.isAsc(), sortField, listQuery.getLastVoteScore())
+                .lt(listQuery.getFirstVoteScore() != null && listQuery.isAsc(), sortField, listQuery.getFirstVoteScore())
+                .gt(listQuery.getFirstVoteScore() != null && !listQuery.isAsc(), sortField, listQuery.getFirstVoteScore())
                 .eq(listQuery.getSourceId() > 0, "sourceId", listQuery.getSourceId())
                 .eq(listQuery.getFolderId() > 0, "folderId", listQuery.getFolderId())
                 .eq(listQuery.getConnectorType() != null, "connectorType", listQuery.getConnectorType())
@@ -69,6 +81,14 @@ public class PageListService {
                 .eq(listQuery.getMarkRead() != null, "markRead", listQuery.getMarkRead())
                 .eq(listQuery.getSaveStatus() != null, "librarySaveStatus", listQuery.getSaveStatus() != null ? listQuery.getSaveStatus().getCode() : null)
                 .eq(listQuery.getContentType() != null, "contentType", listQuery.getContentType() != null ? listQuery.getContentType().getCode() : null)
+                .in(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2, "contentType", Arrays.asList(ContentType.TWEET.getCode(), ContentType.QUOTED_TWEET.getCode()))
+                .predicate(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 1, Specifications.<Page>or()
+                        .eq("contentType", ContentType.BROWSER_HISTORY.getCode())
+                        .eq("contentType", (Object) null)
+                        .build()
+                )
+                .ge(StringUtils.isNotBlank(listQuery.getStartDate()), sortFilterField, convertDateToInstant(listQuery.getStartDate(), 0))
+                .lt(StringUtils.isNotBlank(listQuery.getEndDate()), sortFilterField, listQuery.getEndDate() != null ? convertDateToInstant(listQuery.getEndDate(), 1) : null)
                 .build();
         var sort = (listQuery.isAsc() ? Sorts.builder().asc(sortField) : Sorts.builder().desc(sortField)).build();
         var size = PageSizeUtils.getPageSize(listQuery.getCount());
@@ -85,11 +105,18 @@ public class PageListService {
         return pageItems;
     }
 
+    private Instant convertDateToInstant(String strDate, int plusDay) {
+        if (strDate == null) {
+            return null;
+        }
+        return LocalDateTime.parse(strDate).plus(plusDay, ChronoUnit.DAYS).toInstant(ZoneOffset.UTC);
+    }
+
     public PageItem updatePageItemRelationData(PageItem item) {
         if (item.getConnectorId() != null && item.getConnectorId() > 0) {
             var connector = cacheService.getConnector(item.getConnectorId());
             connector.ifPresent(value -> PageItemMapper.INSTANCE.updateFromConnector(item, value));
-        }  
+        }
         if (StringUtils.isBlank(item.getSiteName()) && item.getSourceId() != null && item.getSourceId() > 0) {
             var source = cacheService.getSource(item.getSourceId());
             source.ifPresent(value -> PageItemMapper.INSTANCE.updateFromSource(item, value));

@@ -16,8 +16,12 @@ export default function Twitter() {
     }, {
       value: 'LAST_READ_AT',
       label: 'Recently read'
+    }, {
+      value: 'VOTE_SCORE',
+      label: 'Most popular'
     }],
     asc: false,
+    hideContentTypeFilter: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {

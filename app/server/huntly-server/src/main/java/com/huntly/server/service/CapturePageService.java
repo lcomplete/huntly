@@ -117,6 +117,7 @@ public class CapturePageService extends BasePageService {
             currentPage.setContentType(page.getContentType());
             currentPage.setPageJsonProperties(page.getPageJsonProperties());
             currentPage.setCategory(page.getCategory());
+            currentPage.setVoteScore(page.getVoteScore());
             page = currentPage;
         } else {
             page.setCreatedAt(Instant.now());

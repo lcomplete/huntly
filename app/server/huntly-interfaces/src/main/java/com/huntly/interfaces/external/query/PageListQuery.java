@@ -20,6 +20,10 @@ public class PageListQuery {
 
     private Instant lastRecordAt;
     
+    private Long firstVoteScore;
+    
+    private Long lastVoteScore;
+    
     private int count;
     
     private Boolean starred;
@@ -37,6 +41,18 @@ public class PageListQuery {
     private Integer connectorType;
     
     private ContentType contentType;
+
+    /**
+     * 0: all
+     * 1: article
+     * 2: tweet
+     */
+    private Integer contentFilterType;
     
     private int folderId;
+    
+    private String startDate;
+
+    private String endDate;
+
 }

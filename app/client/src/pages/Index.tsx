@@ -23,7 +23,8 @@ const Index = () => {
     <MainContainer>
       <PageList navLabel={navLabels.recently} buttonOptions={{markRead: false}} showMarkReadOption={true} filters={{
         sort: pageFilterOptions.defaultSortValue,
-        asc: pageFilterOptions.asc
+        asc: pageFilterOptions.asc,
+        contentFilterType: pageFilterOptions.contentFilterType
       }} filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />
     </MainContainer>

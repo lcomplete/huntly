@@ -17,10 +17,10 @@ import {isDeepEqual} from "../common/objectUtils";
 import {setDocTitle} from "../common/docUtils";
 import {useSearchParams} from "react-router-dom";
 import {safeInt} from "../common/typeUtils";
-import {SORT_VALUE} from "../model";
+import {ContentType, SORT_VALUE} from "../model";
 import PageDetailModal from "./PageDetailModal";
 
-type PageListFilter = {
+export type PageListFilter = {
   asc?: boolean,
   connectorId?: number,
   connectorType?: number,
@@ -31,10 +31,13 @@ type PageListFilter = {
   readLater?: boolean,
   saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED',
   sort?: SORT_VALUE,
-  contentType?: 'BROWSER_HISTORY' | 'MARKDOWN'| 'QUOTED_TWEET' | 'TWEET',
+  contentType?: ContentType,
   sourceId?: number,
   starred?: boolean,
   markRead?: boolean,
+  contentFilterType?: number,
+  startDate?: string,
+  endDate?: string,
 }
 
 interface PageListProps {
@@ -84,28 +87,39 @@ const PageList = (props: PageListProps) => {
     refetch
   } = useInfiniteQuery(
     queryKey,
-    async ({pageParam = {lastRecordAt: undefined, firstRecordAt: undefined}}) => {
+    async ({pageParam = {lastRecordAt: undefined, firstRecordAt: undefined, firstVoteScore: undefined, lastVoteScore: undefined}}) => {
       const res = await PageControllerApiFactory().listPageItemsUsingGET(
         filters.asc,
         filters.connectorId,
         filters.connectorType,
+        filters.contentFilterType,
         filters.contentType,
         pageSize,
-        pageParam.firstRecordAt,
+        filters.endDate,
+        pageParam.firstRecordAt || undefined,
+        pageParam.firstVoteScore || undefined,
         filters.folderId,
-        pageParam.lastRecordAt,
+        pageParam.lastRecordAt || undefined,
+        pageParam.lastVoteScore || undefined,
         filters.markRead,
         filters.readLater,
         filters.saveStatus,
         filters.sort,
         filters.sourceId,
-        filters.starred
+        filters.starred,
+        filters.startDate
       );
       return res.data
     },
     {
-      getPreviousPageParam: (firstPage) => firstPage && firstPage.length > 0 ? {firstRecordAt: firstPage[0].recordAt} : {},
-      getNextPageParam: (lastPage) => lastPage && lastPage.length > 0 && lastPage.length >= pageSize ? {lastRecordAt: lastPage[lastPage.length - 1].recordAt} : undefined,
+      getPreviousPageParam: (firstPage) =>
+        firstPage && firstPage.length > 0
+          ? (filters.sort === 'VOTE_SCORE' ? {firstVoteScore: firstPage[0].voteScore} : {firstRecordAt: firstPage[0].recordAt})
+          : {},
+      getNextPageParam: (lastPage) =>
+        lastPage && lastPage.length > 0 && lastPage.length >= pageSize
+          ? (filters.sort === 'VOTE_SCORE' ? {lastVoteScore: lastPage[lastPage.length - 1].voteScore} : {lastRecordAt: lastPage[lastPage.length - 1].recordAt})
+          : undefined,
     },
   );
 
@@ -234,36 +248,36 @@ const PageList = (props: PageListProps) => {
         <div className="p-2 flex flex-col grow items-center">
           <div className={'page-list w-[720px] flex flex-col items-center'}>
             {showDoneTip && <div className={'w-full'}>
-                <TransitionAlert severity="success" color="info">
-                    <AlertTitle>Well done!</AlertTitle>
-                    There are no unread articles in this section.
-                </TransitionAlert>
-                <div className="separator pt-2 pb-2"><ExpandMoreIcon/> Older articles</div>
+              <TransitionAlert severity="success" color="info">
+                <AlertTitle>Well done!</AlertTitle>
+                There are no unread articles in this section.
+              </TransitionAlert>
+              <div className="separator pt-2 pb-2"><ExpandMoreIcon/> Older articles</div>
             </div>}
             {isLoading && <Loading/>}
             {error && <p>Oops, something was broken. <div>{error.toString()}</div></p>}
             {!isLoading && !error && data &&
-                <>
-                  {data.pages.map((pages, index) =>
-                    <React.Fragment key={index}>
-                      {pages.map((page) => {
-                          return <MagazineItem page={page} key={page.id} showMarkReadOption={showMarkReadOption}
-                                               onOperateSuccess={operateSuccess}
-                                               currentVisit={lastVisitPageId === page.id}
-                                               onPageSelect={(e, id) => openPageDetail(e, id)}></MagazineItem>;
-                        }
-                      )}
-                    </React.Fragment>
-                  )}
-                    <div className={"mt-3 mb-3"}>
-                      {isFetchingNextPage
-                        ? <Loading/>
-                        : hasNextPage
-                          ? <Button variant="text" ref={inViewRef}>Load More</Button>
-                          : <div></div>
+              <>
+                {data.pages.map((pages, index) =>
+                  <React.Fragment key={index}>
+                    {pages.map((page) => {
+                        return <MagazineItem page={page} key={page.id} showMarkReadOption={showMarkReadOption}
+                                             onOperateSuccess={operateSuccess}
+                                             currentVisit={lastVisitPageId === page.id}
+                                             onPageSelect={(e, id) => openPageDetail(e, id)}></MagazineItem>;
                       }
-                    </div>
-                </>
+                    )}
+                  </React.Fragment>
+                )}
+                <div className={"mt-3 mb-3"}>
+                  {isFetchingNextPage
+                    ? <Loading/>
+                    : hasNextPage
+                      ? <Button variant="text" ref={inViewRef}>Load More</Button>
+                      : <div></div>
+                  }
+                </div>
+              </>
             }
           </div>
         </div>

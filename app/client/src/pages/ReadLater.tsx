@@ -21,7 +21,7 @@ const MyList = () => {
   return (
     <MainContainer>
       <PageList navLabel={navLabels.readLater}
-                filters={{readLater: true, sort: pageFilterOptions.defaultSortValue, asc: pageFilterOptions.asc}}
+                filters={{readLater: true, sort: pageFilterOptions.defaultSortValue, asc: pageFilterOptions.asc, contentFilterType: pageFilterOptions.contentFilterType}}
                 buttonOptions={{markRead: false}}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />

@@ -147,7 +147,7 @@ export default function MagazineItem({
                                  width: 16, height: 16
                                }}/>
                   </span>
-                  <span className={'ml-2'}>{tweetStatus.retweetCount}</span>
+                  <span className={'ml-2'}>{tweetStatus.retweetCount + (tweetStatus.quoteCount || 0)}</span>
                   <span className={"ml-3"}>
                     <CardMedia component={FavoriteBorderIcon}
                                sx={{
