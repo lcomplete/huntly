@@ -107,7 +107,7 @@ public class TweetParser {
         page.setCategory(category);
         page.setContent(tweetProperties.getFullText());
         page.setUrl(tweetProperties.getUrl());
-        page.setAuthor(user.screen_name);
+        page.setAuthor(user.name);
         page.setContentType(isFromQuote ? ContentType.QUOTED_TWEET.getCode() : ContentType.TWEET.getCode());
         page.setLanguage(tweet.lang);
         page.setPageUniqueId(tweetProperties.getTweetIdStr());

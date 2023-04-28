@@ -25,4 +25,6 @@ public class DocFields {
     public static final String THUMB_URL = "thumbUrl";
     public static final String PAGE_JSON_PROPERTIES= "pageJsonProperties";
     public static final String CONTENT_TYPE = "contentType";
+    
+    public static final String AUTHOR = "author";
 }
