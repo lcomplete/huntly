@@ -21,10 +21,11 @@ public class DocFields {
     public static final String LIBRARY_SAVE_STATUS = "librarySaveStatus";
     public static final String STARRED = "starred";
     public static final String READ_LATER = "readLater";
+    @Deprecated
     public static final String URL = "url";
+    public static final String URL_TEXT = "url_text";
     public static final String THUMB_URL = "thumbUrl";
     public static final String PAGE_JSON_PROPERTIES= "pageJsonProperties";
     public static final String CONTENT_TYPE = "contentType";
-    
-    public static final String AUTHOR = "author";
+    public static final String AUTHOR = "author_text";
 }

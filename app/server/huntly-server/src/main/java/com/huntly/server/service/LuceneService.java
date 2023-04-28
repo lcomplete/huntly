@@ -153,10 +153,10 @@ public class LuceneService implements DisposableBean {
             doc.add(new TextField(DocFields.CONTENT, HtmlUtils.getDocText(page.getContent()), Field.Store.YES));
         }
         if (StringUtils.isNotBlank(page.getAuthor())) {
-            doc.add(new StringField(DocFields.AUTHOR, page.getAuthor(), Field.Store.YES));
+            doc.add(new TextField(DocFields.AUTHOR, page.getAuthor(), Field.Store.YES));
         }
         if (StringUtils.isNotBlank(page.getUrl())) {
-            doc.add(new StringField(DocFields.URL, page.getUrl(), Field.Store.YES));
+            doc.add(new TextField(DocFields.URL_TEXT, page.getUrl(), Field.Store.YES));
         }
         if (StringUtils.isNotBlank(page.getThumbUrl())) {
             doc.add(new StoredField(DocFields.THUMB_URL, page.getThumbUrl()));
@@ -214,7 +214,10 @@ public class LuceneService implements DisposableBean {
         if (doc.getField(DocFields.DESCRIPTION) != null) {
             item.setDescription(doc.get(DocFields.DESCRIPTION));
         }
-        if (doc.getField(DocFields.URL) != null) {
+        if (doc.getField(DocFields.URL_TEXT) != null) {
+            item.setUrl(doc.get(DocFields.URL_TEXT));
+        }
+        else if (doc.getField(DocFields.URL) != null) {
             item.setUrl(doc.get(DocFields.URL));
         }
         if (doc.getField(DocFields.AUTHOR) != null) {
@@ -395,7 +398,7 @@ public class LuceneService implements DisposableBean {
                 continue;
             }
             if (key.startsWith("url:")) {
-                completeSearch.advancedSearches.add(extractAdvancedSearch(key, DocFields.URL, ":"));
+                completeSearch.advancedSearches.add(extractAdvancedSearch(key, DocFields.URL_TEXT, ":"));
             } else if (key.startsWith("author:")) {
                 completeSearch.advancedSearches.add(extractAdvancedSearch(key, DocFields.AUTHOR, ":"));
             } else {

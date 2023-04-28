@@ -103,11 +103,14 @@ public class TweetParser {
         TweetProperties tweetProperties = getTweetProperties(user, tweetResult, views, quotedTweet);
         var tweet = tweetResult.legacy;
 
+        var realTweet = tweetProperties.getRetweetedTweet() != null ? tweetProperties.getRetweetedTweet() : tweetProperties;
+
         var page = new Page();
         page.setCategory(category);
         page.setContent(tweetProperties.getFullText());
         page.setUrl(tweetProperties.getUrl());
-        page.setAuthor(user.name);
+        page.setAuthor(realTweet.getUserName());
+        page.setAuthorScreenName(realTweet.getUserScreeName());
         page.setContentType(isFromQuote ? ContentType.QUOTED_TWEET.getCode() : ContentType.TWEET.getCode());
         page.setLanguage(tweet.lang);
         page.setPageUniqueId(tweetProperties.getTweetIdStr());
