@@ -3,6 +3,7 @@ import MainContainer from "../components/MainContainer";
 import navLabels from "../components/Sidebar/NavLabels";
 import React, {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
+import {getPageListFilter} from "../domain/utils";
 
 
 const Index = () => {
@@ -22,9 +23,7 @@ const Index = () => {
   return (
     <MainContainer>
       <PageList navLabel={navLabels.recently} buttonOptions={{markRead: false}} showMarkReadOption={true} filters={{
-        sort: pageFilterOptions.defaultSortValue,
-        asc: pageFilterOptions.asc,
-        contentFilterType: pageFilterOptions.contentFilterType
+        ...getPageListFilter(pageFilterOptions),
       }} filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />
     </MainContainer>

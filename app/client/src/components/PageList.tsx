@@ -19,6 +19,7 @@ import {useSearchParams} from "react-router-dom";
 import {safeInt} from "../common/typeUtils";
 import {ContentType, SORT_VALUE} from "../model";
 import PageDetailModal from "./PageDetailModal";
+import Alert from "@mui/material/Alert";
 
 export type PageListFilter = {
   asc?: boolean,
@@ -87,7 +88,14 @@ const PageList = (props: PageListProps) => {
     refetch
   } = useInfiniteQuery(
     queryKey,
-    async ({pageParam = {lastRecordAt: undefined, firstRecordAt: undefined, firstVoteScore: undefined, lastVoteScore: undefined}}) => {
+    async ({
+             pageParam = {
+               lastRecordAt: undefined,
+               firstRecordAt: undefined,
+               firstVoteScore: undefined,
+               lastVoteScore: undefined
+             }
+           }) => {
       const res = await PageControllerApiFactory().listPageItemsUsingGET(
         filters.asc,
         filters.connectorId,
@@ -248,36 +256,54 @@ const PageList = (props: PageListProps) => {
         <div className="p-2 flex flex-col grow items-center">
           <div className={'page-list w-[720px] flex flex-col items-center'}>
             {showDoneTip && <div className={'w-full'}>
-              <TransitionAlert severity="success" color="info">
-                <AlertTitle>Well done!</AlertTitle>
-                There are no unread articles in this section.
-              </TransitionAlert>
-              <div className="separator pt-2 pb-2"><ExpandMoreIcon/> Older articles</div>
+                <TransitionAlert severity="success" color="info">
+                    <AlertTitle>Well done!</AlertTitle>
+                    There are no unread articles in this section.
+                </TransitionAlert>
+                <div className="separator pt-2 pb-2"><ExpandMoreIcon/> Older articles</div>
             </div>}
             {isLoading && <Loading/>}
             {error && <p>Oops, something was broken. <div>{error.toString()}</div></p>}
             {!isLoading && !error && data &&
-              <>
-                {data.pages.map((pages, index) =>
-                  <React.Fragment key={index}>
-                    {pages.map((page) => {
-                        return <MagazineItem page={page} key={page.id} showMarkReadOption={showMarkReadOption}
-                                             onOperateSuccess={operateSuccess}
-                                             currentVisit={lastVisitPageId === page.id}
-                                             onPageSelect={(e, id) => openPageDetail(e, id)}></MagazineItem>;
-                      }
-                    )}
-                  </React.Fragment>
-                )}
-                <div className={"mt-3 mb-3"}>
-                  {isFetchingNextPage
-                    ? <Loading/>
-                    : hasNextPage
-                      ? <Button variant="text" ref={inViewRef}>Load More</Button>
-                      : <div></div>
+                <>
+                  {
+                    (data.pages.length === 0 || data.pages[0].length === 0) && <div>
+                          <Alert severity="info">
+                              <div>
+                                  You have arrived in the desert of information, go hunt some information.
+                              </div>
+                              <br/>
+                              <div>
+                                  If you haven't installed the browser plugin yet, you can download and install it here.
+                              </div>
+                              <br />
+                              <div>
+                                  <a href={'https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm'}
+                                     target={'_blank'} className={'text-blue-600 hover:underline'}>Web Store</a>
+                              </div>
+                          </Alert>
+                      </div>
                   }
-                </div>
-              </>
+                  {data.pages.map((pages, index) =>
+                    <React.Fragment key={index}>
+                      {pages.map((page) => {
+                          return <MagazineItem page={page} key={page.id} showMarkReadOption={showMarkReadOption}
+                                               onOperateSuccess={operateSuccess}
+                                               currentVisit={lastVisitPageId === page.id}
+                                               onPageSelect={(e, id) => openPageDetail(e, id)}></MagazineItem>;
+                        }
+                      )}
+                    </React.Fragment>
+                  )}
+                    <div className={"mt-3 mb-3"}>
+                      {isFetchingNextPage
+                        ? <Loading/>
+                        : hasNextPage
+                          ? <Button variant="text" ref={inViewRef}>Load More</Button>
+                          : <div></div>
+                      }
+                    </div>
+                </>
             }
           </div>
         </div>

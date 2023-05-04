@@ -7,6 +7,7 @@ import {FolderControllerApiFactory, PageControllerApiFactory} from "../api";
 import navLabels from "../components/Sidebar/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
+import {getPageListFilter} from "../domain/utils";
 
 const FolderList = () => {
   const {id} = useParams<"id">();
@@ -38,10 +39,9 @@ const FolderList = () => {
     <MainContainer>
       <PageList navLabel={{...navLabels.folder, labelText: folder ? folder.name : "", linkTo: '/folder/' + id}}
                 filters={{
-                  sort: pageFilterOptions.defaultSortValue,
+                  ...getPageListFilter(pageFilterOptions),
                   folderId: safeInt(id),
                   markRead: false,
-                  asc: pageFilterOptions.asc
                 }} onMarkAllAsRead={markAllAsRead}
                 showMarkReadOption={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}

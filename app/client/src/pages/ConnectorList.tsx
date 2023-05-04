@@ -13,6 +13,7 @@ import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {IconButton} from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
 import FeedsFormDialog from "../components/SettingModal/FeedsFormDialog";
+import {getPageListFilter} from "../domain/utils";
 
 const ConnectorList = () => {
   const {id} = useParams<"id">();
@@ -81,10 +82,9 @@ const ConnectorList = () => {
       <PageList navLabel={getNavLabel(connector)}
                 navLabelArea={navLabelArea()}
                 filters={{
+                  ...getPageListFilter(pageFilterOptions),
                   connectorId: safeInt(id),
-                  sort: pageFilterOptions.defaultSortValue,
                   markRead: false,
-                  asc: pageFilterOptions.asc
                 }}
                 onMarkAllAsRead={markAllAsRead} showMarkReadOption={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}

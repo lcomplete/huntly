@@ -68,6 +68,9 @@ public class Page implements Serializable {
 
     @Column(name = "author")
     private String author;
+    
+    @Column(name = "author_screen_name")
+    private String authorScreenName;
 
     @Column(name = "language")
     private String language;

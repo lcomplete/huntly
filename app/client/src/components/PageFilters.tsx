@@ -76,6 +76,10 @@ export default function PageFilters(props: PageFilterProps) {
 
   function handlePickerClose() {
     setPickerAnchorEl(null);
+
+    if (!tempStartDate || !tempEndDate) {
+      return;
+    }
     const strStartDate = moment(tempStartDate).format('YYYY-MM-DD');
     const strEndDate = moment(tempEndDate).format('YYYY-MM-DD');
 
@@ -103,28 +107,28 @@ export default function PageFilters(props: PageFilterProps) {
   return <div className={'text-[14px]'}>
     {
       !hideContentTypeFilter && <FormControl className={''}>
-        <FormLabel id={'date-label'}>CONTENT</FormLabel>
-        <ToggleButtonGroup
-          className={'mt-2'}
-          color="primary"
-          exclusive
-          value={(contentFilterType || 0).toString()}
-          aria-label="content filter"
-          size={"small"}
-          onChange={handleContentFilterChange}
-        >
-          <ToggleButton value="0">All</ToggleButton>
-          <ToggleButton value="1">Article</ToggleButton>
-          <ToggleButton value="2">Tweet</ToggleButton>
-        </ToggleButtonGroup>
-      </FormControl>
+            <FormLabel id={'date-label'}>CONTENT</FormLabel>
+            <ToggleButtonGroup
+                className={'mt-2'}
+                color="primary"
+                exclusive
+                value={(contentFilterType || 0).toString()}
+                aria-label="content filter"
+                size={"small"}
+                onChange={handleContentFilterChange}
+            >
+                <ToggleButton value="0">All</ToggleButton>
+                <ToggleButton value="1">Article</ToggleButton>
+                <ToggleButton value="2">Tweet</ToggleButton>
+            </ToggleButtonGroup>
+        </FormControl>
     }
 
     <div className={`${hideContentTypeFilter ? "" : "mt-4"}`}>
       <div className={''}>
         <div className={'w-11/12'}>
           <div className={'flex items-center text-base cursor-pointer'}>
-            <div className={'flex items-center text-[rgba(0,0,0,0.7)]'} onClick={openPicker}>
+            <div className={'flex items-center text-[rgba(0,0,0,0.7)] grow'} onClick={openPicker}>
               <CalendarMonth sx={{color: '#1976d2', mr: 1, my: 0.5}}/>
               {tempStartDate && tempEndDate ? <span>
               {moment(tempStartDate).format('L')} - {moment(tempEndDate).format('L')}
@@ -179,18 +183,18 @@ export default function PageFilters(props: PageFilterProps) {
 
     {
       defaultSortValue !== 'VOTE_SCORE' &&
-      <FormControl className={'mt-2'} size={"small"}>
-        <FormLabel id="sorting-label">SORTING</FormLabel>
-        <RadioGroup
-          aria-labelledby="sorting-label"
-          defaultValue={asc ? "true" : "false"}
-          name="sorting-buttons"
-          onChange={handleSortingChange}
-        >
-          <FormControlLabel value="false" control={<Radio/>} label="Newest first"/>
-          <FormControlLabel value="true" control={<Radio/>} label="Oldest first"/>
-        </RadioGroup>
-      </FormControl>
+        <FormControl className={'mt-2'} size={"small"}>
+            <FormLabel id="sorting-label">SORTING</FormLabel>
+            <RadioGroup
+                aria-labelledby="sorting-label"
+                defaultValue={asc ? "true" : "false"}
+                name="sorting-buttons"
+                onChange={handleSortingChange}
+            >
+                <FormControlLabel value="false" control={<Radio/>} label="Newest first"/>
+                <FormControlLabel value="true" control={<Radio/>} label="Oldest first"/>
+            </RadioGroup>
+        </FormControl>
     }
   </div>;
 }

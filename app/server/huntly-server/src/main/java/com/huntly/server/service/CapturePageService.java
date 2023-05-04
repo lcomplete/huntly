@@ -114,6 +114,7 @@ public class CapturePageService extends BasePageService {
             var currentPage = existPage.get();
             currentPage.setContent(page.getContent());
             currentPage.setAuthor(page.getAuthor());
+            currentPage.setAuthorScreenName(page.getAuthorScreenName());
             currentPage.setContentType(page.getContentType());
             currentPage.setPageJsonProperties(page.getPageJsonProperties());
             currentPage.setCategory(page.getCategory());
@@ -123,7 +124,7 @@ public class CapturePageService extends BasePageService {
             page.setCreatedAt(Instant.now());
         }
         // tweet auto save
-        String toUseScreenName = page.getAuthor();
+        String toUseScreenName = page.getAuthorScreenName();
         if (Objects.equals(page.getCategory(), "like") && StringUtils.isNotBlank(browserScreenName)) {
             toUseScreenName = browserScreenName;
         } else if (Objects.equals(page.getCategory(), "bookmark") && StringUtils.isNotBlank(loginScreenName)) {
@@ -138,7 +139,7 @@ public class CapturePageService extends BasePageService {
             } else if (Objects.equals(page.getCategory(), "like")) {
                 saveTypes.add(setting.getLikeToLibraryType());
             }
-            if (Objects.equals(page.getAuthor(), setting.getScreenName())) {
+            if (Objects.equals(page.getAuthorScreenName(), setting.getScreenName())) {
                 saveTypes.add(setting.getTweetToLibraryType());
             }
             for (Integer saveType : saveTypes) {

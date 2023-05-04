@@ -31,6 +31,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 import org.wltea.analyzer.core.IKSegmenter;
 import org.wltea.analyzer.core.Lexeme;
@@ -151,8 +152,11 @@ public class LuceneService implements DisposableBean {
         } else if (StringUtils.isNotBlank(page.getContent())) {
             doc.add(new TextField(DocFields.CONTENT, HtmlUtils.getDocText(page.getContent()), Field.Store.YES));
         }
+        if (StringUtils.isNotBlank(page.getAuthor())) {
+            doc.add(new TextField(DocFields.AUTHOR, page.getAuthor(), Field.Store.YES));
+        }
         if (StringUtils.isNotBlank(page.getUrl())) {
-            doc.add(new StringField(DocFields.URL, page.getUrl(), Field.Store.YES));
+            doc.add(new TextField(DocFields.URL_TEXT, page.getUrl(), Field.Store.YES));
         }
         if (StringUtils.isNotBlank(page.getThumbUrl())) {
             doc.add(new StoredField(DocFields.THUMB_URL, page.getThumbUrl()));
@@ -210,8 +214,14 @@ public class LuceneService implements DisposableBean {
         if (doc.getField(DocFields.DESCRIPTION) != null) {
             item.setDescription(doc.get(DocFields.DESCRIPTION));
         }
-        if (doc.getField(DocFields.URL) != null) {
+        if (doc.getField(DocFields.URL_TEXT) != null) {
+            item.setUrl(doc.get(DocFields.URL_TEXT));
+        }
+        else if (doc.getField(DocFields.URL) != null) {
             item.setUrl(doc.get(DocFields.URL));
+        }
+        if (doc.getField(DocFields.AUTHOR) != null) {
+            item.setAuthor(doc.get(DocFields.AUTHOR));
         }
         if (doc.getField(DocFields.THUMB_URL) != null) {
             item.setThumbUrl(doc.get(DocFields.THUMB_URL));
@@ -254,6 +264,8 @@ public class LuceneService implements DisposableBean {
 
     public PageSearchResult searchPages(@NonNull SearchQuery searchQuery) {
         String keyword = searchQuery.getQ().trim();
+        CompleteSearch completeSearch = extractCompleteSearch(keyword);
+        keyword = completeSearch.getKeyword();
 
         PageSearchResult searchResult = new PageSearchResult();
         List<PageItem> pageItems = new ArrayList<>();
@@ -271,8 +283,6 @@ public class LuceneService implements DisposableBean {
                 if (!Boolean.TRUE.equals(option.getOnlySearchTitle())) {
                     fields.add(new FieldQueryInfo().setName(DocFields.CONTENT).setWildcard(true).setBoost(5));
                 }
-                //fields.add(new FieldQueryInfo().setName(DocFields.DESCRIPTION).setBoost(5));
-                //fields.add(new FieldQueryInfo().setName(DocFields.URL).setWildcard(true).setBoost(1));
                 var boolQueryBuilder = new BooleanQuery.Builder();
                 if (Boolean.TRUE.equals(option.getAlreadyRead())) {
                     Query query = LongPoint.newRangeQuery(DocFields.LAST_READ_AT, 1, Long.MAX_VALUE);
@@ -322,6 +332,19 @@ public class LuceneService implements DisposableBean {
                         boolQueryBuilder.add(query, BooleanClause.Occur.MUST);
                     }
                 }
+
+                for (AdvancedSearch advancedSearch : completeSearch.advancedSearches) {
+                    if (CollectionUtils.isEmpty(advancedSearch.words)) {
+                        continue;
+                    }
+                    var advancedSearchQueryBuilder = new BooleanQuery.Builder();
+                    for (String word : advancedSearch.words) {
+                        var query = new WildcardQuery(new Term(advancedSearch.docField, "*" + word + "*"));
+                        advancedSearchQueryBuilder.add(query, BooleanClause.Occur.SHOULD);
+                    }
+                    boolQueryBuilder.add(advancedSearchQueryBuilder.build(), BooleanClause.Occur.MUST);
+                }
+
                 for (String word : words) {
                     var wordQueryBuilder = new BooleanQuery.Builder();
                     for (FieldQueryInfo field : fields) {
@@ -363,6 +386,38 @@ public class LuceneService implements DisposableBean {
         }
 
         return searchResult;
+    }
+
+    private CompleteSearch extractCompleteSearch(String keyword) {
+        CompleteSearch completeSearch = new CompleteSearch();
+        completeSearch.setAdvancedSearches(new ArrayList<>());
+        String[] keywords = keyword.split(" ");
+        List<String> simpleWords = new ArrayList<>();
+        for (String key : keywords) {
+            if (StringUtils.isBlank(key)) {
+                continue;
+            }
+            if (key.startsWith("url:")) {
+                completeSearch.advancedSearches.add(extractAdvancedSearch(key, DocFields.URL_TEXT, ":"));
+            } else if (key.startsWith("author:")) {
+                completeSearch.advancedSearches.add(extractAdvancedSearch(key, DocFields.AUTHOR, ":"));
+            } else {
+                simpleWords.add(key);
+            }
+        }
+        completeSearch.keyword = String.join(" ", simpleWords);
+        return completeSearch;
+    }
+
+    private AdvancedSearch extractAdvancedSearch(String key, String docField, String seperator) {
+        AdvancedSearch advancedSearch = new AdvancedSearch();
+        advancedSearch.setDocField(docField);
+        String[] parts = key.split(seperator);
+        if (parts.length == 2) {
+            advancedSearch.setKeyword(parts[1]);
+        }
+        advancedSearch.words = segmentWords(advancedSearch.getKeyword(), true);
+        return advancedSearch;
     }
 
     private SearchOption parseSearchOption(String options) {
@@ -443,7 +498,21 @@ public class LuceneService implements DisposableBean {
     static class FieldQueryInfo {
         private String name;
         private float boost;
-
         private boolean wildcard;
+    }
+
+    @Getter
+    @Setter
+    static class CompleteSearch {
+        private String keyword;
+        private List<AdvancedSearch> advancedSearches;
+    }
+
+    @Getter
+    @Setter
+    static class AdvancedSearch {
+        private String docField;
+        private String keyword;
+        private List<String> words;
     }
 }

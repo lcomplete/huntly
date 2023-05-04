@@ -3,6 +3,7 @@ import MainContainer from "../components/MainContainer";
 import navLabels from "../components/Sidebar/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
+import {getPageListFilter} from "../domain/utils";
 
 
 const MyList = () => {
@@ -22,7 +23,10 @@ const MyList = () => {
   return (
     <MainContainer>
       <PageList navLabel={navLabels.archive}
-                filters={{saveStatus: 'ARCHIVED', sort: pageFilterOptions.defaultSortValue, asc: pageFilterOptions.asc, contentFilterType: pageFilterOptions.contentFilterType}}
+                filters={{
+                  ...getPageListFilter(pageFilterOptions),
+                  saveStatus: 'ARCHIVED'
+                }}
                 buttonOptions={{markRead: false}}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />

@@ -95,6 +95,11 @@ export default function SearchBox() {
         setSearchText(option.label);
         continue;
       }
+      if(option.type === 'Advanced'){
+        clearText = false;
+        setSearchText(option.keyword);
+        continue;
+      }
       if (!mapResults[option.type]) {
         mapResults[option.type] = [];
       }
@@ -122,9 +127,6 @@ export default function SearchBox() {
               ...searchOptions,
               filteringOptions.current[0]
             ]);
-            if (filteringOptions.current[0].keyword) {
-              setSearchText('');
-            }
             event.preventDefault();
           }
         }
@@ -213,6 +215,8 @@ export default function SearchBox() {
             renderOption={(props, option: SearchOption) => {
               return <li {...props} style={{padding: 0}}>
                 <div className={'pl-3 pt-1 pb-1 pr-1 flex items-center cursor-pointer hover:bg-gray-100'}>
+                  {option.type === 'Advanced' && <Box component={SearchIcon} color={'gray'}>
+                  </Box>}
                   {option.type === 'Recent' && <Box component={HistoryIcon} color={'gray'}>
                   </Box>}
                   {option.type === 'Type' && <Box component={ArticleIcon} color={'gray'}>
@@ -264,10 +268,12 @@ export default function SearchBox() {
 type SearchOption = {
   keyword: string;
   label: string,
-  type: 'Recent' | 'Type' | 'Library' | 'Options';
+  type: 'Recent' | 'Type' | 'Library' | 'Options' | 'Advanced'
 }
 
 const defaultSearchOptions: SearchOption[] = [
+  {keyword: 'url:', label: 'url:{url}', type: 'Advanced'},
+  {keyword: 'author:', label: 'author:{author}', type: 'Advanced'},
   {keyword: 'tweet', label: 'Tweet', type: 'Type'},
   {keyword: 'github', label: 'Github Repository', type: 'Type'},
   {keyword: 'browser', label: 'Browser History', type: 'Type'},

@@ -3,6 +3,7 @@ import MainContainer from "../components/MainContainer";
 import navLabels from "../components/Sidebar/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
+import {getPageListFilter} from "../domain/utils";
 
 const MyList = () => {
   const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>({
@@ -21,7 +22,10 @@ const MyList = () => {
   return (
     <MainContainer>
       <PageList navLabel={navLabels.starred}
-                filters={{starred: true, sort: pageFilterOptions.defaultSortValue, asc: pageFilterOptions.asc, contentFilterType: pageFilterOptions.contentFilterType}}
+                filters={{
+                  ...getPageListFilter(pageFilterOptions),
+                  starred: true
+                }}
                 buttonOptions={{markRead: false}}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />

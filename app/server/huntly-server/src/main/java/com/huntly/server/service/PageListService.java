@@ -16,9 +16,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
@@ -108,7 +108,11 @@ public class PageListService {
         if (strDate == null) {
             return null;
         }
-        return LocalDateTime.parse(strDate).plus(plusDay, ChronoUnit.DAYS).toInstant(ZoneOffset.UTC);
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd").parse(strDate).toInstant().plus(plusDay, ChronoUnit.DAYS);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public PageItem updatePageItemRelationData(PageItem item) {
