@@ -61,7 +61,6 @@ public class PageListService {
         }
         var sortField = listSort.getSortField();
         var sortFilterField = listSort.equals(PageListSort.VOTE_SCORE) ? PageListSort.CREATED_AT.getSortField() : sortField;
-        assert listQuery.getStartDate() != null;
         var specs = Specifications.<Page>and()
                 .ne(StringUtils.isNotBlank(sortField), sortField, (Object) null)
                 .gt(listQuery.getLastRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getLastRecordAt())
