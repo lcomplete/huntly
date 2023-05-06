@@ -8,6 +8,8 @@ import {createRoot} from "react-dom/client";
 
 log("web clipper script loaded");
 
+let root = null;
+
 chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
   if (msg.type === "parse_doc") {
     const webClipper = new WebClipper()
@@ -27,7 +29,12 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     }
     if (elRoot.getAttribute("data-preview") !== "1") {
       elRoot.setAttribute("data-preview", "1");
-      const root = createRoot(elRoot);
+      if (!root) {
+        root = createRoot(elRoot);
+      } else {
+        root.unmount();
+        root = createRoot(elRoot);
+      }
       root.render(
         <Article page={page}/>
       );
