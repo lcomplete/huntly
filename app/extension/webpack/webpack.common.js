@@ -3,6 +3,14 @@ const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 const srcDir = path.join(__dirname, "..", "src");
 
+let outputPath = 'dist';
+let manifestFile = 'public/manifest.json'
+
+if (process.env.BROWSER === 'firefox') {
+  outputPath = 'dist_firefox';
+  manifestFile = 'public/manifest-firefox.json';
+}
+
 module.exports = {
   entry: {
     popup: path.join(srcDir, 'popup.tsx'),
@@ -13,7 +21,7 @@ module.exports = {
     web_clipper: path.join(srcDir, 'web_clipper.tsx'),
   },
   output: {
-    path: path.join(__dirname, "../dist/js"),
+    path: path.resolve(__dirname, '..', outputPath , 'js'),
     filename: "[name].js",
   },
   optimization: {
@@ -48,8 +56,14 @@ module.exports = {
   },
   plugins: [
     new CopyPlugin({
-      patterns: [{from: ".", to: "../", context: "public"}],
+      patterns: [{
+        from: ".", to: '../', context: "public",
+        globOptions: { ignore: ['**/manifest*.json'] }
+      }],
       options: {},
     }),
+    new CopyPlugin({
+      patterns: [{ from: manifestFile, to: path.resolve(__dirname, '..', outputPath, 'manifest.json') }]
+    })
   ],
 };
