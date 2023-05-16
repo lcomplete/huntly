@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "webpack --config webpack/webpack.dev.js --watch",
     "watch": "webpack --config webpack/webpack.dev.js --watch",
+    "watch:firefox": "BROWSER=firefox npm run watch",
     "build": "webpack --config webpack/webpack.prod.js",
+    "build:firefox": "BROWSER=firefox npm run build",
     "clean": "rimraf dist",
     "test": "npx jest",
     "style": "prettier --write \"src/**/*.{ts,tsx}\""

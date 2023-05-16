@@ -5,3 +5,7 @@ tmp/
 .idea/
 .DS_Store
 yarn-error.log
+
+.output/
+dist/
+dist_firefox/
