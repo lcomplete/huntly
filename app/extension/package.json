@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "webpack --config webpack/webpack.dev.js --watch",
     "watch": "webpack --config webpack/webpack.dev.js --watch",
-    "watch:firefox": "BROWSER=firefox npm run watch",
+    "watch:firefox": "cross-env BROWSER=firefox npm run watch",
     "build": "webpack --config webpack/webpack.prod.js",
-    "build:firefox": "BROWSER=firefox npm run build",
+    "build:firefox": "cross-env BROWSER=firefox npm run build",
     "clean": "rimraf dist",
     "test": "npx jest",
     "style": "prettier --write \"src/**/*.{ts,tsx}\""
@@ -39,6 +39,7 @@
     "@types/react-modal": "^3.16.0",
     "autoprefixer": "^10.4.14",
     "copy-webpack-plugin": "^9.0.1",
+    "cross-env": "^7.0.3",
     "css-loader": "^6.7.3",
     "glob": "^7.1.6",
     "jest": "^27.2.1",
