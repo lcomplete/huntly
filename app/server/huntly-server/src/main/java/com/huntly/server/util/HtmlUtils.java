@@ -47,7 +47,7 @@ public class HtmlUtils {
         Safelist whitelist = new Safelist();
         String[] tags = {"a", "b", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "div", "dl", "dt", "em", "h1",
                 "h2", "h3", "h4", "h5", "h6", "i", "iframe", "img", "li", "ol", "p", "pre", "q", "small", "strike", "strong", "sub", "sup",
-                "table", "tbody", "td", "tfoot", "th", "thead", "tr", "u", "ul", "article", "span"};
+                "table", "tbody", "td", "tfoot", "th", "thead", "tr", "u", "ul", "article", "span", "section"};
         whitelist.addTags(tags);
         for (String tag : tags) {
             addCommonAttributes(whitelist, tag, "style");
