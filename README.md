@@ -16,6 +16,7 @@
       - [安装为 windows 服务](#安装为-windows-服务)
     - [安装浏览器插件](#安装浏览器插件)
     - [浏览器插件设置](#浏览器插件设置)
+    - [启用 https](#启用-https)
     - [登录并使用](#登录并使用)
   - [请作者喝杯咖啡](#请作者喝杯咖啡)
 
@@ -133,6 +134,14 @@ java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 ### 浏览器插件设置
 
 点击插件图标，选择设置 huntly 的服务端地址（huntly 网站首页地址），对于远程地址，在正式使用时，强烈建议使用 https 协议，毕竟浏览记录是相当私密的。若服务端在本机运行，则设置为本地地址即可。
+
+### 启用 https
+
+可以申请免费的 https 证书，并增加以下配置（根据类型进行配置）：
+
+```sh
+--server.ssl.key-store-type=JKS --server.ssl.key-store=<file.jks> --server.ssl.key-store-password=<password> --server.ssl.enabled=true
+```
 
 ### 登录并使用
 
