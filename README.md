@@ -19,6 +19,7 @@
     - [启用 https](#启用-https)
     - [登录并使用](#登录并使用)
   - [请作者喝杯咖啡](#请作者喝杯咖啡)
+  - [感谢 JetBrains 的支持](#感谢-jetbrains-的支持)
 
 Huntly 是一个信息管理工具，它不仅可以自托管，也可以通过客户端在本地运行。简单来说，它包含以下功能：
 
@@ -155,3 +156,9 @@ java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 	<img height="360" src="static/images/wechat.JPG" />
 	<img height="360" src="static/images/zfb.JPG" />
 </p>
+
+## 感谢 JetBrains 的支持
+
+<a href="https://www.jetbrains.com/?from=huntly">
+  <img src="static/images/jb_beam.png" height="200" />
+</a>

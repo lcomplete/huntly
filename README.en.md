@@ -18,6 +18,7 @@
     - [Browser extension settings](#browser-extension-settings)
     - [Login and enjoy it](#login-and-enjoy-it)
   - [Buy me a coffee](#buy-me-a-coffee)
+  - [Thanks to JetBrains support](#thanks-to-jetbrains-support)
 
 Huntly is a self-hosted information management tool, in simple terms, contains the following features.
 
@@ -147,3 +148,9 @@ Enjoy it.
 	<img height="360" src="static/images/wechat.JPG" />
 	<img height="360" src="static/images/zfb.JPG" />
 </p>
+
+## Thanks to JetBrains support
+
+<a href="https://www.jetbrains.com/?from=huntly">
+  <img src="static/images/jb_beam.png" height="200" />
+</a>
