@@ -1,0 +1,39 @@
+@startuml
+allowmixing
+
+node 浏览器插件
+
+node 前端网站
+
+database SQLite [
+	SQLite
+	----
+	网页浏览数据
+]
+database Lucene [
+	Lucene
+	----
+	文本索引
+]
+
+package 桌面应用 {
+	node 客户端 [
+		客户端
+		----
+		Tauri
+	]
+	node 服务端 [
+		服务端
+		----
+		Spring Boot
+	]
+}
+
+
+浏览器插件 --> 服务端 : 捕获数据
+前端网站 --> 服务端 : REST API
+客户端 -right-> 服务端 : 启动
+服务端 -down-> SQLite : 存储
+服务端 -down-> Lucene : 搜索
+
+@enduml
