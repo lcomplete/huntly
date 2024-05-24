@@ -15,6 +15,7 @@ import {AxiosRequestConfig} from 'axios';
 export const FeedsSetting = () => {
   const [file, setFile] = useState<File>();
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const {enqueueSnackbar} = useSnackbar();
   const api = SettingControllerApiFactory();
 
