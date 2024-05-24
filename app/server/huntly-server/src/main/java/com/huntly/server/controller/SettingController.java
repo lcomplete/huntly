@@ -14,13 +14,24 @@ import com.huntly.server.domain.entity.Folder;
 import com.huntly.server.domain.entity.GlobalSetting;
 import com.huntly.server.domain.entity.TwitterUserSetting;
 import com.huntly.server.service.*;
+import com.rometools.rome.io.FeedException;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 
@@ -96,6 +107,24 @@ public class SettingController {
                 throw new RequestVerifyException("file is empty");
             }
         } catch (IOException e) {
+            throw new BusinessException(e);
+        }
+    }
+
+    @PostMapping("feeds/export-opml")
+    @ApiResponse(description = "export ompl", content = @Content(
+            mediaType = "application/octet-stream",
+            schema = @Schema(type = "string", format = "binary"))
+    )
+    public ResponseEntity<Resource> exportOpml(HttpServletResponse response) {
+        try {
+            byte[] bytes = opmlService.exportOpml().getBytes(StandardCharsets.UTF_8);
+            ByteArrayResource resource = new ByteArrayResource(bytes);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"huntly.opml\"")
+                    .body(resource);
+        } catch (IOException | FeedException e) {
             throw new BusinessException(e);
         }
     }
