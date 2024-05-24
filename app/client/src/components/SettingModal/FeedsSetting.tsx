@@ -10,10 +10,12 @@ import CardMedia from "@mui/material/CardMedia";
 import CardContent from "@mui/material/CardContent";
 import Card from "@mui/material/Card";
 import RssFeedIcon from "@mui/icons-material/RssFeed";
+import {AxiosRequestConfig} from 'axios';
 
 export const FeedsSetting = () => {
   const [file, setFile] = useState<File>();
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const {enqueueSnackbar} = useSnackbar();
   const api = SettingControllerApiFactory();
 
@@ -34,6 +36,34 @@ export const FeedsSetting = () => {
       });
     }).finally(() => {
       setImporting(false);
+    });
+  }
+
+  function downloadOpml() {
+    const options: AxiosRequestConfig = {
+      responseType: 'blob',
+    };
+    setExporting(true);
+    api.exportOpmlUsingPOST(options).then((response) => {
+      if (response.status === 200) {
+        const blob = new Blob([response.data as BlobPart], { type: 'application/octet-stream' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'huntly.opml';
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
+    }).catch((err) => {
+      enqueueSnackbar('export failed. Error: ' + err, {
+        variant: "error",
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
+      });
+    }).finally(() => {
+      setExporting(false);
     });
   }
 
@@ -58,7 +88,7 @@ export const FeedsSetting = () => {
       }).catch((err) => {
         enqueueSnackbar('Preview failed. Error: ' + err, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       });
     }
@@ -160,7 +190,17 @@ export const FeedsSetting = () => {
           <label htmlFor={'opmlFile'}>Choose file: </label>
           <input type={'file'} name={'opmlFile'} onChange={handleFileChange}/>
           <Button type={'button'} color={'primary'} size={'small'} variant={'contained'} disabled={importing}
-                  onClick={uploadOpml}>{importing ? 'importing' : 'import'}</Button>
+            onClick={uploadOpml}>{importing ? 'importing' : 'import'}</Button>
+        </div>
+      </form>
+    </div>
+    <div className={'mt-6'}>
+      <Typography variant={'h6'}>OPML export</Typography>
+      <Divider />
+      <form>
+        <div className={'pt-3'}>
+          <Button type={'button'} color={'primary'} size={'small'} variant={'contained'} disabled={exporting}
+            onClick={downloadOpml}>{exporting ? 'exporting' : 'export'}</Button>
         </div>
       </form>
     </div>
