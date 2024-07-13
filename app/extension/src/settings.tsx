@@ -15,7 +15,7 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
   const [serverUrlList, setServerUrlList] = useState<ServerUrlItem[]>([{url: ""}]);
   const [enabledServerIndex, setEnabledServerIndex] = useState<number>(0);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(true);
-  const [autoSaveTweet, setAutoSaveTweet] = useState<boolean>(true);
+  const [autoSaveTweet, setAutoSaveTweet] = useState<boolean>(false);
   const [autoSaveMinScore, setAutoSaveMinScore] = useState<number>(20);
   const [autoSaveMinContentLength, setAutoSaveMinContentLength] = useState<number>(40);
   const [showSavedTip, setShowSavedTip] = useState<boolean>(false);
