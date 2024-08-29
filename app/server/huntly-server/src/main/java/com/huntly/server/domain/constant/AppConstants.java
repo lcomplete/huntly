@@ -9,6 +9,10 @@ import lombok.experimental.UtilityClass;
 public class AppConstants {
     public static final String DEFAULT_LUCENE_DIR = "lucene";
 
+    public static final String HTTP_FEED_CACHE_DIR = "feed_cache";
+
+    public static final Long HTTP_FEED_CACHE_MAXSIZE = 50L * 1024L * 1024L; // 50 MB
+
     public static final Integer DEFAULT_FETCH_INTERVAL_SECONDS = 600;
 
     public static final Integer DEFAULT_COLD_DATA_KEEP_DAYS = 60;

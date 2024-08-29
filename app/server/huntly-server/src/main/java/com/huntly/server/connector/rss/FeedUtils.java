@@ -8,55 +8,76 @@ import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import lombok.experimental.UtilityClass;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
-import java.time.Duration;
 
 /**
  * Utility methods related to feed handling
- * code from <a href="https://github.com/Athou/commafeed">commafeed</a> project
  */
 @UtilityClass
 public class FeedUtils {
-    public static SyndFeed parseFeedUrl(String feedUrl, HttpClient client) {
-        HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(feedUrl))
+    public static SyndFeed parseFeedUrl(String feedUrl, OkHttpClient client) {
+        Request request = new Request.Builder()
+                .url(feedUrl)
                 .build();
-        HttpResponse<byte[]> response = null;
-        try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        try(Response response = client.newCall(request).execute()) {
+            byte[] xmlBytes = null;
+            if (response.body() == null) {
+                throw new ConnectorFetchException("xml response null for url: " + feedUrl);
+            }
+
+            xmlBytes = response.body().bytes();
+            Charset encoding = FeedUtils.guessEncoding(xmlBytes);
+            String xmlString = XmlUtils.removeInvalidXmlCharacters(new String(xmlBytes, encoding));
+            if (xmlString == null) {
+                throw new ConnectorFetchException("xml fetch failed for url: " + feedUrl);
+            }
+            return new SyndFeedInput().build(new StringReader(xmlString));
         } catch (IOException e) {
             throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        var xmlBytes = response.body();
-        Charset encoding = FeedUtils.guessEncoding(xmlBytes);
-        String xmlString = XmlUtils.removeInvalidXmlCharacters(new String(xmlBytes, encoding));
-        if (xmlString == null) {
-            throw new ConnectorFetchException("xml fetch failed for url: " + feedUrl);
-        }
-
-        try {
-            SyndFeed feed = new SyndFeedInput().build(new StringReader(xmlString));
-            return feed;
         } catch (FeedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static SyndFeed parseFeedUrl(String feedUrl) {
-        var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60))
-                .followRedirects(HttpClient.Redirect.ALWAYS).build();
-        return parseFeedUrl(feedUrl, client);
-    }
+//    public static SyndFeed parseFeedUrl(String feedUrl, HttpClient client) {
+//        HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(feedUrl))
+//                .build();
+//        HttpResponse<byte[]> response = null;
+//        try {
+//            response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//        var xmlBytes = response.body();
+//        Charset encoding = FeedUtils.guessEncoding(xmlBytes);
+//        String xmlString = XmlUtils.removeInvalidXmlCharacters(new String(xmlBytes, encoding));
+//        if (xmlString == null) {
+//            throw new ConnectorFetchException("xml fetch failed for url: " + feedUrl);
+//        }
+//
+//        try {
+//            SyndFeed feed = new SyndFeedInput().build(new StringReader(xmlString));
+//            return feed;
+//        } catch (FeedException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+
+//    public static SyndFeed parseFeedUrl(String feedUrl) {
+//        var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60))
+//                .followRedirects(HttpClient.Redirect.ALWAYS).build();
+//        return parseFeedUrl(feedUrl, client);
+//    }
 
     public static Charset guessEncoding(byte[] bytes) {
         String extracted = extractDeclaredEncoding(bytes);
