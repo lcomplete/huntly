@@ -15,6 +15,8 @@ public class HuntlyProperties {
 
     private int jwtExpirationDays;
 
+    private boolean enableFetchThreadPool = true;
+
     private Integer connectorFetchCorePoolSize;
     
     private Integer connectorFetchMaxPoolSize;

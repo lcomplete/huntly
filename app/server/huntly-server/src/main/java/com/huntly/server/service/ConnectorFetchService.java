@@ -83,7 +83,11 @@ public class ConnectorFetchService {
         boolean isNeedFetch = isAtFetchTime(connector) && !inProcessConnectorIds.contains(connector.getId());
         if (isNeedFetch) {
             inProcessConnectorIds.add(connector.getId());
-            fetchExecutor.execute(() -> tryFetchPages(connector));
+            if (huntlyProperties.isEnableFetchThreadPool()) {
+                fetchExecutor.execute(() -> tryFetchPages(connector));
+            } else {
+                tryFetchPages(connector);
+            }
         }
     }
 
