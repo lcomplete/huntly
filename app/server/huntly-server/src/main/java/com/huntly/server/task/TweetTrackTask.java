@@ -20,7 +20,7 @@ public class TweetTrackTask {
         this.tweetTrackService = tweetTrackService;
     }
 
-    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 60 * 10)
+    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 60 * 5)
     public void trackRead() {
         tweetTrackService.trackNotSetReads();
     }
