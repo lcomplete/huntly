@@ -20,12 +20,12 @@ public class TweetTrackTask {
         this.tweetTrackService = tweetTrackService;
     }
 
-    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 10)
+    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 60 * 10)
     public void trackRead() {
         tweetTrackService.trackNotSetReads();
     }
 
-    @Scheduled(initialDelay = 1000 * 60, fixedDelay = 1000 * 60 * 30)
+    @Scheduled(initialDelay = 1000 * 60, fixedDelay = 1000 * 60 * 60)
     public void cleanHistoryTrack() {
         Instant createdBefore = Instant.now().minus(1, ChronoUnit.DAYS);
         Integer effectCount = tweetTrackService.cleanHistoryTrack(createdBefore);
