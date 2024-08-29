@@ -20,6 +20,8 @@ public class HuntlyProperties {
     private Integer connectorFetchCorePoolSize;
     
     private Integer connectorFetchMaxPoolSize;
+
+    private Integer defaultFeedFetchIntervalSeconds = 600;
     
     private String luceneDir;
     

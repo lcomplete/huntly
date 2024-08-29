@@ -4,9 +4,9 @@ import com.huntly.interfaces.external.dto.ConnectorItem;
 import com.huntly.interfaces.external.dto.FolderConnectorView;
 import com.huntly.interfaces.external.dto.FolderConnectors;
 import com.huntly.interfaces.external.model.GitHubSetting;
+import com.huntly.server.config.HuntlyProperties;
 import com.huntly.server.connector.ConnectorProperties;
 import com.huntly.server.connector.ConnectorType;
-import com.huntly.server.connector.github.GithubConnector;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.ConnectorSetting;
@@ -21,13 +21,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import javax.validation.constraints.NotNull;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 public class ConnectorService {
+    private final HuntlyProperties huntlyProperties;
 
     private final FolderRepository folderRepository;
 
@@ -39,7 +42,9 @@ public class ConnectorService {
 
     private GlobalSettingService globalSettingService;
 
-    public ConnectorService(FolderRepository folderRepository, ConnectorSettingRepository connectorSettingRepository, ConnectorRepository connectorRepository, PageRepository pageRepository, GlobalSettingService globalSettingService) {
+    public ConnectorService(HuntlyProperties huntlyProperties, FolderRepository folderRepository, ConnectorSettingRepository connectorSettingRepository,
+                            ConnectorRepository connectorRepository, PageRepository pageRepository, GlobalSettingService globalSettingService) {
+        this.huntlyProperties = huntlyProperties;
         this.folderRepository = folderRepository;
         this.connectorSettingRepository = connectorSettingRepository;
         this.connectorRepository = connectorRepository;
@@ -232,7 +237,7 @@ public class ConnectorService {
 
     public GitHubSetting getGitHubSetting() {
         var connector = getGitHubConnector();
-        int fetchIntervalMinutes = AppConstants.DEFAULT_FETCH_INTERVAL_SECONDS / 60;
+        int fetchIntervalMinutes = huntlyProperties.getDefaultFeedFetchIntervalSeconds() / 60;
         if (connector == null) {
             var defaultSetting = new GitHubSetting();
             defaultSetting.setFetchIntervalMinutes(fetchIntervalMinutes);

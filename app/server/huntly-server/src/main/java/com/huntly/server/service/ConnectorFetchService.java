@@ -195,11 +195,11 @@ public class ConnectorFetchService {
         return null;
     }
 
-    public static boolean isAtFetchTime(Connector connector) {
+    private boolean isAtFetchTime(Connector connector) {
         if (connector == null) {
             return false;
         }
-        Integer fetchIntervalSeconds = ObjectUtils.defaultIfNull(connector.getFetchIntervalSeconds(), AppConstants.DEFAULT_FETCH_INTERVAL_SECONDS);
+        Integer fetchIntervalSeconds = ObjectUtils.defaultIfNull(connector.getFetchIntervalSeconds(), huntlyProperties.getDefaultFeedFetchIntervalSeconds());
         return connector.getLastFetchBeginAt() == null || connector.getLastFetchBeginAt().plusSeconds(fetchIntervalSeconds).isBefore(Instant.now());
     }
 }
