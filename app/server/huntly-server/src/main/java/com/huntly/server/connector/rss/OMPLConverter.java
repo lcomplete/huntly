@@ -3,7 +3,6 @@ package com.huntly.server.connector.rss;
 import com.huntly.server.connector.ConnectorType;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.Folder;
-import com.huntly.server.util.SiteUtils;
 import com.rometools.opml.feed.opml.Opml;
 import com.rometools.opml.feed.opml.Outline;
 import com.rometools.rome.io.FeedException;
@@ -63,7 +62,6 @@ public class OMPLConverter {
             connector.setFolderId(parentFolder == null ? null : parentFolder.getId());
             connector.setDisplaySequence(parentFolder == null ? position : (parentFolder.getConnectors().size() + 1));
             connector.setName(outline.getText());
-            connector.setFetchIntervalSeconds(600);
             connector.setSubscribeUrl(outline.getXmlUrl());
             // it's too slow at this time
             //var faviconUrl = SiteUtils.getFaviconFromHome(outline.getXmlUrl());
