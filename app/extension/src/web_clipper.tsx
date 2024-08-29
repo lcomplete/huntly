@@ -42,7 +42,7 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     return;
   }
 
-  if (document.domain === "twitter.com" || document.domain === "x.com") {
+  if (document.domain === "twitter.com") {
     return;
   }
   if (msg.type !== "tab_complete") {

@@ -71,10 +71,8 @@ public class FeedsService {
     public PreviewFeedsInfo previewFeeds(String subscribeUrl) {
         PreviewFeedsInfo feedsInfo = new PreviewFeedsInfo();
         feedsInfo.setFeedUrl(subscribeUrl);
-        var proxySetting = globalSettingService.getProxySetting();
-        var httpClient = HttpUtils.buildHttpClient(proxySetting);
-        var feedClient = HttpUtils.buildFeedOkHttpClient(proxySetting);
-        SyndFeed syndFeed = FeedUtils.parseFeedUrl(subscribeUrl, feedClient);
+        var httpClient = HttpUtils.buildHttpClient(globalSettingService.getProxySetting());
+        SyndFeed syndFeed = FeedUtils.parseFeedUrl(subscribeUrl, httpClient);
         if (syndFeed != null) {
             feedsInfo.setSiteLink(syndFeed.getLink());
             feedsInfo.setTitle(syndFeed.getTitle());

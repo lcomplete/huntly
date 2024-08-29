@@ -25,7 +25,7 @@ function urlPattern(url: string, category: string): CategoryUrlPattern {
 let loginScreenName = '';
 
 const siteInterceptorSettings: { [domain: string]: InterceptorSetting[] } = {
-  'x.com': [{
+  'twitter.com': [{
     urlPatterns: [urlPattern('graphql/.+/Bookmarks(\\?|$)', 'bookmark'),
       urlPattern('graphql/.+/.+Timeline(\\?|$)', 'timeline'),
       urlPattern('graphql/.+/UserTweets(\\?|$)', 'userTweets'),
@@ -62,11 +62,7 @@ const siteInterceptorSettings: { [domain: string]: InterceptorSetting[] } = {
 }
 
 function matchInterceptorSetting(responseUrl: string): MatchedSetting {
-  let docDomain = document.domain;
-  if(docDomain === "twitter.com"){
-    docDomain = "x.com";
-  }
-  const settings = siteInterceptorSettings[docDomain];
+  const settings = siteInterceptorSettings[document.domain];
   const currentUrl = responseUrl.toLowerCase();
   if (settings) {
     for (const setting of settings) {
@@ -124,7 +120,7 @@ function isElementInViewport(el: Element) {
 //endregion
 
 function interceptTwitterSite() {
-  const supportDomains = ['twitter.com', 'x.com'];
+  const supportDomains = ['twitter.com'];
   const domain = document.domain;
   if (supportDomains.indexOf(domain) >= 0) {
     new RequestInterceptor().enable(handleResponse);

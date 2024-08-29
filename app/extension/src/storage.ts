@@ -24,7 +24,7 @@ export const DefaultStorageSettings: StorageSettings = {
   autoSaveEnabled: true,
   autoSaveMinScore: 20,
   autoSaveMinContentLength: 40,
-  autoSaveTweet: false
+  autoSaveTweet: true
 }
 
 export async function readSyncStorageSettings(): Promise<StorageSettings> {
