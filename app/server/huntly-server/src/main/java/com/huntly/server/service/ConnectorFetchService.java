@@ -147,7 +147,13 @@ public class ConnectorFetchService {
                 }
             }
 
-            var savedPage = capturePageService.save(page);
+            Page savedPage = null;
+            //Avoid frequent updates of RSS articles.
+            if (isRssFetch && existPage != null && Objects.equals(existPage.getTitle(), page.getTitle()) && Objects.equals(existPage.getConnectedAt(), page.getConnectedAt())) {
+                savedPage = existPage;
+            } else {
+                savedPage = capturePageService.save(page);
+            }
 
             if (isRssFetch && isExecuteFetch) {
                 pageArticleContentService.saveContent(savedPage.getId(), rawContent, ArticleContentCategory.RAW_CONTENT);

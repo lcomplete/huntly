@@ -5,12 +5,14 @@ import com.huntly.interfaces.external.model.CapturePage;
 import com.huntly.server.connector.ConnectorProperties;
 import com.huntly.server.connector.InfoConnector;
 import com.huntly.server.domain.exceptions.ConnectorFetchException;
+import com.huntly.server.util.HttpUtils;
 import com.huntly.server.util.SiteUtils;
 import com.rometools.rome.feed.synd.SyndCategory;
 import com.rometools.rome.feed.synd.SyndContent;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -28,16 +30,14 @@ import java.util.stream.Collectors;
 public class RSSConnector extends InfoConnector {
     private final ConnectorProperties connectorProperties;
 
+    private final OkHttpClient okClient;
+
     private final HttpClient client;
 
     public RSSConnector(ConnectorProperties connectorProperties) {
         this.connectorProperties = connectorProperties;
+        this.okClient = HttpUtils.buildFeedOkHttpClient(connectorProperties.getProxySetting());
         this.client = buildHttpClient(connectorProperties);
-    }
-
-    public RSSConnector(ConnectorProperties connectorProperties, HttpClient httpClient) {
-        this.connectorProperties = connectorProperties;
-        this.client = httpClient;
     }
 
     @Override
@@ -52,7 +52,7 @@ public class RSSConnector extends InfoConnector {
         }
 
         try {
-            SyndFeed feed = FeedUtils.parseFeedUrl(connectorProperties.getSubscribeUrl(), client);
+            SyndFeed feed = FeedUtils.parseFeedUrl(connectorProperties.getSubscribeUrl(), okClient);
             var entries = feed.getEntries();
             List<CapturePage> pages = new ArrayList<>();
             for (var entry : entries) {
