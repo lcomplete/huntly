@@ -8,6 +8,9 @@ import com.huntly.interfaces.external.model.CapturePage;
 import com.huntly.interfaces.external.query.PageListQuery;
 import com.huntly.interfaces.external.query.PageQuery;
 import com.huntly.server.domain.entity.Page;
+import com.huntly.server.domain.entity.PageArticleContent;
+import com.huntly.server.domain.enums.ArticleContentCategory;
+import com.huntly.server.service.PageArticleContentService;
 import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.service.CapturePageService;
 import com.huntly.server.service.PageListService;
@@ -32,11 +35,13 @@ public class PageController {
     private final PageListService pageListService;
 
     private final PageService pageService;
+    private final PageArticleContentService pageArticleContentService;
 
-    public PageController(CapturePageService capturePageService, PageListService pageListService, PageService pageService) {
+    public PageController(CapturePageService capturePageService, PageListService pageListService, PageService pageService, PageArticleContentService pageArticleContentService) {
         this.capturePageService = capturePageService;
         this.pageListService = pageListService;
         this.pageService = pageService;
+        this.pageArticleContentService = pageArticleContentService;
     }
 
     @PostMapping("save")
@@ -143,6 +148,24 @@ public class PageController {
     public ArticleContent fetchFullContentById(@Valid @NotNull @PathVariable("id") Long id) {
         Page page= pageService.fetchFullContent(id);
         return new ArticleContent(page.getId(), page.getContent());
+    }
+    
+    /**
+     * Generate a summary for the article
+     * 
+     * @param id the page ID
+     * @return the article content with the summary
+     */
+    @PostMapping("/generateSummary/{id}")
+    public ArticleContent generateSummaryById(@Valid @NotNull @PathVariable("id") Long id) {
+        // Generate the summary
+        pageService.generateArticleSummary(id);
+        // Check if the summary was generated and saved
+        PageArticleContent summaryContent = pageArticleContentService.findContent(id, ArticleContentCategory.SUMMARY);
+        if (summaryContent != null) {
+            return new ArticleContent(summaryContent.getId(), summaryContent.getContent());
+        }
+        return new ArticleContent(id, "");
     }
     
     @PostMapping("/rawContent/{id}")

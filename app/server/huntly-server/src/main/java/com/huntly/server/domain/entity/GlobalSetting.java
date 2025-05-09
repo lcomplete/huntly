@@ -37,6 +37,15 @@ public class GlobalSetting implements Serializable {
     @Column(name = "open_api_key")
     private String openApiKey;
     
+    @Column(name = "open_api_base_url")
+    private String openApiBaseUrl;
+    
+    @Column(name = "open_api_model")
+    private String openApiModel;
+    
+    @Column(name = "article_summary_prompt", columnDefinition = "TEXT")
+    private String articleSummaryPrompt;
+    
     @Column(name = "auto_save_site_blacklists")
     private String autoSaveSiteBlacklists;
 

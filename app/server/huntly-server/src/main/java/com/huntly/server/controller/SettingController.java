@@ -4,6 +4,7 @@ import com.huntly.common.api.ApiResult;
 import com.huntly.common.exceptions.BusinessException;
 import com.huntly.common.exceptions.RequestVerifyException;
 import com.huntly.common.util.XmlUtils;
+import org.apache.commons.lang3.StringUtils;
 import com.huntly.interfaces.external.dto.PreviewFeedsInfo;
 import com.huntly.interfaces.external.model.FeedsSetting;
 import com.huntly.interfaces.external.model.GitHubSetting;
@@ -194,7 +195,14 @@ public class SettingController {
 
     @GetMapping("general/globalSetting")
     public GlobalSetting getGlobalSetting() {
-        return globalSettingService.getGlobalSetting();
+        GlobalSetting setting = globalSettingService.getGlobalSetting();
+        
+        // Mask API key before sending to frontend
+        if (StringUtils.isNotBlank(setting.getOpenApiKey())) {
+            setting.setOpenApiKey(StringUtils.repeat("*", setting.getOpenApiKey().length()));
+        }
+        
+        return setting;
     }
 
     @GetMapping("general/blacklist")
