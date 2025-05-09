@@ -4,7 +4,7 @@ import {SettingControllerApiFactory} from "../../api";
 import {useFormik} from "formik";
 import * as yup from "yup";
 import Typography from "@mui/material/Typography";
-import {Button, Checkbox, Divider, FormControlLabel, TextField} from "@mui/material";
+import {Button, Checkbox, Divider, FormControlLabel, IconButton, TextField, Tooltip} from "@mui/material";
 import React from "react";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
@@ -28,12 +28,17 @@ export default function GeneralSetting() {
       coldDataKeepDays: yup.number().min(1, 'Cold data retention days can\'t less than 1'),
       enableProxy: yup.boolean().nullable(),
       openApiKey: yup.string().nullable(),
+      openApiBaseUrl: yup.string().nullable(),
+      openApiModel: yup.string().nullable(),
+      articleSummaryPrompt: yup.string().nullable(),
       autoSaveSiteBlacklists: yup.string().nullable()
     }),
     onSubmit: async (values) => {
-      if(values.openApiKey!==formikGeneral.initialValues.openApiKey){
-        values.changedOpenApiKey = true;
-      }
+      // 只有当 API 密钥真正改变时才设置 changedOpenApiKey 为 true
+      // 考虑两个都为空/null 的情况，以及从有值变为空值的情况
+      const initialKey = formikGeneral.initialValues.openApiKey || "";
+      const currentKey = values.openApiKey || "";
+      values.changedOpenApiKey = initialKey !== currentKey;
       api.saveGlobalSettingUsingPOST(values).then((res) => {
         enqueueSnackbar('General setting save success.', {
           variant: "success",
@@ -106,10 +111,11 @@ export default function GeneralSetting() {
           variant="outlined"
           size={"small"}
         />
-        <div className={'flex items-center text-gray-400 ml-2'}>
-          <HelpOutlineIcon/>
-          Cold data: Unsaved browser history articles.
-        </div>
+        <Tooltip title="Cold data: Unsaved browser history articles." placement="right">
+          <IconButton size="small" className={'ml-2'}>
+            <HelpOutlineIcon className={'text-gray-400'}/>
+          </IconButton>
+        </Tooltip>
       </div>
 
       <Typography variant={'h6'} className={'mt-4'}>
@@ -139,6 +145,59 @@ export default function GeneralSetting() {
             <Button onClick={()=>{setNeedChangeOpenApiKey(true)}}>Change</Button>
           </div>
         }
+      </div>
+
+      <div className={'mt-2 flex items-center'}>
+        <TextField
+          margin="dense"
+          size={"small"}
+          className={'w-[400px]'}
+          id="openApiBaseUrl"
+          label="OpenApi Base URL"
+          value={formikGeneral.values.openApiBaseUrl || ""}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.openApiBaseUrl && Boolean(formikGeneral.errors.openApiBaseUrl)}
+          helperText={formikGeneral.touched.openApiBaseUrl && formikGeneral.errors.openApiBaseUrl}
+          type="text"
+          variant="outlined"
+        />
+        <TextField
+          margin="dense"
+          size={"small"}
+          className={'w-[200px] ml-2'}
+          id="openApiModel"
+          label="OpenApi Model"
+          value={formikGeneral.values.openApiModel || ""}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.openApiModel && Boolean(formikGeneral.errors.openApiModel)}
+          helperText={formikGeneral.touched.openApiModel && formikGeneral.errors.openApiModel}
+          type="text"
+          variant="outlined"
+        />
+        <Tooltip title="Optional settings for custom OpenAI-compatible APIs" placement="right">
+          <IconButton size="small" className={'ml-2'}>
+            <HelpOutlineIcon className={'text-gray-400'}/>
+          </IconButton>
+        </Tooltip>
+      </div>
+
+      <div className={'mt-2'}>
+        <TextField
+          margin="dense"
+          size={"small"}
+          fullWidth={true}
+          className={''}
+          id="articleSummaryPrompt"
+          label="Article Summary Prompt"
+          value={formikGeneral.values.articleSummaryPrompt || ""}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.articleSummaryPrompt && Boolean(formikGeneral.errors.articleSummaryPrompt)}
+          helperText={formikGeneral.touched.articleSummaryPrompt && formikGeneral.errors.articleSummaryPrompt}
+          type="text"
+          multiline={true}
+          rows={4}
+          variant="outlined"
+        />
       </div>
 
       <Typography variant={'h6'} className={'mt-4'}>

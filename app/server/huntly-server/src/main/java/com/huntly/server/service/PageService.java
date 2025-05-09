@@ -9,6 +9,7 @@ import com.huntly.server.domain.entity.Page;
 import com.huntly.server.domain.enums.ArticleContentCategory;
 import com.huntly.server.domain.mapper.ConnectorItemMapper;
 import com.huntly.server.domain.vo.PageDetail;
+
 import com.huntly.server.event.EventPublisher;
 import com.huntly.server.event.InboxChangedEvent;
 import com.huntly.server.repository.ConnectorRepository;
@@ -43,13 +44,16 @@ public class PageService extends BasePageService {
 
     private final EventPublisher eventPublisher;
 
-    public PageService(PageRepository pageRepository, LuceneService luceneService, ConnectorRepository connectorRepository, SourceRepository sourceRepository, GlobalSettingService globalSettingService, PageArticleContentService pageArticleContentService, EventPublisher eventPublisher) {
+    private final OpenAIService openAIService;
+
+    public PageService(PageRepository pageRepository, LuceneService luceneService, ConnectorRepository connectorRepository, SourceRepository sourceRepository, GlobalSettingService globalSettingService, PageArticleContentService pageArticleContentService, EventPublisher eventPublisher, OpenAIService openAIService) {
         super(pageRepository, luceneService);
         this.connectorRepository = connectorRepository;
         this.sourceRepository = sourceRepository;
         this.globalSettingService = globalSettingService;
         this.pageArticleContentService = pageArticleContentService;
         this.eventPublisher = eventPublisher;
+        this.openAIService = openAIService;
     }
 
     public void delete(Long id) {
@@ -302,6 +306,39 @@ public class PageService extends BasePageService {
             save(page);
             pageArticleContentService.deleteById(content.getId());
         }
+        return page;
+    }
+
+    /**
+     * Generate and save an article summary using OpenAI
+     * 
+     * @param id the page ID
+     * @return the updated page with the summary
+     */
+    public Page generateArticleSummary(Long id) {
+        var page = requireOne(id);
+        String content = page.getContentText();
+        
+        if (StringUtils.isBlank(content)) {
+            // If content text is not available, use the HTML content and extract text
+            content = page.getContent();
+            if (StringUtils.isNotBlank(content)) {
+                content = HtmlUtils.getDocText(content);
+            }
+        }
+        
+        if (StringUtils.isNotBlank(content)) {
+            String summary = openAIService.generateArticleSummary(content);
+            
+            if (StringUtils.isNotBlank(summary)) {
+                // Save the summary in the PageArticleContent table
+                pageArticleContentService.saveContent(page.getId(), summary, ArticleContentCategory.SUMMARY);
+                
+                // Return the updated page
+                return page;
+            }
+        }
+        
         return page;
     }
 }

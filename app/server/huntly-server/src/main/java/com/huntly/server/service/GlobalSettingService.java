@@ -23,15 +23,25 @@ public class GlobalSettingService {
     public GlobalSetting getGlobalSetting() {
         var defaultSetting = new GlobalSetting();
         defaultSetting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
+        defaultSetting.setArticleSummaryPrompt(getDefaultArticleSummaryPrompt());
         var setting = settingRepository.findAll().stream().findFirst().orElse(defaultSetting);
         if (setting.getColdDataKeepDays() == null || setting.getColdDataKeepDays() <= 0) {
             setting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
         }
-        // if openApiKey is not blank, mask the string
-        if (StringUtils.isNotBlank(setting.getOpenApiKey())) {
-            setting.setOpenApiKey(StringUtils.repeat("*", setting.getOpenApiKey().length()));
+        // API key masking has been moved to controller layer
+        // set default article summary prompt if not set
+        if (StringUtils.isBlank(setting.getArticleSummaryPrompt())) {
+            setting.setArticleSummaryPrompt(getDefaultArticleSummaryPrompt());
         }
         return setting;
+    }
+    
+    private String getDefaultArticleSummaryPrompt() {
+        return "你是一个专业的文章摘要生成助手，能够生成高质量的中文摘要。请按照以下要求生成摘要：\n"
+            + "1. 包含文章的主要观点和关键信息\n"
+            + "2. 保持客观，不添加个人观点\n"
+            + "3. 结构清晰，语言简洁\n"
+            + "4. 长度尽量短，但不能太短以至于丢失重点内容，不能超过原文的一半长";
     }
 
     public ProxySetting getProxySetting() {
@@ -61,6 +71,9 @@ public class GlobalSettingService {
         dbSetting.setEnableProxy(globalSetting.getEnableProxy());
         dbSetting.setColdDataKeepDays(Optional.of(globalSetting.getColdDataKeepDays()).orElse(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS));
         dbSetting.setAutoSaveSiteBlacklists(globalSetting.getAutoSaveSiteBlacklists());
+        dbSetting.setOpenApiBaseUrl(globalSetting.getOpenApiBaseUrl());
+        dbSetting.setOpenApiModel(globalSetting.getOpenApiModel());
+        dbSetting.setArticleSummaryPrompt(globalSetting.getArticleSummaryPrompt());
         if (Boolean.TRUE.equals(globalSetting.getChangedOpenApiKey())) {
             dbSetting.setOpenApiKey(globalSetting.getOpenApiKey());
         }
