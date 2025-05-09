@@ -130,7 +130,7 @@ export default function GeneralSetting() {
           fullWidth={true}
           className={''}
           id="openApiKey"
-          label="OpenApi secret key, used to generate article summaries"
+          label="OpenApi secret key"
           value={formikGeneral.values.openApiKey || ""}
           onChange={formikGeneral.handleChange}
           error={formikGeneral.touched.openApiKey && Boolean(formikGeneral.errors.openApiKey)}
