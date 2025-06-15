@@ -4,7 +4,16 @@ import {SettingControllerApiFactory} from "../../api";
 import {useFormik} from "formik";
 import * as yup from "yup";
 import Typography from "@mui/material/Typography";
-import {Button, Checkbox, Divider, FormControlLabel, IconButton, TextField, Tooltip} from "@mui/material";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  TextField,
+  Tooltip
+} from "@mui/material";
 import React from "react";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
@@ -30,7 +39,6 @@ export default function GeneralSetting() {
       openApiKey: yup.string().nullable(),
       openApiBaseUrl: yup.string().nullable(),
       openApiModel: yup.string().nullable(),
-      articleSummaryPrompt: yup.string().nullable(),
       autoSaveSiteBlacklists: yup.string().nullable()
     }),
     onSubmit: async (values) => {
@@ -181,24 +189,10 @@ export default function GeneralSetting() {
         </Tooltip>
       </div>
 
-      <div className={'mt-2'}>
-        <TextField
-          margin="dense"
-          size={"small"}
-          fullWidth={true}
-          className={''}
-          id="articleSummaryPrompt"
-          label="Article Summary Prompt"
-          value={formikGeneral.values.articleSummaryPrompt || ""}
-          onChange={formikGeneral.handleChange}
-          error={formikGeneral.touched.articleSummaryPrompt && Boolean(formikGeneral.errors.articleSummaryPrompt)}
-          helperText={formikGeneral.touched.articleSummaryPrompt && formikGeneral.errors.articleSummaryPrompt}
-          type="text"
-          multiline={true}
-          rows={4}
-          variant="outlined"
-        />
-      </div>
+      <Alert severity="info" className="mt-2">
+        Article prompts have been moved to the <strong>Article Shortcuts</strong> section, where you can
+        manage multiple operation shortcuts like summaries, translations, and more.
+      </Alert>
 
       <Typography variant={'h6'} className={'mt-4'}>
         Website Blacklist

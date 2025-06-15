@@ -1,19 +1,21 @@
 import {useQuery, useQueryClient} from "@tanstack/react-query";
-import {PageControllerApiFactory, PageDetail} from "../api";
+import {ArticleShortcutControllerApiFactory, PageControllerApiFactory, PageDetail} from "../api";
 import Loading from "../components/Loading";
 import {PageQueryKey} from "../domain/pageQueryKey";
 import * as React from "react";
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 import styles from "./PageDetail.module.css";
 import CardMedia from "@mui/material/CardMedia";
 import SmartMoment from "../components/SmartMoment";
 import PageOperationButtons, {PageOperateEvent, PageOperation} from "../components/PageOperationButtons";
-import {Box, CircularProgress, IconButton, Paper, Tooltip, Typography} from "@mui/material";
+import {Box, CircularProgress, IconButton, Menu, MenuItem, Paper, Tooltip, Typography} from "@mui/material";
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import {setDocTitle} from "../common/docUtils";
 import ScreenSearchDesktopOutlinedIcon from '@mui/icons-material/ScreenSearchDesktopOutlined';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import ScreenSearchDesktopRoundedIcon from '@mui/icons-material/ScreenSearchDesktopRounded';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ShortTextIcon from '@mui/icons-material/ShortText';
 
 const PageDetailArea = ({
                            id,
@@ -22,9 +24,26 @@ const PageDetailArea = ({
   const queryKey = [PageQueryKey.PageDetail, id];
   const queryClient = useQueryClient();
   const [isFullContent, setIsFullContent] = React.useState(false);
-  const [isSummaryLoading, setIsSummaryLoading] = React.useState(false);
-  const [summary, setSummary] = React.useState<string>("");
-  const [showSummarySection, setShowSummarySection] = React.useState(false);
+  const [isProcessingContent, setIsProcessingContent] = useState(false);
+  const [processedContent, setProcessedContent] = useState<string>("");
+  const [showProcessedSection, setShowProcessedSection] = useState(false);
+  const [processedTitle, setProcessedTitle] = useState<string>("AI 处理结果");
+  
+  // AI操作菜单状态
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const openMenu = Boolean(anchorEl);
+  
+  // 获取可用的文章快捷指令
+  const { data: shortcuts = [] } = useQuery(
+    ["enabled-article-shortcuts"],
+    async () => {
+      const response = await ArticleShortcutControllerApiFactory().getEnabledShortcutsUsingGET();
+      return response.data;
+    },
+    {
+      staleTime: 5 * 60 * 1000, // 5分钟
+    }
+  );
 
   const {
     isLoading,
@@ -37,11 +56,6 @@ const PageDetailArea = ({
         if (data.pageContents) {
           const rawContent = data.pageContents.find((content) => content.articleContentCategory === 0);
           setIsFullContent(rawContent != null);
-          const summaryContent = data.pageContents.find((content) => content.articleContentCategory === 1);
-          if (summaryContent) {
-            setSummary(summaryContent.content);
-            setShowSummarySection(true);
-          }
         }
       }
     }
@@ -62,6 +76,11 @@ const PageDetailArea = ({
 
   useEffect(() => {
     PageControllerApiFactory().recordReadPageUsingPOST(id);
+    
+    // 重置处理结果状态
+    setShowProcessedSection(false);
+    setProcessedContent("");
+    setProcessedTitle("AI 处理结果");
   }, [id]);
 
   function operateSuccess(event: PageOperateEvent) {
@@ -89,30 +108,32 @@ const PageDetailArea = ({
     }
   }
   
-  async function generateSummary() {
-    if (isSummaryLoading) return; // Prevent multiple requests
+  async function processWithShortcut(shortcutId: number, shortcutName: string) {
+    if (isProcessingContent) return; // Prevent multiple requests
     
-    setIsSummaryLoading(true);
-    setShowSummarySection(true);
+    setIsProcessingContent(true);
+    setShowProcessedSection(true);
+    setProcessedContent("");
+    setProcessedTitle(shortcutName);
     try {
-      const summaryResponse = await PageControllerApiFactory().generateSummaryByIdUsingPOST(id);
-      if (summaryResponse && summaryResponse.data && summaryResponse.data.content) {
-        setSummary(summaryResponse.data.content);
-        // Only show summary section if content is not empty
-        setShowSummarySection(!!summaryResponse.data.content);
+      const response = await PageControllerApiFactory().processWithShortcutUsingPOST(id, shortcutId);
+      if (response && response.data && response.data.content) {
+        setProcessedContent(response.data.content);
+        // Only show processed section if content is not empty
+        setShowProcessedSection(!!response.data.content);
       } else {
         // Hide if no content
-        setShowSummarySection(false);
+        setShowProcessedSection(false);
       }
     } catch (error) {
-      console.error('Error generating summary:', error);
-      setShowSummarySection(false); // Hide section on error
+      console.error(`Error processing with shortcut ${shortcutName}:`, error);
+      setShowProcessedSection(false); // Hide section on error
     } finally {
-      setIsSummaryLoading(false);
+      setIsProcessingContent(false);
     }
   }
   
-  function updateContent(content){
+  function updateContent(content) {
     queryClient.setQueryData<PageDetail>(queryKey, (data) => {
       return {
         ...data,
@@ -131,6 +152,20 @@ const PageDetailArea = ({
       setIsFullContent(false);
     }
   }
+  
+  // AI操作菜单处理函数
+  const handleAIMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleAIMenuClose = () => {
+    setAnchorEl(null);
+  };
+  
+  const handleShortcutSelect = (shortcutId: number, shortcutName: string) => {
+    processWithShortcut(shortcutId, shortcutName);
+    handleAIMenuClose();
+  };
 
   return (
     <div className="pl-2 pr-2 flex flex-col items-center">
@@ -180,11 +215,43 @@ const PageDetailArea = ({
                         </IconButton>
                       }
                     </Tooltip>
-                    <Tooltip title={'AI generate summary'} placement={"bottom"}>
-                      <IconButton onClick={generateSummary} disabled={isSummaryLoading}>
-                        <SmartToyOutlinedIcon fontSize={"small"} />
-                      </IconButton>
-                    </Tooltip>
+                    
+                    {shortcuts && shortcuts.length > 0 ? (
+                      <>
+                        <Tooltip title={'AI operations'} placement={"bottom"}>
+                          <IconButton 
+                            onClick={handleAIMenuClick}
+                            aria-controls={openMenu ? 'ai-menu' : undefined}
+                            aria-haspopup="true"
+                            aria-expanded={openMenu ? 'true' : undefined}
+                          >
+                            <SmartToyOutlinedIcon fontSize={"small"} sx={{ color: "#6366F1" }} />
+                            <KeyboardArrowDownIcon fontSize={"small"} />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        <Menu
+                          id="ai-menu"
+                          anchorEl={anchorEl}
+                          open={openMenu}
+                          onClose={handleAIMenuClose}
+                          MenuListProps={{
+                            'aria-labelledby': 'ai-button',
+                          }}
+                        >
+                          {shortcuts.map((shortcut) => (
+                            <MenuItem 
+                              key={shortcut.id} 
+                              onClick={() => handleShortcutSelect(shortcut.id!, shortcut.name!)}
+                              disabled={isProcessingContent}
+                            >
+                              <ShortTextIcon fontSize="small" className="mr-2" sx={{ color: "#8B5CF6" }} />
+                              {shortcut.name}
+                            </MenuItem>
+                          ))}
+                        </Menu>
+                      </>
+                    ) : null}
                   </span>
               </div>
 
@@ -205,7 +272,7 @@ const PageDetailArea = ({
                 </a>
               </Typography>
               
-              {showSummarySection && (
+              {showProcessedSection && (
                 <Paper elevation={0} className={"p-4 mb-5 bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 transition-all duration-300 rounded-lg"}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center">
@@ -213,22 +280,22 @@ const PageDetailArea = ({
                         <LightbulbOutlinedIcon fontSize="small" />
                       </div>
                       <Typography variant={"body2"} component={"div"} className={"font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-transparent bg-clip-text"}>
-                        AI 摘要
+                        {processedTitle}
                       </Typography>
                     </div>
-                    {isSummaryLoading && (
+                    {isProcessingContent && (
                       <CircularProgress size={18} className="text-cyan-500" />
                     )}
                   </div>
-                  <Typography variant={"body2"} component={"div"} className={"text-gray-600 leading-relaxed"}>
-                    {isSummaryLoading && !summary ? (
+                  <Typography variant={"body2"} component={"div"} className={"text-gray-600 leading-relaxed whitespace-pre-line"}>
+                    {isProcessingContent && !processedContent ? (
                       <div className="flex flex-col space-y-2 h-12 animate-pulse">
                         <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-full opacity-70"></div>
                         <div className="h-2 bg-gradient-to-r from-sky-100 to-blue-100 rounded-full w-5/6 opacity-70"></div>
                         <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-4/6 opacity-70"></div>
                       </div>
                     ) : (
-                      summary
+                      processedContent
                     )}
                   </Typography>
                 </Paper>

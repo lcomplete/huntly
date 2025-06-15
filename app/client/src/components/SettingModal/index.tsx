@@ -13,11 +13,12 @@ import {ConnectorSetting} from "./ConnectorSetting";
 import {FeedsSetting} from "./FeedsSetting";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import FoldersSetting from "./FoldersSetting";
-import {AuthControllerApiFactory} from "../../api";
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import AccountSetting from "./AccountSetting";
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import GeneralSetting from "./GeneralSetting";
+import ShortTextIcon from '@mui/icons-material/ShortText';
+import ArticleShortcutSetting from "./ArticleShortcutSetting";
 
 type SettingModalProps = {
   open: boolean,
@@ -89,6 +90,15 @@ export default function SettingModal(props: SettingModalProps) {
               onClick={(event) => handleListItemClick(event, 4)}
             >
               <ListItemIcon>
+                <ShortTextIcon/>
+              </ListItemIcon>
+              <ListItemText primary="Article Shortcuts"/>
+            </ListItemButton>
+            <ListItemButton
+              selected={selectedIndex === 5}
+              onClick={(event) => handleListItemClick(event, 5)}
+            >
+              <ListItemIcon>
                 <AccountBoxIcon/>
               </ListItemIcon>
               <ListItemText primary="Account"/>
@@ -111,7 +121,10 @@ export default function SettingModal(props: SettingModalProps) {
               selectedIndex === 3 && <GeneralSetting/>
             }
             {
-              selectedIndex === 4 && <AccountSetting/>
+              selectedIndex === 4 && <ArticleShortcutSetting/>
+            }
+            {
+              selectedIndex === 5 && <AccountSetting/>
             }
           </div>
         </div>
