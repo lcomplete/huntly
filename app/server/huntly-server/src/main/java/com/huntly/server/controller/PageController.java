@@ -15,6 +15,7 @@ import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.service.CapturePageService;
 import com.huntly.server.service.PageListService;
 import com.huntly.server.service.PageService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -151,19 +152,22 @@ public class PageController {
     }
     
     /**
-     * Generate a summary for the article
+     * Process article content with a specific shortcut
      * 
      * @param id the page ID
-     * @return the article content with the summary
+     * @param shortcutId the ID of the shortcut to use
+     * @return the article content with the processed result
      */
-    @PostMapping("/generateSummary/{id}")
-    public ArticleContent generateSummaryById(@Valid @NotNull @PathVariable("id") Long id) {
-        // Generate the summary
-        pageService.generateArticleSummary(id);
-        // Check if the summary was generated and saved
-        PageArticleContent summaryContent = pageArticleContentService.findContent(id, ArticleContentCategory.SUMMARY);
-        if (summaryContent != null) {
-            return new ArticleContent(summaryContent.getId(), summaryContent.getContent());
+    @PostMapping("/processWithShortcut/{id}")
+    public ArticleContent processWithShortcut(
+            @Valid @NotNull @PathVariable("id") Long id,
+            @Valid @NotNull @RequestParam("shortcutId") Integer shortcutId) {
+        
+        // Process the content without saving to database
+        String processedContent = pageService.processWithShortcut(id, shortcutId);
+        
+        if (StringUtils.isNotBlank(processedContent)) {
+            return new ArticleContent(id, processedContent);
         }
         return new ArticleContent(id, "");
     }

@@ -143,6 +143,61 @@ export interface ArticleContent {
 /**
  * 
  * @export
+ * @interface ArticleShortcut
+ */
+export interface ArticleShortcut {
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticleShortcut
+     */
+    'content'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticleShortcut
+     */
+    'createdAt'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticleShortcut
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ArticleShortcut
+     */
+    'enabled'?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof ArticleShortcut
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticleShortcut
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ArticleShortcut
+     */
+    'sortOrder'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticleShortcut
+     */
+    'updatedAt'?: string;
+}
+/**
+ * 
+ * @export
  * @interface CapturePage
  */
 export interface CapturePage {
@@ -1714,6 +1769,626 @@ export interface View {
 }
 
 /**
+ * ArticleShortcutControllerApi - axios parameter creator
+ * @export
+ */
+export const ArticleShortcutControllerApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary createShortcut
+         * @param {ArticleShortcut} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createShortcutUsingPOST: async (articleShortcut?: ArticleShortcut, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/article-shortcuts`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(articleShortcut, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary deleteShortcut
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteShortcutUsingDELETE: async (id: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('deleteShortcutUsingDELETE', 'id', id)
+            const localVarPath = `/api/article-shortcuts/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getAllShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getAllShortcutsUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/article-shortcuts`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getEnabledShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getEnabledShortcutsUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/article-shortcuts/enabled`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getImportableDefaultShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getImportableDefaultShortcutsUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/article-shortcuts/importable-defaults`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getShortcutById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getShortcutByIdUsingGET: async (id: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('getShortcutByIdUsingGET', 'id', id)
+            const localVarPath = `/api/article-shortcuts/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary importDefaultShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        importDefaultShortcutsUsingPOST: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/article-shortcuts/import-defaults`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary saveShortcuts
+         * @param {Array<ArticleShortcut>} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        saveShortcutsUsingPOST: async (articleShortcut?: Array<ArticleShortcut>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/article-shortcuts/batch`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(articleShortcut, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary updateShortcut
+         * @param {number} id id
+         * @param {ArticleShortcut} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateShortcutUsingPUT: async (id: number, articleShortcut?: ArticleShortcut, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('updateShortcutUsingPUT', 'id', id)
+            const localVarPath = `/api/article-shortcuts/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(articleShortcut, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * ArticleShortcutControllerApi - functional programming interface
+ * @export
+ */
+export const ArticleShortcutControllerApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = ArticleShortcutControllerApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary createShortcut
+         * @param {ArticleShortcut} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createShortcutUsingPOST(articleShortcut?: ArticleShortcut, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createShortcutUsingPOST(articleShortcut, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary deleteShortcut
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteShortcutUsingDELETE(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteShortcutUsingDELETE(id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getAllShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getAllShortcutsUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ArticleShortcut>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAllShortcutsUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getEnabledShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getEnabledShortcutsUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ArticleShortcut>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getEnabledShortcutsUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getImportableDefaultShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getImportableDefaultShortcutsUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ArticleShortcut>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getImportableDefaultShortcutsUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getShortcutById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getShortcutByIdUsingGET(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleShortcut>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getShortcutByIdUsingGET(id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary importDefaultShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async importDefaultShortcutsUsingPOST(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ArticleShortcut>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.importDefaultShortcutsUsingPOST(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary saveShortcuts
+         * @param {Array<ArticleShortcut>} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async saveShortcutsUsingPOST(articleShortcut?: Array<ArticleShortcut>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.saveShortcutsUsingPOST(articleShortcut, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary updateShortcut
+         * @param {number} id id
+         * @param {ArticleShortcut} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateShortcutUsingPUT(id: number, articleShortcut?: ArticleShortcut, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateShortcutUsingPUT(id, articleShortcut, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * ArticleShortcutControllerApi - factory interface
+ * @export
+ */
+export const ArticleShortcutControllerApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = ArticleShortcutControllerApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary createShortcut
+         * @param {ArticleShortcut} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createShortcutUsingPOST(articleShortcut?: ArticleShortcut, options?: any): AxiosPromise<object> {
+            return localVarFp.createShortcutUsingPOST(articleShortcut, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary deleteShortcut
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteShortcutUsingDELETE(id: number, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteShortcutUsingDELETE(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getAllShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getAllShortcutsUsingGET(options?: any): AxiosPromise<Array<ArticleShortcut>> {
+            return localVarFp.getAllShortcutsUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getEnabledShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getEnabledShortcutsUsingGET(options?: any): AxiosPromise<Array<ArticleShortcut>> {
+            return localVarFp.getEnabledShortcutsUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getImportableDefaultShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getImportableDefaultShortcutsUsingGET(options?: any): AxiosPromise<Array<ArticleShortcut>> {
+            return localVarFp.getImportableDefaultShortcutsUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getShortcutById
+         * @param {number} id id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getShortcutByIdUsingGET(id: number, options?: any): AxiosPromise<ArticleShortcut> {
+            return localVarFp.getShortcutByIdUsingGET(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary importDefaultShortcuts
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        importDefaultShortcutsUsingPOST(options?: any): AxiosPromise<Array<ArticleShortcut>> {
+            return localVarFp.importDefaultShortcutsUsingPOST(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary saveShortcuts
+         * @param {Array<ArticleShortcut>} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        saveShortcutsUsingPOST(articleShortcut?: Array<ArticleShortcut>, options?: any): AxiosPromise<object> {
+            return localVarFp.saveShortcutsUsingPOST(articleShortcut, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary updateShortcut
+         * @param {number} id id
+         * @param {ArticleShortcut} [articleShortcut] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateShortcutUsingPUT(id: number, articleShortcut?: ArticleShortcut, options?: any): AxiosPromise<object> {
+            return localVarFp.updateShortcutUsingPUT(id, articleShortcut, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * ArticleShortcutControllerApi - object-oriented interface
+ * @export
+ * @class ArticleShortcutControllerApi
+ * @extends {BaseAPI}
+ */
+export class ArticleShortcutControllerApi extends BaseAPI {
+    /**
+     * 
+     * @summary createShortcut
+     * @param {ArticleShortcut} [articleShortcut] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public createShortcutUsingPOST(articleShortcut?: ArticleShortcut, options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).createShortcutUsingPOST(articleShortcut, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary deleteShortcut
+     * @param {number} id id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public deleteShortcutUsingDELETE(id: number, options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).deleteShortcutUsingDELETE(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getAllShortcuts
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public getAllShortcutsUsingGET(options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).getAllShortcutsUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getEnabledShortcuts
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public getEnabledShortcutsUsingGET(options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).getEnabledShortcutsUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getImportableDefaultShortcuts
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public getImportableDefaultShortcutsUsingGET(options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).getImportableDefaultShortcutsUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getShortcutById
+     * @param {number} id id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public getShortcutByIdUsingGET(id: number, options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).getShortcutByIdUsingGET(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary importDefaultShortcuts
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public importDefaultShortcutsUsingPOST(options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).importDefaultShortcutsUsingPOST(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary saveShortcuts
+     * @param {Array<ArticleShortcut>} [articleShortcut] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public saveShortcutsUsingPOST(articleShortcut?: Array<ArticleShortcut>, options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).saveShortcutsUsingPOST(articleShortcut, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary updateShortcut
+     * @param {number} id id
+     * @param {ArticleShortcut} [articleShortcut] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ArticleShortcutControllerApi
+     */
+    public updateShortcutUsingPUT(id: number, articleShortcut?: ArticleShortcut, options?: AxiosRequestConfig) {
+        return ArticleShortcutControllerApiFp(this.configuration).updateShortcutUsingPUT(id, articleShortcut, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
  * AuthControllerApi - axios parameter creator
  * @export
  */
@@ -3069,40 +3744,6 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
         },
         /**
          * 
-         * @summary generateSummaryById
-         * @param {number} id id
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        generateSummaryByIdUsingPOST: async (id: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('generateSummaryByIdUsingPOST', 'id', id)
-            const localVarPath = `/api/page/generateSummary/{id}`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 
          * @summary getPageDetailById
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -3462,6 +4103,47 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
             const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary processWithShortcut
+         * @param {number} id id
+         * @param {number} shortcutId shortcutId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        processWithShortcutUsingPOST: async (id: number, shortcutId: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('processWithShortcutUsingPOST', 'id', id)
+            // verify required parameter 'shortcutId' is not null or undefined
+            assertParamExists('processWithShortcutUsingPOST', 'shortcutId', shortcutId)
+            const localVarPath = `/api/page/processWithShortcut/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (shortcutId !== undefined) {
+                localVarQueryParameter['shortcutId'] = shortcutId;
+            }
 
 
     
@@ -3859,17 +4541,6 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @summary generateSummaryById
-         * @param {number} id id
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async generateSummaryByIdUsingPOST(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleContent>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.generateSummaryByIdUsingPOST(id, options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
-        /**
-         * 
          * @summary getPageDetailById
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -3973,6 +4644,18 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          */
         async markReadPageUsingPOST(id: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.markReadPageUsingPOST(id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary processWithShortcut
+         * @param {number} id id
+         * @param {number} shortcutId shortcutId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async processWithShortcutUsingPOST(id: number, shortcutId: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleContent>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.processWithShortcutUsingPOST(id, shortcutId, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -4127,16 +4810,6 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
         },
         /**
          * 
-         * @summary generateSummaryById
-         * @param {number} id id
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        generateSummaryByIdUsingPOST(id: number, options?: any): AxiosPromise<ArticleContent> {
-            return localVarFp.generateSummaryByIdUsingPOST(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 
          * @summary getPageDetailById
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -4233,6 +4906,17 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          */
         markReadPageUsingPOST(id: number, options?: any): AxiosPromise<void> {
             return localVarFp.markReadPageUsingPOST(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary processWithShortcut
+         * @param {number} id id
+         * @param {number} shortcutId shortcutId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        processWithShortcutUsingPOST(id: number, shortcutId: number, options?: any): AxiosPromise<ArticleContent> {
+            return localVarFp.processWithShortcutUsingPOST(id, shortcutId, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -4382,18 +5066,6 @@ export class PageControllerApi extends BaseAPI {
 
     /**
      * 
-     * @summary generateSummaryById
-     * @param {number} id id
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof PageControllerApi
-     */
-    public generateSummaryByIdUsingPOST(id: number, options?: AxiosRequestConfig) {
-        return PageControllerApiFp(this.configuration).generateSummaryByIdUsingPOST(id, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * 
      * @summary getPageDetailById
      * @param {number} id id
      * @param {*} [options] Override http request option.
@@ -4505,6 +5177,19 @@ export class PageControllerApi extends BaseAPI {
      */
     public markReadPageUsingPOST(id: number, options?: AxiosRequestConfig) {
         return PageControllerApiFp(this.configuration).markReadPageUsingPOST(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary processWithShortcut
+     * @param {number} id id
+     * @param {number} shortcutId shortcutId
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageControllerApi
+     */
+    public processWithShortcutUsingPOST(id: number, shortcutId: number, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).processWithShortcutUsingPOST(id, shortcutId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

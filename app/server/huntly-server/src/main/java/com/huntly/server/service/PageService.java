@@ -5,7 +5,10 @@ import com.huntly.interfaces.external.dto.ConnectorItem;
 import com.huntly.interfaces.external.dto.PageOperateResult;
 import com.huntly.interfaces.external.model.LibrarySaveStatus;
 import com.huntly.interfaces.external.query.PageQuery;
+import com.huntly.server.domain.constant.AppConstants;
+import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.Page;
+import com.huntly.server.domain.entity.PageArticleContent;
 import com.huntly.server.domain.enums.ArticleContentCategory;
 import com.huntly.server.domain.mapper.ConnectorItemMapper;
 import com.huntly.server.domain.vo.PageDetail;
@@ -310,15 +313,16 @@ public class PageService extends BasePageService {
     }
 
     /**
-     * Generate and save an article summary using OpenAI
-     * 
+     * Process article content with a shortcut
+     *
      * @param id the page ID
-     * @return the updated page with the summary
+     * @param shortcutId the shortcut ID
+     * @return the processed content as a string
      */
-    public Page generateArticleSummary(Long id) {
+    public String processWithShortcut(Long id, Integer shortcutId) {
         var page = requireOne(id);
         String content = page.getContentText();
-        
+
         if (StringUtils.isBlank(content)) {
             // If content text is not available, use the HTML content and extract text
             content = page.getContent();
@@ -326,19 +330,16 @@ public class PageService extends BasePageService {
                 content = HtmlUtils.getDocText(content);
             }
         }
-        
+
         if (StringUtils.isNotBlank(content)) {
-            String summary = openAIService.generateArticleSummary(content);
-            
-            if (StringUtils.isNotBlank(summary)) {
-                // Save the summary in the PageArticleContent table
-                pageArticleContentService.saveContent(page.getId(), summary, ArticleContentCategory.SUMMARY);
-                
-                // Return the updated page
-                return page;
+            String processedContent = openAIService.processWithShortcut(content, shortcutId);
+
+            if (StringUtils.isNotBlank(processedContent)) {
+                // Return the processed content without saving to database
+                return processedContent;
             }
         }
-        
-        return page;
+
+        return "";
     }
 }
