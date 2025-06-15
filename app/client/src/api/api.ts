@@ -1492,6 +1492,31 @@ export interface PreviewFeedsInfo {
 /**
  * 
  * @export
+ * @interface ProcessContentRequest
+ */
+export interface ProcessContentRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof ProcessContentRequest
+     */
+    'baseUri'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProcessContentRequest
+     */
+    'content'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProcessContentRequest
+     */
+    'shortcutId'?: number;
+}
+/**
+ * 
+ * @export
  * @interface Resource
  */
 export interface Resource {
@@ -4117,6 +4142,40 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
         },
         /**
          * 
+         * @summary processContentWithShortcut
+         * @param {ProcessContentRequest} [processContentRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        processContentWithShortcutUsingPOST: async (processContentRequest?: ProcessContentRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page/processContentWithShortcut`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(processContentRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary processWithShortcut
          * @param {number} id id
          * @param {number} shortcutId shortcutId
@@ -4648,6 +4707,17 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary processContentWithShortcut
+         * @param {ProcessContentRequest} [processContentRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async processContentWithShortcutUsingPOST(processContentRequest?: ProcessContentRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleContent>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.processContentWithShortcutUsingPOST(processContentRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
          * @summary processWithShortcut
          * @param {number} id id
          * @param {number} shortcutId shortcutId
@@ -4906,6 +4976,16 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          */
         markReadPageUsingPOST(id: number, options?: any): AxiosPromise<void> {
             return localVarFp.markReadPageUsingPOST(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary processContentWithShortcut
+         * @param {ProcessContentRequest} [processContentRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        processContentWithShortcutUsingPOST(processContentRequest?: ProcessContentRequest, options?: any): AxiosPromise<ArticleContent> {
+            return localVarFp.processContentWithShortcutUsingPOST(processContentRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -5177,6 +5257,18 @@ export class PageControllerApi extends BaseAPI {
      */
     public markReadPageUsingPOST(id: number, options?: AxiosRequestConfig) {
         return PageControllerApiFp(this.configuration).markReadPageUsingPOST(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary processContentWithShortcut
+     * @param {ProcessContentRequest} [processContentRequest] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageControllerApi
+     */
+    public processContentWithShortcutUsingPOST(processContentRequest?: ProcessContentRequest, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).processContentWithShortcutUsingPOST(processContentRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

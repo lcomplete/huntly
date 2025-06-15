@@ -15,13 +15,13 @@ import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.service.CapturePageService;
 import com.huntly.server.service.PageListService;
 import com.huntly.server.service.PageService;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
+import lombok.Data;
 
 /**
  * @author lcomplete
@@ -163,13 +163,8 @@ public class PageController {
             @Valid @NotNull @PathVariable("id") Long id,
             @Valid @NotNull @RequestParam("shortcutId") Integer shortcutId) {
         
-        // Process the content without saving to database
         String processedContent = pageService.processWithShortcut(id, shortcutId);
-        
-        if (StringUtils.isNotBlank(processedContent)) {
-            return new ArticleContent(id, processedContent);
-        }
-        return new ArticleContent(id, "");
+        return new ArticleContent(id, processedContent);
     }
     
     @PostMapping("/rawContent/{id}")
@@ -178,4 +173,30 @@ public class PageController {
         return new ArticleContent(page.getId(), page.getContent());
     }
     
+    /**
+     * Process raw content with a specific shortcut without saving to database
+     * 
+     * @param request the request containing content and shortcut ID
+     * @return the processed content
+     */
+    @PostMapping("/processContentWithShortcut")
+    public ArticleContent processContentWithShortcut(@RequestBody ProcessContentRequest request) {
+        String processedContent = pageService.processContentWithShortcut(
+            request.getContent(), 
+            request.getShortcutId(),
+            request.getBaseUri(),
+                false
+        );
+        return new ArticleContent(null, processedContent);
+    }
+    
+    /**
+     * Request model for processing content with a shortcut
+     */
+    @Data
+    public static class ProcessContentRequest {
+        private String content;
+        private Integer shortcutId;
+        private String baseUri = "";
+    }
 }

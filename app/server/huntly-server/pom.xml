@@ -170,6 +170,13 @@
             <artifactId>openai-java</artifactId>
             <version>1.6.1</version>
         </dependency>
+        
+        <!-- HTML to Markdown conversion -->
+        <dependency>
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-all</artifactId>
+            <version>0.64.8</version>
+        </dependency>
     </dependencies>
 
     <build>
