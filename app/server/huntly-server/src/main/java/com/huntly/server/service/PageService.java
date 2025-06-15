@@ -18,10 +18,7 @@ import com.huntly.server.event.InboxChangedEvent;
 import com.huntly.server.repository.ConnectorRepository;
 import com.huntly.server.repository.PageRepository;
 import com.huntly.server.repository.SourceRepository;
-import com.huntly.server.util.HtmlText;
-import com.huntly.server.util.HtmlUtils;
-import com.huntly.server.util.HttpUtils;
-import com.huntly.server.util.SiteUtils;
+import com.huntly.server.util.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
@@ -66,7 +63,7 @@ public class PageService extends BasePageService {
         sendInboxChangedEvent(page.getConnectorId());
     }
 
-    private Page requireOne(Long id) {
+    public Page requireOne(Long id) {
         var page = pageRepository.findById(id);
         if (page.isEmpty()) {
             throw new NoSuchDataException("Page Data not found: " + id);
@@ -313,6 +310,35 @@ public class PageService extends BasePageService {
     }
 
     /**
+     * Process HTML content with a specific shortcut
+     *
+     * @param htmlContent the HTML content to process
+     * @param shortcutId the shortcut ID
+     * @param baseUri the base URI for HTML cleaning (can be empty for already cleaned content)
+     * @param isAlreadyCleaned whether the HTML content is already cleaned
+     * @return the processed content as a string
+     */
+    public String processContentWithShortcut(String htmlContent, Integer shortcutId, String baseUri, boolean isAlreadyCleaned) {
+        if (StringUtils.isBlank(htmlContent)) {
+            return "";
+        }
+
+        String cleanHtml;
+        if (isAlreadyCleaned) {
+            // 内容已经是安全 HTML，不需要再次清理
+            cleanHtml = htmlContent;
+        } else {
+            // 需要清理的 HTML 内容
+            cleanHtml = HtmlUtils.clean(htmlContent, baseUri).getHtml();
+        }
+        
+        String markdown = MarkdownUtils.htmlToMarkdown(cleanHtml);
+        String processedContent = openAIService.processWithShortcut(markdown, shortcutId);
+
+        return StringUtils.isNotBlank(processedContent) ? processedContent : "";
+    }
+
+    /**
      * Process article content with a shortcut
      *
      * @param id the page ID
@@ -321,25 +347,9 @@ public class PageService extends BasePageService {
      */
     public String processWithShortcut(Long id, Integer shortcutId) {
         var page = requireOne(id);
-        String content = page.getContentText();
-
-        if (StringUtils.isBlank(content)) {
-            // If content text is not available, use the HTML content and extract text
-            content = page.getContent();
-            if (StringUtils.isNotBlank(content)) {
-                content = HtmlUtils.getDocText(content);
-            }
-        }
-
-        if (StringUtils.isNotBlank(content)) {
-            String processedContent = openAIService.processWithShortcut(content, shortcutId);
-
-            if (StringUtils.isNotBlank(processedContent)) {
-                // Return the processed content without saving to database
-                return processedContent;
-            }
-        }
-
-        return "";
+        String content = page.getContent();
+        // 页面内容已经是安全 HTML
+        return processContentWithShortcut(content, shortcutId, page.getUrl(), true);
     }
 }
+

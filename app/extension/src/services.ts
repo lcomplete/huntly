@@ -22,6 +22,29 @@ export function saveArticle(page: object): Promise<string> {
   return sendData("page/save", page);
 }
 
+/**
+ * Process article content with a shortcut without saving the article
+ * @param content The article content to process
+ * @param shortcutId The ID of the shortcut to use
+ * @param baseUri Optional base URI for HTML cleaning
+ * @param alreadyCleaned Whether the content is already cleaned HTML
+ * @returns Promise with the processed content
+ */
+export async function processContentWithShortcut(
+  content: string, 
+  shortcutId: number, 
+  baseUri: string = ""
+): Promise<string> {
+  const apiBaseUri = await getApiBaseUrl();
+  if (!apiBaseUri) return null;
+  
+  return postData(apiBaseUri, "page/processContentWithShortcut", {
+    content,
+    shortcutId,
+    baseUri
+  });
+}
+
 async function checkInBlacklist(serverBaseUri, url): Promise<boolean> {
   const data = await getData(serverBaseUri, "setting/general/blacklist");
   if (data) {
@@ -120,4 +143,24 @@ function parsePageOperateResult(resp){
 export async function deletePage(pageId): Promise<void> {
   const baseUri = await getApiBaseUrl();
   await deleteData(baseUri, "page/" + pageId);
+}
+
+/**
+ * Fetch enabled article shortcuts from the server
+ * @param serverUrl The base URL of the server
+ * @returns Promise with the list of enabled shortcuts
+ */
+export async function fetchEnabledShortcuts(): Promise<any[]> {
+  try {
+    const baseUri = await getApiBaseUrl();
+    const response = await getData(baseUri, "article-shortcuts/enabled");
+    
+    if (response) {
+      return JSON.parse(response);
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching shortcuts:", error);
+    return [];
+  }
 }

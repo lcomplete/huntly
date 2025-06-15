@@ -10,7 +10,7 @@ import {
   CardContent,
   CardMedia,
   CircularProgress, CssBaseline, Dialog, DialogActions, DialogTitle,
-  IconButton, StyledEngineProvider,
+  IconButton, Menu, MenuItem, StyledEngineProvider,
   TextField,
   Tooltip, Typography
 } from "@mui/material";
@@ -28,16 +28,19 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import StarIcon from '@mui/icons-material/Star';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
+import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import {log} from "./logger";
 import {
   archivePage,
   deletePage,
   getLoginUserInfo,
   getPageOperateResult,
+  processContentWithShortcut,
   readLaterPage, removePageFromLibrary,
   saveArticle, savePageToLibrary, starPage,
   unReadLaterPage,
-  unStarPage
+  unStarPage,
+  fetchEnabledShortcuts
 } from "./services";
 import {LibrarySaveStatus} from "./model/librarySaveStatus";
 import {PageOperateResult} from "./model/pageOperateResult";
@@ -51,6 +54,13 @@ const Popup = () => {
     const [page, setPage] = useState<PageModel>(null);
     const [autoSavedPageId, setAutoSavedPageId] = useState<number>(0);
     const [pageOperateResult, setPageOperateResult] = useState<PageOperateResult>(null);
+    
+    // 快捷指令相关状态
+    const [shortcuts, setShortcuts] = useState<any[]>([]);
+    const [loadingShortcuts, setLoadingShortcuts] = useState(false);
+    const [processingShortcut, setProcessingShortcut] = useState(false);
+    const [shortcutMenuAnchorEl, setShortcutMenuAnchorEl] = useState<null | HTMLElement>(null);
+    const shortcutMenuOpen = Boolean(shortcutMenuAnchorEl);
 
     useEffect(() => {
       chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
@@ -78,6 +88,8 @@ const Popup = () => {
           setUsername(result.username);
 
           loadPageInfo();
+          // 加载快捷指令
+          fetchShortcuts();
         }).catch(() => {
           setUsername(null);
         }).finally(() => {
@@ -272,6 +284,76 @@ const Popup = () => {
       });
     }
 
+    // 获取可用的快捷指令
+    async function fetchShortcuts() {
+      try {
+        setLoadingShortcuts(true);
+        const data = await fetchEnabledShortcuts();
+        setShortcuts(data);
+      } catch (error) {
+        console.error("Error fetching shortcuts:", error);
+      } finally {
+        setLoadingShortcuts(false);
+      }
+    }
+
+    // 处理快捷指令菜单打开
+    const handleShortcutMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+      setShortcutMenuAnchorEl(event.currentTarget);
+    };
+    
+    // 处理快捷指令菜单关闭
+    const handleShortcutMenuClose = () => {
+      setShortcutMenuAnchorEl(null);
+    };
+    
+    // 处理快捷指令点击
+    const handleShortcutClick = async (shortcutId: number, shortcutName: string) => {
+      if (!page || processingShortcut) return;
+      
+      setProcessingShortcut(true);
+      handleShortcutMenuClose();
+      
+      try {
+        // 先显示预览
+        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+          const tab = tabs[0];
+          if (tab) {
+            // 发送消息显示文章预览
+            chrome.tabs.sendMessage(tab.id, {type: 'article_preview'}, async function (response) {
+              // 发送处理开始的消息
+              chrome.tabs.sendMessage(tab.id, {
+                type: 'processing_start',
+                payload: {
+                  title: shortcutName
+                }
+              });
+              
+              // 处理文章内容
+              const result = await processContentWithShortcut(page.content, shortcutId, page.url);
+              if (result) {
+                const data = JSON.parse(result);
+                if (data && data.content) {
+                  // 发送处理结果到预览页面
+                  chrome.tabs.sendMessage(tab.id, {
+                    type: 'process_result',
+                    payload: {
+                      content: data.content,
+                      title: shortcutName
+                    }
+                  });
+                }
+              }
+            });
+          }
+        });
+      } catch (error) {
+        console.error("Error processing with shortcut:", error);
+      } finally {
+        setProcessingShortcut(false);
+      }
+    };
+
     return (
       <div style={{minWidth: "600px", minHeight: '200px'}} className={'mb-4'}>
         <div className={'commonPadding header'}>
@@ -436,9 +518,40 @@ const Popup = () => {
                           </CardContent>
                         </div>
                       </Card>
-                      <div className={'mt-2 flex justify-center'}>
+                      <div className={'mt-2 flex justify-center gap-2'}>
                         <Button variant={"text"} color={"info"} size={"small"} startIcon={<ArticleIcon/>}
                                 onClick={articlePreview}>Article Preview</Button>
+                        
+                        {shortcuts && shortcuts.length > 0 && (
+                          <>
+                            <Button 
+                              variant={"text"} 
+                              color={"primary"} 
+                              size={"small"} 
+                              startIcon={<SmartToyOutlinedIcon />}
+                              endIcon={processingShortcut ? <CircularProgress size={14} /> : null}
+                              onClick={handleShortcutMenuOpen}
+                              disabled={processingShortcut}
+                            >
+                              AI Shortcuts
+                            </Button>
+                            <Menu
+                              anchorEl={shortcutMenuAnchorEl}
+                              open={shortcutMenuOpen}
+                              onClose={handleShortcutMenuClose}
+                            >
+                              {shortcuts.map(shortcut => (
+                                <MenuItem 
+                                  key={shortcut.id} 
+                                  onClick={() => handleShortcutClick(shortcut.id, shortcut.name)}
+                                  disabled={processingShortcut}
+                                >
+                                  {shortcut.name}
+                                </MenuItem>
+                              ))}
+                            </Menu>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
