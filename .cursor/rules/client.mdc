@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+项目的 client 部份使用 yarn 包管理。
