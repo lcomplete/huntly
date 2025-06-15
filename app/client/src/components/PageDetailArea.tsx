@@ -16,6 +16,8 @@ import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import ScreenSearchDesktopRoundedIcon from '@mui/icons-material/ScreenSearchDesktopRounded';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ShortTextIcon from '@mui/icons-material/ShortText';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const PageDetailArea = ({
                            id,
@@ -39,9 +41,6 @@ const PageDetailArea = ({
     async () => {
       const response = await ArticleShortcutControllerApiFactory().getEnabledShortcutsUsingGET();
       return response.data;
-    },
-    {
-      staleTime: 5 * 60 * 1000, // 5分钟
     }
   );
 
@@ -287,7 +286,7 @@ const PageDetailArea = ({
                       <CircularProgress size={18} className="text-cyan-500" />
                     )}
                   </div>
-                  <Typography variant={"body2"} component={"div"} className={"text-gray-600 leading-relaxed whitespace-pre-line"}>
+                  <Typography variant={"body2"} component={"div"} className={"markdown-content"}>
                     {isProcessingContent && !processedContent ? (
                       <div className="flex flex-col space-y-2 h-12 animate-pulse">
                         <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-full opacity-70"></div>
@@ -295,7 +294,52 @@ const PageDetailArea = ({
                         <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-4/6 opacity-70"></div>
                       </div>
                     ) : (
-                      processedContent
+                      <div className={`prose prose-sm max-w-none`}>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            code({node, inline, className, children, ...props}) {
+                              return (
+                                <code className={`${className} bg-gray-100 rounded px-1`} {...props}>
+                                  {children}
+                                </code>
+                              )
+                            },
+                            pre({node, children, ...props}) {
+                              return (
+                                <pre className="bg-gray-100 rounded p-2 overflow-auto" {...props}>
+                                  {children}
+                                </pre>
+                              )
+                            },
+                            table({node, children, ...props}) {
+                              return (
+                                <div className="overflow-auto">
+                                  <table className="border-collapse border border-gray-300" {...props}>
+                                    {children}
+                                  </table>
+                                </div>
+                              )
+                            },
+                            th({node, children, ...props}) {
+                              return (
+                                <th className="border border-gray-300 px-4 py-2 bg-gray-100" {...props}>
+                                  {children}
+                                </th>
+                              )
+                            },
+                            td({node, children, ...props}) {
+                              return (
+                                <td className="border border-gray-300 px-4 py-2" {...props}>
+                                  {children}
+                                </td>
+                              )
+                            }
+                          }}
+                        >
+                          {processedContent}
+                        </ReactMarkdown>
+                      </div>
                     )}
                   </Typography>
                 </Paper>
