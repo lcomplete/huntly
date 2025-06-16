@@ -25,30 +25,6 @@ public class OpenAIService {
     }
 
     /**
-     * Generate a summary for the given article content using the default summary shortcut
-     *
-     * @param content the article content to summarize
-     * @return the generated summary, or null if an error occurred
-     */
-    public String generateArticleSummary(String content) {
-        // Backward compatibility: Try to find a shortcut named "文章摘要"
-        ArticleShortcut summaryShortcut = articleShortcutService.getShortcutByName("文章摘要").orElse(null);
-        
-        String prompt;
-        // If no summary shortcut is found, use the prompt from GlobalSetting (for backward compatibility)
-        if (summaryShortcut == null) {
-            GlobalSetting globalSetting = globalSettingService.getGlobalSetting();
-            prompt = globalSetting.getArticleSummaryPrompt();
-            log.info("Using summary prompt from GlobalSetting (legacy mode)");
-        } else {
-            prompt = summaryShortcut.getContent();
-            log.info("Using summary prompt from ArticleShortcut: {}", summaryShortcut.getName());
-        }
-        
-        return processWithOpenAI(content, prompt);
-    }
-    
-    /**
      * Process content using a specific article shortcut
      * 
      * @param content the content to process
@@ -133,7 +109,7 @@ public class OpenAIService {
             // Create the chat completion request
             ChatCompletionCreateParams createParams = ChatCompletionCreateParams.builder()
                     .model(model)
-                    .maxCompletionTokens(2048)
+//                    .maxCompletionTokens(2048)
                     .addSystemMessage(prompt)
                     .addUserMessage(content)
                     .build();

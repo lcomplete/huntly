@@ -14,6 +14,12 @@ export default function Article({page}: { page: PageModel }) {
 
   function handleClose(e) {
     document.getElementById("huntly_preview_unique_root").removeAttribute("data-preview");
+    // 发送取消处理的消息
+    if (isProcessing) {
+      chrome.runtime.sendMessage({
+        type: 'cancel_processing'
+      });
+    }
     setOpen(false);
   }
   
@@ -39,8 +45,14 @@ export default function Article({page}: { page: PageModel }) {
     // 清理函数
     return () => {
       chrome.runtime.onMessage.removeListener(messageListener);
+      // 组件卸载时如果还在处理中，发送取消消息
+      if (isProcessing) {
+        chrome.runtime.sendMessage({
+          type: 'cancel_processing'
+        });
+      }
     };
-  }, []);
+  }, [isProcessing]);
   
   Modal.setAppElement("#huntly_preview_unique_root");
 

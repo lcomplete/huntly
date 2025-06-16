@@ -57,7 +57,6 @@ public class ArticleShortcutService {
      * @return the saved shortcut
      * @throws IllegalArgumentException if a shortcut with the same name already exists
      */
-    @Transactional
     public ArticleShortcut saveShortcut(ArticleShortcut shortcut) {
         // Check name uniqueness when creating a new shortcut or updating with a different name
         if (shortcut.getId() == null) {
@@ -107,7 +106,6 @@ public class ArticleShortcutService {
      * @param shortcuts the shortcuts to save
      * @return the saved shortcuts
      */
-    @Transactional
     public List<ArticleShortcut> saveShortcuts(List<ArticleShortcut> shortcuts) {
         List<ArticleShortcut> savedShortcuts = new ArrayList<>();
         for (ArticleShortcut shortcut : shortcuts) {
@@ -120,7 +118,6 @@ public class ArticleShortcutService {
      * Delete a shortcut by ID
      * @param id the shortcut ID
      */
-    @Transactional
     public void deleteShortcut(Integer id) {
         shortcutRepository.deleteById(id);
     }
@@ -147,7 +144,6 @@ public class ArticleShortcutService {
      * Import default shortcuts
      * @return the imported shortcuts
      */
-    @Transactional
     public List<ArticleShortcut> importDefaultShortcuts() {
         List<ArticleShortcut> defaultShortcuts = DefaultShortcuts.getDefaultShortcuts();
         List<ArticleShortcut> importedShortcuts = new ArrayList<>();

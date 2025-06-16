@@ -315,41 +315,28 @@ const Popup = () => {
       handleShortcutMenuClose();
       
       try {
-        // 先显示预览
+        // 获取当前活动标签页
         chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
           const tab = tabs[0];
           if (tab) {
-            // 发送消息显示文章预览
-            chrome.tabs.sendMessage(tab.id, {type: 'article_preview'}, async function (response) {
-              // 发送处理开始的消息
-              chrome.tabs.sendMessage(tab.id, {
-                type: 'processing_start',
-                payload: {
-                  title: shortcutName
-                }
-              });
-              
-              // 处理文章内容
-              const result = await processContentWithShortcut(page.content, shortcutId, page.url);
-              if (result) {
-                const data = JSON.parse(result);
-                if (data && data.content) {
-                  // 发送处理结果到预览页面
-                  chrome.tabs.sendMessage(tab.id, {
-                    type: 'process_result',
-                    payload: {
-                      content: data.content,
-                      title: shortcutName
-                    }
-                  });
-                }
+            // 发送消息到 background 脚本处理快捷指令
+            chrome.runtime.sendMessage({
+              type: 'process_shortcut',
+              payload: {
+                tabId: tab.id,
+                shortcutId,
+                shortcutName,
+                content: page.content,
+                url: page.url
               }
             });
+            
+            // 关闭 popup 窗口
+            window.close();
           }
         });
       } catch (error) {
         console.error("Error processing with shortcut:", error);
-      } finally {
         setProcessingShortcut(false);
       }
     };
