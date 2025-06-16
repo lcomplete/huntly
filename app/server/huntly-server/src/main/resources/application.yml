@@ -12,6 +12,7 @@ spring:
     hibernate:
       ddl-auto: update
     database-platform: com.huntly.server.data.dialect.SQLiteDialect
+    open-in-view: false
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher # use this to make springfox work
