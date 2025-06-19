@@ -137,4 +137,14 @@ public class ArticleShortcutController {
     public List<ArticleShortcut> importDefaultShortcuts() {
         return shortcutService.importDefaultShortcuts();
     }
+    
+    /**
+     * Import selected shortcuts by name
+     * @param shortcutNames list of shortcut names to import
+     * @return the imported shortcuts
+     */
+    @PostMapping("/import-selected")
+    public List<ArticleShortcut> importSelectedShortcuts(@RequestBody List<String> shortcutNames) {
+        return shortcutService.importSelectedShortcuts(shortcutNames);
+    }
 } 

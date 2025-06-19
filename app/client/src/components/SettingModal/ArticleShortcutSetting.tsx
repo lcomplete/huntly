@@ -1,6 +1,6 @@
 import {useSnackbar} from "notistack";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {Button, Switch, Divider, FormControlLabel, IconButton, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, ListItemIcon, Chip} from "@mui/material";
+import {Button, Switch, Divider, FormControlLabel, IconButton, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, ListItemIcon, Chip, Checkbox} from "@mui/material";
 import React, {useState} from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -17,6 +17,7 @@ const ArticleShortcutSetting = () => {
   const [editShortcut, setEditShortcut] = useState<ArticleShortcut | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [selectedShortcuts, setSelectedShortcuts] = useState<string[]>([]);
   
   // API client
   const api = ArticleShortcutControllerApiFactory();
@@ -127,6 +128,32 @@ const ArticleShortcutSetting = () => {
     }
   );
   
+  // Mutation for importing selected shortcuts
+  const importSelectedShortcutsMutation = useMutation(
+    async (shortcutNames: string[]) => {
+      // Use the generated API client
+      const response = await api.importSelectedShortcutsUsingPOST(shortcutNames);
+      return response.data;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["article-shortcuts"]);
+        setIsImportModalOpen(false);
+        setSelectedShortcuts([]);
+        enqueueSnackbar('Selected shortcuts imported successfully', {
+          variant: "success",
+          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        });
+      },
+      onError: (error) => {
+        enqueueSnackbar(`Failed to import shortcuts: ${error}`, {
+          variant: "error",
+          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        });
+      }
+    }
+  );
+  
   // Mutation for batch updating shortcuts (after drag and drop)
   const updateShortcutOrderMutation = useMutation(
     async (updatedShortcuts: ArticleShortcut[]) => {
@@ -221,11 +248,34 @@ const ArticleShortcutSetting = () => {
   };
   
   const handleImportDefaults = () => {
-    importShortcutsMutation.mutate();
+    if (selectedShortcuts.length > 0) {
+      importSelectedShortcutsMutation.mutate(selectedShortcuts);
+    } else {
+      importShortcutsMutation.mutate();
+    }
   };
   
   const handleOpenImportModal = () => {
+    setSelectedShortcuts([]);
     setIsImportModalOpen(true);
+  };
+  
+  const handleToggleShortcutSelection = (name: string) => {
+    setSelectedShortcuts(prev => {
+      if (prev.includes(name)) {
+        return prev.filter(shortcut => shortcut !== name);
+      } else {
+        return [...prev, name];
+      }
+    });
+  };
+  
+  const handleSelectAllShortcuts = () => {
+    if (selectedShortcuts.length === importableShortcuts.length) {
+      setSelectedShortcuts([]);
+    } else {
+      setSelectedShortcuts(importableShortcuts.map(s => s.name!));
+    }
   };
   
   const handleDragEnd = (result: any) => {
@@ -427,19 +477,39 @@ const ArticleShortcutSetting = () => {
         <DialogTitle>Import Preset Shortcuts</DialogTitle>
         <DialogContent>
           {importableShortcuts.length > 0 ? (
-            <List>
-              {importableShortcuts.map((shortcut) => (
-                <ListItem key={shortcut.name}>
-                  <ListItemIcon>
-                    <CheckCircleIcon color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={shortcut.name}
-                    secondary={shortcut.description}
-                  />
-                </ListItem>
-              ))}
-            </List>
+            <>
+              <div className="flex justify-between items-center p-2">
+                <Typography variant="subtitle1">Select shortcuts to import:</Typography>
+                <Button 
+                  size="small" 
+                  onClick={handleSelectAllShortcuts}
+                >
+                  {selectedShortcuts.length === importableShortcuts.length ? 'Deselect All' : 'Select All'}
+                </Button>
+              </div>
+              <List>
+                {importableShortcuts.map((shortcut) => (
+                  <ListItem 
+                    key={shortcut.name}
+                    button
+                    onClick={() => handleToggleShortcutSelection(shortcut.name!)}
+                  >
+                    <ListItemIcon>
+                      <Checkbox 
+                        edge="start"
+                        checked={selectedShortcuts.includes(shortcut.name!)}
+                        tabIndex={-1}
+                        disableRipple
+                      />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={shortcut.name}
+                      secondary={shortcut.description}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
           ) : (
             <div className="text-center p-4 text-gray-500">
               No new presets available to import.
@@ -454,7 +524,7 @@ const ArticleShortcutSetting = () => {
             color="primary"
             disabled={importableShortcuts.length === 0}
           >
-            Import
+            Import {selectedShortcuts.length > 0 ? `(${selectedShortcuts.length} selected)` : 'All'}
           </Button>
         </DialogActions>
       </Dialog>
