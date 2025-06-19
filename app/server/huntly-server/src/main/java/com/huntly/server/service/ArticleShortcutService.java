@@ -177,4 +177,37 @@ public class ArticleShortcutService {
         // Return all default shortcuts directly without checking the database
         return DefaultShortcuts.getDefaultShortcuts();
     }
+    
+    /**
+     * Import selected shortcuts by name
+     * @param shortcutNames list of shortcut names to import
+     * @return the imported shortcuts
+     */
+    public List<ArticleShortcut> importSelectedShortcuts(List<String> shortcutNames) {
+        List<ArticleShortcut> defaultShortcuts = DefaultShortcuts.getDefaultShortcuts();
+        List<ArticleShortcut> importedShortcuts = new ArrayList<>();
+        
+        for (ArticleShortcut shortcut : defaultShortcuts) {
+            // Only import shortcuts that are in the selected list
+            if (shortcutNames.contains(shortcut.getName())) {
+                // Check if shortcuts with the same name already exist
+                List<ArticleShortcut> existingShortcuts = shortcutRepository.findAllByName(shortcut.getName());
+                if (!existingShortcuts.isEmpty()) {
+                    // Update the first existing shortcut with the same name
+                    ArticleShortcut updatedShortcut = existingShortcuts.get(0);
+                    updatedShortcut.setDescription(shortcut.getDescription());
+                    updatedShortcut.setContent(shortcut.getContent());
+                    updatedShortcut.setEnabled(shortcut.getEnabled());
+                    updatedShortcut.setUpdatedAt(Instant.now());
+                    log.info("Updating existing shortcut with name '{}' (found {} with same name)", 
+                            shortcut.getName(), existingShortcuts.size());
+                    importedShortcuts.add(saveShortcut(updatedShortcut));
+                } else {
+                    importedShortcuts.add(saveShortcut(shortcut));
+                }
+            }
+        }
+        
+        return importedShortcuts;
+    }
 } 
