@@ -23,6 +23,10 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.io.IOException;
+import java.io.OutputStream;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,6 +35,7 @@ import java.util.Objects;
 /**
  * @author lcomplete
  */
+@Slf4j
 @Service
 public class PageService extends BasePageService {
 
@@ -323,16 +328,7 @@ public class PageService extends BasePageService {
             return "";
         }
 
-        String cleanHtml;
-        if (isAlreadyCleaned) {
-            // 内容已经是安全 HTML，不需要再次清理
-            cleanHtml = htmlContent;
-        } else {
-            // 需要清理的 HTML 内容
-            cleanHtml = HtmlUtils.clean(htmlContent, baseUri).getHtml();
-        }
-        
-        String markdown = MarkdownUtils.htmlToMarkdown(cleanHtml);
+        String markdown = prepareMarkdownContent(htmlContent, baseUri, isAlreadyCleaned);
         String processedContent = openAIService.processWithShortcut(markdown, shortcutId);
 
         return StringUtils.isNotBlank(processedContent) ? processedContent : "";
@@ -351,5 +347,88 @@ public class PageService extends BasePageService {
         // 页面内容已经是安全 HTML
         return processContentWithShortcut(content, shortcutId, page.getUrl(), true);
     }
-}
 
+    /**
+     * Process HTML content with a specific shortcut using streaming response
+     *
+     * @param htmlContent the HTML content to process
+     * @param shortcutId the shortcut ID
+     * @param baseUri the base URI for HTML cleaning (can be empty for already cleaned content)
+     * @param isAlreadyCleaned whether the HTML content is already cleaned
+     * @param title the article title (optional)
+     * @param isFastMode whether to use fast mode (only send text content)
+     * @param emitter the SSE emitter for streaming response
+     */
+    public void processContentWithShortcutStream(String htmlContent, Integer shortcutId, String baseUri, boolean isAlreadyCleaned, String title, boolean isFastMode, SseEmitter emitter) {
+        if (StringUtils.isBlank(htmlContent)) {
+            try {
+                emitter.send(SseEmitter.event().name("error").data("Content is empty"));
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+            return;
+        }
+
+        String markdown = prepareMarkdownContent(htmlContent, baseUri, isAlreadyCleaned, title);
+        openAIService.processWithShortcutStream(markdown, shortcutId, isFastMode, emitter);
+    }
+
+    /**
+     * Prepare markdown content from HTML by cleaning and converting
+     * 
+     * @param htmlContent the HTML content to process
+     * @param baseUri the base URI for HTML cleaning
+     * @param isAlreadyCleaned whether the HTML content is already cleaned
+     * @return the markdown content
+     */
+    private String prepareMarkdownContent(String htmlContent, String baseUri, boolean isAlreadyCleaned) {
+        return prepareMarkdownContent(htmlContent, baseUri, isAlreadyCleaned, null);
+    }
+    
+    /**
+     * Prepare markdown content from HTML by cleaning and converting
+     * 
+     * @param htmlContent the HTML content to process
+     * @param baseUri the base URI for HTML cleaning
+     * @param isAlreadyCleaned whether the HTML content is already cleaned
+     * @param title the article title (optional)
+     * @return the markdown content
+     */
+    private String prepareMarkdownContent(String htmlContent, String baseUri, boolean isAlreadyCleaned, String title) {
+        String cleanHtml;
+        if (isAlreadyCleaned) {
+            // 内容已经是安全 HTML，不需要再次清理
+            cleanHtml = htmlContent;
+        } else {
+            // 需要清理的 HTML 内容
+            cleanHtml = HtmlUtils.clean(htmlContent, baseUri).getHtml();
+        }
+        
+        String markdown = MarkdownUtils.htmlToMarkdown(cleanHtml);
+        
+        // 如果有标题，将其添加到内容开头
+        if (StringUtils.isNotBlank(title)) {
+            markdown = "# " + title + "\n\n" + markdown;
+        }
+        
+        return markdown;
+    }
+
+    /**
+     * Process article content with a shortcut using streaming response
+     *
+     * @param id the page ID
+     * @param shortcutId the shortcut ID
+     * @param isFastMode whether to use fast mode (only send text content)
+     * @param emitter the SSE emitter for streaming response
+     */
+    public void processWithShortcutStream(Long id, Integer shortcutId, boolean isFastMode, SseEmitter emitter) {
+        var page = requireOne(id);
+        String content = page.getContent();
+        String title = page.getTitle(); // 获取页面标题
+        // 页面内容已经是安全 HTML
+        processContentWithShortcutStream(content, shortcutId, page.getUrl(), true, title, isFastMode, emitter);
+    }
+
+}

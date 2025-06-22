@@ -30,6 +30,7 @@ const PageDetailArea = ({
   const [processedContent, setProcessedContent] = useState<string>("");
   const [showProcessedSection, setShowProcessedSection] = useState(false);
   const [processedTitle, setProcessedTitle] = useState<string>("AI 处理结果");
+  const [processingError, setProcessingError] = useState<string>("");
   
   // AI操作菜单状态
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -80,6 +81,7 @@ const PageDetailArea = ({
     setShowProcessedSection(false);
     setProcessedContent("");
     setProcessedTitle("AI 处理结果");
+    setProcessingError("");
   }, [id]);
 
   function operateSuccess(event: PageOperateEvent) {
@@ -114,24 +116,83 @@ const PageDetailArea = ({
     setShowProcessedSection(true);
     setProcessedContent("");
     setProcessedTitle(shortcutName);
+    setProcessingError(""); // 清除之前的错误状态
+    
     try {
-      const response = await PageControllerApiFactory().processWithShortcutUsingPOST(id, shortcutId);
-      if (response && response.data && response.data.content) {
-        setProcessedContent(response.data.content);
-        // Only show processed section if content is not empty
-        setShowProcessedSection(!!response.data.content);
-      } else {
-        // Hide if no content
-        setShowProcessedSection(false);
-      }
+      // Use EventSource for SSE handling with fast mode
+      const eventSource = new EventSource(`/api/page/processWithShortcut/${id}?shortcutId=${shortcutId}&mode=fast`);
+      let hasReceivedData = false;
+      
+      eventSource.onmessage = (event) => {
+        hasReceivedData = true;
+        const data = event.data;
+        
+        try {
+          // 尝试解析JSON格式的内容
+          const parsedData = JSON.parse(data);
+          // 如果是字符串，说明是fast模式下的文本内容
+          if (typeof parsedData === 'string') {
+            setProcessedContent(prev => prev + parsedData);
+          } else {
+            // 如果不是字符串，可能是其他格式的数据，直接使用
+            setProcessedContent(prev => prev + data);
+          }
+        } catch (e) {
+          // 解析JSON失败，说明不是JSON格式，直接使用原始数据
+          setProcessedContent(prev => prev + data);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.error(`SSE error for shortcut ${shortcutName}:`, error);
+        
+        // 只有在连接状态不是CLOSED且没有接收到数据时才认为是真正的错误
+        if (eventSource.readyState !== EventSource.CLOSED && !hasReceivedData) {
+          setProcessingError('连接服务器时发生错误，请稍后重试。');
+        }
+        
+        setIsProcessingContent(false);
+        eventSource.close();
+      };
+      
+      // Handle named error events (服务端主动发送的错误事件)
+      eventSource.addEventListener('error', (event) => {
+        console.error('SSE named error event:', event);
+        if ((event as any).data) {
+          try {
+            const errorData = JSON.parse((event as any).data);
+            setProcessingError(`处理失败: ${errorData.message || '未知错误'}`);
+          } catch (e) {
+            setProcessingError('处理过程中发生未知错误。');
+          }
+        }
+        setIsProcessingContent(false);
+        eventSource.close();
+      });
+      
+      // Set a timeout to prevent hanging connections
+      const timeout = setTimeout(() => {
+        if (eventSource.readyState !== EventSource.CLOSED) {
+          console.warn('SSE connection timeout');
+          setIsProcessingContent(false);
+          setProcessingError('处理超时，请稍后重试。');
+          eventSource.close();
+        }
+      }, 300000); // 5 minutes timeout
+      
+      // Handle connection close (正常关闭)
+      eventSource.addEventListener('close', () => {
+        clearTimeout(timeout);
+        setIsProcessingContent(false);
+      });
+      
     } catch (error) {
       console.error(`Error processing with shortcut ${shortcutName}:`, error);
-      setShowProcessedSection(false); // Hide section on error
-    } finally {
       setIsProcessingContent(false);
+      setProcessingError('连接失败，请检查网络连接。');
     }
   }
-  
+
   function updateContent(content) {
     queryClient.setQueryData<PageDetail>(queryKey, (data) => {
       return {
@@ -286,14 +347,29 @@ const PageDetailArea = ({
                       <CircularProgress size={18} className="text-cyan-500" />
                     )}
                   </div>
+                  
+                  {/* 错误提示区域 */}
+                  {processingError && (
+                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <div className="flex items-center">
+                        <div className="mr-2 bg-red-500 p-1 rounded-full text-white flex items-center justify-center w-5 h-5">
+                          <span className="text-xs">!</span>
+                        </div>
+                        <Typography variant={"body2"} className="text-red-700">
+                          {processingError}
+                        </Typography>
+                      </div>
+                    </div>
+                  )}
+                  
                   <Typography variant={"body2"} component={"div"} className={"markdown-content"}>
-                    {isProcessingContent && !processedContent ? (
+                    {isProcessingContent && !processedContent && !processingError ? (
                       <div className="flex flex-col space-y-2 h-12 animate-pulse">
                         <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-full opacity-70"></div>
                         <div className="h-2 bg-gradient-to-r from-sky-100 to-blue-100 rounded-full w-5/6 opacity-70"></div>
                         <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-4/6 opacity-70"></div>
                       </div>
-                    ) : (
+                    ) : processedContent ? (
                       <div className={`prose prose-sm max-w-none`}>
                         <ReactMarkdown 
                           remarkPlugins={[remarkGfm]}
@@ -340,7 +416,7 @@ const PageDetailArea = ({
                           {processedContent}
                         </ReactMarkdown>
                       </div>
-                    )}
+                    ) : null}
                   </Typography>
                 </Paper>
               )}

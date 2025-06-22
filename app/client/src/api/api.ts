@@ -1509,10 +1509,22 @@ export interface ProcessContentRequest {
     'content'?: string;
     /**
      * 
+     * @type {string}
+     * @memberof ProcessContentRequest
+     */
+    'mode'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof ProcessContentRequest
      */
     'shortcutId'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProcessContentRequest
+     */
+    'title'?: string;
 }
 /**
  * 
@@ -1673,6 +1685,19 @@ export interface Source {
      * @memberof Source
      */
     'subscribeUrl'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface SseEmitter
+ */
+export interface SseEmitter {
+    /**
+     * 
+     * @type {number}
+     * @memberof SseEmitter
+     */
+    'timeout'?: number;
 }
 /**
  * 
@@ -4246,14 +4271,15 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @summary processWithShortcut
          * @param {number} id id
          * @param {number} shortcutId shortcutId
+         * @param {string} [mode] mode
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        processWithShortcutUsingPOST: async (id: number, shortcutId: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        processWithShortcutUsingGET: async (id: number, shortcutId: number, mode?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
-            assertParamExists('processWithShortcutUsingPOST', 'id', id)
+            assertParamExists('processWithShortcutUsingGET', 'id', id)
             // verify required parameter 'shortcutId' is not null or undefined
-            assertParamExists('processWithShortcutUsingPOST', 'shortcutId', shortcutId)
+            assertParamExists('processWithShortcutUsingGET', 'shortcutId', shortcutId)
             const localVarPath = `/api/page/processWithShortcut/{id}`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4263,12 +4289,16 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
                 baseOptions = configuration.baseOptions;
             }
 
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
             if (shortcutId !== undefined) {
                 localVarQueryParameter['shortcutId'] = shortcutId;
+            }
+
+            if (mode !== undefined) {
+                localVarQueryParameter['mode'] = mode;
             }
 
 
@@ -4779,7 +4809,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async processContentWithShortcutUsingPOST(processContentRequest?: ProcessContentRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleContent>> {
+        async processContentWithShortcutUsingPOST(processContentRequest?: ProcessContentRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SseEmitter>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.processContentWithShortcutUsingPOST(processContentRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -4788,11 +4818,12 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @summary processWithShortcut
          * @param {number} id id
          * @param {number} shortcutId shortcutId
+         * @param {string} [mode] mode
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async processWithShortcutUsingPOST(id: number, shortcutId: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ArticleContent>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.processWithShortcutUsingPOST(id, shortcutId, options);
+        async processWithShortcutUsingGET(id: number, shortcutId: number, mode?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SseEmitter>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.processWithShortcutUsingGET(id, shortcutId, mode, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -5051,7 +5082,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        processContentWithShortcutUsingPOST(processContentRequest?: ProcessContentRequest, options?: any): AxiosPromise<ArticleContent> {
+        processContentWithShortcutUsingPOST(processContentRequest?: ProcessContentRequest, options?: any): AxiosPromise<SseEmitter> {
             return localVarFp.processContentWithShortcutUsingPOST(processContentRequest, options).then((request) => request(axios, basePath));
         },
         /**
@@ -5059,11 +5090,12 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @summary processWithShortcut
          * @param {number} id id
          * @param {number} shortcutId shortcutId
+         * @param {string} [mode] mode
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        processWithShortcutUsingPOST(id: number, shortcutId: number, options?: any): AxiosPromise<ArticleContent> {
-            return localVarFp.processWithShortcutUsingPOST(id, shortcutId, options).then((request) => request(axios, basePath));
+        processWithShortcutUsingGET(id: number, shortcutId: number, mode?: string, options?: any): AxiosPromise<SseEmitter> {
+            return localVarFp.processWithShortcutUsingGET(id, shortcutId, mode, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -5343,12 +5375,13 @@ export class PageControllerApi extends BaseAPI {
      * @summary processWithShortcut
      * @param {number} id id
      * @param {number} shortcutId shortcutId
+     * @param {string} [mode] mode
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof PageControllerApi
      */
-    public processWithShortcutUsingPOST(id: number, shortcutId: number, options?: AxiosRequestConfig) {
-        return PageControllerApiFp(this.configuration).processWithShortcutUsingPOST(id, shortcutId, options).then((request) => request(this.axios, this.basePath));
+    public processWithShortcutUsingGET(id: number, shortcutId: number, mode?: string, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).processWithShortcutUsingGET(id, shortcutId, mode, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

@@ -1,6 +1,6 @@
 import {log} from "./logger";
 import {readSyncStorageSettings} from "./storage";
-import {autoSaveArticle, processContentWithShortcut, saveArticle, sendData} from "./services";
+import {autoSaveArticle, processContentWithShortcutStream, saveArticle, sendData} from "./services";
 
 // 保存当前处理的任务信息
 let currentProcessingTask = null;
@@ -25,7 +25,8 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
       shortcutId: msg.payload.shortcutId,
       shortcutName: msg.payload.shortcutName,
       content: msg.payload.content,
-      url: msg.payload.url
+      url: msg.payload.url,
+      title: msg.payload.title || "" // 文章标题
     };
     
     // 发送消息显示文章预览
@@ -38,31 +39,54 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
         }
       });
       
-      // 处理文章内容
-      processContentWithShortcut(
+      let accumulatedContent = "";
+      
+      // 使用流式处理文章内容
+      processContentWithShortcutStream(
         currentProcessingTask.content, 
         currentProcessingTask.shortcutId, 
-        currentProcessingTask.url
-      ).then(result => {
-        if (result) {
-          const data = JSON.parse(result);
-          if (data && data.content) {
+        currentProcessingTask.url,
+        currentProcessingTask.title, // 传递文章标题
+        // onData callback - 接收流式数据
+        (data: string) => {
+          accumulatedContent += data;
+          // 发送流式数据到预览页面
+          chrome.tabs.sendMessage(currentProcessingTask.tabId, {
+            type: 'process_data',
+            payload: {
+              data: data,
+              accumulatedContent: accumulatedContent,
+              title: currentProcessingTask.shortcutName
+            }
+          });
+        },
+        // onEnd callback - 处理完成
+        () => {
             // 发送处理结果到预览页面
             chrome.tabs.sendMessage(currentProcessingTask.tabId, {
               type: 'process_result',
               payload: {
-                content: data.content,
+              content: accumulatedContent,
                 title: currentProcessingTask.shortcutName
               }
             });
-          }
-        }
-      }).catch(error => {
+          // 处理完成后清空当前任务
+          currentProcessingTask = null;
+        },
+        // onError callback - 处理错误
+        (error: any) => {
         console.error("Error processing with shortcut:", error);
-      }).finally(() => {
+          chrome.tabs.sendMessage(currentProcessingTask.tabId, {
+            type: 'process_error',
+            payload: {
+              error: error.message || 'Processing failed',
+              title: currentProcessingTask.shortcutName
+            }
+          });
         // 处理完成后清空当前任务
         currentProcessingTask = null;
-      });
+        }
+      );
     });
   } else if (msg.type === 'cancel_processing') {
     // 取消当前处理任务
