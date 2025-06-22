@@ -15,12 +15,21 @@ import com.huntly.server.domain.vo.PageDetail;
 import com.huntly.server.service.CapturePageService;
 import com.huntly.server.service.PageListService;
 import com.huntly.server.service.PageService;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
 
 import javax.validation.Valid;
+import java.io.IOException;
+import java.io.PrintWriter;
 import javax.validation.constraints.NotNull;
 import java.util.List;
+import java.util.function.Consumer;
+
 import lombok.Data;
 
 /**
@@ -150,45 +159,93 @@ public class PageController {
         Page page= pageService.fetchFullContent(id);
         return new ArticleContent(page.getId(), page.getContent());
     }
-    
-    /**
-     * Process article content with a specific shortcut
-     * 
-     * @param id the page ID
-     * @param shortcutId the ID of the shortcut to use
-     * @return the article content with the processed result
-     */
-    @PostMapping("/processWithShortcut/{id}")
-    public ArticleContent processWithShortcut(
-            @Valid @NotNull @PathVariable("id") Long id,
-            @Valid @NotNull @RequestParam("shortcutId") Integer shortcutId) {
-        
-        String processedContent = pageService.processWithShortcut(id, shortcutId);
-        return new ArticleContent(id, processedContent);
-    }
-    
+
     @PostMapping("/rawContent/{id}")
     public ArticleContent switchRawContentById(@Valid @NotNull @PathVariable("id") Long id) {
         Page page= pageService.switchRawContent(id);
         return new ArticleContent(page.getId(), page.getContent());
     }
-    
+
+        /**
+     * Create and configure SSE emitter with error handling
+     * 
+     * @param processor the processor function that takes an emitter and processes the request
+     * @return configured SSE emitter
+     */
+    private SseEmitter createSseEmitterAndProcess(Consumer<SseEmitter> processor) {
+        SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
+        
+        // Set up error and timeout handlers
+        emitter.onError(throwable -> {
+            try {
+                emitter.send(SseEmitter.event().name("error").data("Connection error: " + throwable.getMessage()));
+            } catch (Exception e) {
+                // Failed to send error message, complete with error
+            }
+            emitter.completeWithError(throwable);
+        });
+        
+        emitter.onTimeout(() -> {
+            try {
+                emitter.send(SseEmitter.event().name("error").data("Request timeout"));
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(new RuntimeException("SSE timeout"));
+            }
+        });
+        
+        // Call service directly - it handles async processing internally
+        try {
+            processor.accept(emitter);
+        } catch (Exception e) {
+            try {
+                emitter.send(SseEmitter.event().name("error").data("Processing failed: " + e.getMessage()));
+                emitter.complete();
+            } catch (Exception sendException) {
+                emitter.completeWithError(sendException);
+            }
+        }
+        
+        return emitter;
+    }
+
     /**
-     * Process raw content with a specific shortcut without saving to database
+     * Process article content with a specific shortcut using SSE streaming
+     * 
+     * @param id the page ID
+     * @param shortcutId the ID of the shortcut to use
+     * @return SSE emitter for streaming response
+     */
+    @GetMapping(value = "/processWithShortcut/{id}", produces = "text/event-stream")
+    public SseEmitter processWithShortcut(
+            @Valid @NotNull @PathVariable("id") Long id,
+            @Valid @NotNull @RequestParam("shortcutId") Integer shortcutId,
+            @RequestParam(value = "mode", defaultValue = "standard") String mode) {
+        boolean isFastMode = "fast".equalsIgnoreCase(mode);
+        return createSseEmitterAndProcess(emitter -> pageService.processWithShortcutStream(id, shortcutId, isFastMode, emitter));
+    }
+
+    /**
+     * Process raw content with a specific shortcut without saving to database using SSE streaming
      * 
      * @param request the request containing content and shortcut ID
-     * @return the processed content
+     * @return SSE emitter for streaming response
      */
-    @PostMapping("/processContentWithShortcut")
-    public ArticleContent processContentWithShortcut(@RequestBody ProcessContentRequest request) {
-        String processedContent = pageService.processContentWithShortcut(
+    @PostMapping(value = "/processContentWithShortcut", produces = "text/event-stream")
+    public SseEmitter processContentWithShortcut(@RequestBody ProcessContentRequest request) {
+        boolean isFastMode = "fast".equalsIgnoreCase(request.getMode());
+        return createSseEmitterAndProcess(emitter -> pageService.processContentWithShortcutStream(
             request.getContent(), 
             request.getShortcutId(),
             request.getBaseUri(),
-                false
-        );
-        return new ArticleContent(null, processedContent);
+            false,
+            request.getTitle(),
+            isFastMode,
+            emitter
+        ));
     }
+    
+
     
     /**
      * Request model for processing content with a shortcut
@@ -198,5 +255,7 @@ public class PageController {
         private String content;
         private Integer shortcutId;
         private String baseUri = "";
+        private String mode = "standard";
+        private String title = "";
     }
 }

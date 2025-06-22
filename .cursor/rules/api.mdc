@@ -3,5 +3,5 @@ description: 当修改 server 的 api 后，需要重新运行 server，在 clie
 globs: 
 alwaysApply: false
 ---
-当修改 server 的 api 后，需要重新运行 server，在 client 端生成 api 调用代码
+当修改 server 的 api 后，需要重新运行 Spring boot server，在 client 端生成 api 调用代码
 在 client 中运行 yarn api-generate 即可生成 api 调用代码

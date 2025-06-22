@@ -36,6 +36,18 @@ export default function Article({page}: { page: PageModel }) {
         setShowProcessedSection(true);
         setProcessedTitle(msg.payload?.title || "处理中...");
         setProcessedContent("");
+      } else if (msg.type === 'process_data') {
+        // 处理流式数据
+        setProcessedContent(msg.payload.accumulatedContent);
+        setProcessedTitle(msg.payload.title);
+        setShowProcessedSection(true);
+        setIsProcessing(true); // 仍在处理中
+      } else if (msg.type === 'process_error') {
+        // 处理错误
+        setProcessedContent(`处理失败: ${msg.payload.error}`);
+        setProcessedTitle(msg.payload.title);
+        setShowProcessedSection(true);
+        setIsProcessing(false);
       }
     };
     

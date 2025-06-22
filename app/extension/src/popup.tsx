@@ -35,7 +35,6 @@ import {
   deletePage,
   getLoginUserInfo,
   getPageOperateResult,
-  processContentWithShortcut,
   readLaterPage, removePageFromLibrary,
   saveArticle, savePageToLibrary, starPage,
   unReadLaterPage,
@@ -327,7 +326,8 @@ const Popup = () => {
                 shortcutId,
                 shortcutName,
                 content: page.content,
-                url: page.url
+                url: page.url,
+                title: page.title // 传递文章标题
               }
             });
             
