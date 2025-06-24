@@ -47,6 +47,24 @@ export async function processContentWithShortcutStream(
     return;
   }
 
+  const abortController = new AbortController();
+  
+  // Safety mechanism: force timeout after 5 minutes
+  const timeoutId = setTimeout(() => {
+    console.warn('[SSE] Force timeout after 5 minutes');
+    abortController.abort();
+    onError(new Error("Request timeout"));
+  }, 5 * 60 * 1000);
+  
+  const cleanup = () => {
+    clearTimeout(timeoutId);
+    try {
+      abortController.abort();
+    } catch (e) {
+      // Ignore abort errors
+    }
+  };
+  
   try {
     console.debug('[SSE] Starting streaming request for shortcut:', shortcutId);
     
@@ -54,7 +72,8 @@ export async function processContentWithShortcutStream(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'text/event-stream'
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache'
       },
       body: JSON.stringify({
         content,
@@ -62,98 +81,128 @@ export async function processContentWithShortcutStream(
         baseUri,
         title,
         mode: 'fast'
-      })
+      }),
+      signal: abortController.signal
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
     }
 
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
-
-    if (!reader) {
-      throw new Error("No response body reader available");
+    if (!response.body) {
+      throw new Error("No response body available");
     }
 
-    // Set up timeout to prevent hanging requests
-    const timeoutId = setTimeout(() => {
-      reader.cancel();
-      onError(new Error("Request timeout"));
-    }, 300000); // 5 minutes timeout
+    await processStreamResponse(response.body, onData, onEnd, onError);
+    
+  } catch (error) {
+    console.error('[SSE] Error in streaming request:', error);
+    onError(error);
+  } finally {
+    cleanup();
+  }
+}
 
-    let buffer = '';
+async function processStreamResponse(
+  body: ReadableStream<Uint8Array>,
+  onData: (data: string) => void,
+  onEnd: () => void,
+  onError: (error: any) => void
+): Promise<void> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let iterations = 0;
+  const maxIterations = 200000; // 20万次迭代限制
+  const maxBufferSize = 10 * 1024 * 1024; // 10MB 缓冲区限制
 
-    const processDataLine = (dataContent: string) => {
-      if (dataContent.trim()) {
-        try {
-          // 尝试解析JSON格式的内容
-          const parsedData = JSON.parse(dataContent);
-          // 如果是字符串，说明是fast模式下的文本内容
-          if (typeof parsedData === 'string') {
-            console.debug('[SSE] Received text content:', parsedData.slice(0, 100));
-            onData(parsedData);
-          } else {
-            // 如果不是字符串，可能是其他格式的数据，直接传递
-            console.debug('[SSE] Received non-string data:', dataContent.slice(0, 100));
-            onData(dataContent);
-          }
-        } catch (e) {
-          // 解析JSON失败，说明不是JSON格式，直接传递原始数据
-          console.debug('[SSE] JSON parse failed, using raw data:', dataContent.slice(0, 100));
-          onData(dataContent);
-        }
-      }
-    };
-
-    // Process stream
+  try {
     while (true) {
+      // Safety checks
+      if (++iterations > maxIterations) {
+        throw new Error("Maximum iterations exceeded - potential infinite loop");
+      }
+      
+      if (buffer.length > maxBufferSize) {
+        throw new Error("Buffer size exceeded - potential memory leak");
+      }
+      
       const { done, value } = await reader.read();
       
       if (done) {
-        // Process any remaining data in buffer
-        if (buffer.trim()) {
-          const lines = buffer.split('\n');
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              processDataLine(data);
-            }
-          }
-        }
-        clearTimeout(timeoutId);
-        console.debug('[SSE] Stream completed successfully');
+        console.debug('[SSE] Stream completed');
         onEnd();
         break;
       }
 
-      // Decode the chunk and add to buffer
+      // Decode chunk and add to buffer
       buffer += decoder.decode(value, { stream: true });
       
       // Process complete lines
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+      buffer = processSSELines(buffer, onData, onError);
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch (e) {
+      console.warn('[SSE] Error releasing reader lock:', e);
+    }
+  }
+}
+
+function processSSELines(
+  buffer: string,
+  onData: (data: string) => void,
+  onError: (error: any) => void
+): string {
+  let newlineIndex;
+  while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+    // Extract complete line (without the \n)
+    let line = buffer.slice(0, newlineIndex);
+    // Handle \r\n line endings
+    if (line.endsWith('\r')) {
+      line = line.slice(0, -1);
+    }
+    // Remove processed line from buffer
+    buffer = buffer.slice(newlineIndex + 1);
+    
+    // Process the complete line
+    const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+    
+    // Handle SSE format: "data: <content>" or "data:<content>"
+    if (trimmedLine.startsWith('data:')) {
+      const data = trimmedLine.startsWith('data: ') 
+        ? trimmedLine.slice(6)  // Remove 'data: ' prefix (with space)
+        : trimmedLine.slice(5); // Remove 'data:' prefix (no space)
       
-      // Process each complete line
-      for (const line of lines) {
-        if (line.trim() === '') continue; // Skip empty lines
-        
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6); // Remove 'data: ' prefix
-          processDataLine(data);
-        } else if (line.startsWith('event: error')) {
-          // Handle error events
-          clearTimeout(timeoutId);
-          onError(new Error("Server sent error event"));
-          return;
+      // Process the data (fast mode)
+      if (data.trim()) {
+        try {
+          // Try to parse as JSON first (for fast mode)
+          const parsedData = JSON.parse(data);
+          if (typeof parsedData === 'string') {
+            // Fast mode returns string content
+            onData(parsedData);
+          } else {
+            // Other formats, pass raw data
+            onData(data);
+          }
+        } catch (e) {
+          // Not JSON, pass raw data
+          onData(data);
         }
       }
     }
-  } catch (error) {
-    console.error('[SSE] Error in streaming request:', error);
-    onError(error);
+    // Handle error events
+    else if (trimmedLine.startsWith('event: error')) {
+      console.error('[SSE] Server sent error event');
+      onError(new Error("Server processing error"));
+      return buffer; // Stop processing
+    }
   }
+  
+  return buffer; // Return remaining incomplete lines
 }
 
 async function checkInBlacklist(serverBaseUri, url): Promise<boolean> {

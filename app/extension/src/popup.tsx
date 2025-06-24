@@ -277,7 +277,12 @@ const Popup = () => {
       chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
         const tab = tabs[0];
         if (tab) {
-          chrome.tabs.sendMessage(tab.id, {type: 'article_preview'}, function (response) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: 'article_preview',
+            payload: {
+              shortcuts: shortcuts
+            }
+          }, function (response) {
           });
         }
       });

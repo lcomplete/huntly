@@ -4,7 +4,7 @@ export async function postData(baseUrl, url = '', data = {}) {
   const response = await fetch(fullUrl, {
     method: 'POST', // *GET, POST, PUT, DELETE, etc.
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: 'same-origin', // include, *same-origin, omit
+    credentials: 'include', // 修改为include以支持跨域认证
     headers: {
       'Content-Type': 'application/json'
       // 'Content-Type': 'application/x-www-form-urlencoded',
@@ -38,7 +38,7 @@ export async function fetchData(method, baseUrl, url = '') {
   const response = await fetch(fullUrl, {
     method: method, // *GET, POST, PUT, DELETE, etc.
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: 'same-origin', // include, *same-origin, omit
+    credentials: 'include', // 修改为include以支持跨域认证
     headers: {
       'Content-Type': 'application/json'
     },

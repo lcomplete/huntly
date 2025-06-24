@@ -36,7 +36,7 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
         root = createRoot(elRoot);
       }
       root.render(
-        <Article page={page}/>
+        <Article page={page} shortcuts={msg.payload?.shortcuts || []}/>
       );
     }
     return;
