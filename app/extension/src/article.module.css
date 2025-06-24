@@ -1,13 +1,88 @@
-.articleWrapper{
-    /*display: flex;*/
-    /*background: #fff;*/
-    /*padding: 1rem;*/
-    /*justify-content: center;*/
+/* Modal覆盖层样式 - 防止外部滚动 */
+.modalOverlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 999999 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
 }
-.article{
-    /*width:800px;*/
-    /*box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px -1px, rgba(0, 0, 0, 0.14) 0px 6px 10px 0px, rgba(0, 0, 0, 0.12) 0px 1px 18px 0px;*/
-    /*padding: 2.5rem;*/
+
+/* Modal内容区域 */
+.modalContent {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    touch-action: none; /* 防止移动端滚动 */
+}
+
+/* 文章和处理结果区域的滚动容器 */
+.scrollContainer {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain; /* 防止滚动传播到外部 */
+    height: 100%;
+    max-height: 100%;
+}
+
+/* 快捷指令菜单 */
+.shortcutMenu {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* 内容区域 */
+.contentArea {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100% - 70px); /* 减去顶部菜单高度 */
+}
+
+/* 文章区域 */
+.articleSection {
+    transition: width 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 处理结果区域 */
+.processedSection {
+    width: 50%;
+    border-left: 1px solid #e0e0e0;
+    background-color: #ffffff;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* 加载动画 */
+.loadingPlaceholder {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.loadingBar {
+    height: 12px;
+    background-color: #e2e8f0;
+    border-radius: 6px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 .closeIcon{
     position: sticky;
