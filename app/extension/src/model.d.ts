@@ -25,7 +25,7 @@ interface ShortcutPayload {
 }
 
 interface Message {
-  type: "auto_save_clipper" | "save_clipper" | 'tab_complete' | 'auto_save_tweets' | 'read_tweet' | 'parse_doc' | 'save_clipper_success' | 'article_preview' | 'process_shortcut' | 'cancel_processing' | 'processing_start' | 'process_result',
+  type: "auto_save_clipper" | "save_clipper" | 'tab_complete' | 'auto_save_tweets' | 'read_tweet' | 'parse_doc' | 'save_clipper_success' | 'shortcuts_preview' | 'shortcuts_process' | 'shortcuts_cancel' | 'shortcuts_processing_start' | 'shortcuts_process_result' | 'shortcuts_process_data' | 'shortcuts_process_error',
   payload?: any
 }
 
