@@ -16,7 +16,7 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     const page = webClipper.parseDoc(document.cloneNode(true) as Document);
     sendResponse({page});
     return;
-  } else if (msg.type === 'article_preview') {
+  } else if (msg.type === 'shortcuts_preview') {
     const webClipper = new WebClipper();
     const page = webClipper.parseDoc(document.cloneNode(true) as Document);
     const rootId = "huntly_preview_unique_root";

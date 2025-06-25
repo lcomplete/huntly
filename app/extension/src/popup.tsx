@@ -278,7 +278,7 @@ const Popup = () => {
         const tab = tabs[0];
         if (tab) {
           chrome.tabs.sendMessage(tab.id, {
-            type: 'article_preview',
+            type: 'shortcuts_preview',
             payload: {
               shortcuts: shortcuts
             }
@@ -323,11 +323,15 @@ const Popup = () => {
         chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
           const tab = tabs[0];
           if (tab) {
+            // 生成唯一的 taskId
+            const taskId = `popup_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+            
             // 发送消息到 background 脚本处理快捷指令
             chrome.runtime.sendMessage({
-              type: 'process_shortcut',
+              type: 'shortcuts_process',
               payload: {
                 tabId: tab.id,
+                taskId,
                 shortcutId,
                 shortcutName,
                 content: page.content,
