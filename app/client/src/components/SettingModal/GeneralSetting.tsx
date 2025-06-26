@@ -64,69 +64,6 @@ export default function GeneralSetting() {
   return <div>
     <form onSubmit={formikGeneral.handleSubmit} className={''}>
       <Typography variant={'h6'} className={''}>
-        Http Proxy
-      </Typography>
-      <Divider/>
-      <div className={'mt-3 flex items-center'}>
-        <TextField
-          margin="dense"
-          size={"small"}
-          className={'w-[200px]'}
-          id="proxyHost"
-          label="Proxy host"
-          value={formikGeneral.values.proxyHost || ""}
-          onChange={formikGeneral.handleChange}
-          error={formikGeneral.touched.proxyHost && Boolean(formikGeneral.errors.proxyHost)}
-          helperText={formikGeneral.touched.proxyHost && formikGeneral.errors.proxyHost}
-          type="text"
-          variant="outlined"
-        />
-        <TextField
-          margin="dense"
-          className={'w-[200px] ml-2'}
-          id="proxyPort"
-          label="Proxy port"
-          value={formikGeneral.values.proxyPort || ''}
-          onChange={formikGeneral.handleChange}
-          error={formikGeneral.touched.proxyPort && Boolean(formikGeneral.errors.proxyHost)}
-          helperText={formikGeneral.touched.proxyPort && formikGeneral.errors.proxyPort}
-          type="number"
-          variant="outlined"
-          size={"small"}
-        />
-        <FormControlLabel className={'ml-2'}
-                          control={<Checkbox value={true} name={'enableProxy'} onChange={formikGeneral.handleChange}
-                                             checked={!!formikGeneral.values.enableProxy}/>
-                          }
-                          label="Enable"/>
-      </div>
-
-      <Typography variant={'h6'} className={'mt-4'}>
-        Automation
-      </Typography>
-      <Divider/>
-      <div className={'mt-2 flex items-center'}>
-        <TextField
-          margin="dense"
-          className={'w-[200px]'}
-          id="coldDataKeepDays"
-          label="Cold data retention days"
-          value={formikGeneral.values.coldDataKeepDays || 0}
-          onChange={formikGeneral.handleChange}
-          error={formikGeneral.touched.coldDataKeepDays && Boolean(formikGeneral.errors.coldDataKeepDays)}
-          helperText={formikGeneral.touched.coldDataKeepDays && formikGeneral.errors.coldDataKeepDays}
-          type="number"
-          variant="outlined"
-          size={"small"}
-        />
-        <Tooltip title="Cold data: Unsaved browser history articles." placement="right">
-          <IconButton size="small" className={'ml-2'}>
-            <HelpOutlineIcon className={'text-gray-400'}/>
-          </IconButton>
-        </Tooltip>
-      </div>
-
-      <Typography variant={'h6'} className={'mt-4'}>
         OpenApi
       </Typography>
       <Divider/>
@@ -190,9 +127,72 @@ export default function GeneralSetting() {
       </div>
 
       <Alert severity="info" className="mt-2">
-        Article prompts have been moved to the <strong>Article Shortcuts</strong> section, where you can
+        Article prompts have been moved to the <strong>Article AI Shortcuts</strong> section, where you can
         manage multiple operation shortcuts like summaries, translations, and more.
       </Alert>
+
+      <Typography variant={'h6'} className={'mt-4'}>
+        Http Proxy
+      </Typography>
+      <Divider/>
+      <div className={'mt-3 flex items-center'}>
+        <TextField
+          margin="dense"
+          size={"small"}
+          className={'w-[200px]'}
+          id="proxyHost"
+          label="Proxy host"
+          value={formikGeneral.values.proxyHost || ""}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.proxyHost && Boolean(formikGeneral.errors.proxyHost)}
+          helperText={formikGeneral.touched.proxyHost && formikGeneral.errors.proxyHost}
+          type="text"
+          variant="outlined"
+        />
+        <TextField
+          margin="dense"
+          className={'w-[200px] ml-2'}
+          id="proxyPort"
+          label="Proxy port"
+          value={formikGeneral.values.proxyPort || ''}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.proxyPort && Boolean(formikGeneral.errors.proxyHost)}
+          helperText={formikGeneral.touched.proxyPort && formikGeneral.errors.proxyPort}
+          type="number"
+          variant="outlined"
+          size={"small"}
+        />
+        <FormControlLabel className={'ml-2'}
+                          control={<Checkbox value={true} name={'enableProxy'} onChange={formikGeneral.handleChange}
+                                             checked={!!formikGeneral.values.enableProxy}/>
+                          }
+                          label="Enable"/>
+      </div>
+
+      <Typography variant={'h6'} className={'mt-4'}>
+        Automation
+      </Typography>
+      <Divider/>
+      <div className={'mt-2 flex items-center'}>
+        <TextField
+          margin="dense"
+          className={'w-[200px]'}
+          id="coldDataKeepDays"
+          label="Cold data retention days"
+          value={formikGeneral.values.coldDataKeepDays || 0}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.coldDataKeepDays && Boolean(formikGeneral.errors.coldDataKeepDays)}
+          helperText={formikGeneral.touched.coldDataKeepDays && formikGeneral.errors.coldDataKeepDays}
+          type="number"
+          variant="outlined"
+          size={"small"}
+        />
+        <Tooltip title="Cold data: Unsaved browser history articles." placement="right">
+          <IconButton size="small" className={'ml-2'}>
+            <HelpOutlineIcon className={'text-gray-400'}/>
+          </IconButton>
+        </Tooltip>
+      </div>
 
       <Typography variant={'h6'} className={'mt-4'}>
         Website Blacklist

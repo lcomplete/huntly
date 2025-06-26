@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./article.module.css";
 import Modal from "react-modal";
 import {
@@ -16,6 +16,8 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import ShortTextIcon from "@mui/icons-material/ShortText";
 import CloseIcon from "@mui/icons-material/Close";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { log } from "./logger";
@@ -35,6 +37,7 @@ const StreamingContentRenderer = ({
   currentTaskId: string | null;
 }) => {
   const [processedContent, setProcessedContent] = useState("");
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // 内部消息监听
   useEffect(() => {
@@ -60,6 +63,22 @@ const StreamingContentRenderer = ({
     };
   }, [currentTaskId]);
 
+  // 自动滚动到底部 - 只有当用户已经接近底部时才滚动
+  useEffect(() => {
+    if (processedContent && contentRef.current) {
+      const scrollContainer = contentRef.current.closest(`.${styles.scrollContainer}`);
+      if (scrollContainer) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        const scrollThreshold = 100; // 距离底部100px内认为是接近底部
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - scrollThreshold;
+        
+        if (isNearBottom) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+      }
+    }
+  }, [processedContent]);
+
   // 显示加载状态
   if (!processedContent) {
     return (
@@ -78,7 +97,7 @@ const StreamingContentRenderer = ({
   // 显示内容
   if (processedContent) {
     return (
-      <div className={styles["markdown-body"]}>
+      <div ref={contentRef} className={styles["markdown-body"]}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {processedContent}
         </ReactMarkdown>
@@ -103,6 +122,7 @@ export default function Article({
   const [shortcutMenuAnchor, setShortcutMenuAnchor] =
     useState<null | HTMLElement>(null);
   const shortcutMenuOpen = Boolean(shortcutMenuAnchor);
+
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
@@ -134,9 +154,9 @@ export default function Article({
         });
       }
 
-      // 清除错误状态
+      // 清除错误状态并开始处理
       setProcessingError(null);
-      setIsProcessing(false);
+      setIsProcessing(true);
 
       // 关闭菜单
       setShortcutMenuAnchor(null);
@@ -151,26 +171,21 @@ export default function Article({
       setCurrentShortcut(shortcut);
       setShowProcessedSection(true);
 
-      // 获取当前活动标签页
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-
       chrome.runtime.sendMessage({
         type: "shortcuts_process",
         payload: {
-          tabId: tab?.id,
+          tabId: null, // background receive from sender
           taskId: newTaskId,
           shortcutId: shortcut.id,
           shortcutName: shortcut.name,
           content: page.content,
           url: page.url,
           title: page.title,
+          shortcuts: shortcuts,
         },
       });
     },
-    [isProcessing, currentTaskId, page]
+    [isProcessing, currentTaskId, page, shortcuts]
   );
 
   const handleShortcutMenuOpen = useCallback(
@@ -183,6 +198,29 @@ export default function Article({
   const handleShortcutMenuClose = useCallback(() => {
     setShortcutMenuAnchor(null);
   }, []);
+
+  // 添加点击外部关闭菜单的功能
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (shortcutMenuOpen && shortcutMenuAnchor) {
+        const menuElement = document.getElementById('shortcut-menu');
+        const buttonElement = document.getElementById('shortcut-menu-button');
+        
+        if (menuElement && buttonElement && 
+            !menuElement.contains(event.target as Node) && 
+            !buttonElement.contains(event.target as Node)) {
+          handleShortcutMenuClose();
+        }
+      }
+    };
+
+    if (shortcutMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [shortcutMenuOpen, shortcutMenuAnchor, handleShortcutMenuClose]);
 
   useEffect(() => {
     // 监听来自background的消息 - 只处理UI状态相关的消息
@@ -243,210 +281,273 @@ export default function Article({
   Modal.setAppElement("#huntly_preview_unique_root");
 
   // 快捷指令顶部菜单组件 - 使用 useMemo 优化
-  const ShortcutMenu = useMemo(
-    () => (
+  const ShortcutMenu = () => (
+    <Box
+      sx={{
+        width: "100%",
+        backgroundColor: "rgba(255, 255, 255, 0.98)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+        padding: "16px 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        position: "relative",
+        zIndex: 10,
+        overflow: "visible",
+      }}
+    >
+      {/* 左侧区域：快捷指令菜单按钮 - 占50% */}
       <Box
         sx={{
-          width: "100%",
-          backgroundColor: "rgba(255, 255, 255, 0.98)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
-          padding: "16px 24px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          position: "relative",
-          zIndex: 10,
+          width: "50%",
+          justifyContent: "flex-start",
+          position: "static",
         }}
       >
-        {/* 左侧区域：快捷指令菜单按钮 - 占50% */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            width: "50%",
-            justifyContent: "flex-start",
-            position: "relative",
-          }}
-        >
-          {shortcuts.length > 0 && (
-            <>
-              <Button
-                id="shortcut-menu-button"
-                variant="outlined"
-                size="small"
-                startIcon={<SmartToyOutlinedIcon />}
-                onClick={handleShortcutMenuOpen}
-                aria-controls={shortcutMenuOpen ? "shortcut-menu" : undefined}
-                aria-haspopup="true"
-                aria-expanded={shortcutMenuOpen ? "true" : undefined}
-                sx={{
-                  fontSize: "12px",
-                  height: "32px",
-                  textTransform: "none",
-                  border: "2px solid transparent",
-                  background:
-                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        {/* 始终显示快捷指令按钮 */}
+        {(
+          <>
+            <Button
+              id="shortcut-menu-button"
+              variant="outlined"
+              size="small"
+              startIcon={<SmartToyOutlinedIcon />}
+              onClick={handleShortcutMenuOpen}
+              aria-controls={shortcutMenuOpen ? "shortcut-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={shortcutMenuOpen ? "true" : undefined}
+              disableRipple
+              disableElevation
+              sx={{
+                fontSize: "12px",
+                height: "32px",
+                textTransform: "none",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                  transform: "none",
+                  filter: "none",
+                  opacity: 1,
+                  "@media (hover: hover)": {
+                    backgroundColor: "transparent",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  },
+                },
+                "&:focus": {
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                },
+                "& .MuiButton-startIcon": {
                   color: "white",
-                  "&:hover": {
-                    background:
-                      "linear-gradient(135deg, #5a6fd8 0%, #6b4190 100%)",
-                    boxShadow: "0 4px 12px rgba(102, 126, 234, 0.4)",
-                  },
-                  "& .MuiButton-startIcon": {
-                    color: "white",
-                  },
-                }}
-              >
-                Article AI Shortcuts
-              </Button>
+                },
+              }}
+            >
+              Article AI Shortcuts
+            </Button>
 
-              <Menu
-                id="shortcut-menu"
-                anchorEl={shortcutMenuAnchor}
-                open={shortcutMenuOpen}
-                onClose={handleShortcutMenuClose}
-                anchorOrigin={{
-                  vertical: "bottom",
-                  horizontal: "left",
-                }}
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "left",
-                }}
-                PaperProps={{
-                  sx: {
-                    mt: 1,
-                    minWidth: 200,
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                    borderRadius: "8px",
-                  },
-                }}
-              >
-                {shortcuts.map((shortcut) => (
+            <Menu
+              id="shortcut-menu"
+              anchorEl={shortcutMenuAnchor}
+              open={shortcutMenuOpen}
+              onClose={handleShortcutMenuClose}
+              disablePortal={true}
+              PaperProps={{
+                sx: {
+                  mt: 4,
+                  ml: 1,
+                  minWidth: 200,
+                  maxWidth: shortcuts.length > 0 ? 300 : 320,
+                  width: "auto",
+                  maxHeight: "400px",
+                  overflowY: "auto",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  borderRadius: "8px",
+                  zIndex: 100,
+                  background: "linear-gradient(135deg, rgba(255, 255, 255) 0%, rgba(248, 250, 252) 100%)",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(0, 0, 0, 0.1)",
+                  color: "#374151",
+                },
+              }}
+              MenuListProps={{
+                sx: {
+                  padding: "4px 0",
+                  maxHeight: "400px",
+                  overflowY: "auto",
+                  width: "100%",
+                },
+              }}
+              sx={{
+                zIndex: 100,
+              }}
+            >
+              {shortcuts.length > 0 ? (
+                shortcuts.map((shortcut) => (
                   <MenuItem
                     key={shortcut.id}
                     onClick={() => handleShortcutClick(shortcut)}
-                    disabled={
-                      isProcessing && currentShortcut?.id === shortcut.id
-                    }
+                    disabled={isProcessing && currentShortcut?.id === shortcut.id}
                     sx={{
                       fontSize: "14px",
-                      minHeight: "36px",
+                      minHeight: "40px",
+                      padding: "8px 16px",
+                      whiteSpace: "nowrap",
+                      overflow: "visible",
+                      display: "flex",
+                      alignItems: "center",
+                      width: "100%",
+                      color: "#374151",
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        backgroundColor: "rgba(102, 126, 234, 0.1)",
+                        backdropFilter: "blur(6px)",
+                        transform: "translateX(2px)",
+                      },
+                      "&:disabled": {
+                        color: "rgba(55, 65, 81, 0.5)",
+                        backgroundColor: "transparent",
+                      },
                     }}
                   >
-                    <SmartToyOutlinedIcon
-                      sx={{ fontSize: "16px", marginRight: 1 }}
+                    <ShortTextIcon 
+                      fontSize="small" 
+                      sx={{ 
+                        marginRight: 1, 
+                        color: "#6b7280",
+                        transition: "color 0.2s ease-in-out",
+                      }} 
                     />
                     {shortcut.name}
                   </MenuItem>
-                ))}
-              </Menu>
-            </>
-          )}
+                ))
+              ) : (
+                <MenuItem
+                  disabled
+                  sx={{
+                    fontSize: "14px",
+                    padding: "12px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    width: "100%",
+                    maxWidth: "280px",
+                    whiteSpace: "normal",
+                    color: "#374151",
+                    "&.Mui-disabled": {
+                      opacity: 1,
+                      color: "#374151",
+                    },
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600, marginBottom: 1, color: "#374151" }}>
+                    快捷指令功能未配置
+                  </Typography>
+                  <Typography variant="caption" sx={{ lineHeight: 1.4, color: "#6b7280" }}>
+                    请将 Huntly 服务端升级到最新版本，并在设置中配置 AI 快捷指令
+                  </Typography>
+                </MenuItem>
+              )}
+            </Menu>
+          </>
+        )}
 
-          {/* 错误提示 - 移到区域底部 */}
-          {processingError && (
-            <Box
+        {/* 错误提示 - 移到区域底部 */}
+        {processingError && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              mt: 1,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              backgroundColor: "#ffebee",
+              color: "#c62828",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              border: "1px solid #ffcdd2",
+              zIndex: 1000,
+              maxWidth: "300px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <ErrorOutlineIcon sx={{ fontSize: "14px" }} />
+            {processingError}
+          </Box>
+        )}
+      </Box>
+
+      {/* 右侧区域：快捷指令名称和加载指示器 - 占50% */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          width: "50%",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* 左边：快捷指令名称 */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          {currentShortcut && (
+            <Typography
+              variant="h3"
               sx={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                mt: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                backgroundColor: "#ffebee",
-                color: "#c62828",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                fontSize: "12px",
-                border: "1px solid #ffcdd2",
-                zIndex: 1000,
-                maxWidth: "300px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                fontSize: "16px",
+                fontWeight: 600,
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                backgroundClip: "text",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
               }}
             >
-              <ErrorOutlineIcon sx={{ fontSize: "14px" }} />
-              {processingError}
-            </Box>
+              {currentShortcut.name}
+            </Typography>
           )}
         </Box>
 
-        {/* 右侧区域：快捷指令名称和加载指示器 - 占50% */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            width: "50%",
-            justifyContent: "space-between",
-          }}
-        >
-          {/* 左边：快捷指令名称 */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            {currentShortcut && (
-              <Typography
-                variant="h3"
-                sx={{
-                  fontSize: "16px",
-                  fontWeight: 600,
-                  background:
-                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  backgroundClip: "text",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                {currentShortcut.name}
-              </Typography>
-            )}
-          </Box>
-
-          {/* 右边：加载指示器 - 独立组件避免闪烁 */}
-          <Box sx={{ display: "flex", alignItems: "center", paddingRight:2 }}>
-            {isProcessing && (
-              <CircularProgress
-                size={18}
-                sx={{
-                  // 使用 CSS 动画而非 JS 动画以获得更平滑的效果
-                  "& .MuiCircularProgress-circle": {
-                    strokeLinecap: "round",
-                  },
-                }}
-              />
-            )}
-          </Box>
+        {/* 右边：加载指示器 - 独立组件避免闪烁 */}
+        <Box sx={{ display: "flex", alignItems: "center", paddingRight: 2 }}>
+          {isProcessing && (
+            <CircularProgress
+              size={18}
+              sx={{
+                // 使用 CSS 动画而非 JS 动画以获得更平滑的效果
+                "& .MuiCircularProgress-circle": {
+                  strokeLinecap: "round",
+                },
+              }}
+            />
+          )}
         </Box>
-
-        {/* 关闭按钮 */}
-        <IconButton
-          onClick={handleClose}
-          size="small"
-          sx={{
-            color: "#666",
-            "&:hover": {
-              backgroundColor: "rgba(0, 0, 0, 0.04)",
-              color: "#333",
-            },
-          }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
       </Box>
-    ),
-    [
-      shortcuts,
-      shortcutMenuOpen,
-      handleShortcutMenuOpen,
-      handleShortcutMenuClose,
-      handleShortcutClick,
-      isProcessing,
-      currentShortcut,
-      processingError,
-      handleClose,
-    ]
+
+      {/* 关闭按钮 */}
+      <IconButton
+        onClick={handleClose}
+        size="small"
+        sx={{
+          color: "#666",
+          "&:hover": {
+            backgroundColor: "rgba(0, 0, 0, 0.04)",
+            color: "#333",
+          },
+        }}
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </Box>
   );
 
   return (
@@ -456,6 +557,7 @@ export default function Article({
           isOpen={open}
           onRequestClose={handleClose}
           overlayClassName={styles.modalOverlay}
+          parentSelector={() => document.getElementById("huntly_preview_unique_root")!}
           style={{
             overlay: {
               backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -478,9 +580,8 @@ export default function Article({
             },
           }}
         >
-          <div className={styles.modalContent}>
-            {/* 顶部快捷指令菜单 */}
-            {ShortcutMenu}
+          <div id="huntly-article-modal" className={styles.modalContent}>
+            <ShortcutMenu />
 
             {/* 内容区域 */}
             <div className={styles.contentArea}>
@@ -509,7 +610,10 @@ export default function Article({
                     className={styles.scrollContainer}
                     style={{ padding: "24px" }}
                   >
-                    <StreamingContentRenderer currentTaskId={currentTaskId} />
+                    <StreamingContentRenderer 
+                      key={currentTaskId} 
+                      currentTaskId={currentTaskId} 
+                    />
                   </div>
                 </div>
               )}

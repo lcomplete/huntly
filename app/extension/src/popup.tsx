@@ -284,6 +284,9 @@ const Popup = () => {
             }
           }, function (response) {
           });
+
+          // 关闭 popup 窗口
+          window.close();
         }
       });
     }
@@ -336,7 +339,8 @@ const Popup = () => {
                 shortcutName,
                 content: page.content,
                 url: page.url,
-                title: page.title // 传递文章标题
+                title: page.title, // 传递文章标题
+                shortcuts: shortcuts
               }
             });
             
