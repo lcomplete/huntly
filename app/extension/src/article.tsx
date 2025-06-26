@@ -533,20 +533,6 @@ export default function Article({
         </Box>
       </Box>
 
-      {/* 关闭按钮 */}
-      <IconButton
-        onClick={handleClose}
-        size="small"
-        sx={{
-          color: "#666",
-          "&:hover": {
-            backgroundColor: "rgba(0, 0, 0, 0.04)",
-            color: "#333",
-          },
-        }}
-      >
-        <CloseIcon fontSize="small" />
-      </IconButton>
     </Box>
   );
 
