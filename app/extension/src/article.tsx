@@ -284,7 +284,6 @@ export default function Article({
   const ShortcutMenu = () => (
     <Box
       sx={{
-        width: "100%",
         backgroundColor: "rgba(255, 255, 255, 0.98)",
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
@@ -297,14 +296,15 @@ export default function Article({
         overflow: "visible",
       }}
     >
-      {/* 左侧区域：快捷指令菜单按钮 - 占50% */}
+      {/* 左侧区域：快捷指令菜单按钮 */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          width: "50%",
+          flex: "1 1 0%",
           justifyContent: "flex-start",
           position: "static",
+          minWidth: 0,
         }}
       >
         {/* 始终显示快捷指令按钮 */}
@@ -489,13 +489,14 @@ export default function Article({
         )}
       </Box>
 
-      {/* 右侧区域：快捷指令名称和加载指示器 - 占50% */}
+      {/* 右侧区域：快捷指令名称和加载指示器 */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          width: "50%",
+          flex: "1 1 0%",
           justifyContent: "space-between",
+          minWidth: 0,
         }}
       >
         {/* 左边：快捷指令名称 */}
@@ -510,6 +511,7 @@ export default function Article({
                 backgroundClip: "text",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
+                pl: 1
               }}
             >
               {currentShortcut.name}
@@ -517,8 +519,8 @@ export default function Article({
           )}
         </Box>
 
-        {/* 右边：加载指示器 - 独立组件避免闪烁 */}
-        <Box sx={{ display: "flex", alignItems: "center", paddingRight: 2 }}>
+        {/* 右边：加载指示器 */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
           {isProcessing && (
             <CircularProgress
               size={18}

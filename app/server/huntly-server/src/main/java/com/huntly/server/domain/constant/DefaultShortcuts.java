@@ -4,8 +4,13 @@ import com.huntly.server.config.DefaultShortcutsConfig;
 import com.huntly.server.domain.dto.DefaultShortcutDto;
 import com.huntly.server.domain.entity.ArticleShortcut;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,7 +47,11 @@ public class DefaultShortcuts {
                 ArticleShortcut shortcut = new ArticleShortcut();
                 shortcut.setName(dto.getName());
                 shortcut.setDescription(dto.getDescription());
-                shortcut.setContent(dto.getContent());
+                
+                // Load content from file if specified, otherwise use content from JSON
+                String content = loadShortcutContent(dto);
+                shortcut.setContent(content);
+                
                 shortcut.setEnabled(dto.getEnabled() != null ? dto.getEnabled() : true);
                 shortcut.setSortOrder(dto.getSortOrder());
                 shortcut.setCreatedAt(now);
@@ -58,5 +67,31 @@ public class DefaultShortcuts {
         }
     }
     
+    /**
+     * Load shortcut content from file or JSON
+     * @param dto the shortcut DTO
+     * @return the content string
+     */
+    private String loadShortcutContent(DefaultShortcutDto dto) {
+        // If file is specified, try to load from file
+        if (dto.getFile() != null && !dto.getFile().isEmpty()) {
+            try {
+                String filePath = "config/shortcuts/" + dto.getFile();
+                ClassPathResource resource = new ClassPathResource(filePath);
+                try (InputStream inputStream = resource.getInputStream()) {
+                    String content = StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
+                    log.debug("Loaded content from file: {}", dto.getFile());
+                    return content;
+                }
+            } catch (IOException e) {
+                log.error("Failed to load content from file: {}, falling back to JSON content", dto.getFile(), e);
+                // Fall back to content from JSON if file loading fails
+                return dto.getContent() != null ? dto.getContent() : "";
+            }
+        }
+        
+        // Use content from JSON
+        return dto.getContent() != null ? dto.getContent() : "";
+    }
 
 } 
