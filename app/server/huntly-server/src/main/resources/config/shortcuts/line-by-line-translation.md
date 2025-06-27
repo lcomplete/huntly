@@ -38,4 +38,4 @@ This is a paragraph about getting started.
 - 使用流畅自然的中文表达，避免机翻感
 - 技术术语保持准确性
 - 代码、命令、路径保持原样
-- 原文在译文前面
+- 不要将原文的段落拆分为多行
