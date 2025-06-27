@@ -92,7 +92,7 @@ jobs:
           yarn tauri build
 
       - name: Upload the build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tauri-build-${{ matrix.platform }}
           path: app/tauri/src-tauri/target/release/bundle
