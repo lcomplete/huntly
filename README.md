@@ -21,21 +21,22 @@
   - [请作者喝杯咖啡](#请作者喝杯咖啡)
   - [感谢 JetBrains 的支持](#感谢-jetbrains-的支持)
 
-Huntly 是一个信息管理工具，它不仅可以自托管，也可以通过客户端在本地运行。简单来说，它包含以下功能：
+Huntly 是一个信息管理工具，它不仅可以自托管，也可以通过客户端在本地运行。它包含以下功能：
 
 - RSS 订阅。
 - 网页收藏，自动/手动保存浏览过的网页，随后以保存、稍后读、收藏或存档的方式将其保存。
 - 推文保存，针对推特网站有特殊的处理，会自动保存请求过的推特 timeline，记录是否浏览过，在 huntly 中你甚至可以用更方便的方式重新查看这些推文。
 - 内容全文搜索，可以从标题、内容、类型、收藏方式等维度进行搜索。
-- 连接其他服务，目前支持 GitHub，所以它也是一个 Github stars 管理工具。
-
-未来可能会支持连接到 Pocket、Hypothesis 等服务。
+- 连接 GitHub，支持 Github stars 管理。
+- **支持自定义文章 AI 快捷指令，具备双语对照翻译、总结、提取要点等能力(新功能)。**
 
 ## 系统截图
 
 ![intro1](static/images/intro1.png)
 
 ![intro2](static/images/intro2.png)
+
+![extension_shortcuts](static/images/extension_shortcuts.png)
 
 ## 运行前提
 

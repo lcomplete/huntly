@@ -1,0 +1,46 @@
+{
+  "shortcuts": [
+    {
+      "name": "文章摘要",
+      "description": "生成文章的高质量中文摘要",
+      "file": "article-summary.md",
+      "enabled": true,
+      "sortOrder": 1
+    },
+    {
+      "name": "翻译成中文",
+      "description": "将文章内容翻译成流畅的中文",
+      "file": "translate-to-chinese.md",
+      "enabled": true,
+      "sortOrder": 2
+    },
+    {
+      "name": "双语对照翻译",
+      "description": "保留原文的同时，逐行添加中文翻译",
+      "file": "line-by-line-translation.md",
+      "enabled": true,
+      "sortOrder": 3
+    },
+    {
+      "name": "提取关键点",
+      "description": "以要点形式提取文章中的主要观点和信息",
+      "file": "extract-key-points.md",
+      "enabled": true,
+      "sortOrder": 4
+    },
+    {
+      "name": "技术解析",
+      "description": "深入解释文章中的技术概念",
+      "file": "technical-analysis.md",
+      "enabled": true,
+      "sortOrder": 5
+    },
+    {
+      "name": "行动项提取",
+      "description": "从文章中提取可执行的行动项",
+      "file": "action-items.md",
+      "enabled": true,
+      "sortOrder": 6
+    }
+  ]
+}

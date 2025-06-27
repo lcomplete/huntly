@@ -54,13 +54,31 @@ export default function SettingModal(props: SettingModalProps) {
               onClick={(event) => handleListItemClick(event, 0)}
             >
               <ListItemIcon>
+                <SettingsApplicationsIcon/>
+              </ListItemIcon>
+              <ListItemText primary="General"/>
+            </ListItemButton>
+            <ListItemButton
+              selected={selectedIndex === 1}
+              onClick={(event) => handleListItemClick(event, 1)}
+            >
+              <ListItemIcon>
+                <ShortTextIcon/>
+              </ListItemIcon>
+              <ListItemText primary="AI Shortcuts"/>
+            </ListItemButton>
+            <ListItemButton
+              selected={selectedIndex === 2}
+              onClick={(event) => handleListItemClick(event, 2)}
+            >
+              <ListItemIcon>
                 <HubIcon/>
               </ListItemIcon>
               <ListItemText primary="Connect"/>
             </ListItemButton>
             <ListItemButton
-              selected={selectedIndex === 1}
-              onClick={(event) => handleListItemClick(event, 1)}
+              selected={selectedIndex === 3}
+              onClick={(event) => handleListItemClick(event, 3)}
             >
               <ListItemIcon>
                 <RssFeedIcon/>
@@ -68,31 +86,13 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemText primary="Feeds"/>
             </ListItemButton>
             <ListItemButton
-              selected={selectedIndex === 2}
-              onClick={(event) => handleListItemClick(event, 2)}
+              selected={selectedIndex === 4}
+              onClick={(event) => handleListItemClick(event, 4)}
             >
               <ListItemIcon>
                 <FolderOpenIcon/>
               </ListItemIcon>
               <ListItemText primary="Folders"/>
-            </ListItemButton>
-            <ListItemButton
-              selected={selectedIndex === 3}
-              onClick={(event) => handleListItemClick(event, 3)}
-            >
-              <ListItemIcon>
-                <SettingsApplicationsIcon/>
-              </ListItemIcon>
-              <ListItemText primary="General"/>
-            </ListItemButton>
-            <ListItemButton
-              selected={selectedIndex === 4}
-              onClick={(event) => handleListItemClick(event, 4)}
-            >
-              <ListItemIcon>
-                <ShortTextIcon/>
-              </ListItemIcon>
-              <ListItemText primary="Article Shortcuts"/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 5}
@@ -109,19 +109,19 @@ export default function SettingModal(props: SettingModalProps) {
         <div className={'grow'}>
           <div className={'p-4'}>
             {
-              selectedIndex === 0 && <ConnectorSetting/>
+              selectedIndex === 0 && <GeneralSetting/>
             }
             {
-              selectedIndex === 1 && <FeedsSetting/>
+              selectedIndex === 1 && <ArticleShortcutSetting/>
             }
             {
-              selectedIndex === 2 && <FoldersSetting/>
+              selectedIndex === 2 && <ConnectorSetting/>
             }
             {
-              selectedIndex === 3 && <GeneralSetting/>
+              selectedIndex === 3 && <FeedsSetting/>
             }
             {
-              selectedIndex === 4 && <ArticleShortcutSetting/>
+              selectedIndex === 4 && <FoldersSetting/>
             }
             {
               selectedIndex === 5 && <AccountSetting/>

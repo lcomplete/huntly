@@ -20,9 +20,11 @@ import java.util.Optional;
 public class ArticleShortcutService {
     
     private final ArticleShortcutRepository shortcutRepository;
+    private final DefaultShortcuts defaultShortcuts;
     
-    public ArticleShortcutService(ArticleShortcutRepository shortcutRepository) {
+    public ArticleShortcutService(ArticleShortcutRepository shortcutRepository, DefaultShortcuts defaultShortcuts) {
         this.shortcutRepository = shortcutRepository;
+        this.defaultShortcuts = defaultShortcuts;
     }
     
     /**
@@ -145,7 +147,7 @@ public class ArticleShortcutService {
      * @return the imported shortcuts
      */
     public List<ArticleShortcut> importDefaultShortcuts() {
-        List<ArticleShortcut> defaultShortcuts = DefaultShortcuts.getDefaultShortcuts();
+        List<ArticleShortcut> defaultShortcuts = this.defaultShortcuts.getDefaultShortcuts();
         List<ArticleShortcut> importedShortcuts = new ArrayList<>();
         
         for (ArticleShortcut shortcut : defaultShortcuts) {
@@ -175,7 +177,7 @@ public class ArticleShortcutService {
      */
     public List<ArticleShortcut> getImportableDefaultShortcuts() {
         // Return all default shortcuts directly without checking the database
-        return DefaultShortcuts.getDefaultShortcuts();
+        return this.defaultShortcuts.getDefaultShortcuts();
     }
     
     /**
@@ -184,7 +186,7 @@ public class ArticleShortcutService {
      * @return the imported shortcuts
      */
     public List<ArticleShortcut> importSelectedShortcuts(List<String> shortcutNames) {
-        List<ArticleShortcut> defaultShortcuts = DefaultShortcuts.getDefaultShortcuts();
+        List<ArticleShortcut> defaultShortcuts = this.defaultShortcuts.getDefaultShortcuts();
         List<ArticleShortcut> importedShortcuts = new ArrayList<>();
         
         for (ArticleShortcut shortcut : defaultShortcuts) {

@@ -26,14 +26,16 @@ Huntly is a self-hosted information management tool, in simple terms, contains t
 - Automatically saves the pages that have been viewed， then you can saves them as read later, favorites or archives.
 - There is a special treatment for Twitter sites that automatically saves the requested tweet timeline, recording whether it has been viewed or not, and in huntly you can even revisit these tweets in a more convenient way.
 - You can search by title, content, type, favorite method, and other dimensions.
-- Connect to other services, currently GitHub is supported, so it's also a Github stars management tool.
-- In the future, it may support connections to services like Pocket, Hypothesis, etc.
+- Connect to GitHub, support Github stars management.
+- Support custom article AI shortcuts, with the ability to translate, summarize, extract key points, etc.
 
 ## Screenshot
 
 ![intro1](static/images/intro1.png)
 
 ![intro2](static/images/intro2.png)
+
+![extension_shortcuts](static/images/extension_shortcuts.png)
 
 ## Requirements
 

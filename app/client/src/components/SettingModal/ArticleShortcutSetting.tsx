@@ -302,7 +302,7 @@ const ArticleShortcutSetting = () => {
     <div>
       <div className="flex justify-between items-center mb-2">
         <Typography variant={'h6'} className={''}>
-          Article Operation Shortcuts
+          Article AI Shortcuts
         </Typography>
         <div>
           <Button

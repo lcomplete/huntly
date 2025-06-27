@@ -150,6 +150,7 @@ export class SSERequestManager {
     };
     
     this.tasks.set(taskId, task);
+		
     
     const apiBaseUri = await getApiBaseUrl();
     if (!apiBaseUri) {

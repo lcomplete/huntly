@@ -35,7 +35,23 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.module\.css$/i,
+        use: [
+          {loader: "style-loader"},
+          {
+            loader: "css-loader",
+            options: {
+              modules: {
+                localIdentName: 'huntly-ext-[local]-[hash:base64:5]'
+              }
+            }
+          },
+          {loader: "postcss-loader"}
+        ]
+      },
+      {
         test: /\.css$/i,
+        exclude: /\.module\.css$/i,
         use: [
           {loader: "style-loader"},
           {

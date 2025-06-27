@@ -1,6 +1,6 @@
 import {log} from "./logger";
 import {readSyncStorageSettings} from "./storage";
-import {autoSaveArticle, saveArticle, sendData, fetchEnabledShortcuts} from "./services";
+import {autoSaveArticle, saveArticle, sendData} from "./services";
 import {sseRequestManager} from "./sseTaskManager";
 
 function startProcessingWithShortcuts(task: any, shortcuts: any[]) {
@@ -107,7 +107,7 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     sendData("tweet/trackRead", msg.payload);
   } else if (msg.type === 'shortcuts_process') {
     const task = {
-      tabId: msg.payload.tabId,
+      tabId: msg.payload.tabId || sender.tab?.id,
       taskId: msg.payload.taskId,
       shortcutId: msg.payload.shortcutId,
       shortcutName: msg.payload.shortcutName,
@@ -116,15 +116,9 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
       title: msg.payload.title || "" // 文章标题
     };
     
-    
-    // 获取快捷指令并发送消息显示文章预览
-    fetchEnabledShortcuts().then((shortcuts) => {
-      startProcessingWithShortcuts(task, shortcuts);
-    }).catch((error) => {
-      console.error("Error fetching shortcuts:", error);
-      // 即使获取快捷指令失败，也要显示文章预览
-      startProcessingWithShortcuts(task, []);
-    });
+    // 使用 payload 中传递的 shortcuts 数据
+    const shortcuts = msg.payload.shortcuts || [];
+    startProcessingWithShortcuts(task, shortcuts);
   } else if (msg.type === 'shortcuts_cancel') {
     // 根据 taskId 取消处理任务
     const taskId = msg.payload.taskId;
