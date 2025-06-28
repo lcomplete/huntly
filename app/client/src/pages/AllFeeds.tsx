@@ -19,7 +19,9 @@ const AllFeeds = () => {
       label: 'Recently connected'
     }],
     asc: false,
-    hideContentTypeFilter: true
+    hideContentTypeFilter: true,
+    showAllArticles: false,
+    showAllArticlesOption: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {
@@ -32,7 +34,7 @@ const AllFeeds = () => {
                 filters={{
                   ...getPageListFilter(pageFilterOptions),
                   connectorType: ConnectorType.RSS,
-                  markRead: false,
+                  markRead: pageFilterOptions.showAllArticles ? undefined : false,
                 }}
                 showMarkReadOption={true}
                 onMarkAllAsRead={markAllAsRead}

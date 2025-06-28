@@ -46,7 +46,7 @@ const navLabels: NavLabels = {
   readLater: navLabel('Read Later', BookmarksOutlinedIcon, '/later'),
   archive: navLabel('Archive', ArchiveOutlinedIcon, '/archive'),
   github: navLabel('GitHub', GitHubIcon),
-  allFeeds: navLabel('All Articles', BallotOutlinedIcon, '/feeds'),
+  allFeeds: navLabel('All Feeds', BallotOutlinedIcon, '/feeds'),
   twitter: navLabel('Twitter', TwitterIcon, '/twitter', 'rgb(29, 155, 240)'),
   folder: navLabel('', FolderOpenIcon)
 }
