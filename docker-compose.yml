@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  huntly:
+    image: lcomplete/huntly
+    container_name: huntly
+    restart: always
+    ports:
+      - "8088:80"
+    volumes:
+      - ./data:/data
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
