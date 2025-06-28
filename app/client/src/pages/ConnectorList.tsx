@@ -30,7 +30,7 @@ const ConnectorList = () => {
     if (connector) {
       if (connector.type === ConnectorType.GITHUB) {
         return {...navLabels.github, labelText: connector.name, linkTo: '/connector/' + id};
-      } else if (connector.type == ConnectorType.RSS) {
+      } else if (connector.type === ConnectorType.RSS) {
         return {
           labelIcon: RssFeedIcon,
           labelText: connector.name,
@@ -53,7 +53,9 @@ const ConnectorList = () => {
       label: 'Recently connected'
     }],
     asc: false,
-    hideContentTypeFilter: true
+    hideContentTypeFilter: true,
+    showAllArticles: false,
+    showAllArticlesOption: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {
@@ -74,7 +76,7 @@ const ConnectorList = () => {
   return (
     <MainContainer>
       {
-        editFeedsId != null && <FeedsFormDialog feedsId={editFeedsId} onClose={() => {
+        editFeedsId !== null && <FeedsFormDialog feedsId={editFeedsId} onClose={() => {
           setEditFeedsId(null);
           refetchConnector();
         }}/>
@@ -84,7 +86,7 @@ const ConnectorList = () => {
                 filters={{
                   ...getPageListFilter(pageFilterOptions),
                   connectorId: safeInt(id),
-                  markRead: false,
+                  markRead: pageFilterOptions.showAllArticles ? undefined : false,
                 }}
                 onMarkAllAsRead={markAllAsRead} showMarkReadOption={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}

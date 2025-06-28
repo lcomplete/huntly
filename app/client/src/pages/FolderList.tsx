@@ -28,7 +28,9 @@ const FolderList = () => {
       label: 'Recently connected'
     }],
     asc: false,
-    hideContentTypeFilter: true
+    hideContentTypeFilter: true,
+    showAllArticles: false,
+    showAllArticlesOption: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {
@@ -41,7 +43,7 @@ const FolderList = () => {
                 filters={{
                   ...getPageListFilter(pageFilterOptions),
                   folderId: safeInt(id),
-                  markRead: false,
+                  markRead: pageFilterOptions.showAllArticles ? undefined : false,
                 }} onMarkAllAsRead={markAllAsRead}
                 showMarkReadOption={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}

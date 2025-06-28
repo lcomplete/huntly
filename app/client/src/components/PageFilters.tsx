@@ -4,7 +4,7 @@ import {
   FormControlLabel,
   FormLabel, IconButton, Popover,
   Radio,
-  RadioGroup, ToggleButton,
+  RadioGroup, Switch, ToggleButton,
   ToggleButtonGroup
 } from "@mui/material";
 import React from "react";
@@ -29,6 +29,8 @@ export type PageFilterOptions = {
   contentFilterType?: number,
   startDate?: string
   endDate?: string
+  showAllArticles?: boolean
+  showAllArticlesOption?: boolean
 }
 
 export type PageFilterProps = {
@@ -83,7 +85,7 @@ export default function PageFilters(props: PageFilterProps) {
     const strStartDate = moment(tempStartDate).format('YYYY-MM-DD');
     const strEndDate = moment(tempEndDate).format('YYYY-MM-DD');
 
-    if (strStartDate !== startDate || strEndDate != endDate) {
+    if (strStartDate !== startDate || strEndDate !== endDate) {
       onChange({
         ...options,
         startDate: strStartDate,
@@ -164,6 +166,28 @@ export default function PageFilters(props: PageFilterProps) {
         </Popover>
       </div>
     </div>
+
+    {
+      options.showAllArticlesOption && (
+        <FormControl className={`mt-4`}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={options.showAllArticles || false}
+                onChange={(e, checked) => {
+                  onChange({
+                    ...options,
+                    showAllArticles: checked
+                  });
+                }}
+                size="small"
+              />
+            }
+            label="Show all articles"
+          />
+        </FormControl>
+      )
+    }
 
     <FormControl className={`mt-4`} size={"small"}>
       <FormLabel id="sort-field-label">SORT BY</FormLabel>
