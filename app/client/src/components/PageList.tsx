@@ -2,7 +2,7 @@ import MagazineItem from "../components/MagazineItem";
 import {ApiResultOfint, PageControllerApiFactory, PageItem} from "../api";
 import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tanstack/react-query";
 import {useInView} from "react-intersection-observer";
-import React, {ReactElement, useEffect, useState} from "react";
+import React, {ReactElement, useEffect, useState, useRef, useCallback} from "react";
 import {AlertTitle, Button} from "@mui/material";
 import Loading from "./Loading";
 import {NavLabel} from "./Sidebar/NavLabels";
@@ -20,6 +20,7 @@ import {safeInt} from "../common/typeUtils";
 import {ContentType, SORT_VALUE} from "../model";
 import PageDetailModal from "./PageDetailModal";
 import Alert from "@mui/material/Alert";
+import { useGlobalSettings } from "../contexts/GlobalSettingsContext";
 
 export type PageListFilter = {
   asc?: boolean,
@@ -48,6 +49,7 @@ interface PageListProps {
   onMarkAllAsRead?: () => AxiosPromise<ApiResultOfint>,
   buttonOptions?: ButtonOptions,
   showMarkReadOption?: boolean,
+  hasMarkReadOnScrollFeature?: boolean,
   filterComponent?: React.ReactElement
 }
 
@@ -57,12 +59,14 @@ const PageList = (props: PageListProps) => {
     navLabel,
     navLabelArea,
     onMarkAllAsRead,
-    showMarkReadOption
+    showMarkReadOption,
+    hasMarkReadOnScrollFeature
   } = props;
   const {ref: inViewRef, inView} = useInView();
   const {enqueueSnackbar} = useSnackbar();
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
+  const { markReadOnScroll } = useGlobalSettings();
 
   const selectedPageId = safeInt(params.get("p"));
   const propFilters = props.filters || {};
@@ -71,6 +75,132 @@ const PageList = (props: PageListProps) => {
   const [lastVisitPageId, setLastVisitPageId] = useState(0);
   const pageSize = filters.count || 20;
   const queryKey = [PageQueryKey.PageList, filters];
+  
+  // Scroll tracking state - tracks which pages have been marked as read
+  const [processedPages, setProcessedPages] = useState<Set<number>>(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const pageListRef = useRef<HTMLDivElement | null>(null);
+  const observedElementsRef = useRef<Set<Element>>(new Set());
+
+  // Only enable scroll tracking if the feature is enabled for this page and the setting is on
+  const shouldEnableScrollTracking = hasMarkReadOnScrollFeature && markReadOnScroll;
+
+  // Mark pages as read via API
+  const markPagesAsRead = useCallback((pageIds: number[]) => {
+    if (pageIds.length === 0) return;
+
+    PageControllerApiFactory().markReadByPageIdsUsingPOST(pageIds).then((res) => {
+      if (res && res.data && res.data.code === 0) {
+        // Update query data to reflect the change
+        queryClient.setQueryData<InfiniteData<PageItem[]>>(queryKey, oldData => ({
+          ...oldData,
+          pages: oldData.pages.map(pages => pages.map((rawPage): PageItem => 
+            pageIds.includes(rawPage.id) ? { ...rawPage, markRead: true } : rawPage
+          ))
+        }));
+      }
+    }).catch(err => {
+      console.error('Failed to mark pages as read:', err);
+    });
+  }, [queryKey, queryClient]);
+
+  // Mark pages as read when they scroll past (become invisible from top)
+  const markPageAsReadOnScroll = useCallback((pageId: number) => {
+    // Skip if already processed
+    if (processedPages.has(pageId)) return;
+    
+    // Check if page exists and is not already marked as read
+    const queryData = queryClient.getQueryData<InfiniteData<PageItem[]>>(queryKey);
+    const page = queryData?.pages?.flat().find(p => p.id === pageId);
+    
+    if (page && !page.markRead) {
+      // Mark as processed to avoid duplicate calls
+      setProcessedPages(prev => {
+        const newProcessed = new Set(prev);
+        newProcessed.add(pageId);
+        return newProcessed;
+      });
+      
+      // Call API to mark as read
+      markPagesAsRead([pageId]);
+    }
+  }, [processedPages, queryClient, queryKey, markPagesAsRead]);
+
+  // Initialize Intersection Observer for scroll tracking
+  useEffect(() => {
+    if (!shouldEnableScrollTracking) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const pageId = parseInt(entry.target.getAttribute('data-page-id') || '0');
+          if (pageId === 0) return;
+
+          // When element scrolls out of view going downward (scrolled past), mark as read
+          // This is the simple "mark read when scrolling down past them" behavior
+          if (!entry.isIntersecting && entry.boundingClientRect.bottom < entry.rootBounds.top) {
+            markPageAsReadOnScroll(pageId);
+          }
+        });
+      },
+      {
+        rootMargin: '-90px 0px 0px 0px',
+        threshold: 0
+      }
+    );
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observedElementsRef.current.clear();
+      }
+    };
+  }, [shouldEnableScrollTracking, markPageAsReadOnScroll]);
+
+  // Observe all page items when data changes (moved to after data declaration)
+  const observePageItems = useCallback(() => {
+    if (!shouldEnableScrollTracking || !observerRef.current || !pageListRef.current) return;
+
+    // Find all page items and observe only new ones
+    const pageItems = pageListRef.current.querySelectorAll('[data-page-id]');
+    pageItems.forEach((item) => {
+      // Only observe if not already observed
+      if (observerRef.current && !observedElementsRef.current.has(item)) {
+        observerRef.current.observe(item);
+        observedElementsRef.current.add(item);
+      }
+    });
+  }, [shouldEnableScrollTracking]);
+
+  // Clean up observed elements that are no longer in DOM
+  const cleanupObservedElements = useCallback(() => {
+    if (!pageListRef.current) return;
+    
+    const currentElements = new Set(pageListRef.current.querySelectorAll('[data-page-id]'));
+    const elementsToRemove: Element[] = [];
+    
+    observedElementsRef.current.forEach((element) => {
+      if (!currentElements.has(element) || !element.isConnected) {
+        elementsToRemove.push(element);
+      }
+    });
+    
+    elementsToRemove.forEach((element) => {
+      if (observerRef.current) {
+        observerRef.current.unobserve(element);
+      }
+      observedElementsRef.current.delete(element);
+    });
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
 
   const {
     isLoading,
@@ -157,6 +287,19 @@ const PageList = (props: PageListProps) => {
       fetchNextPage();
     }
   }, [inView]);
+
+  // Observe page items when data is loaded
+  useEffect(() => {
+    if (data && data.pages && data.pages.length > 0) {
+      // Clean up elements that are no longer in DOM first
+      cleanupObservedElements();
+      
+      // Wait for DOM to update, then observe new items
+      setTimeout(() => {
+        observePageItems();
+      }, 1000);
+    }
+  }, [data, observePageItems, cleanupObservedElements]);
 
   function operateSuccess(event: PageOperateEvent) {
     updatePageListQueryData(event, queryClient, queryKey);
@@ -254,7 +397,7 @@ const PageList = (props: PageListProps) => {
                  buttonOptions={buttonOptions}/>
       <div className={'flex flex-auto'}>
         <div className="p-2 flex flex-col grow items-center">
-          <div className={'page-list w-[720px] flex flex-col items-center'}>
+          <div className={'page-list w-[720px] flex flex-col items-center'} ref={pageListRef}>
             {showDoneTip && <div className={'w-full'}>
                 <TransitionAlert severity="success" color="info">
                     <AlertTitle>Well done!</AlertTitle>
@@ -287,10 +430,16 @@ const PageList = (props: PageListProps) => {
                   {data.pages.map((pages, index) =>
                     <React.Fragment key={index}>
                       {pages.map((page) => {
-                          return <MagazineItem page={page} key={page.id} showMarkReadOption={showMarkReadOption}
+                          return <div 
+                            className={`w-full`} 
+                            key={page.id} 
+                            data-page-id={!page.markRead ? page.id : undefined}
+                          >
+                            <MagazineItem page={page} showMarkReadOption={showMarkReadOption}
                                                onOperateSuccess={operateSuccess}
                                                currentVisit={lastVisitPageId === page.id}
-                                               onPageSelect={(e, id) => openPageDetail(e, id)}></MagazineItem>;
+                                               onPageSelect={(e, id) => openPageDetail(e, id)}></MagazineItem>
+                          </div>;
                         }
                       )}
                     </React.Fragment>

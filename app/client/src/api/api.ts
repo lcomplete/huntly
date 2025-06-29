@@ -703,6 +703,12 @@ export interface GlobalSetting {
     'id'?: number;
     /**
      * 
+     * @type {boolean}
+     * @memberof GlobalSetting
+     */
+    'markReadOnScroll'?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof GlobalSetting
      */

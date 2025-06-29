@@ -11,6 +11,7 @@ import {getPageListFilter} from "../domain/utils";
 
 const FolderList = () => {
   const {id} = useParams<"id">();
+  
   const {
     isLoading,
     error,
@@ -46,6 +47,7 @@ const FolderList = () => {
                   markRead: pageFilterOptions.showAllArticles ? undefined : false,
                 }} onMarkAllAsRead={markAllAsRead}
                 showMarkReadOption={true}
+                hasMarkReadOnScrollFeature={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />
     </MainContainer>

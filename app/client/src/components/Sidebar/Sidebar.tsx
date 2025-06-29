@@ -114,12 +114,12 @@ const Sidebar = () => {
   const [settingIndex, setSettingIndex] = useState(0);
 
   const openConnectSettingModal = useCallback(() => {
-    setSettingIndex(0);
+    setSettingIndex(2);
     setSettingModalOpen(true);
   }, []);
 
   const openFeedsSettingModal = useCallback(() => {
-    setSettingIndex(1);
+    setSettingIndex(3);
     setSettingModalOpen(true);
   }, []);
 

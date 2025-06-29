@@ -74,6 +74,7 @@ public class GlobalSettingService {
         dbSetting.setOpenApiBaseUrl(globalSetting.getOpenApiBaseUrl());
         dbSetting.setOpenApiModel(globalSetting.getOpenApiModel());
         dbSetting.setArticleSummaryPrompt(globalSetting.getArticleSummaryPrompt());
+        dbSetting.setMarkReadOnScroll(globalSetting.getMarkReadOnScroll());
         if (Boolean.TRUE.equals(globalSetting.getChangedOpenApiKey())) {
             dbSetting.setOpenApiKey(globalSetting.getOpenApiKey());
         }
