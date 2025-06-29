@@ -103,7 +103,7 @@ public class TweetParser {
         TweetProperties tweetProperties = getTweetProperties(user, tweetResult, views, quotedTweet);
         var tweet = tweetResult.legacy;
 
-        var realTweet = tweetProperties.getRetweetedTweet() != null ? tweetProperties.getRetweetedTweet() : tweetProperties;
+        TweetProperties realTweet = tweetProperties.getRetweetedTweet() != null ? tweetProperties.getRetweetedTweet() : tweetProperties;
 
         var page = new Page();
         page.setCategory(category);
@@ -134,9 +134,30 @@ public class TweetParser {
         var tweet = tweetResult.legacy;
         TweetProperties tweetProperties = new TweetProperties();
         tweetProperties.setUserIdStr(tweet.user_id_str);
-        tweetProperties.setUserName(user.name);
-        tweetProperties.setUserScreeName(user.screen_name);
-        tweetProperties.setUserProfileImageUrl(user.profile_image_url_https);
+        if (user.name != null) {
+            tweetProperties.setUserName(user.name);
+        }
+        else{
+            if(tweetResult.core != null && tweetResult.core.user_results != null && tweetResult.core.user_results.result != null && tweetResult.core.user_results.result.core != null) {
+                tweetProperties.setUserName(tweetResult.core.user_results.result.core.name);
+            }
+        }
+        if(user.screen_name != null) {
+            tweetProperties.setUserScreeName(user.screen_name);
+        }
+        else{
+            if(tweetResult.core != null && tweetResult.core.user_results != null && tweetResult.core.user_results.result != null && tweetResult.core.user_results.result.core != null) {
+                tweetProperties.setUserScreeName(tweetResult.core.user_results.result.core.screen_name);
+            }
+        }
+        if(user.profile_image_url_https != null) {
+            tweetProperties.setUserProfileImageUrl(user.profile_image_url_https);
+        }
+        else{
+            if(tweetResult.core != null && tweetResult.core.user_results != null && tweetResult.core.user_results.result != null && tweetResult.core.user_results.result.avatar != null) {
+                tweetProperties.setUserProfileImageUrl(tweetResult.core.user_results.result.avatar.image_url);
+            }
+        }
         tweetProperties.setTweetIdStr(tweet.id_str);
         tweetProperties.setQuoteCount(tweet.quote_count);
         tweetProperties.setRetweetCount(tweet.retweet_count);
@@ -299,8 +320,12 @@ public class TweetParser {
             tweetProperties.setQuotedTweet(getTweetProperties(quotedTweet.result.core.user_results.result.legacy, quotedTweet.result, quotedTweet.result.views, null));
         }
         if (tweet.retweeted_status_result != null) {
-            tweetProperties.setRetweetedTweet(getTweetProperties(tweet.retweeted_status_result.result.core.user_results.result.legacy,
-                    tweet.retweeted_status_result.result, tweet.retweeted_status_result.result.views, tweet.retweeted_status_result.result.quoted_status_result));
+            if (tweet.retweeted_status_result != null && tweet.retweeted_status_result.result != null
+                    && tweet.retweeted_status_result.result.core != null && tweet.retweeted_status_result.result.core.user_results != null
+                    && tweet.retweeted_status_result.result.core.user_results.result != null && tweet.retweeted_status_result.result.core.user_results.result.legacy != null) {
+                tweetProperties.setRetweetedTweet(getTweetProperties(tweet.retweeted_status_result.result.core.user_results.result.legacy,
+                        tweet.retweeted_status_result.result, tweet.retweeted_status_result.result.views, tweet.retweeted_status_result.result.quoted_status_result));
+            }
         }
         return tweetProperties;
     }
@@ -332,7 +357,11 @@ public class TweetParser {
             } else if (root.data.viewer != null && root.data.viewer.communities_timeline != null) {
                 timeline = root.data.viewer.communities_timeline.timeline;
             } else if (root.data.user != null) {
-                timeline = root.data.user.result.timeline_v2.timeline;
+                if (root.data.user.result.timeline != null && root.data.user.result.timeline.timeline != null) { // from user
+                    timeline = root.data.user.result.timeline.timeline;
+                } else {
+                    timeline = root.data.user.result.timeline_v2.timeline;
+                }
             } else if (root.data.threaded_conversation_with_injections_v2 != null) { // from tweet detail
                 timeline = root.data.threaded_conversation_with_injections_v2;
             }

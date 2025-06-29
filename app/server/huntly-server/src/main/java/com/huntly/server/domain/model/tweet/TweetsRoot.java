@@ -75,6 +75,8 @@ public class TweetsRoot {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Core {
         public UserResults user_results;
+        public String screen_name;
+        public String name;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -102,6 +104,7 @@ public class TweetsRoot {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UserResult{
         public TimelineV2 timeline_v2;
+        public TimelineV2 timeline;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -492,6 +495,7 @@ public class TweetsRoot {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Result {
+        public Avatar avatar;
         
         public Result tweet;
         public String __typename;
@@ -657,6 +661,11 @@ public class TweetsRoot {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UserResults {
         public Result result;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Avatar {
+        public String image_url;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
