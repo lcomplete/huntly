@@ -54,6 +54,7 @@ interface PageListProps {
 }
 
 const PageList = (props: PageListProps) => {
+  // ============ Props and Hooks ============
   const {
     buttonOptions,
     navLabel,
@@ -62,12 +63,14 @@ const PageList = (props: PageListProps) => {
     showMarkReadOption,
     hasMarkReadOnScrollFeature
   } = props;
+  
   const {ref: inViewRef, inView} = useInView();
   const {enqueueSnackbar} = useSnackbar();
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const { markReadOnScroll } = useGlobalSettings();
 
+  // ============ Basic State ============
   const selectedPageId = safeInt(params.get("p"));
   const propFilters = props.filters || {};
   const [filters, setFilters] = useState<PageListFilter>(propFilters);
@@ -75,15 +78,13 @@ const PageList = (props: PageListProps) => {
   const [lastVisitPageId, setLastVisitPageId] = useState(0);
   const pageSize = filters.count || 20;
   const queryKey = [PageQueryKey.PageList, filters];
-  
-  // Scroll tracking state - tracks which pages have been marked as read
+
+  // ============ Scroll Tracking State and Logic ============
+  const shouldEnableScrollTracking = hasMarkReadOnScrollFeature && markReadOnScroll;
   const [processedPages, setProcessedPages] = useState<Set<number>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const pageListRef = useRef<HTMLDivElement | null>(null);
   const observedElementsRef = useRef<Set<Element>>(new Set());
-
-  // Only enable scroll tracking if the feature is enabled for this page and the setting is on
-  const shouldEnableScrollTracking = hasMarkReadOnScrollFeature && markReadOnScroll;
 
   // Mark pages as read via API
   const markPagesAsRead = useCallback((pageIds: number[]) => {
@@ -126,38 +127,7 @@ const PageList = (props: PageListProps) => {
     }
   }, [processedPages, queryClient, queryKey, markPagesAsRead]);
 
-  // Initialize Intersection Observer for scroll tracking
-  useEffect(() => {
-    if (!shouldEnableScrollTracking) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const pageId = parseInt(entry.target.getAttribute('data-page-id') || '0');
-          if (pageId === 0) return;
-
-          // When element scrolls out of view going downward (scrolled past), mark as read
-          // This is the simple "mark read when scrolling down past them" behavior
-          if (!entry.isIntersecting && entry.boundingClientRect.bottom < entry.rootBounds.top) {
-            markPageAsReadOnScroll(pageId);
-          }
-        });
-      },
-      {
-        rootMargin: '-90px 0px 0px 0px',
-        threshold: 0
-      }
-    );
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observedElementsRef.current.clear();
-      }
-    };
-  }, [shouldEnableScrollTracking, markPageAsReadOnScroll]);
-
-  // Observe all page items when data changes (moved to after data declaration)
+  // Observe all page items when data changes
   const observePageItems = useCallback(() => {
     if (!shouldEnableScrollTracking || !observerRef.current || !pageListRef.current) return;
 
@@ -193,6 +163,37 @@ const PageList = (props: PageListProps) => {
     });
   }, []);
 
+  // Initialize Intersection Observer for scroll tracking
+  useEffect(() => {
+    if (!shouldEnableScrollTracking) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const pageId = parseInt(entry.target.getAttribute('data-page-id') || '0');
+          if (pageId === 0) return;
+
+          // When element scrolls out of view going downward (scrolled past), mark as read
+          // This is the simple "mark read when scrolling down past them" behavior
+          if (!entry.isIntersecting && entry.boundingClientRect.bottom < entry.rootBounds.top) {
+            markPageAsReadOnScroll(pageId);
+          }
+        });
+      },
+      {
+        rootMargin: '-90px 0px 0px 0px',
+        threshold: 0
+      }
+    );
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observedElementsRef.current.clear();
+      }
+    };
+  }, [shouldEnableScrollTracking, markPageAsReadOnScroll]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -202,18 +203,14 @@ const PageList = (props: PageListProps) => {
     };
   }, []);
 
+  // ============ Data Fetching ============
   const {
     isLoading,
-    status,
     data,
     error,
-    isFetching,
     isFetchingNextPage,
-    isFetchingPreviousPage,
     fetchNextPage,
-    fetchPreviousPage,
     hasNextPage,
-    hasPreviousPage,
     remove,
     refetch
   } = useInfiniteQuery(
@@ -261,35 +258,10 @@ const PageList = (props: PageListProps) => {
     },
   );
 
-  // if there is no un read pages, then load all pages
-  if (filters.markRead === false && data && data.pages && (data.pages.length === 0 || data.pages[0].length === 0)) {
-    setShowDoneTip(true);
-    setFilters({...filters, markRead: undefined});
-  }
-
-  useEffect(() => {
-    if (!isDeepEqual(filters, propFilters)) {
-      setShowDoneTip(false);
-      setFilters(propFilters);
-    }
-  }, [propFilters]);
-
-  useEffect(() => {
-    if (selectedPageId === 0) {
-      setDocTitle(navLabel.labelText);
-    } else {
-      setLastVisitPageId(selectedPageId);
-    }
-  }, [selectedPageId, navLabel]);
-
-  useEffect(() => {
-    if (inView && !isLoading && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [inView]);
-
   // Observe page items when data is loaded
   useEffect(() => {
+    if (!shouldEnableScrollTracking) return;
+
     if (data && data.pages && data.pages.length > 0) {
       // Clean up elements that are no longer in DOM first
       cleanupObservedElements();
@@ -299,37 +271,9 @@ const PageList = (props: PageListProps) => {
         observePageItems();
       }, 1000);
     }
-  }, [data, observePageItems, cleanupObservedElements]);
+  }, [data, observePageItems, cleanupObservedElements, shouldEnableScrollTracking]);
 
-  function operateSuccess(event: PageOperateEvent) {
-    updatePageListQueryData(event, queryClient, queryKey);
-  }
-
-  function updatePageListQueryData(event: PageOperateEvent, queryClient: QueryClient, queryKey) {
-    if (event.operation !== PageOperation.delete) {
-      const res = event.result;
-      queryClient.setQueryData<InfiniteData<PageItem[]>>(queryKey, oldData => ({
-        ...oldData,
-        pages: oldData.pages.map(pages => pages.map(rawPage => rawPage.id === event.rawPageStatus.id ? {
-          ...rawPage,
-          starred: res.starred,
-          readLater: res.readLater,
-          librarySaveStatus: res.librarySaveStatus
-        } : rawPage))
-      }));
-    } else {
-      queryClient.setQueryData<InfiniteData<PageItem[]>>(queryKey, oldData => ({
-        ...oldData,
-        pages: oldData.pages.map(pages => pages.filter(curPage => curPage.id !== event.rawPageStatus.id))
-      }));
-      closePageDetail();
-      enqueueSnackbar('Page deleted.', {
-        variant: "success",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
-      });
-    }
-  }
-
+  // ============ Mark Read Operations ============
   function markListAsRead() {
     const queryData = queryClient.getQueryData<InfiniteData<PageItem[]>>(queryKey);
     if (queryData && queryData.pages) {
@@ -372,6 +316,37 @@ const PageList = (props: PageListProps) => {
     }));
   }
 
+  // ============ Page Operations ============
+  function operateSuccess(event: PageOperateEvent) {
+    updatePageListQueryData(event, queryClient, queryKey);
+  }
+
+  function updatePageListQueryData(event: PageOperateEvent, queryClient: QueryClient, queryKey) {
+    if (event.operation !== PageOperation.delete) {
+      const res = event.result;
+      queryClient.setQueryData<InfiniteData<PageItem[]>>(queryKey, oldData => ({
+        ...oldData,
+        pages: oldData.pages.map(pages => pages.map(rawPage => rawPage.id === event.rawPageStatus.id ? {
+          ...rawPage,
+          starred: res.starred,
+          readLater: res.readLater,
+          librarySaveStatus: res.librarySaveStatus
+        } : rawPage))
+      }));
+    } else {
+      queryClient.setQueryData<InfiniteData<PageItem[]>>(queryKey, oldData => ({
+        ...oldData,
+        pages: oldData.pages.map(pages => pages.filter(curPage => curPage.id !== event.rawPageStatus.id))
+      }));
+      closePageDetail();
+      enqueueSnackbar('Page deleted.', {
+        variant: "success",
+        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+      });
+    }
+  }
+
+  // ============ Navigation and UI ============
   function closePageDetail() {
     setParams({}, {preventScrollReset: true});
   }
@@ -389,6 +364,35 @@ const PageList = (props: PageListProps) => {
     refetch();
   }
 
+  // ============ Effects ============
+  // if there is no un read pages, then load all pages
+  if (filters.markRead === false && data && data.pages && (data.pages.length === 0 || data.pages[0].length === 0)) {
+    setShowDoneTip(true);
+    setFilters({...filters, markRead: undefined});
+  }
+
+  useEffect(() => {
+    if (!isDeepEqual(filters, propFilters)) {
+      setShowDoneTip(false);
+      setFilters(propFilters);
+    }
+  }, [propFilters]);
+
+  useEffect(() => {
+    if (selectedPageId === 0) {
+      setDocTitle(navLabel.labelText);
+    } else {
+      setLastVisitPageId(selectedPageId);
+    }
+  }, [selectedPageId, navLabel]);
+
+  useEffect(() => {
+    if (inView && !isLoading && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView]);
+
+  // ============ Render ============
   return (
     <>
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail}/>
@@ -422,7 +426,7 @@ const PageList = (props: PageListProps) => {
                               <br />
                               <div>
                                   <a href={'https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm'}
-                                     target={'_blank'} className={'text-blue-600 hover:underline'}>Web Store</a>
+                                     target={'_blank'} rel="noreferrer" className={'text-blue-600 hover:underline'}>Web Store</a>
                               </div>
                           </Alert>
                       </div>
