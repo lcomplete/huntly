@@ -19,6 +19,7 @@ import Search from "./pages/Search";
 import Twitter from "./pages/Twitter";
 import {AuthControllerApiFactory} from "./api";
 import SignIn from "./pages/SignIn";
+import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
 
 function App() {
   const router = createBrowserRouter(
@@ -56,7 +57,9 @@ function App() {
   }, []);
   
   return (
-    <RouterProvider router={router}/>
+    <GlobalSettingsProvider>
+      <RouterProvider router={router}/>
+    </GlobalSettingsProvider>
     // <Routes>
     //   <Route path="/signin" element={<SignIn/>}/>
     //   <Route path="/" element={<Layout/>}>

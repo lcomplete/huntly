@@ -89,6 +89,7 @@ const ConnectorList = () => {
                   markRead: pageFilterOptions.showAllArticles ? undefined : false,
                 }}
                 onMarkAllAsRead={markAllAsRead} showMarkReadOption={true}
+                hasMarkReadOnScrollFeature={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />
     </MainContainer>

@@ -38,6 +38,7 @@ const AllFeeds = () => {
                 }}
                 showMarkReadOption={true}
                 onMarkAllAsRead={markAllAsRead}
+                hasMarkReadOnScrollFeature={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
       />
     </MainContainer>

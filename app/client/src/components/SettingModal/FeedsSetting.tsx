@@ -1,5 +1,5 @@
 import Typography from "@mui/material/Typography";
-import {Button, Divider, InputAdornment, TextField} from "@mui/material";
+import {Button, Divider, InputAdornment, TextField, Switch, FormControlLabel} from "@mui/material";
 import React, {useState} from "react";
 import {PreviewFeedsInfo, SettingControllerApiFactory} from "../../api";
 import {useSnackbar} from "notistack";
@@ -11,6 +11,7 @@ import CardContent from "@mui/material/CardContent";
 import Card from "@mui/material/Card";
 import RssFeedIcon from "@mui/icons-material/RssFeed";
 import {AxiosRequestConfig} from 'axios';
+import { useGlobalSettings } from "../../contexts/GlobalSettingsContext";
 
 export const FeedsSetting = () => {
   const [file, setFile] = useState<File>();
@@ -18,6 +19,34 @@ export const FeedsSetting = () => {
   const [exporting, setExporting] = useState(false);
   const {enqueueSnackbar} = useSnackbar();
   const api = SettingControllerApiFactory();
+  const { markReadOnScroll, setMarkReadOnScroll } = useGlobalSettings();
+
+  async function handleMarkReadOnScrollChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const newValue = event.target.checked;
+    
+    try {
+      // Update local state immediately for better UX
+      setMarkReadOnScroll(newValue);
+      
+      // Save to server
+      const res = await api.getGlobalSettingUsingGET();
+      const globalSetting = res.data as any;
+      globalSetting.markReadOnScroll = newValue;
+      await api.saveGlobalSettingUsingPOST(globalSetting);
+      
+      enqueueSnackbar('Setting saved.', {
+        variant: "success",
+        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+      });
+    } catch (err) {
+      // Revert on error
+      setMarkReadOnScroll(!newValue);
+      enqueueSnackbar('Failed to save setting. Error: ' + err, {
+        variant: "error",
+        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+      });
+    }
+  }
 
   function uploadOpml() {
     if (!file) {
@@ -203,6 +232,21 @@ export const FeedsSetting = () => {
             onClick={downloadOpml}>{exporting ? 'exporting' : 'export'}</Button>
         </div>
       </form>
+    </div>
+    <div className={'mt-6'}>
+      <Typography variant={'h6'}>Options</Typography>
+      <Divider/>
+      <div className={'pt-3'}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={markReadOnScroll}
+              onChange={handleMarkReadOnScrollChange}
+            />
+          }
+          label="Mark read when you scroll past them"
+        />
+      </div>
     </div>
   </React.Fragment>
 }

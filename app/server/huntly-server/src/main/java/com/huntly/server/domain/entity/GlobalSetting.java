@@ -49,6 +49,9 @@ public class GlobalSetting implements Serializable {
     @Column(name = "auto_save_site_blacklists")
     private String autoSaveSiteBlacklists;
 
+    @Column(name = "mark_read_on_scroll")
+    private Boolean markReadOnScroll;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

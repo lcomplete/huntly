@@ -6,7 +6,7 @@ import {Link} from "react-router-dom";
 import {PageItem} from "../api";
 import SmartMoment from "./SmartMoment";
 import PageOperationButtons, {PageOperateEvent} from "./PageOperationButtons";
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import TwitterIcon from '@mui/icons-material/Twitter';
 import {TweetProperties} from "../interfaces/tweetProperties";
 import TweetRoot from "./Tweet/TweetRoot";
@@ -45,6 +45,11 @@ export default function MagazineItem({
     tweetStatus = tweetProps.retweetedTweet;
   }
   let repoProps: GithubRepoProperties = isGithub && page.pageJsonProperties != null ? JSON.parse(page.pageJsonProperties) : null;
+
+  // Update local state when page.markRead changes
+  useEffect(() => {
+    setReaded(page.markRead);
+  }, [page.markRead]);
 
   function pageSelect(e: React.MouseEvent<HTMLAnchorElement>, id: number) {
     setReaded(true);
