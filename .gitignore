@@ -41,3 +41,5 @@ db.sqlite*
 .specstory/
 
 .vscode/
+
+.claude/

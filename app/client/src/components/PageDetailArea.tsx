@@ -8,7 +8,7 @@ import styles from "./PageDetail.module.css";
 import CardMedia from "@mui/material/CardMedia";
 import SmartMoment from "../components/SmartMoment";
 import PageOperationButtons, {PageOperateEvent, PageOperation} from "../components/PageOperationButtons";
-import {Box, CircularProgress, IconButton, Menu, MenuItem, Paper, Tooltip, Typography} from "@mui/material";
+import {Box, CircularProgress, IconButton, Menu, MenuItem, Paper, Snackbar, Tooltip, Typography} from "@mui/material";
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import {setDocTitle} from "../common/docUtils";
 import ScreenSearchDesktopOutlinedIcon from '@mui/icons-material/ScreenSearchDesktopOutlined';
@@ -18,6 +18,11 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ShortTextIcon from '@mui/icons-material/ShortText';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import SaveAltIcon from '@mui/icons-material/SaveAlt';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+
+// 引入 TurndownService
+import TurndownService from 'turndown';
 
 const PageDetailArea = ({
                            id,
@@ -31,6 +36,8 @@ const PageDetailArea = ({
   const [showProcessedSection, setShowProcessedSection] = useState(false);
   const [processedTitle, setProcessedTitle] = useState<string>("AI 处理结果");
   const [processingError, setProcessingError] = useState<string>("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
   
   // AI操作菜单状态
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -227,6 +234,105 @@ const PageDetailArea = ({
     handleAIMenuClose();
   };
 
+  // 导出Markdown功能
+  const exportToMarkdown = () => {
+    if (!detail) return;
+    
+    const title = detail.page.title || 'Untitled';
+    const url = detail.page.url || '';
+    
+    // 直接使用 detail.page.content 获取内容
+    const content = detail.page.content || '';
+    
+    // 使用 Turndown 将 HTML 转换为 Markdown
+    const turndownService = new TurndownService({
+      headingStyle: 'atx',
+      hr: '---',
+      bulletListMarker: '-',
+      codeBlockStyle: 'fenced',
+      emDelimiter: '*',
+      strongDelimiter: '**',
+    });
+    
+    // 添加表格支持
+    turndownService.addRule('table', {
+      filter: 'table',
+      replacement: function(content) {
+        return '\n' + content + '\n';
+      }
+    });
+    
+    // 转换 HTML 到 Markdown
+    let markdownContent = turndownService.turndown(content);
+    
+    // 添加标题和链接
+    markdownContent = `# ${title}\n\n[Original link](${url})\n\n${markdownContent}`;
+    
+    // 创建Blob对象
+    const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+    
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${title}.md`;
+    
+    // 触发下载
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 复制 Markdown 文本功能
+  const copyMarkdownToClipboard = () => {
+    if (!detail) return;
+    
+    const title = detail.page.title || 'Untitled';
+    const url = detail.page.url || '';
+    
+    // 直接使用 detail.page.content 获取内容
+    const content = detail.page.content || '';
+    
+    // 使用 Turndown 将 HTML 转换为 Markdown
+    const turndownService = new TurndownService({
+      headingStyle: 'atx',
+      hr: '---',
+      bulletListMarker: '-',
+      codeBlockStyle: 'fenced',
+      emDelimiter: '*',
+      strongDelimiter: '**',
+    });
+    
+    // 添加表格支持
+    turndownService.addRule('table', {
+      filter: 'table',
+      replacement: function(content) {
+        return '\n' + content + '\n';
+      }
+    });
+    
+    // 转换 HTML 到 Markdown
+    let markdownContent = turndownService.turndown(content);
+    
+    // 添加标题和链接
+    markdownContent = `# ${title}\n\n[Original link](${url})\n\n${markdownContent}`;
+    
+    // 复制到剪贴板
+    navigator.clipboard.writeText(markdownContent)
+      .then(() => {
+        setSnackbarMessage("Markdown content copied to clipboard");
+        setSnackbarOpen(true);
+      })
+      .catch(err => {
+        setSnackbarMessage("Failed to copy, please copy manually");
+        setSnackbarOpen(true);
+        console.error('Failed to copy:', err);
+      });
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   return (
     <div className="pl-2 pr-2 flex flex-col items-center">
       {isLoading && <Loading/>}
@@ -274,6 +380,18 @@ const PageDetailArea = ({
                           <ScreenSearchDesktopOutlinedIcon fontSize={"small"}/>
                         </IconButton>
                       }
+                    </Tooltip>
+                    
+                    <Tooltip title={'Export to Markdown'} placement={"bottom"}>
+                      <IconButton onClick={exportToMarkdown}>
+                        <SaveAltIcon fontSize={"small"} />
+                      </IconButton>
+                    </Tooltip>
+                    
+                    <Tooltip title={'Copy Markdown content'} placement={"bottom"}>
+                      <IconButton onClick={copyMarkdownToClipboard}>
+                        <ContentCopyIcon fontSize={"small"} />
+                      </IconButton>
                     </Tooltip>
                     
                     {shortcuts && shortcuts.length > 0 ? (
@@ -428,6 +546,12 @@ const PageDetailArea = ({
           </div>
         </Paper>
       )}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+      />
     </div>
   );
 };
