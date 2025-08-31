@@ -2,7 +2,7 @@ import MagazineItem from "../components/MagazineItem";
 import {ApiResultOfint, PageControllerApiFactory, PageItem} from "../api";
 import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tanstack/react-query";
 import {useInView} from "react-intersection-observer";
-import React, {ReactElement, useEffect, useState, useRef, useCallback} from "react";
+import React, {ReactElement, useEffect, useState, useRef, useCallback, useMemo} from "react";
 import {AlertTitle, Button} from "@mui/material";
 import Loading from "./Loading";
 import {NavLabel} from "./Sidebar/NavLabels";
@@ -72,12 +72,12 @@ const PageList = (props: PageListProps) => {
 
   // ============ Basic State ============
   const selectedPageId = safeInt(params.get("p"));
-  const propFilters = props.filters || {};
+  const propFilters = useMemo(() => props.filters || {}, [props.filters]);
   const [filters, setFilters] = useState<PageListFilter>(propFilters);
   const [showDoneTip, setShowDoneTip] = useState(false);
   const [lastVisitPageId, setLastVisitPageId] = useState(0);
   const pageSize = filters.count || 20;
-  const queryKey = [PageQueryKey.PageList, filters];
+  const queryKey = useMemo(() => [PageQueryKey.PageList, filters], [filters]);
 
   // ============ Scroll Tracking State and Logic ============
   const shouldEnableScrollTracking = hasMarkReadOnScrollFeature && markReadOnScroll;
@@ -85,6 +85,42 @@ const PageList = (props: PageListProps) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const pageListRef = useRef<HTMLDivElement | null>(null);
   const observedElementsRef = useRef<Set<Element>>(new Set());
+
+  // Clean up observed elements that are no longer in DOM
+  const cleanupObservedElements = useCallback(() => {
+    if (!pageListRef.current) return;
+    
+    const currentElements = new Set(pageListRef.current.querySelectorAll('[data-page-id]'));
+    const elementsToRemove: Element[] = [];
+    
+    observedElementsRef.current.forEach((element) => {
+      if (!currentElements.has(element) || !element.isConnected) {
+        elementsToRemove.push(element);
+      }
+    });
+    
+    elementsToRemove.forEach((element) => {
+      if (observerRef.current) {
+        observerRef.current.unobserve(element);
+      }
+      observedElementsRef.current.delete(element);
+    });
+  }, []);
+
+  // Observe all page items when data changes
+  const observePageItems = useCallback(() => {
+    if (!shouldEnableScrollTracking || !observerRef.current || !pageListRef.current) return;
+
+    // Find all page items and observe only new ones
+    const pageItems = pageListRef.current.querySelectorAll('[data-page-id]');
+    pageItems.forEach((item) => {
+      // Only observe if not already observed
+      if (observerRef.current && !observedElementsRef.current.has(item)) {
+        observerRef.current.observe(item);
+        observedElementsRef.current.add(item);
+      }
+    });
+  }, [shouldEnableScrollTracking]);
 
   // Mark pages as read via API
   const markPagesAsRead = useCallback((pageIds: number[]) => {
@@ -99,11 +135,19 @@ const PageList = (props: PageListProps) => {
             pageIds.includes(rawPage.id) ? { ...rawPage, markRead: true } : rawPage
           ))
         }));
+        
+        // 数据更新后，重新初始化滚动观察器
+        if (shouldEnableScrollTracking) {
+          setTimeout(() => {
+            cleanupObservedElements();
+            observePageItems();
+          }, 100);
+        }
       }
     }).catch(err => {
       console.error('Failed to mark pages as read:', err);
     });
-  }, [queryKey, queryClient]);
+  }, [queryKey, queryClient, shouldEnableScrollTracking, cleanupObservedElements, observePageItems]);
 
   // Mark pages as read when they scroll past (become invisible from top)
   const markPageAsReadOnScroll = useCallback((pageId: number) => {
@@ -127,45 +171,11 @@ const PageList = (props: PageListProps) => {
     }
   }, [processedPages, queryClient, queryKey, markPagesAsRead]);
 
-  // Observe all page items when data changes
-  const observePageItems = useCallback(() => {
-    if (!shouldEnableScrollTracking || !observerRef.current || !pageListRef.current) return;
-
-    // Find all page items and observe only new ones
-    const pageItems = pageListRef.current.querySelectorAll('[data-page-id]');
-    pageItems.forEach((item) => {
-      // Only observe if not already observed
-      if (observerRef.current && !observedElementsRef.current.has(item)) {
-        observerRef.current.observe(item);
-        observedElementsRef.current.add(item);
-      }
-    });
-  }, [shouldEnableScrollTracking]);
-
-  // Clean up observed elements that are no longer in DOM
-  const cleanupObservedElements = useCallback(() => {
-    if (!pageListRef.current) return;
-    
-    const currentElements = new Set(pageListRef.current.querySelectorAll('[data-page-id]'));
-    const elementsToRemove: Element[] = [];
-    
-    observedElementsRef.current.forEach((element) => {
-      if (!currentElements.has(element) || !element.isConnected) {
-        elementsToRemove.push(element);
-      }
-    });
-    
-    elementsToRemove.forEach((element) => {
-      if (observerRef.current) {
-        observerRef.current.unobserve(element);
-      }
-      observedElementsRef.current.delete(element);
-    });
-  }, []);
-
   // Initialize Intersection Observer for scroll tracking
   useEffect(() => {
     if (!shouldEnableScrollTracking) return;
+
+    const observedElements = observedElementsRef.current;
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
@@ -187,9 +197,10 @@ const PageList = (props: PageListProps) => {
     );
 
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observedElementsRef.current.clear();
+      const currentObserver = observerRef.current;
+      if (currentObserver) {
+        currentObserver.disconnect();
+        observedElements.clear();
       }
     };
   }, [shouldEnableScrollTracking, markPageAsReadOnScroll]);
@@ -258,20 +269,22 @@ const PageList = (props: PageListProps) => {
     },
   );
 
-  // Observe page items when data is loaded
+  // Re-initialize scroll tracking when data changes or modal state changes
   useEffect(() => {
     if (!shouldEnableScrollTracking) return;
 
-    if (data && data.pages && data.pages.length > 0) {
-      // Clean up elements that are no longer in DOM first
+    // Skip if no data is available yet
+    if (!data || !data.pages || data.pages.length === 0) return;
+
+    // Use a longer delay to ensure DOM updates are complete
+    // This handles both data loading and modal state changes
+    const timeoutId = setTimeout(() => {
       cleanupObservedElements();
-      
-      // Wait for DOM to update, then observe new items
-      setTimeout(() => {
-        observePageItems();
-      }, 1000);
-    }
-  }, [data, observePageItems, cleanupObservedElements, shouldEnableScrollTracking]);
+      observePageItems();
+    }, 600); // Single timeout that handles both scenarios
+
+    return () => clearTimeout(timeoutId);
+  }, [data, selectedPageId, shouldEnableScrollTracking, cleanupObservedElements, observePageItems]);
 
   // ============ Mark Read Operations ============
   function markListAsRead() {
@@ -314,11 +327,27 @@ const PageList = (props: PageListProps) => {
         markRead: true
       })))
     }));
+    
+    // 数据更新后，重新初始化滚动观察器
+    if (shouldEnableScrollTracking) {
+      setTimeout(() => {
+        cleanupObservedElements();
+        observePageItems();
+      }, 100);
+    }
   }
 
   // ============ Page Operations ============
   function operateSuccess(event: PageOperateEvent) {
     updatePageListQueryData(event, queryClient, queryKey);
+    
+    // 数据更新后，重新初始化滚动观察器
+    if (shouldEnableScrollTracking) {
+      setTimeout(() => {
+        cleanupObservedElements();
+        observePageItems();
+      }, 100);
+    }
   }
 
   function updatePageListQueryData(event: PageOperateEvent, queryClient: QueryClient, queryKey) {
@@ -376,7 +405,7 @@ const PageList = (props: PageListProps) => {
       setShowDoneTip(false);
       setFilters(propFilters);
     }
-  }, [propFilters]);
+  }, [propFilters, filters]);
 
   useEffect(() => {
     if (selectedPageId === 0) {
@@ -390,7 +419,7 @@ const PageList = (props: PageListProps) => {
     if (inView && !isLoading && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [inView]);
+  }, [inView, isLoading, isFetchingNextPage, fetchNextPage]);
 
   // ============ Render ============
   return (
@@ -437,7 +466,7 @@ const PageList = (props: PageListProps) => {
                           return <div 
                             className={`w-full`} 
                             key={page.id} 
-                            data-page-id={!page.markRead ? page.id : undefined}
+                            data-page-id={!page.markRead ? page.id : undefined} // for scroll mark read feature
                           >
                             <MagazineItem page={page} showMarkReadOption={showMarkReadOption}
                                                onOperateSuccess={operateSuccess}
