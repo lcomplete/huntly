@@ -1,7 +1,6 @@
 FROM openjdk:11
 
 LABEL maintainer="lcomplete"
-LABEL version = "0.1.0"
 
 WORKDIR /app
 
