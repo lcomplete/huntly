@@ -53,5 +53,8 @@
         </springProfile>
     </root>
 
-    <jmxConfigurator/>
+    <!-- JMX配置器在Docker容器中可能导致问题，仅在开发环境启用 -->
+    <springProfile name="dev">
+        <jmxConfigurator/>
+    </springProfile>
 </configuration>
