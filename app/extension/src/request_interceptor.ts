@@ -4,33 +4,44 @@ const RawRequest = {
 }
 
 function customXHR(handler: (responseText: string, responseUrl: string) => void) {
-  const RealXHR = RawRequest.originalXHR;
-  
-  return function XMLHttpRequestProxy(...args: any[]) {
-    const xhr = new RealXHR(...args);
-    
-    // 保存原始的 onreadystatechange
-    const originalOnReadyStateChange = xhr.onreadystatechange;
-    
-    // 重写 onreadystatechange 来拦截响应
-    xhr.onreadystatechange = function(...eventArgs: any[]) {
-      // 当请求完成时，调用处理器
-      if (xhr.readyState === 4 && (xhr.responseType === 'json' || xhr.responseType === 'text' || xhr.responseType === '')) {
-        try {
-          handler(xhr.responseText, xhr.responseURL);
-        } catch (error) {
-          console.error('Response handler error:', error);
+  return function() {
+    const xhr = new RawRequest.originalXHR;
+    for (let attr in xhr) {
+      if (attr === 'onreadystatechange') {
+        xhr.onreadystatechange = (...args) => {
+          if (this.readyState === 4 && (this.responseType === 'json' || this.responseType === 'text' || this.responseType === '')) {
+            handler(this.responseText, this.responseURL);
+          }
+          this.onreadystatechange && this.onreadystatechange.apply(this, args);
+        }
+        continue;
+      } else if (attr === 'onload') {
+        xhr.onload = (...args) => {
+          this.onload && this.onload.apply(this, args);
+        }
+        continue;
+      }
+
+      if (typeof xhr[attr] === 'function') {
+        this[attr] = xhr[attr].bind(xhr);
+      } else {
+        // responseText和response不是writeable的，但拦截时需要修改它，所以修改就存储在this[`_${attr}`]上
+        if (attr === 'responseText' || attr === 'response') {
+          Object.defineProperty(this, attr, {
+            get: () => this[`_${attr}`] === undefined ? xhr[attr] : this[`_${attr}`],
+            set: (val) => this[`_${attr}`] = val,
+            enumerable: true
+          });
+        } else {
+          Object.defineProperty(this, attr, {
+            get: () => xhr[attr],
+            set: (val) => xhr[attr] = val,
+            enumerable: true
+          });
         }
       }
-      
-      // 调用原始的处理器（如果存在）
-      if (originalOnReadyStateChange) {
-        originalOnReadyStateChange.apply(this, eventArgs);
-      }
-    };
-    
-    return xhr;
-  } as any;
+    }
+  }
 }
 
 // function myFetch(...args) {
@@ -42,23 +53,13 @@ function customXHR(handler: (responseText: string, responseUrl: string) => void)
 // }
 
 export class RequestInterceptor {
-  private previousXHR: typeof XMLHttpRequest | null = null;
-
   enable(responseHandler: (responseText: string, responseUrl: string) => void) {
-    // 保存当前的XMLHttpRequest（可能已经被其他扩展修改过）
-    this.previousXHR = window.XMLHttpRequest;
     window.XMLHttpRequest = customXHR(responseHandler);
     // window.fetch = myFetch;
   }
 
   disable() {
-    // 恢复到启用前的状态，而不是初始状态
-    if (this.previousXHR) {
-      window.XMLHttpRequest = this.previousXHR;
-      this.previousXHR = null;
-    } else {
-      window.XMLHttpRequest = RawRequest.originalXHR;
-    }
+    window.XMLHttpRequest = RawRequest.originalXHR;
     // window.fetch = RawRequest.originalFetch;
   }
 }
