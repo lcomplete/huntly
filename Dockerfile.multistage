@@ -20,8 +20,10 @@ COPY app/server/huntly-common/pom.xml ./huntly-common/
 COPY app/server/huntly-jpa/pom.xml ./huntly-jpa/
 # 下载依赖（缓存层）
 RUN mvn dependency:go-offline -B
-# 复制源码并构建
+# 复制源码并构建（跳过前端相关插件）
 COPY app/server/ ./
+# 复制前端构建产物
+COPY --from=client-builder /app/client/build ../client/build
 RUN mvn clean package -B
 
 # 运行阶段
