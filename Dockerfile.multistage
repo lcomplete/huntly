@@ -1,5 +1,5 @@
 # 构建阶段 - Node.js 环境
-FROM node:18.12.1 as client-builder
+FROM node:18.12.1 AS client-builder
 
 WORKDIR /app/client
 COPY app/client/package.json app/client/yarn.lock ./
@@ -8,13 +8,18 @@ COPY app/client/ ./
 RUN yarn build
 
 # 构建阶段 - Maven 环境
-FROM maven:3.8-openjdk-11 as server-builder
+FROM maven:3.8-openjdk-11 AS server-builder
 
 WORKDIR /app/server
+# 复制所有pom.xml文件以利用缓存
 COPY app/server/pom.xml ./
-COPY app/server/*/pom.xml ./*/
+COPY app/server/huntly-interfaces/pom.xml ./huntly-interfaces/
+COPY app/server/huntly-server/pom.xml ./huntly-server/
+COPY app/server/huntly-common/pom.xml ./huntly-common/
+COPY app/server/huntly-jpa/pom.xml ./huntly-jpa/
+# 下载依赖（缓存层）
 RUN mvn dependency:go-offline -B
-
+# 复制源码并构建
 COPY app/server/ ./
 RUN mvn clean package -B
 
