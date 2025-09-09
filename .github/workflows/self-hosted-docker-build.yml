@@ -59,15 +59,24 @@ jobs:
 
       - name: Tag current image as previous
         run: |
-          docker tag huntly:latest huntly:previous || true
+          docker tag lcomplete/huntly:latest lcomplete/huntly:previous || true
         continue-on-error: true
 
       - name: Build Docker image
         run: |
-          docker build -t huntly:latest .
+          docker build -t lcomplete/huntly:latest .
 
       - name: Clean up old huntly images
         run: |
           # 保留 latest 和 previous，删除其他 huntly 镜像
-          docker images huntly --format "table {{.Repository}}:{{.Tag}}" | grep -v "latest\|previous\|REPOSITORY" | xargs -r docker rmi || true
+          docker images lcomplete/huntly --format "table {{.Repository}}:{{.Tag}}" | grep -v "latest\|previous\|REPOSITORY" | xargs -r docker rmi || true
         continue-on-error: true
+
+      - name: Ensure data directory exists
+        run: |
+          mkdir -p /data/huntly
+
+      - name: Restart service with Docker Compose
+        run: |
+          docker compose down || true
+          docker compose up -d

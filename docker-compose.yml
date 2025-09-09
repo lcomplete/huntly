@@ -8,6 +8,6 @@ services:
     ports:
       - "8088:80"
     volumes:
-      - ./data:/data
+      - /data/huntly:/data
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
