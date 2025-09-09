@@ -7,10 +7,9 @@ export class RequestInterceptor {
   enable(responseHandler: (responseText: string, responseUrl: string) => void) {
     // 重写 XMLHttpRequest.prototype.open 方法
     XMLHttpRequest.prototype.open = function(method: string, url: string | URL, async?: boolean, user?: string | null, password?: string | null) {
-      // 添加 readystatechange 监听器
-      this.addEventListener('readystatechange', function() {
-        if (this.readyState === 4 && 
-            (this.responseType === 'json' || this.responseType === 'text' || this.responseType === '')) {
+      // 添加 load 监听器
+      this.addEventListener('load', function() {
+        if (this.responseType === 'json' || this.responseType === 'text' || this.responseType === '') {
           try {
             responseHandler(this.responseText, this.responseURL);
           } catch (error) {
