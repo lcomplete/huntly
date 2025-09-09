@@ -35,6 +35,12 @@ jobs:
           java-version: "11"
           distribution: "temurin"
 
+      - name: Install Maven
+        run: |
+          if ! command -v mvn &> /dev/null; then
+            brew install maven
+          fi
+
       - name: Cache maven dependencies
         uses: actions/cache@v3
         env:
