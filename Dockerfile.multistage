@@ -1,0 +1,44 @@
+# 构建阶段 - Node.js 环境
+FROM node:18.12.1 as client-builder
+
+WORKDIR /app/client
+COPY app/client/package.json app/client/yarn.lock ./
+RUN yarn install --frozen-lockfile
+COPY app/client/ ./
+RUN yarn build
+
+# 构建阶段 - Maven 环境
+FROM maven:3.8-openjdk-11 as server-builder
+
+WORKDIR /app/server
+COPY app/server/pom.xml ./
+COPY app/server/*/pom.xml ./*/
+RUN mvn dependency:go-offline -B
+
+COPY app/server/ ./
+RUN mvn clean package -B
+
+# 运行阶段
+FROM openjdk:11
+
+LABEL maintainer="lcomplete"
+
+WORKDIR /app
+
+VOLUME /data
+
+RUN mkdir -p /data /data/lucene
+
+# 从构建阶段复制 JAR 文件
+COPY --from=server-builder /app/server/huntly-server/target/huntly-server-*.jar /app/server.jar
+
+ENV JAVA_ARGS="-Xms128m -Xmx1024m"
+ENV VM_ARGS="-Duser.timezone=GMT+08"
+ENV APP_ARGS=""
+ENV PROFILE="default"
+ENV PORT=80
+
+EXPOSE ${PORT}
+EXPOSE 443
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_ARGS $VM_ARGS -jar /app/server.jar --spring.profiles.active=$PROFILE --server.port=$PORT --huntly.dataDir=/data/ --huntly.luceneDir=/data/lucene $APP_ARGS" ]
