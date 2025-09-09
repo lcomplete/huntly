@@ -14,14 +14,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Check Node.js version
+        id: node-check
+        run: |
+          if node --version | grep -q "v18.12.1"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
       - name: Set Node.js
+        if: steps.node-check.outputs.skip != 'true'
         uses: actions/setup-node@v3
         with:
           node-version: "18.12.1"
           cache: "yarn"
           cache-dependency-path: "app/client/yarn.lock"
       
+      - name: Check Yarn version
+        id: yarn-check
+        run: |
+          if yarn --version | grep -q "1.22.19"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
       - name: Setup yarn
+        if: steps.yarn-check.outputs.skip != 'true'
         run: npm install -g yarn --version 1.22.19
 
       - name: Install client dependencies
@@ -29,7 +51,18 @@ jobs:
           cd app/client
           yarn install
 
+      - name: Check Java version
+        id: java-check
+        run: |
+          if java -version 2>&1 | grep -q "11\."; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
       - name: Set up JDK 11
+        if: steps.java-check.outputs.skip != 'true'
         uses: actions/setup-java@v3
         with:
           java-version: "11"
