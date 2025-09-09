@@ -1,0 +1,67 @@
+name: Docker Build on Self-hosted Runner
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.12.1"
+          cache: "yarn"
+          cache-dependency-path: "app/client/yarn.lock"
+      
+      - name: Setup yarn
+        run: npm install -g yarn --version 1.22.19
+
+      - name: Install client dependencies
+        run: |
+          cd app/client
+          yarn install
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+
+      - name: Cache maven dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-maven-dependencies
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        run: |
+          cd app/server
+          mvn clean package
+        env:
+          CI: false
+
+      - name: Tag current image as previous
+        run: |
+          docker tag huntly:latest huntly:previous || true
+        continue-on-error: true
+
+      - name: Build Docker image
+        run: |
+          docker build -t huntly:latest .
+
+      - name: Clean up old huntly images
+        run: |
+          # 保留 latest 和 previous，删除其他 huntly 镜像
+          docker images huntly --format "table {{.Repository}}:{{.Tag}}" | grep -v "latest\|previous\|REPOSITORY" | xargs -r docker rmi || true
+        continue-on-error: true
