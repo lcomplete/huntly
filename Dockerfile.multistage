@@ -12,6 +12,7 @@ FROM maven:3.8-openjdk-11 AS server-builder
 
 WORKDIR /app/server
 # 复制所有pom.xml文件以利用缓存
+COPY app/server/.mvn/maven.config ./.mvn/
 COPY app/server/pom.xml ./
 COPY app/server/huntly-interfaces/pom.xml ./huntly-interfaces/
 COPY app/server/huntly-server/pom.xml ./huntly-server/
