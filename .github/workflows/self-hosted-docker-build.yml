@@ -31,7 +31,7 @@ jobs:
 
       - name: Ensure data directory exists
         run: |
-          mkdir -p /data/huntly
+          mkdir -p ~/data/huntly
 
       - name: Restart service with Docker Compose
         run: |
