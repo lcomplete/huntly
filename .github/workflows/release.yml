@@ -70,6 +70,13 @@ jobs:
           cd app/client
           yarn install
 
+      - name: Build client
+        run: |
+          cd app/client
+          yarn build
+        env:
+          CI: false
+
       - name: Install extension dependencies
         #if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: |
