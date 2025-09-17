@@ -28,4 +28,5 @@ public class DocFields {
     public static final String PAGE_JSON_PROPERTIES= "pageJsonProperties";
     public static final String CONTENT_TYPE = "contentType";
     public static final String AUTHOR = "author_text";
+    public static final String HIGHLIGHT_COUNT = "highlightCount";
 }

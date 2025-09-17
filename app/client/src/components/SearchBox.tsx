@@ -279,6 +279,7 @@ const defaultSearchOptions: SearchOption[] = [
   {keyword: 'browser', label: 'Browser History', type: 'Type'},
   {keyword: 'feeds', label: 'Feeds', type: 'Type'},
   {keyword: 'list', label: 'My List', type: 'Library'},
+  {keyword: 'highlights', label: 'Highlights', type: 'Library'},
   {keyword: 'starred', label: 'Starred', type: 'Library'},
   {keyword: 'later', label: 'Read Later', type: 'Library'},
   {keyword: 'archive', label: 'Archive', type: 'Library'},

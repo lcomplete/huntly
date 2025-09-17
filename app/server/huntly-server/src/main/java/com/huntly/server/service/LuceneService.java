@@ -202,6 +202,10 @@ public class LuceneService implements DisposableBean {
         if (page.getPageJsonProperties() != null) {
             doc.add(new StoredField(DocFields.PAGE_JSON_PROPERTIES, page.getPageJsonProperties()));
         }
+        if (page.getHighlightCount() != null) {
+            doc.add(new IntPoint(DocFields.HIGHLIGHT_COUNT, page.getHighlightCount()));
+            doc.add(new StoredField(DocFields.HIGHLIGHT_COUNT, page.getHighlightCount()));
+        }
         return doc;
     }
 
@@ -258,6 +262,9 @@ public class LuceneService implements DisposableBean {
         }
         if (doc.getField(DocFields.PAGE_JSON_PROPERTIES) != null) {
             item.setPageJsonProperties(doc.get(DocFields.PAGE_JSON_PROPERTIES));
+        }
+        if (doc.getField(DocFields.HIGHLIGHT_COUNT) != null) {
+            item.setHighlightCount(doc.getField(DocFields.HIGHLIGHT_COUNT).numericValue().intValue());
         }
         return pageListService.updatePageItemRelationData(item);
     }
@@ -324,6 +331,9 @@ public class LuceneService implements DisposableBean {
                             break;
                         case ARCHIVE:
                             query = IntPoint.newExactQuery(DocFields.LIBRARY_SAVE_STATUS, LibrarySaveStatus.ARCHIVED.getCode());
+                            break;
+                        case HIGHLIGHTS:
+                            query = IntPoint.newRangeQuery(DocFields.HIGHLIGHT_COUNT, 1, Integer.MAX_VALUE);
                             break;
                         default:
                             break;
@@ -437,6 +447,9 @@ public class LuceneService implements DisposableBean {
                         break;
                     case "feeds":
                         option.setType(SearchOption.Type.FEEDS);
+                        break;
+                    case "highlights":
+                        option.setLibrary(SearchOption.Library.HIGHLIGHTS);
                         break;
                     case "list":
                         option.setLibrary(SearchOption.Library.MY_LIST);

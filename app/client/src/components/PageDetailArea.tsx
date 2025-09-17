@@ -4,6 +4,7 @@ import Loading from "../components/Loading";
 import {PageQueryKey} from "../domain/pageQueryKey";
 import * as React from "react";
 import {useEffect, useState} from "react";
+import {useLocation} from "react-router-dom";
 import styles from "./PageDetail.module.css";
 import CardMedia from "@mui/material/CardMedia";
 import SmartMoment from "../components/SmartMoment";
@@ -21,6 +22,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import PageHighlightList from './highlights/PageHighlightList';
 import TextHighlighter from './highlights/TextHighlighter';
 
@@ -33,15 +35,18 @@ const PageDetailArea = ({
                          }: { id: number, onOperateSuccess?: (event: PageOperateEvent) => void }) => {
   const queryKey = [PageQueryKey.PageDetail, id];
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [isFullContent, setIsFullContent] = React.useState(false);
   const [isProcessingContent, setIsProcessingContent] = useState(false);
   const [processedContent, setProcessedContent] = useState<string>("");
   const [showProcessedSection, setShowProcessedSection] = useState(false);
-  const [processedTitle, setProcessedTitle] = useState<string>("AI 处理结果");
+  const [processedTitle, setProcessedTitle] = useState<string>("AI Processing Result");
   const [processingError, setProcessingError] = useState<string>("");
   const { enqueueSnackbar } = useSnackbar();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
+  const [highlightMode, setHighlightMode] = useState(true);
   
   // AI操作菜单状态
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -63,7 +68,18 @@ const PageDetailArea = ({
       const response = await PageHighlightControllerApiFactory().getHighlightsByPageIdUsingGET(id);
       return response.data.data || [];
     },
-    { enabled: !!id }
+    {
+      enabled: !!id,
+      onSuccess: (data) => {
+        // 检查URL参数中是否有h参数，如果有且尚未自动滚动过则滚动到指定高亮
+        const searchParams = new URLSearchParams(location.search);
+        const highlightId = searchParams.get('h');
+        if (highlightId && data && data.length > 0 && !hasAutoScrolled) {
+          scrollToHighlightById(parseInt(highlightId));
+          setHasAutoScrolled(true);
+        }
+      }
+    }
   );
 
   const {
@@ -97,13 +113,31 @@ const PageDetailArea = ({
 
   useEffect(() => {
     PageControllerApiFactory().recordReadPageUsingPOST(id);
-    
+
     // 重置处理结果状态
     setShowProcessedSection(false);
     setProcessedContent("");
-    setProcessedTitle("AI 处理结果");
+    setProcessedTitle("AI Processing Result");
     setProcessingError("");
+
+    // 重置自动滚动状态
+    setHasAutoScrolled(false);
   }, [id]);
+
+  // 监听页面详情和高亮列表加载完成，如果URL中有h参数且尚未自动滚动过则滚动到指定高亮
+  useEffect(() => {
+    if (detail && highlights && highlights.length > 0 && !hasAutoScrolled) {
+      const searchParams = new URLSearchParams(location.search);
+      const highlightId = searchParams.get('h');
+      if (highlightId) {
+        // 延迟滚动以确保TextHighlighter组件已完全渲染
+        setTimeout(() => {
+          scrollToHighlightById(parseInt(highlightId));
+          setHasAutoScrolled(true);
+        }, 500);
+      }
+    }
+  }, [detail, highlights, location.search, hasAutoScrolled]);
 
   function operateSuccess(event: PageOperateEvent) {
     if (event.operation !== PageOperation.delete) {
@@ -169,7 +203,7 @@ const PageDetailArea = ({
         
         // 只有在连接状态不是CLOSED且没有接收到数据时才认为是真正的错误
         if (eventSource.readyState !== EventSource.CLOSED && !hasReceivedData) {
-          setProcessingError('连接服务器时发生错误，请稍后重试。');
+          setProcessingError('Failed to connect to server, please try again later.');
         }
         
         setIsProcessingContent(false);
@@ -182,9 +216,9 @@ const PageDetailArea = ({
         if ((event as any).data) {
           try {
             const errorData = JSON.parse((event as any).data);
-            setProcessingError(`处理失败: ${errorData.message || '未知错误'}`);
+            setProcessingError(`Processing failed: ${errorData.message || 'Unknown error'}`);
           } catch (e) {
-            setProcessingError('处理过程中发生未知错误。');
+            setProcessingError('Unknown error occurred during processing.');
           }
         }
         setIsProcessingContent(false);
@@ -196,7 +230,7 @@ const PageDetailArea = ({
         if (eventSource.readyState !== EventSource.CLOSED) {
           console.warn('SSE connection timeout');
           setIsProcessingContent(false);
-          setProcessingError('处理超时，请稍后重试。');
+          setProcessingError('Processing timeout, please try again later.');
           eventSource.close();
         }
       }, 300000); // 5 minutes timeout
@@ -210,7 +244,7 @@ const PageDetailArea = ({
     } catch (error) {
       console.error(`Error processing with shortcut ${shortcutName}:`, error);
       setIsProcessingContent(false);
-      setProcessingError('连接失败，请检查网络连接。');
+      setProcessingError('Connection failed, please check your network connection.');
     }
   }
 
@@ -354,40 +388,41 @@ const PageDetailArea = ({
   // 高亮操作处理函数
   const handleHighlightCreated = (highlight: PageHighlightDto) => {
     refetchHighlights();
-    enqueueSnackbar("高亮创建成功", {
-      variant: "success",
-      anchorOrigin: { vertical: "bottom", horizontal: "center" }
-    });
   };
 
   const handleHighlightDeleted = (highlightId: number) => {
     refetchHighlights();
-    enqueueSnackbar("高亮删除成功", {
-      variant: "success",
-      anchorOrigin: { vertical: "bottom", horizontal: "center" }
-    });
+    setSnackbarMessage("Highlight deleted successfully");
+    setSnackbarOpen(true);
+  };
+
+  const scrollToHighlightById = (highlightId: number) => {
+    // 查找对应的高亮元素并滚动到该位置
+    const highlightElement = document.querySelector(`[data-highlight-id="${highlightId}"]`);
+    if (highlightElement) {
+      // 延迟滚动以确保DOM元素已完全渲染
+      setTimeout(() => {
+        highlightElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+
+        // 添加闪烁效果
+        highlightElement.classList.add('highlight-flash');
+        setTimeout(() => {
+          highlightElement.classList.remove('highlight-flash');
+        }, 2000);
+      }, 100);
+    }
   };
 
   const handleHighlightClick = (highlight: PageHighlightDto) => {
-    // 查找对应的高亮元素并滚动到该位置
-    const highlightElement = document.querySelector(`[data-highlight-id="${highlight.id}"]`);
-    if (highlightElement) {
-      // 滚动到高亮位置
-      highlightElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-      
-      // 添加闪烁效果
-      highlightElement.classList.add('highlight-flash');
-      setTimeout(() => {
-        highlightElement.classList.remove('highlight-flash');
-      }, 2000);
-      
-      setSnackbarMessage(`跳转到高亮: "${highlight.highlightedText?.substring(0, 50)}..."`);
+    if (highlight.id) {
+      scrollToHighlightById(highlight.id);
+      setSnackbarMessage(`Jump to highlight: "${highlight.highlightedText?.substring(0, 20)}..."`);
       setSnackbarOpen(true);
     } else {
-      setSnackbarMessage("无法定位到此高亮位置");
+      setSnackbarMessage("Unable to locate this highlight position");
       setSnackbarOpen(true);
     }
   };
@@ -452,7 +487,13 @@ const PageDetailArea = ({
                         <ContentCopyIcon fontSize={"small"} />
                       </IconButton>
                     </Tooltip>
-                    
+
+                    <Tooltip title={highlightMode ? 'Disable text highlighting selection tool' : 'Enable text highlighting selection tool'} placement={"bottom"}>
+                      <IconButton onClick={() => setHighlightMode(!highlightMode)}>
+                        <FormatQuoteIcon fontSize={"small"} sx={{ color: highlightMode ? "#f59e0b" : "#9e9e9e" }} />
+                      </IconButton>
+                    </Tooltip>
+
                     {shortcuts && shortcuts.length > 0 ? (
                       <>
                         <Tooltip title={'AI operations'} placement={"bottom"}>
@@ -625,6 +666,7 @@ const PageDetailArea = ({
                       anchorOrigin: { vertical: "bottom", horizontal: "center" }
                     });
                   }}
+                  highlightModeEnabled={highlightMode}
                 />
               </Typography>
             </article>

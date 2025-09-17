@@ -29,11 +29,16 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class PageHighlightService {
+public class PageHighlightService extends BasePageService {
 
     private final PageHighlightRepository pageHighlightRepository;
-    private final PageRepository pageRepository;
+
+    public PageHighlightService(PageHighlightRepository pageHighlightRepository,
+                               PageRepository pageRepository,
+                               LuceneService luceneService) {
+        super(pageRepository, luceneService);
+        this.pageHighlightRepository = pageHighlightRepository;
+    }
 
     /**
      * 创建高亮
@@ -94,9 +99,9 @@ public class PageHighlightService {
         Integer count = pageHighlightRepository.countByPageId(pageId);
         com.huntly.server.domain.entity.Page page = pageRepository.findById(pageId)
                 .orElseThrow(() -> new RuntimeException("Page not found"));
-        
+
         page.setHighlightCount(count);
-        pageRepository.save(page);
+        save(page); // 使用父类的save方法，会自动更新Lucene索引
     }
 
     /**

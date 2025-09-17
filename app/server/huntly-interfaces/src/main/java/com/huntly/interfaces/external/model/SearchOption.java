@@ -28,6 +28,7 @@ public class SearchOption {
         MY_LIST,
         STARRED,
         READ_LATER,
-        ARCHIVE
+        ARCHIVE,
+        HIGHLIGHTS
     }
 }
