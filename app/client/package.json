@@ -1,6 +1,6 @@
 {
   "name": "huntly-client",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "private": true,
   "proxy": "http://localhost:8080",
   "scripts": {

@@ -6,7 +6,7 @@ Huntly is a self-hosted information management tool with a **multi-module Spring
 - **Backend**: Maven multi-module Spring Boot (`app/server/`) with SQLite + Lucene
 - **Web Client**: React + TypeScript + TanStack Query (`app/client/`)
 - **Browser Extension**: Manifest V3 Chrome/Firefox extension (`app/extension/`)
-- **Desktop**: Electron and Tauri applications (`app/electron/`, `app/tauri/`)
+- **Desktop**: Tauri applications (`app/tauri/`)
 
 ## Critical Development Workflows
 

@@ -27,6 +27,7 @@ Huntly is a self-hosted information management tool, in simple terms, contains t
 - There is a special treatment for Twitter sites that automatically saves the requested tweet timeline, recording whether it has been viewed or not, and in huntly you can even revisit these tweets in a more convenient way.
 - You can search by title, content, type, favorite method, and other dimensions.
 - Connect to GitHub, support Github stars management.
+- **Text highlighting feature, allows you to highlight article content, with support for creating, deleting and managing personal highlights (new feature).**
 - Support custom article AI shortcuts, with the ability to translate, summarize, extract key points, etc.
 
 ## Screenshot
