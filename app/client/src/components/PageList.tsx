@@ -40,6 +40,7 @@ export type PageListFilter = {
   contentFilterType?: number,
   startDate?: string,
   endDate?: string,
+  hasHighlights?: boolean,
 }
 
 interface PageListProps {
@@ -245,6 +246,7 @@ const PageList = (props: PageListProps) => {
         pageParam.firstRecordAt || undefined,
         pageParam.firstVoteScore || undefined,
         filters.folderId,
+        filters.hasHighlights,
         pageParam.lastRecordAt || undefined,
         pageParam.lastVoteScore || undefined,
         filters.markRead,

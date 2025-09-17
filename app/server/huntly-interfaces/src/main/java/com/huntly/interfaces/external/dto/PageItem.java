@@ -59,6 +59,8 @@ public class PageItem {
 
     private String pageJsonProperties;
     
+    private Integer highlightCount;
+    
     //region source
 
     private String siteName;

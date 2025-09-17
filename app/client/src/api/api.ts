@@ -24,6 +24,81 @@ import { BASE_PATH, COLLECTION_FORMATS, RequestArgs, BaseAPI, RequiredError } fr
 /**
  * 
  * @export
+ * @interface ApiResultOfListOfPageHighlightDto
+ */
+export interface ApiResultOfListOfPageHighlightDto {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOfListOfPageHighlightDto
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {Array<PageHighlightDto>}
+     * @memberof ApiResultOfListOfPageHighlightDto
+     */
+    'data'?: Array<PageHighlightDto>;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOfListOfPageHighlightDto
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ApiResultOfPageHighlightDto
+ */
+export interface ApiResultOfPageHighlightDto {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOfPageHighlightDto
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {PageHighlightDto}
+     * @memberof ApiResultOfPageHighlightDto
+     */
+    'data'?: PageHighlightDto;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOfPageHighlightDto
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ApiResultOfPageOfHighlightListItem
+ */
+export interface ApiResultOfPageOfHighlightListItem {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOfPageOfHighlightListItem
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {PageOfHighlightListItem}
+     * @memberof ApiResultOfPageOfHighlightListItem
+     */
+    'data'?: PageOfHighlightListItem;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOfPageOfHighlightListItem
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
  * @interface ApiResultOfboolean
  */
 export interface ApiResultOfboolean {
@@ -477,6 +552,37 @@ export interface ConnectorItem {
 /**
  * 
  * @export
+ * @interface CreateHighlightRequest
+ */
+export interface CreateHighlightRequest {
+    /**
+     * 
+     * @type {number}
+     * @memberof CreateHighlightRequest
+     */
+    'endOffset': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CreateHighlightRequest
+     */
+    'highlightedText': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof CreateHighlightRequest
+     */
+    'pageId': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CreateHighlightRequest
+     */
+    'startOffset': number;
+}
+/**
+ * 
+ * @export
  * @interface FeedsSetting
  */
 export interface FeedsSetting {
@@ -743,6 +849,61 @@ export interface GlobalSetting {
      * @memberof GlobalSetting
      */
     'updatedAt'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface HighlightListItem
+ */
+export interface HighlightListItem {
+    /**
+     * 
+     * @type {string}
+     * @memberof HighlightListItem
+     */
+    'createdAt'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof HighlightListItem
+     */
+    'endOffset'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof HighlightListItem
+     */
+    'highlightedText'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof HighlightListItem
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HighlightListItem
+     */
+    'pageId'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof HighlightListItem
+     */
+    'pageTitle'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HighlightListItem
+     */
+    'pageUrl'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof HighlightListItem
+     */
+    'startOffset'?: number;
 }
 /**
  * 
@@ -1025,6 +1186,12 @@ export interface Page {
      * @type {number}
      * @memberof Page
      */
+    'highlightCount'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Page
+     */
     'id'?: number;
     /**
      * 
@@ -1224,6 +1391,49 @@ export interface PageDetail {
 /**
  * 
  * @export
+ * @interface PageHighlightDto
+ */
+export interface PageHighlightDto {
+    /**
+     * 
+     * @type {string}
+     * @memberof PageHighlightDto
+     */
+    'createdAt'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageHighlightDto
+     */
+    'endOffset'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PageHighlightDto
+     */
+    'highlightedText'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageHighlightDto
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageHighlightDto
+     */
+    'pageId'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageHighlightDto
+     */
+    'startOffset'?: number;
+}
+/**
+ * 
+ * @export
  * @interface PageItem
  */
 export interface PageItem {
@@ -1287,6 +1497,12 @@ export interface PageItem {
      * @memberof PageItem
      */
     'folderId'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageItem
+     */
+    'highlightCount'?: number;
     /**
      * 
      * @type {number}
@@ -1393,6 +1609,79 @@ export interface PageItem {
 /**
  * 
  * @export
+ * @interface PageOfHighlightListItem
+ */
+export interface PageOfHighlightListItem {
+    /**
+     * 
+     * @type {Array<HighlightListItem>}
+     * @memberof PageOfHighlightListItem
+     */
+    'content'?: Array<HighlightListItem>;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PageOfHighlightListItem
+     */
+    'empty'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PageOfHighlightListItem
+     */
+    'first'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PageOfHighlightListItem
+     */
+    'last'?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageOfHighlightListItem
+     */
+    'number'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageOfHighlightListItem
+     */
+    'numberOfElements'?: number;
+    /**
+     * 
+     * @type {Pageable}
+     * @memberof PageOfHighlightListItem
+     */
+    'pageable'?: Pageable;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageOfHighlightListItem
+     */
+    'size'?: number;
+    /**
+     * 
+     * @type {Sort}
+     * @memberof PageOfHighlightListItem
+     */
+    'sort'?: Sort;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageOfHighlightListItem
+     */
+    'totalElements'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageOfHighlightListItem
+     */
+    'totalPages'?: number;
+}
+/**
+ * 
+ * @export
  * @interface PageOperateResult
  */
 export interface PageOperateResult {
@@ -1451,6 +1740,49 @@ export interface PageSearchResult {
      * @memberof PageSearchResult
      */
     'totalHits'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface Pageable
+ */
+export interface Pageable {
+    /**
+     * 
+     * @type {number}
+     * @memberof Pageable
+     */
+    'offset'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Pageable
+     */
+    'pageNumber'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Pageable
+     */
+    'pageSize'?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Pageable
+     */
+    'paged'?: boolean;
+    /**
+     * 
+     * @type {Sort}
+     * @memberof Pageable
+     */
+    'sort'?: Sort;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Pageable
+     */
+    'unpaged'?: boolean;
 }
 /**
  * 
@@ -1648,6 +1980,31 @@ export interface SearchQuery {
      * @memberof SearchQuery
      */
     'size'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface Sort
+ */
+export interface Sort {
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Sort
+     */
+    'empty'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Sort
+     */
+    'sorted'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Sort
+     */
+    'unsorted'?: boolean;
 }
 /**
  * 
@@ -2879,11 +3236,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
     return {
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingDELETE: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingDELETE: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2909,11 +3266,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2939,11 +3296,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingHEAD: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingHEAD: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2969,11 +3326,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingOPTIONS: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingOPTIONS: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2999,11 +3356,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingPATCH: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingPATCH: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -3029,11 +3386,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingPOST: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingPOST: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -3059,11 +3416,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingPUT: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingPUT: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -3089,11 +3446,11 @@ export const BasicErrorControllerApiAxiosParamCreator = function (configuration?
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingTRACE: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        errorHtmlUsingTRACE: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/error`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -3129,82 +3486,82 @@ export const BasicErrorControllerApiFp = function(configuration?: Configuration)
     return {
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingDELETE(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingDELETE(options);
+        async errorHtmlUsingDELETE(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingDELETE(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingGET(options);
+        async errorHtmlUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingGET(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingHEAD(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingHEAD(options);
+        async errorHtmlUsingHEAD(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingHEAD(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingOPTIONS(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingOPTIONS(options);
+        async errorHtmlUsingOPTIONS(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingOPTIONS(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingPATCH(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingPATCH(options);
+        async errorHtmlUsingPATCH(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingPATCH(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingPOST(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingPOST(options);
+        async errorHtmlUsingPOST(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingPOST(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingPUT(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingPUT(options);
+        async errorHtmlUsingPUT(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingPUT(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async errorUsingTRACE(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: object; }>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.errorUsingTRACE(options);
+        async errorHtmlUsingTRACE(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelAndView>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.errorHtmlUsingTRACE(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -3219,75 +3576,75 @@ export const BasicErrorControllerApiFactory = function (configuration?: Configur
     return {
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingDELETE(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingDELETE(options).then((request) => request(axios, basePath));
+        errorHtmlUsingDELETE(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingDELETE(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingGET(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingGET(options).then((request) => request(axios, basePath));
+        errorHtmlUsingGET(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingGET(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingHEAD(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingHEAD(options).then((request) => request(axios, basePath));
+        errorHtmlUsingHEAD(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingHEAD(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingOPTIONS(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingOPTIONS(options).then((request) => request(axios, basePath));
+        errorHtmlUsingOPTIONS(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingOPTIONS(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingPATCH(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingPATCH(options).then((request) => request(axios, basePath));
+        errorHtmlUsingPATCH(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingPATCH(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingPOST(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingPOST(options).then((request) => request(axios, basePath));
+        errorHtmlUsingPOST(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingPOST(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingPUT(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingPUT(options).then((request) => request(axios, basePath));
+        errorHtmlUsingPUT(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingPUT(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary error
+         * @summary errorHtml
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        errorUsingTRACE(options?: any): AxiosPromise<{ [key: string]: object; }> {
-            return localVarFp.errorUsingTRACE(options).then((request) => request(axios, basePath));
+        errorHtmlUsingTRACE(options?: any): AxiosPromise<ModelAndView> {
+            return localVarFp.errorHtmlUsingTRACE(options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -3301,90 +3658,90 @@ export const BasicErrorControllerApiFactory = function (configuration?: Configur
 export class BasicErrorControllerApi extends BaseAPI {
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingDELETE(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingDELETE(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingDELETE(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingDELETE(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingGET(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingGET(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingGET(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingGET(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingHEAD(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingHEAD(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingHEAD(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingHEAD(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingOPTIONS(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingOPTIONS(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingOPTIONS(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingOPTIONS(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingPATCH(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingPATCH(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingPATCH(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingPATCH(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingPOST(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingPOST(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingPOST(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingPOST(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingPUT(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingPUT(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingPUT(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingPUT(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
-     * @summary error
+     * @summary errorHtml
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof BasicErrorControllerApi
      */
-    public errorUsingTRACE(options?: AxiosRequestConfig) {
-        return BasicErrorControllerApiFp(this.configuration).errorUsingTRACE(options).then((request) => request(this.axios, this.basePath));
+    public errorHtmlUsingTRACE(options?: AxiosRequestConfig) {
+        return BasicErrorControllerApiFp(this.configuration).errorHtmlUsingTRACE(options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -3952,6 +4309,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {string} [firstRecordAt] 
          * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
+         * @param {boolean} [hasHighlights] 
          * @param {string} [lastRecordAt] 
          * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
@@ -3964,7 +4322,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET: async (asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        listPageItemsUsingGET: async (asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/page/list`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4017,6 +4375,10 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
 
             if (folderId !== undefined) {
                 localVarQueryParameter['folderId'] = folderId;
+            }
+
+            if (hasHighlights !== undefined) {
+                localVarQueryParameter['hasHighlights'] = hasHighlights;
             }
 
             if (lastRecordAt !== undefined) {
@@ -4737,6 +5099,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {string} [firstRecordAt] 
          * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
+         * @param {boolean} [hasHighlights] 
          * @param {string} [lastRecordAt] 
          * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
@@ -4749,8 +5112,8 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options);
+        async listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -5016,6 +5379,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {string} [firstRecordAt] 
          * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
+         * @param {boolean} [hasHighlights] 
          * @param {string} [lastRecordAt] 
          * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
@@ -5028,8 +5392,8 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: any): AxiosPromise<Array<PageItem>> {
-            return localVarFp.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(axios, basePath));
+        listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: any): AxiosPromise<Array<PageItem>> {
+            return localVarFp.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -5287,6 +5651,7 @@ export class PageControllerApi extends BaseAPI {
      * @param {string} [firstRecordAt] 
      * @param {number} [firstVoteScore] 
      * @param {number} [folderId] 
+     * @param {boolean} [hasHighlights] 
      * @param {string} [lastRecordAt] 
      * @param {number} [lastVoteScore] 
      * @param {boolean} [markRead] 
@@ -5300,8 +5665,8 @@ export class PageControllerApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof PageControllerApi
      */
-    public listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig) {
-        return PageControllerApiFp(this.configuration).listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(this.axios, this.basePath));
+    public listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -5508,6 +5873,424 @@ export class PageControllerApi extends BaseAPI {
      */
     public unStarPageUsingPOST(id: number, options?: AxiosRequestConfig) {
         return PageControllerApiFp(this.configuration).unStarPageUsingPOST(id, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * PageHighlightControllerApi - axios parameter creator
+ * @export
+ */
+export const PageHighlightControllerApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary createHighlight
+         * @param {CreateHighlightRequest} [createHighlightRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createHighlightUsingPOST: async (createHighlightRequest?: CreateHighlightRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page-highlight`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(createHighlightRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary deleteHighlight
+         * @param {number} highlightId highlightId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteHighlightUsingDELETE: async (highlightId: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'highlightId' is not null or undefined
+            assertParamExists('deleteHighlightUsingDELETE', 'highlightId', highlightId)
+            const localVarPath = `/api/page-highlight/{highlightId}`
+                .replace(`{${"highlightId"}}`, encodeURIComponent(String(highlightId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary deleteHighlightsByPageId
+         * @param {number} pageId pageId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteHighlightsByPageIdUsingDELETE: async (pageId: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'pageId' is not null or undefined
+            assertParamExists('deleteHighlightsByPageIdUsingDELETE', 'pageId', pageId)
+            const localVarPath = `/api/page-highlight/page/{pageId}`
+                .replace(`{${"pageId"}}`, encodeURIComponent(String(pageId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getHighlightList
+         * @param {string} [direction] 
+         * @param {string} [endDate] 
+         * @param {number} [page] 
+         * @param {number} [size] 
+         * @param {string} [sort] 
+         * @param {string} [startDate] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHighlightListUsingGET: async (direction?: string, endDate?: string, page?: number, size?: number, sort?: string, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page-highlight/list`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (direction !== undefined) {
+                localVarQueryParameter['direction'] = direction;
+            }
+
+            if (endDate !== undefined) {
+                localVarQueryParameter['endDate'] = (endDate as any instanceof Date) ?
+                    (endDate as any).toISOString() :
+                    endDate;
+            }
+
+            if (page !== undefined) {
+                localVarQueryParameter['page'] = page;
+            }
+
+            if (size !== undefined) {
+                localVarQueryParameter['size'] = size;
+            }
+
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
+            if (startDate !== undefined) {
+                localVarQueryParameter['startDate'] = (startDate as any instanceof Date) ?
+                    (startDate as any).toISOString() :
+                    startDate;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getHighlightsByPageId
+         * @param {number} pageId pageId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHighlightsByPageIdUsingGET: async (pageId: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'pageId' is not null or undefined
+            assertParamExists('getHighlightsByPageIdUsingGET', 'pageId', pageId)
+            const localVarPath = `/api/page-highlight/page/{pageId}`
+                .replace(`{${"pageId"}}`, encodeURIComponent(String(pageId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * PageHighlightControllerApi - functional programming interface
+ * @export
+ */
+export const PageHighlightControllerApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = PageHighlightControllerApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary createHighlight
+         * @param {CreateHighlightRequest} [createHighlightRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createHighlightUsingPOST(createHighlightRequest?: CreateHighlightRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfPageHighlightDto>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createHighlightUsingPOST(createHighlightRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary deleteHighlight
+         * @param {number} highlightId highlightId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteHighlightUsingDELETE(highlightId: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfboolean>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteHighlightUsingDELETE(highlightId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary deleteHighlightsByPageId
+         * @param {number} pageId pageId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteHighlightsByPageIdUsingDELETE(pageId: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfboolean>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteHighlightsByPageIdUsingDELETE(pageId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getHighlightList
+         * @param {string} [direction] 
+         * @param {string} [endDate] 
+         * @param {number} [page] 
+         * @param {number} [size] 
+         * @param {string} [sort] 
+         * @param {string} [startDate] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getHighlightListUsingGET(direction?: string, endDate?: string, page?: number, size?: number, sort?: string, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfPageOfHighlightListItem>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getHighlightListUsingGET(direction, endDate, page, size, sort, startDate, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getHighlightsByPageId
+         * @param {number} pageId pageId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getHighlightsByPageIdUsingGET(pageId: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfListOfPageHighlightDto>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getHighlightsByPageIdUsingGET(pageId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * PageHighlightControllerApi - factory interface
+ * @export
+ */
+export const PageHighlightControllerApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = PageHighlightControllerApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary createHighlight
+         * @param {CreateHighlightRequest} [createHighlightRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createHighlightUsingPOST(createHighlightRequest?: CreateHighlightRequest, options?: any): AxiosPromise<ApiResultOfPageHighlightDto> {
+            return localVarFp.createHighlightUsingPOST(createHighlightRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary deleteHighlight
+         * @param {number} highlightId highlightId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteHighlightUsingDELETE(highlightId: number, options?: any): AxiosPromise<ApiResultOfboolean> {
+            return localVarFp.deleteHighlightUsingDELETE(highlightId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary deleteHighlightsByPageId
+         * @param {number} pageId pageId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteHighlightsByPageIdUsingDELETE(pageId: number, options?: any): AxiosPromise<ApiResultOfboolean> {
+            return localVarFp.deleteHighlightsByPageIdUsingDELETE(pageId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getHighlightList
+         * @param {string} [direction] 
+         * @param {string} [endDate] 
+         * @param {number} [page] 
+         * @param {number} [size] 
+         * @param {string} [sort] 
+         * @param {string} [startDate] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHighlightListUsingGET(direction?: string, endDate?: string, page?: number, size?: number, sort?: string, startDate?: string, options?: any): AxiosPromise<ApiResultOfPageOfHighlightListItem> {
+            return localVarFp.getHighlightListUsingGET(direction, endDate, page, size, sort, startDate, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getHighlightsByPageId
+         * @param {number} pageId pageId
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHighlightsByPageIdUsingGET(pageId: number, options?: any): AxiosPromise<ApiResultOfListOfPageHighlightDto> {
+            return localVarFp.getHighlightsByPageIdUsingGET(pageId, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * PageHighlightControllerApi - object-oriented interface
+ * @export
+ * @class PageHighlightControllerApi
+ * @extends {BaseAPI}
+ */
+export class PageHighlightControllerApi extends BaseAPI {
+    /**
+     * 
+     * @summary createHighlight
+     * @param {CreateHighlightRequest} [createHighlightRequest] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageHighlightControllerApi
+     */
+    public createHighlightUsingPOST(createHighlightRequest?: CreateHighlightRequest, options?: AxiosRequestConfig) {
+        return PageHighlightControllerApiFp(this.configuration).createHighlightUsingPOST(createHighlightRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary deleteHighlight
+     * @param {number} highlightId highlightId
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageHighlightControllerApi
+     */
+    public deleteHighlightUsingDELETE(highlightId: number, options?: AxiosRequestConfig) {
+        return PageHighlightControllerApiFp(this.configuration).deleteHighlightUsingDELETE(highlightId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary deleteHighlightsByPageId
+     * @param {number} pageId pageId
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageHighlightControllerApi
+     */
+    public deleteHighlightsByPageIdUsingDELETE(pageId: number, options?: AxiosRequestConfig) {
+        return PageHighlightControllerApiFp(this.configuration).deleteHighlightsByPageIdUsingDELETE(pageId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getHighlightList
+     * @param {string} [direction] 
+     * @param {string} [endDate] 
+     * @param {number} [page] 
+     * @param {number} [size] 
+     * @param {string} [sort] 
+     * @param {string} [startDate] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageHighlightControllerApi
+     */
+    public getHighlightListUsingGET(direction?: string, endDate?: string, page?: number, size?: number, sort?: string, startDate?: string, options?: AxiosRequestConfig) {
+        return PageHighlightControllerApiFp(this.configuration).getHighlightListUsingGET(direction, endDate, page, size, sort, startDate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getHighlightsByPageId
+     * @param {number} pageId pageId
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageHighlightControllerApi
+     */
+    public getHighlightsByPageIdUsingGET(pageId: number, options?: AxiosRequestConfig) {
+        return PageHighlightControllerApiFp(this.configuration).getHighlightsByPageIdUsingGET(pageId, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

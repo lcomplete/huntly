@@ -9,6 +9,7 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import BallotOutlinedIcon from "@mui/icons-material/BallotOutlined";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import TwitterIcon from '@mui/icons-material/Twitter';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 
 export type NavLabel = {
   labelText: string,
@@ -27,6 +28,7 @@ export type NavLabels = {
   github: NavLabel,
   allFeeds: NavLabel,
   twitter: NavLabel,
+  highlights: NavLabel,
   folder: NavLabel
 }
 
@@ -48,6 +50,7 @@ const navLabels: NavLabels = {
   github: navLabel('GitHub', GitHubIcon),
   allFeeds: navLabel('All Feeds', BallotOutlinedIcon, '/feeds'),
   twitter: navLabel('Twitter', TwitterIcon, '/twitter', 'rgb(29, 155, 240)'),
+  highlights: navLabel('Highlights', FormatQuoteIcon, '/highlights'),
   folder: navLabel('', FolderOpenIcon)
 }
 

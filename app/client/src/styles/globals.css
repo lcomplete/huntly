@@ -204,3 +204,30 @@ a {
 .separator:not(:empty)::after {
     margin-left: .25em;
 }
+
+/* Text Highlighter Styles */
+.highlight-text {
+    background-color: #fff3e0 !important;
+    cursor: pointer !important;
+    border-radius: 2px !important;
+    /* Support for cross-line highlighting */
+    box-decoration-break: clone !important;
+    -webkit-box-decoration-break: clone !important;
+    /* Preserve original text properties */
+    line-height: inherit !important;
+    font-size: inherit !important;
+    font-family: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: inherit !important;
+    word-spacing: inherit !important;
+    /* Ensure no layout shifts */
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    /* Smooth hover effect */
+    transition: background-color 0.2s ease !important;
+}
+
+.highlight-text:hover {
+    background-color: #ffe0b2 !important;
+}

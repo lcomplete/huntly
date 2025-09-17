@@ -692,3 +692,21 @@
     background-color: transparent;
     border: 0;
 }
+
+/* 高亮闪烁效果 */
+:global(.highlight-flash) {
+    animation: highlightFlash 2s ease-in-out;
+}
+
+@keyframes highlightFlash {
+    0%, 100% {
+        background-color: #fff3e0;
+        border-left-color: #ff9800;
+        box-shadow: 0 0 0 rgba(255, 152, 0, 0);
+    }
+    50% {
+        background-color: #ffe0b2;
+        border-left-color: #f57c00;
+        box-shadow: 0 0 10px rgba(255, 152, 0, 0.4);
+    }
+}

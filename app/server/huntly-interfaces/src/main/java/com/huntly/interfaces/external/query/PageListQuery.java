@@ -55,4 +55,9 @@ public class PageListQuery {
 
     private String endDate;
 
+    /**
+     * 是否只显示有高亮的页面
+     */
+    private Boolean hasHighlights;
+
 }

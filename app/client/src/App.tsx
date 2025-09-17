@@ -17,6 +17,7 @@ import FolderList from "./pages/FolderList";
 import AllFeeds from "./pages/AllFeeds";
 import Search from "./pages/Search";
 import Twitter from "./pages/Twitter";
+import Highlights from "./pages/Highlights";
 import {AuthControllerApiFactory} from "./api";
 import SignIn from "./pages/SignIn";
 import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
@@ -38,6 +39,7 @@ function App() {
           <Route path="/feeds" element={<AllFeeds/>}/>
           <Route path="/search" element={<Search/>}/>
           <Route path="/twitter" element={<Twitter/>}/>
+          <Route path="/highlights" element={<Highlights/>}/>
         </Route>
       </Route>
     )

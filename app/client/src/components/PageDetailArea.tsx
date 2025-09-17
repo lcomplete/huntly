@@ -1,5 +1,5 @@
 import {useQuery, useQueryClient} from "@tanstack/react-query";
-import {ArticleShortcutControllerApiFactory, PageControllerApiFactory, PageDetail} from "../api";
+import {ArticleShortcutControllerApiFactory, PageControllerApiFactory, PageDetail, PageHighlightControllerApiFactory, PageHighlightDto} from "../api";
 import Loading from "../components/Loading";
 import {PageQueryKey} from "../domain/pageQueryKey";
 import * as React from "react";
@@ -9,6 +9,7 @@ import CardMedia from "@mui/material/CardMedia";
 import SmartMoment from "../components/SmartMoment";
 import PageOperationButtons, {PageOperateEvent, PageOperation} from "../components/PageOperationButtons";
 import {Box, CircularProgress, IconButton, Menu, MenuItem, Paper, Snackbar, Tooltip, Typography} from "@mui/material";
+import { useSnackbar } from 'notistack';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import {setDocTitle} from "../common/docUtils";
 import ScreenSearchDesktopOutlinedIcon from '@mui/icons-material/ScreenSearchDesktopOutlined';
@@ -20,6 +21,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import PageHighlightList from './highlights/PageHighlightList';
+import TextHighlighter from './highlights/TextHighlighter';
 
 // 引入 TurndownService
 import TurndownService from 'turndown';
@@ -36,6 +39,7 @@ const PageDetailArea = ({
   const [showProcessedSection, setShowProcessedSection] = useState(false);
   const [processedTitle, setProcessedTitle] = useState<string>("AI 处理结果");
   const [processingError, setProcessingError] = useState<string>("");
+  const { enqueueSnackbar } = useSnackbar();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   
@@ -50,6 +54,16 @@ const PageDetailArea = ({
       const response = await ArticleShortcutControllerApiFactory().getEnabledShortcutsUsingGET();
       return response.data;
     }
+  );
+
+  // 获取页面高亮
+  const { data: highlights = [], refetch: refetchHighlights } = useQuery(
+    [`page-highlights`, id],
+    async () => {
+      const response = await PageHighlightControllerApiFactory().getHighlightsByPageIdUsingGET(id);
+      return response.data.data || [];
+    },
+    { enabled: !!id }
   );
 
   const {
@@ -319,18 +333,63 @@ const PageDetailArea = ({
     // 复制到剪贴板
     navigator.clipboard.writeText(markdownContent)
       .then(() => {
-        setSnackbarMessage("Markdown content copied to clipboard");
-        setSnackbarOpen(true);
+        enqueueSnackbar("Markdown content copied to clipboard", {
+          variant: "success",
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+        });
       })
       .catch(err => {
-        setSnackbarMessage("Failed to copy, please copy manually");
-        setSnackbarOpen(true);
+        enqueueSnackbar("Failed to copy, please copy manually", {
+          variant: "error",
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+        });
         console.error('Failed to copy:', err);
       });
   };
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
+  };
+
+  // 高亮操作处理函数
+  const handleHighlightCreated = (highlight: PageHighlightDto) => {
+    refetchHighlights();
+    enqueueSnackbar("高亮创建成功", {
+      variant: "success",
+      anchorOrigin: { vertical: "bottom", horizontal: "center" }
+    });
+  };
+
+  const handleHighlightDeleted = (highlightId: number) => {
+    refetchHighlights();
+    enqueueSnackbar("高亮删除成功", {
+      variant: "success",
+      anchorOrigin: { vertical: "bottom", horizontal: "center" }
+    });
+  };
+
+  const handleHighlightClick = (highlight: PageHighlightDto) => {
+    // 查找对应的高亮元素并滚动到该位置
+    const highlightElement = document.querySelector(`[data-highlight-id="${highlight.id}"]`);
+    if (highlightElement) {
+      // 滚动到高亮位置
+      highlightElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      
+      // 添加闪烁效果
+      highlightElement.classList.add('highlight-flash');
+      setTimeout(() => {
+        highlightElement.classList.remove('highlight-flash');
+      }, 2000);
+      
+      setSnackbarMessage(`跳转到高亮: "${highlight.highlightedText?.substring(0, 50)}..."`);
+      setSnackbarOpen(true);
+    } else {
+      setSnackbarMessage("无法定位到此高亮位置");
+      setSnackbarOpen(true);
+    }
   };
 
   return (
@@ -538,9 +597,35 @@ const PageDetailArea = ({
                   </Typography>
                 </Paper>
               )}
+
+              {/* 高亮列表组件 */}
+              <PageHighlightList
+                highlights={highlights}
+                onHighlightClick={handleHighlightClick}
+                onHighlightDeleted={refetchHighlights}
+              />
               
-              <Typography variant={"body1"} component={'div'}>
-                <div dangerouslySetInnerHTML={{__html: detail.page.content}}></div>
+              {/* 使用高亮文本组件替代原来的HTML内容渲染 */}
+              <Typography variant={"body1"} component={'div'} className="page-content">
+                <TextHighlighter
+                  pageId={detail.page.id || 0}
+                  content={detail.page.content || ''}
+                  highlights={highlights}
+                  onHighlightCreated={handleHighlightCreated}
+                  onHighlightDeleted={handleHighlightDeleted}
+                  showSuccessMessage={(message) => {
+                    enqueueSnackbar(message, {
+                      variant: "success",
+                      anchorOrigin: { vertical: "bottom", horizontal: "center" }
+                    });
+                  }}
+                  showErrorMessage={(message) => {
+                    enqueueSnackbar(message, {
+                      variant: "error",
+                      anchorOrigin: { vertical: "bottom", horizontal: "center" }
+                    });
+                  }}
+                />
               </Typography>
             </article>
           </div>

@@ -139,6 +139,9 @@ public class Page implements Serializable {
     @Column(name = "page_json_properties")
     private String pageJsonProperties;
 
+    @Column(name = "highlight_count")
+    private Integer highlightCount;
+
     @Transient
     private String contentText;
 }

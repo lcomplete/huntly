@@ -35,19 +35,19 @@ java -Xms128m -Xmx1024m -jar huntly-server/target/huntly-server.jar --server.por
 cd app/client
 
 # Install dependencies
-npm install
+yarn install
 
 # Start development server
-npm start
+yarn start
 
 # Build for production
-npm run build
+yarn build
 
 # Run tests
-npm test
+yarn test
 
 # Generate API client from OpenAPI
-npm run api-generate
+yarn api-generate
 ```
 
 ### Browser Extension
@@ -56,24 +56,24 @@ npm run api-generate
 cd app/extension
 
 # Install dependencies
-npm install
+yarn install
 
 # Development build with watch
-npm run dev
-npm run watch
+yarn dev
+yarn watch
 
 # Production build
-npm run build
+yarn build
 
 # Firefox-specific builds
-npm run watch:firefox
-npm run build:firefox
+yarn watch:firefox
+yarn build:firefox
 
 # Run tests
-npm test
+yarn test
 
 # Code formatting
-npm run style
+yarn style
 ```
 
 ### Desktop Applications
@@ -81,14 +81,14 @@ npm run style
 #### Electron
 ```bash
 cd app/electron
-npm install
+yarn install
 # Check package.json for available scripts
 ```
 
 #### Tauri
 ```bash
 cd app/tauri
-npm install
+yarn install
 # Check package.json for available scripts
 ```
 

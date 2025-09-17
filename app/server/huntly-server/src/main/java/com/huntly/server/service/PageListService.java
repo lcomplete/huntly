@@ -88,6 +88,7 @@ public class PageListService {
                 )
                 .ge(StringUtils.isNotBlank(listQuery.getStartDate()), sortFilterField, convertDateToInstant(listQuery.getStartDate(), 0))
                 .lt(StringUtils.isNotBlank(listQuery.getEndDate()), sortFilterField, listQuery.getEndDate() != null ? convertDateToInstant(listQuery.getEndDate(), 1) : null)
+                .gt(Boolean.TRUE.equals(listQuery.getHasHighlights()), "highlightCount", 0)
                 .build();
         var sort = (listQuery.isAsc() ? Sorts.builder().asc(sortField) : Sorts.builder().desc(sortField)).build();
         var size = PageSizeUtils.getPageSize(listQuery.getCount());

@@ -16,6 +16,9 @@ export default function LibraryNavTree({selectedNodeId}:{selectedNodeId:string})
           ...navLabels.myList
         },
         {
+          ...navLabels.highlights
+        },
+        {
           ...navLabels.starred
         },
         {
