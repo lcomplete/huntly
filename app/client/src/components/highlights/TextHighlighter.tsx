@@ -199,48 +199,84 @@ const TextHighlighter: React.FC<TextHighlighterProps> = ({
       return;
     }
 
-    const selectedText = selection.toString().trim();
-    if (!selectedText) {
+    const rawSelectedText = selection.toString();
+    if (!rawSelectedText) {
+      setSelectionTooltip(prev => ({ ...prev, show: false }));
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const containerNode = contentRef.current;
+    if (!containerNode) {
       setSelectionTooltip(prev => ({ ...prev, show: false }));
       return;
     }
 
     // 计算选择文本在内容中的偏移量
-    const range = selection.getRangeAt(0);
-    const startOffset = getTextOffset(contentRef.current, range.startContainer, range.startOffset);
-    const endOffset = startOffset + selectedText.length;
+    const rawStartOffset = getTextOffset(containerNode, range.startContainer, range.startOffset);
+    const rawEndOffset = getTextOffset(containerNode, range.endContainer, range.endOffset);
+
+    const containerText = containerNode.textContent || '';
+    const textLength = containerText.length;
+    const boundedStartOffset = Math.min(Math.max(rawStartOffset, 0), textLength);
+    const boundedEndOffset = Math.min(Math.max(rawEndOffset, boundedStartOffset), textLength);
+
+    if (boundedEndOffset <= boundedStartOffset) {
+      setSelectionTooltip(prev => ({ ...prev, show: false }));
+      return;
+    }
+
+    const rawSlice = containerText.slice(boundedStartOffset, boundedEndOffset);
+    const leadingWhitespaceMatch = rawSlice.match(/^[\s\u00A0]+/);
+    const trailingWhitespaceMatch = rawSlice.match(/[\s\u00A0]+$/);
+    const normalizedStartOffset = boundedStartOffset + (leadingWhitespaceMatch ? leadingWhitespaceMatch[0].length : 0);
+    const normalizedEndOffset = boundedEndOffset - (trailingWhitespaceMatch ? trailingWhitespaceMatch[0].length : 0);
+
+    if (normalizedEndOffset <= normalizedStartOffset) {
+      setSelectionTooltip(prev => ({ ...prev, show: false }));
+      return;
+    }
+
+    const canonicalSelectedText = containerText.slice(normalizedStartOffset, normalizedEndOffset);
+
+    if (!canonicalSelectedText.trim()) {
+      setSelectionTooltip(prev => ({ ...prev, show: false }));
+      return;
+    }
 
     // 获取选择区域的位置
     const rect = range.getBoundingClientRect();
-    const containerRect = contentRef.current.getBoundingClientRect();
+    const containerRect = containerNode.getBoundingClientRect();
 
     setSelectionTooltip({
       show: true,
       x: rect.left + rect.width / 2 - containerRect.left,
       y: rect.top - containerRect.top - 45,
-      selectedText,
-      startOffset,
-      endOffset
+      selectedText: canonicalSelectedText,
+      startOffset: normalizedStartOffset,
+      endOffset: normalizedEndOffset
     });
-  }, []);
+  }, [highlightModeEnabled]);
 
   // 获取文本在容器中的偏移量
   const getTextOffset = (container: Node, node: Node, offset: number): number => {
-    let textOffset = 0;
-    const walker = document.createTreeWalker(
-      container,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
-
-    let currentNode: Node | null;
-    while ((currentNode = walker.nextNode())) {
-      if (currentNode === node) {
-        return textOffset + offset;
-      }
-      textOffset += currentNode.textContent?.length || 0;
+    if (!container) {
+      return 0;
     }
-    return textOffset;
+
+    const range = document.createRange();
+    range.selectNodeContents(container);
+    try {
+      range.setEnd(node, offset);
+    } catch (error) {
+      range.detach?.();
+      return 0;
+    }
+
+    const fragment = range.cloneContents();
+    const precedingTextLength = fragment.textContent?.length || 0;
+    range.detach?.();
+    return precedingTextLength;
   };
 
   // 创建高亮
