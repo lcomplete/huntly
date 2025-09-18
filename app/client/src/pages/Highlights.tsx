@@ -26,6 +26,19 @@ import { PageOperateEvent } from '../components/PageOperationButtons';
 import MainContainer from '../components/MainContainer';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 
+const renderHighlightedText = (text?: string | null) => {
+  if (!text) {
+    return null;
+  }
+
+  return text.split(/\n/).map((line, index) => (
+    <React.Fragment key={index}>
+      {index > 0 && <br />}
+      {line}
+    </React.Fragment>
+  ));
+};
+
 const HighlightItem = React.memo(({
   highlight,
   onPageSelect,
@@ -137,12 +150,12 @@ const HighlightItem = React.memo(({
                   wordBreak: 'break-word',
                   flex: 1,
                   display: '-webkit-box',
-                  WebkitLineClamp: 8,
+                  WebkitLineClamp: 20,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                 }}
               >
-                {highlight.highlightedText}
+                {renderHighlightedText(highlight.highlightedText)}
               </Typography>
             </Link>
           </Box>

@@ -20,6 +20,19 @@ interface PageHighlightListProps {
   onHighlightDeleted?: () => void;
 }
 
+const renderHighlightedText = (text?: string | null) => {
+  if (!text) {
+    return null;
+  }
+
+  return text.split(/\n/).map((line, index) => (
+    <React.Fragment key={index}>
+      {index > 0 && <br />}
+      {line}
+    </React.Fragment>
+  ));
+};
+
 const PageHighlightList: React.FC<PageHighlightListProps> = ({
   highlights,
   onHighlightClick,
@@ -192,7 +205,7 @@ const PageHighlightList: React.FC<PageHighlightListProps> = ({
                     overflow: 'hidden'
                   }}
                 >
-                  {highlight.highlightedText}
+                  {renderHighlightedText(highlight.highlightedText)}
                 </Typography>
               </Box>
 
