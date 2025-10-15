@@ -164,3 +164,7 @@ java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
 <a href="https://www.jetbrains.com/?from=huntly">
   <img src="static/images/jb_beam.png" height="200" />
 </a>
+
+----
+
+[Huntly DeepWiki](https://deepwiki.com/lcomplete/huntly)
