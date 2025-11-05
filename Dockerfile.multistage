@@ -27,7 +27,7 @@ COPY --from=client-builder /app/client/build ../client/build
 RUN mvn clean package -B
 
 # 运行阶段
-FROM eclipse-temurin:11-jdk-alpine
+FROM adoptopenjdk/openjdk11:latest
 
 LABEL maintainer="lcomplete"
 
