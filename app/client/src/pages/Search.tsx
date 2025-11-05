@@ -3,7 +3,7 @@ import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tans
 import {PageSearchResult, SearchControllerApiFactory, SearchQuery} from "../api";
 import MainContainer from "../components/MainContainer";
 import Loading from "../components/Loading";
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import MagazineItem from "../components/MagazineItem";
 import {Button} from "@mui/material";
 import {useInView} from "react-intersection-observer";
@@ -12,6 +12,7 @@ import PageDetailModal from "../components/PageDetailModal";
 import {PageQueryKey} from "../domain/pageQueryKey";
 import {PageOperateEvent, PageOperation} from "../components/PageOperationButtons";
 import {useSnackbar} from "notistack";
+import {safeInt} from "../common/typeUtils";
 
 // type SearchQuery = {
 //   page?: number, q?: string, queryOptions?: string, size?: number
@@ -19,18 +20,15 @@ import {useSnackbar} from "notistack";
 
 export default function Search() {
   setDocTitle("Search results");
-
+  
   const {ref: inViewRef, inView} = useInView();
   const {enqueueSnackbar} = useSnackbar();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q');
   const options = searchParams.get("op");
-  setDocTitle(q + " - search results");
+  const selectedPageId = safeInt(searchParams.get("p"));
 
-  const [selectedPageId, setSelectedPageId] = useState(0);
-  useEffect(() => {
-    setSelectedPageId(0);
-  }, [q, options]);
+  setDocTitle(q + " - search results");
 
   const query: SearchQuery = {q, size: 10, queryOptions: options};
   const queryKey = [PageQueryKey.Search, query];
@@ -71,7 +69,11 @@ export default function Search() {
       return;
     }
     e.preventDefault();
-    setSelectedPageId(pageId);
+    setSearchParams({q: q, op: options, p: pageId}, {preventScrollReset: true});
+  }
+
+  function closePageDetail() {
+    setSearchParams({q: q, op: options}, {preventScrollReset: true});
   }
 
   function operateSuccess(event: PageOperateEvent) {
@@ -111,10 +113,6 @@ export default function Search() {
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
     }
-  }
-
-  function closePageDetail() {
-    setSelectedPageId(0);
   }
 
   return <MainContainer>
