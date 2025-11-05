@@ -4,7 +4,10 @@
   "private": true,
   "proxy": "http://localhost:8080",
   "scripts": {
+    "dev": "react-scripts start",
     "start": "react-scripts start",
+    "dev:test": "env-cmd -f .env.test.local react-scripts start",
+    "start:test": "yarn dev:test",
     "api-generate": "cd ./src/api/ && openapi-generator-cli generate -i http://localhost:8080/v3/api-docs -g typescript-axios -o .",
     "build": "react-scripts build",
     "test": "react-scripts test",
@@ -56,6 +59,7 @@
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.5.2",
     "@types/turndown": "^5.0.5",
+    "env-cmd": "^11.0.0",
     "http-proxy-middleware": "^3.0.5"
   },
   "eslintConfig": {
