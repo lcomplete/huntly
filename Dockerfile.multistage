@@ -1,5 +1,5 @@
 # 构建阶段 - Node.js 环境
-FROM node:18.12.1 AS client-builder
+FROM node:20.10.0 AS client-builder
 
 WORKDIR /app/client
 COPY app/client/package.json app/client/yarn.lock ./
