@@ -25,6 +25,8 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import PageHighlightList from './highlights/PageHighlightList';
 import TextHighlighter from './highlights/TextHighlighter';
+import TableOfContents from './TableOfContents';
+import ListIcon from '@mui/icons-material/List';
 
 // 引入 TurndownService
 import TurndownService from 'turndown';
@@ -47,6 +49,7 @@ const PageDetailArea = ({
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
   const [highlightMode, setHighlightMode] = useState(true);
+  const [showToc, setShowToc] = useState(true);
   
   // AI操作菜单状态
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -428,23 +431,28 @@ const PageDetailArea = ({
   };
 
   return (
-    <div className="pl-2 pr-2 flex flex-col items-center">
+    <div className="page-detail-layout">
       {isLoading && <Loading/>}
       {error && <p>error...</p>}
       {detail && (
-        <Paper
-          className={"page-detail-paper"}
-          sx={{maxWidth: 800, minWidth: 800}}
-          key={detail.page.id}
-          elevation={2}
-        >
-          <div
-            className={'bg-sky-50 pl-2 pr-2 pt-1 pb-1 mb-4 border-0 border-solid border-b-[2px] border-b-blue-100 sticky top-0 backdrop-blur-2xl bg-opacity-60 z-40'}>
-            <Box sx={{}} className={"flex items-center justify-between"}>
-              <div className={'flex items-center'}>
-                <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'hover:underline'}>
-                  <div className={"flex items-center"}>
-                    {iconUrl &&
+        <div className="page-detail-content-wrapper">
+          {/* 左侧占位区域 - 用于居中，始终保留空间 */}
+          <div className="page-detail-spacer hidden xl:block"></div>
+          
+          {/* 主内容区域 */}
+          <Paper
+            className={"page-detail-paper"}
+            sx={{maxWidth: 800, minWidth: 800}}
+            key={detail.page.id}
+            elevation={2}
+          >
+            <div
+              className={'page-detail-header bg-sky-50 pl-2 pr-2 pt-1 pb-1 mb-4 border-0 border-solid border-b-[2px] border-b-blue-100 sticky top-0 backdrop-blur-2xl bg-opacity-60 z-40'}>
+              <Box sx={{}} className={"flex items-center justify-between"}>
+                <div className={'flex items-center'}>
+                  <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'hover:underline'}>
+                    <div className={"flex items-center"}>
+                      {iconUrl &&
                       <span className={"mr-2"}>
                         <CardMedia component={'img'} image={iconUrl}
                                    sx={{
@@ -491,6 +499,12 @@ const PageDetailArea = ({
                     <Tooltip title={highlightMode ? 'Disable text highlighting selection tool' : 'Enable text highlighting selection tool'} placement={"bottom"}>
                       <IconButton onClick={() => setHighlightMode(!highlightMode)}>
                         <FormatQuoteIcon fontSize={"small"} sx={{ color: highlightMode ? "#f59e0b" : "#9e9e9e" }} />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title={showToc ? 'Hide outline' : 'Show outline'} placement={"bottom"}>
+                      <IconButton onClick={() => setShowToc(!showToc)}>
+                        <ListIcon fontSize={"small"} sx={{ color: showToc ? "#3b82f6" : "#9e9e9e" }} />
                       </IconButton>
                     </Tooltip>
 
@@ -672,6 +686,14 @@ const PageDetailArea = ({
             </article>
           </div>
         </Paper>
+        
+        {/* 目录区域 - 显示在内容右侧，使用 visibility 而不是 display 保持占位 */}
+        <div className={`page-detail-toc-area hidden xl:block ${showToc ? '' : 'invisible'}`}>
+          {detail.page.content && (
+            <TableOfContents content={detail.page.content} />
+          )}
+        </div>
+        </div>
       )}
       <Snackbar
         open={snackbarOpen}

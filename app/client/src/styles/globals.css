@@ -54,22 +54,162 @@ a {
 }
 
 .page-detail-modal {
-    @apply w-[1450px] p-4;
+    @apply w-[1500px] p-4;
 }
 
-@media (max-width: 1450px) {
+/* 详情页布局容器 */
+.page-detail-layout {
+    @apply pl-2 pr-2;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+/* 内容区域wrapper - 用于居中内容 */
+.page-detail-content-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+}
+
+/* 左侧占位区域 - 与目录区域宽度相同，用于居中 */
+.page-detail-spacer {
+    width: 240px;
+    flex-shrink: 0;
+}
+
+/* 操作栏置顶 - 模态窗口中 */
+.page-detail-modal .page-detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+/* 操作栏置顶 - 独立页面中，考虑顶部导航栏高度 (48px) */
+.main_window .page-detail-header {
+    position: sticky;
+    top: 48px;
+    z-index: 40;
+}
+
+/* 目录区域样式 - 模态窗口中 */
+.page-detail-modal .page-detail-toc-area {
+    width: 240px;
+    flex-shrink: 0;
+    padding-left: 20px;
+    position: sticky;
+    top: 26px;
+    align-self: flex-start;
+}
+
+/* 目录区域样式 - 独立页面中，考虑顶部导航栏高度 */
+.main_window .page-detail-toc-area {
+    width: 240px;
+    flex-shrink: 0;
+    padding-left: 20px;
+    position: sticky;
+    top: 64px;
+    align-self: flex-start;
+}
+
+/* 目录外层容器 */
+.toc-wrapper {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 100px);
+    padding-top: 24px;
+}
+
+/* 目录导航区域 - 只有这部分滚动 */
+.toc-nav {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+    border-left: 1px solid #e5e7eb;
+}
+
+.toc-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.toc-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.toc-nav::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.3);
+    border-radius: 2px;
+}
+
+.toc-nav::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.6);
+}
+
+/* 目录列表 */
+.toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toc-item {
+    margin: 0;
+}
+
+/* 目录链接 */
+.toc-link {
+    display: block;
+    padding: 6px 0 6px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #6b7280;
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: -1px;
+}
+
+.toc-link:hover {
+    color: #374151;
+    border-left-color: #d1d5db;
+}
+
+.toc-link-active {
+    color: #2563eb;
+    border-left-color: #2563eb;
+    font-weight: 500;
+}
+
+@media (min-width: 1800px) {
     .page-detail-modal {
-        @apply w-[1200px];
+        @apply w-[1600px];
     }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1500px) {
     .page-detail-modal {
-        @apply w-[1000px];
+        @apply w-[1300px];
     }
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1300px) {
+    .page-detail-modal {
+        @apply w-[1100px];
+    }
+    
+    .page-detail-toc-area,
+    .page-detail-spacer {
+        display: none !important;
+    }
+}
+
+@media (max-width: 1100px) {
+    .page-detail-modal {
+        @apply w-[900px];
+    }
+}
+
+@media (max-width: 900px) {
     .page-detail-modal {
         @apply w-[100%];
     }
