@@ -5,11 +5,11 @@
   <parent>
     <groupId>com.huntly</groupId>
     <artifactId>integrated</artifactId>
-    <version>0.4.6</version>
+    <version>0.4.8</version>
   </parent>
   <groupId>com.huntly</groupId>
   <artifactId>huntly-interfaces</artifactId>
-  <version>0.4.6</version>
+  <version>0.4.8</version>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>

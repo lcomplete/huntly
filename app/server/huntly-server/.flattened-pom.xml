@@ -5,11 +5,11 @@
   <parent>
     <groupId>com.huntly</groupId>
     <artifactId>integrated</artifactId>
-    <version>0.4.6</version>
+    <version>0.4.8</version>
   </parent>
   <groupId>com.huntly</groupId>
   <artifactId>huntly-server</artifactId>
-  <version>0.4.6</version>
+  <version>0.4.8</version>
   <name>huntly-server</name>
   <description>huntly api server</description>
   <licenses>
@@ -198,44 +198,6 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
           <includeSystemScope>true</includeSystemScope>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <version>${frontend-maven-plugin.version}</version>
-        <executions>
-          <execution>
-            <id>install-frontend-tools</id>
-            <goals>
-              <goal>install-node-and-yarn</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>yarn-install</id>
-            <goals>
-              <goal>yarn</goal>
-            </goals>
-            <configuration>
-              <arguments>install</arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>build-frontend</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>yarn</goal>
-            </goals>
-            <configuration>
-              <arguments>build</arguments>
-            </configuration>
-          </execution>
-        </executions>
-        <configuration>
-          <nodeVersion>${node.version}</nodeVersion>
-          <yarnVersion>${yarn.version}</yarnVersion>
-          <workingDirectory>${frontend-src-dir}</workingDirectory>
-          <installDirectory>${project.build.directory}</installDirectory>
         </configuration>
       </plugin>
       <plugin>

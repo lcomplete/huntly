@@ -10,7 +10,7 @@
   </parent>
   <groupId>com.huntly</groupId>
   <artifactId>integrated</artifactId>
-  <version>0.4.6</version>
+  <version>0.4.8</version>
   <packaging>pom</packaging>
   <name>Integrated huntly</name>
   <licenses>
@@ -33,7 +33,7 @@
     <jsoup.version>1.15.3</jsoup.version>
     <rome.version>1.18.0</rome.version>
     <guava.version>31.1-jre</guava.version>
-    <project.version>0.4.6</project.version>
+    <project.version>0.4.8</project.version>
     <lombok.version>1.18.24</lombok.version>
     <project.groupId>com.huntly</project.groupId>
     <skipDockerBuild>true</skipDockerBuild>
