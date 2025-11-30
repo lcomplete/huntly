@@ -18,6 +18,8 @@ import com.huntly.server.util.HtmlText;
 import com.huntly.server.util.HtmlUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -47,7 +49,8 @@ public class CapturePageService extends BasePageService {
     public Page save(CapturePage capturePage) {
         String contentText = cleanPageContent(capturePage);
         var source = saveSource(capturePage);
-        var existPage = handleSamePage(capturePage);
+        boolean isSnippet = ObjectUtils.equals(capturePage.getContentType(), ContentType.SNIPPET.getCode());
+        Optional<Page> existPage = isSnippet ? Optional.empty() : handleSamePage(capturePage);
         Page page;
         if (existPage.isEmpty()) {
             page = new Page();
@@ -98,7 +101,11 @@ public class CapturePageService extends BasePageService {
         if (capturePage.getConnectorId() == null) {
             page.setMarkRead(true);
             page.setLastReadAt(Instant.now());
-            page.setContentType(ContentType.BROWSER_HISTORY.getCode());
+            if (isSnippet) {
+                page.setContentType(ContentType.SNIPPET.getCode());
+            } else {
+                page.setContentType(ContentType.BROWSER_HISTORY.getCode());
+            }
             page.setReadCount(ObjectUtils.defaultIfNull(page.getReadCount(), 0) + 1);
         }
         if (capturePage.getConnectedAt() != null && page.getConnectedAt() == null) {
@@ -191,14 +198,22 @@ public class CapturePageService extends BasePageService {
         String url = capturePage.getUrl();
         url = guessMainUrl(url);
         capturePage.setUrl(url);
-        var page = pageRepository.findTop1ByUrl(url);
+
+        int snippetContentType = ContentType.SNIPPET.getCode();
+        Pageable limitOne = PageRequest.of(0, 1);
+        
+        List<Page> pages = pageRepository.findByUrlExcludingContentType(url, snippetContentType, limitOne);
+        Optional<Page> page = pages.stream().findFirst();
+        
         if (page.isPresent()) {
             return page;
         }
 
         // check other protocol url
         String otherProtocolUrl = UrlUtils.isHttpUrl(url) ? UrlUtils.getHttpsUrl(url) : UrlUtils.getHttpUrl(url);
-        page = pageRepository.findTop1ByUrl(otherProtocolUrl);
+        pages = pageRepository.findByUrlExcludingContentType(otherProtocolUrl, snippetContentType, limitOne);
+        page = pages.stream().findFirst();
+        
         if (page.isPresent()) {
             return page;
         }
@@ -208,7 +223,9 @@ public class CapturePageService extends BasePageService {
         if (capturePage.getConnectorId() == null) {
             String urlWithoutHash = getUrlWithoutHash(url);
             if (!Objects.equals(urlWithoutHash, url)) {
-                var pageWithoutHash = pageRepository.findTop1ByUrlWithoutHash(urlWithoutHash);
+                List<Page> pagesWithoutHash = pageRepository.findByUrlWithoutHashExcludingContentType(urlWithoutHash, snippetContentType, limitOne);
+                Optional<Page> pageWithoutHash = pagesWithoutHash.stream().findFirst();
+                
                 AtomicBoolean maybeSamePage = new AtomicBoolean(false);
                 pageWithoutHash.ifPresent(p -> {
                     maybeSamePage.set(p.getTitle().equals(capturePage.getTitle())

@@ -9,6 +9,8 @@ import {createRoot} from "react-dom/client";
 log("web clipper script loaded");
 
 let root = null;
+// Store last snippet for current page (page-specific, not persisted)
+let lastSnippetPage: PageModel | null = null;
 
 chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
   if (msg.type === "parse_doc") {
@@ -17,8 +19,11 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     sendResponse({page});
     return;
   } else if (msg.type === 'shortcuts_preview') {
-    const webClipper = new WebClipper();
-    const page = webClipper.parseDoc(document.cloneNode(true) as Document);
+    let page = msg.payload?.page;
+    if (!page) {
+      const webClipper = new WebClipper();
+      page = webClipper.parseDoc(document.cloneNode(true) as Document);
+    }
     const rootId = "huntly_preview_unique_root";
     let elRoot = document.getElementById(rootId);
     if (!elRoot) {
@@ -39,6 +44,68 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
         <Article page={page} shortcuts={msg.payload?.shortcuts || []}/>
       );
     }
+    return;
+  } else if (msg.type === "get_selection") {
+    const webClipper = new WebClipper();
+    const selection = window.getSelection();
+    let content = "";
+    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+      const range = selection.getRangeAt(0);
+      const div = document.createElement('div');
+      div.appendChild(range.cloneContents());
+      content = div.innerHTML;
+    }
+    
+    if (!content) {
+      // No new selection, return last snippet if exists (with isRestored flag)
+      if (lastSnippetPage) {
+        sendResponse({page: lastSnippetPage, isRestored: true});
+      } else {
+        sendResponse({page: null});
+      }
+      return;
+    }
+
+    const doc = document.cloneNode(true) as Document;
+    
+    // Extract metadata without Readability
+    const baseURI = getBaseURI(doc);
+    const documentURI = doc.documentURI;
+    const ogTitle = doc.querySelector("meta[property='og:title']");
+    const title = ogTitle ? ogTitle.getAttribute("content") : doc.title;
+    
+    const ogImage = doc.querySelector("meta[property='og:image']");
+    let thumbUrl = ogImage ? ogImage.getAttribute("content") : null;
+    if (thumbUrl) {
+      thumbUrl = toAbsoluteURI(thumbUrl, baseURI, documentURI);
+    }
+    
+    const ogSiteName = doc.querySelector("meta[property='og:site_name']");
+    const siteName = ogSiteName ? ogSiteName.getAttribute("content") : "";
+    
+    let faviconUrl = findSmallestFaviconUrl(doc);
+    
+    const page: PageModel = {
+      title: title || "",
+      content: content,
+      url: location.href,
+      thumbUrl: thumbUrl || "",
+      description: selection.toString(),
+      author: "", // Could try to find author meta tag
+      siteName: siteName,
+      language: "",
+      category: "",
+      isLiked: false,
+      isFavorite: false,
+      domain: document.domain,
+      faviconUrl: faviconUrl || "",
+      contentType: 4 // SNIPPET
+    };
+    
+    // Save as last snippet for this page
+    lastSnippetPage = page;
+    
+    sendResponse({page, isRestored: false});
     return;
   }
 

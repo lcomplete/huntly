@@ -11,7 +11,11 @@ public enum ContentType {
     /*
      * is in quoted tweet
      */
-    QUOTED_TWEET(3);
+    QUOTED_TWEET(3),
+    /**
+     * snippet of page
+     */
+    SNIPPET(4);
 
     private final int code;
 

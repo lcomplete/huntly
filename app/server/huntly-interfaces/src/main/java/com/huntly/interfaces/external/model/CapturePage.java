@@ -60,4 +60,6 @@ public class CapturePage {
     private Instant connectedAt;
     
     private String pageJsonProperties;
+
+    private Integer contentType;
 }

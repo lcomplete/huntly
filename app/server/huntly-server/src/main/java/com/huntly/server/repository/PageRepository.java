@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +20,16 @@ import java.util.Optional;
 public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificationExecutor<Page>, JpaSpecificationExecutorWithProjection<Page>, JpaRepositoryWithLimit<Page, Long> {
 
     Optional<Page> findTop1ByUrl(String url);
-    
+
+    @Query("select p from Page p where p.url = :url and (p.contentType is null or p.contentType <> :excludedContentType)")
+    List<Page> findByUrlExcludingContentType(@Param("url") String url, @Param("excludedContentType") Integer excludedContentType, Pageable pageable);
+
     Optional<Page> findTop1ByPageUniqueId(String pageUniqueId);
     
     Optional<Page> findTop1ByUrlWithoutHash(String urlWithoutHash);
+
+    @Query("select p from Page p where p.urlWithoutHash = :urlWithoutHash and (p.contentType is null or p.contentType <> :excludedContentType)")
+    List<Page> findByUrlWithoutHashExcludingContentType(@Param("urlWithoutHash") String urlWithoutHash, @Param("excludedContentType") Integer excludedContentType, Pageable pageable);
 
     int countByConnectorIdAndMarkRead(Integer connectorId, Boolean markRead);
 

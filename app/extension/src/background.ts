@@ -10,7 +10,23 @@ function startProcessingWithShortcuts(task: any, shortcuts: any[]) {
     type: 'shortcuts_preview',
     payload: {
       shortcuts: shortcuts,
-      taskId: task.taskId
+      taskId: task.taskId,
+      page: {
+          title: task.title,
+          content: task.content,
+          url: task.url,
+          description: "",
+          thumbUrl: "",
+          author: "",
+          siteName: "",
+          language: "",
+          category: "",
+          isLiked: false,
+          isFavorite: false,
+          domain: "",
+          faviconUrl: "",
+          contentType: task.contentType, // Pass contentType for snippet mode
+      }
     }
   }, function(response) {
     // 发送处理开始的消息
@@ -113,7 +129,8 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
       shortcutName: msg.payload.shortcutName,
       content: msg.payload.content,
       url: msg.payload.url,
-      title: msg.payload.title || "" // 文章标题
+      title: msg.payload.title || "", // 文章标题
+      contentType: msg.payload.contentType, // Pass contentType for snippet mode
     };
     
     // 使用 payload 中传递的 shortcuts 数据

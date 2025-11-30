@@ -5,12 +5,14 @@ import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardContent,
   CardMedia,
   CircularProgress, CssBaseline, Dialog, DialogActions, DialogTitle,
   IconButton, Menu, MenuItem, StyledEngineProvider,
+  Tabs, Tab,
   TextField,
   Tooltip, Typography
 } from "@mui/material";
@@ -29,6 +31,7 @@ import StarIcon from '@mui/icons-material/Star';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+import ContentCutIcon from '@mui/icons-material/ContentCut';
 import {log} from "./logger";
 import {
   archivePage,
@@ -52,8 +55,20 @@ const Popup = () => {
     const [loadingUser, setLoadingUser] = useState(true);
     const [page, setPage] = useState<PageModel>(null);
     const [autoSavedPageId, setAutoSavedPageId] = useState<number>(0);
-    const [pageOperateResult, setPageOperateResult] = useState<PageOperateResult>(null);
+    const [articleOperateResult, setArticleOperateResult] = useState<PageOperateResult>(null);
     
+    // Tabs
+    const [activeTab, setActiveTab] = useState(0);
+    const [snippetPage, setSnippetPage] = useState<PageModel>(null);
+    const [checkingSnippet, setCheckingSnippet] = useState(false);
+    const [snippetOperateResult, setSnippetOperateResult] = useState<PageOperateResult>(null);
+    const [isRestoredSnippet, setIsRestoredSnippet] = useState(false); // Track if snippet is from last session
+
+    // Computed
+    const activePage = activeTab === 0 ? page : snippetPage;
+    const activeOperateResult = activeTab === 0 ? articleOperateResult : snippetOperateResult;
+    const setActiveOperateResult = activeTab === 0 ? setArticleOperateResult : setSnippetOperateResult;
+
     // 快捷指令相关状态
     const [shortcuts, setShortcuts] = useState<any[]>([]);
     const [loadingShortcuts, setLoadingShortcuts] = useState(false);
@@ -104,18 +119,53 @@ const Popup = () => {
           chrome.tabs.sendMessage(tab.id, {type: 'parse_doc'}, function (response) {
             if(response) {
               setPage(response.page);
-              loadPageOperateResult(autoSavedPageId, response.page.url);
+              loadPageOperateResult(autoSavedPageId, response.page.url, setArticleOperateResult);
             }
           });
         }
       });
     }
 
-    function loadPageOperateResult(pageId, url) {
+    function handleTabChange(event: React.SyntheticEvent, newValue: number) {
+      setActiveTab(newValue);
+      if (newValue === 1) {
+        if (!snippetPage) {
+            checkSnippetSelection();
+        }
+      }
+    }
+
+    function checkSnippetSelection() {
+      setCheckingSnippet(true);
+      setSnippetOperateResult(null);
+      setIsRestoredSnippet(false);
+      chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        const tab = tabs[0];
+        if (tab) {
+          chrome.tabs.sendMessage(tab.id, {type: 'get_selection'}, function (response) {
+            setCheckingSnippet(false);
+            if (response && response.page) {
+              const sPage = response.page;
+              sPage.contentType = 4; // SNIPPET
+              setSnippetPage(sPage);
+              // Check if this is a restored snippet from page memory
+              setIsRestoredSnippet(response.isRestored === true);
+            } else {
+              setSnippetPage(null);
+              setIsRestoredSnippet(false);
+            }
+          });
+        } else {
+            setCheckingSnippet(false);
+        }
+      });
+    }
+
+    function loadPageOperateResult(pageId, url, setResult) {
       getPageOperateResult(pageId, url).then((result) => {
         if (result) {
           const operateResult = JSON.parse(result);
-          setPageOperateResult(operateResult);
+          setResult(operateResult);
         }
       });
     }
@@ -143,14 +193,14 @@ const Popup = () => {
     }
 
     async function sendToHuntly() {
-      const pageId = await savePage(page);
+      const pageId = await savePage(activePage);
       if (pageId > 0) {
-        loadPageOperateResult(pageId, page.url);
+        loadPageOperateResult(pageId, activePage.url, setActiveOperateResult);
       }
     }
 
-    async function savePage(page): Promise<number> {
-      const resp = await saveArticle(page);
+    async function savePage(pageToSave): Promise<number> {
+      const resp = await saveArticle(pageToSave);
       if (resp) {
         const json = JSON.parse(resp);
         if (json.data) {
@@ -160,61 +210,61 @@ const Popup = () => {
       return 0;
     }
 
-    async function ensureSavePage(page): Promise<number> {
-      if (pageOperateResult?.id > 0) {
-        return pageOperateResult.id;
+    async function ensureSavePage(pageToSave): Promise<number> {
+      if (activeOperateResult?.id > 0) {
+        return activeOperateResult.id;
       }
-      return savePage(page);
+      return savePage(pageToSave);
     }
 
     async function unReadLater() {
-      const pageId = await ensureSavePage(page);
+      const pageId = await ensureSavePage(activePage);
       const operateResult = await unReadLaterPage(pageId);
-      setPageOperateResult(operateResult);
+      setActiveOperateResult(operateResult);
     }
 
     async function readLater() {
-      const pageId = await ensureSavePage(page);
+      const pageId = await ensureSavePage(activePage);
       const operateResult = await readLaterPage(pageId);
-      setPageOperateResult(operateResult);
+      setActiveOperateResult(operateResult);
     }
 
     async function unStar() {
-      const pageId = await ensureSavePage(page);
+      const pageId = await ensureSavePage(activePage);
       const operateResult = await unStarPage(pageId);
-      setPageOperateResult(operateResult);
+      setActiveOperateResult(operateResult);
     }
 
     async function star() {
-      const pageId = await ensureSavePage(page);
+      const pageId = await ensureSavePage(activePage);
       const operateResult = await starPage(pageId);
-      setPageOperateResult(operateResult);
+      setActiveOperateResult(operateResult);
     }
 
     async function saveToLibrary() {
-      const pageId = await ensureSavePage(page);
+      const pageId = await ensureSavePage(activePage);
       const operateResult = await savePageToLibrary(pageId);
-      setPageOperateResult(operateResult);
+      setActiveOperateResult(operateResult);
     }
 
     async function removeFromLibrary() {
-      const pageId = await ensureSavePage(page);
+      const pageId = await ensureSavePage(activePage);
       const operateResult = await removePageFromLibrary(pageId);
-      setPageOperateResult(operateResult);
+      setActiveOperateResult(operateResult);
     }
 
     async function archive() {
-      const pageId = await ensureSavePage(page);
+      const pageId = await ensureSavePage(activePage);
       const operateResult = await archivePage(pageId);
-      setPageOperateResult(operateResult);
+      setActiveOperateResult(operateResult);
     }
 
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
     async function deletePageData() {
-      if (pageOperateResult?.id > 0) {
-        await deletePage(pageOperateResult.id);
-        setPageOperateResult(null);
+      if (activeOperateResult?.id > 0) {
+        await deletePage(activeOperateResult.id);
+        setActiveOperateResult(null);
         handleCloseDeleteDialog();
       }
     }
@@ -241,7 +291,7 @@ const Popup = () => {
             </IconButton>
           </Tooltip>
           {
-            pageOperateResult?.id ? <Tooltip title={"Delete forever"} placement={"right"}>
+            activeOperateResult?.id ? <Tooltip title={"Delete forever"} placement={"right"}>
               <IconButton onClick={showDeleteDialog} className={"mt-2 bg-white shadow-heavy hover:bg-white"}
                           color={"error"}>
                 <DeleteForeverIcon fontSize={"small"}/>
@@ -280,7 +330,8 @@ const Popup = () => {
           chrome.tabs.sendMessage(tab.id, {
             type: 'shortcuts_preview',
             payload: {
-              shortcuts: shortcuts
+              shortcuts: shortcuts,
+              page: activePage
             }
           }, function (response) {
           });
@@ -316,7 +367,7 @@ const Popup = () => {
     
     // 处理快捷指令点击
     const handleShortcutClick = async (shortcutId: number, shortcutName: string) => {
-      if (!page || processingShortcut) return;
+      if (!activePage || processingShortcut) return;
       
       setProcessingShortcut(true);
       handleShortcutMenuClose();
@@ -329,6 +380,12 @@ const Popup = () => {
             // 生成唯一的 taskId
             const taskId = `popup_${Date.now()}_${Math.random().toString(36).substring(7)}`;
             
+            // Snippet 模式下使用 snippet 的内容和 description（纯文本）
+            const isSnippetMode = activeTab === 1;
+            const contentToProcess = isSnippetMode 
+              ? (activePage.description || activePage.content) // Snippet 使用 description（选中的纯文本）
+              : activePage.content;
+            
             // 发送消息到 background 脚本处理快捷指令
             chrome.runtime.sendMessage({
               type: 'shortcuts_process',
@@ -337,9 +394,10 @@ const Popup = () => {
                 taskId,
                 shortcutId,
                 shortcutName,
-                content: page.content,
-                url: page.url,
-                title: page.title, // 传递文章标题
+                content: contentToProcess,
+                url: activePage.url,
+                title: isSnippetMode ? '' : activePage.title,
+                contentType: isSnippetMode ? 4 : undefined, // 4 = SNIPPET
                 shortcuts: shortcuts
               }
             });
@@ -411,156 +469,221 @@ const Popup = () => {
               }
               {
                 !loadingUser && username && <div>
-                  {page && <div>
+                  <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                    <Tabs value={activeTab} onChange={handleTabChange} aria-label="huntly tabs" variant="fullWidth" sx={{
+                        minHeight: '36px',
+                        '& .MuiTab-root': {
+                            minHeight: '36px',
+                            textTransform: 'none',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem'
+                        }
+                    }}>
+                      <Tab label="Article" />
+                      <Tab label="Snippet" />
+                    </Tabs>
+                  </Box>
+
+                  {/* Article Tab Content */}
+                  <div role="tabpanel" hidden={activeTab !== 0}>
                     {
-                      autoSavedPageId > 0 && <div className={'mb-2'}>
-                        <Alert severity={'success'}>This webpage has been automatically hunted.
-                          <a href={combineUrl(storageSettings.serverUrl, "/page/" + autoSavedPageId)} target={'_blank'}
-                             className={'ml-1'}>view</a>
+                      !page && <div>
+                        <Alert severity={'warning'}>
+                          This webpage doesn't look like an article page.
                         </Alert>
                       </div>
                     }
-                    {
-                      !autoSavedPageId && pageOperateResult && pageOperateResult.id > 0 && <div className={'mb-2'}>
-                        <Alert severity={'info'}>This webpage has been hunted.
-                          <a href={combineUrl(storageSettings.serverUrl, "/page/" + pageOperateResult.id)} target={'_blank'}
-                             className={'ml-1'}>view</a>
-                        </Alert>
-                      </div>
-                    }
-                    <div>
-                      <div className={'flex items-center'}>
-                        <TextField value={page.url} size={"small"} fullWidth={true} disabled={true}/>
-                        <div className={'grow shrink-0 pl-2'}>
-                          {
-                            pageOperateResult?.readLater ? (
-                              <Tooltip title={"Remove from read later"}>
-                                <IconButton onClick={unReadLater}>
-                                  <BookmarkAddedIcon fontSize={"small"}/>
-                                </IconButton>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip title={"Read later"}>
-                                <IconButton onClick={readLater}>
-                                  <BookmarkBorderIcon fontSize={"small"}/>
-                                </IconButton>
-                              </Tooltip>
-                            )
-                          }
-                          {
-                            pageOperateResult?.starred ? (
-                              <Tooltip title={"Remove from starred"}>
-                                <IconButton onClick={unStar}>
-                                  <StarIcon fontSize={"small"}/>
-                                </IconButton>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip title={"Star page"}>
-                                <IconButton onClick={star}>
-                                  <StarBorderIcon fontSize={"small"}/>
-                                </IconButton>
-                              </Tooltip>
-                            )
-                          }
-                          {
-                            pageOperateResult?.librarySaveStatus === LibrarySaveStatus.Archived ? (
-                              groupSaveAction(
-                                <ArchiveIcon fontSize={'small'}/>, saveToLibrary, 'Remove from archive',
-                                <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, removeFromLibrary, 'Remove from my list')
-                            ) : pageOperateResult?.librarySaveStatus === LibrarySaveStatus.Saved ? (
-                              groupSaveAction(
-                                <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, removeFromLibrary, 'Remove from my list',
-                                <ArchiveOutlinedIcon fontSize={'small'}/>, archive, 'Archive'
-                              )
-                            ) : (
-                              groupSaveAction(
-                                <PlaylistAddOutlinedIcon fontSize={"small"}/>, saveToLibrary, 'Save to my list',
-                                <ArchiveOutlinedIcon fontSize={'small'}/>, archive, 'Archive'
-                              )
-                            )
-                          }
-                        </div>
-                      </div>
-                      <Card className={`mainBorder mt-2 w-full flex`}>
-                        {
-                          page.thumbUrl &&
-                          <div className={'w-[130px] flex items-center shrink-0'}
-                               style={{backgroundColor: 'rgb(247,249,249)'}}>
-                            <CardMedia
-                              component="img"
-                              height={130}
-                              image={page.thumbUrl}
-                              alt={page.title}
-                            />
-                          </div>
-                        }
-                        {
-                          !page.thumbUrl &&
-                          <div className={'w-[130px] flex items-center shrink-0'}
-                               style={{backgroundColor: 'rgb(247,249,249)'}}>
-                            <CardMedia
-                              component={ArticleIcon}
-                              className={'grow'}
-                            />
-                          </div>
-                        }
-                        <div className={'flex items-center'}>
-                          <CardContent sx={{borderLeft: '1px solid #ccc'}}>
-                            <Typography variant="body2" color="text.secondary">
-                              {page.domain}
-                            </Typography>
-                            <Typography variant="body1" component="div" className={`line-clamp-3`}>
-                              {page.title}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" className={`line-clamp-3`}>
-                              {page.description}
-                            </Typography>
-                          </CardContent>
-                        </div>
-                      </Card>
-                      <div className={'mt-2 flex justify-center gap-2'}>
-                        <Button variant={"text"} color={"info"} size={"small"} startIcon={<ArticleIcon/>}
-                                onClick={articlePreview}>Article Preview</Button>
-                        
-                        {shortcuts && shortcuts.length > 0 && (
-                          <>
-                            <Button 
-                              variant={"text"} 
-                              color={"primary"} 
-                              size={"small"} 
-                              startIcon={<SmartToyOutlinedIcon />}
-                              endIcon={processingShortcut ? <CircularProgress size={14} /> : null}
-                              onClick={handleShortcutMenuOpen}
-                              disabled={processingShortcut}
-                            >
-                              AI Shortcuts
-                            </Button>
-                            <Menu
-                              anchorEl={shortcutMenuAnchorEl}
-                              open={shortcutMenuOpen}
-                              onClose={handleShortcutMenuClose}
-                            >
-                              {shortcuts.map(shortcut => (
-                                <MenuItem 
-                                  key={shortcut.id} 
-                                  onClick={() => handleShortcutClick(shortcut.id, shortcut.name)}
-                                  disabled={processingShortcut}
-                                >
-                                  {shortcut.name}
-                                </MenuItem>
-                              ))}
-                            </Menu>
-                          </>
-                        )}
-                      </div>
-                    </div>
                   </div>
-                  }
+
+                  {/* Snippet Tab Content - Check State */}
+                  <div role="tabpanel" hidden={activeTab !== 1}>
+                    {
+                      checkingSnippet && <div className={'flex justify-center items-center h-[120px]'}><CircularProgress/></div>
+                    }
+                    {
+                      !checkingSnippet && !snippetPage && <div className={'mt-4'}>
+                        <Alert severity="info" action={
+                          <Button color="inherit" size="small" onClick={checkSnippetSelection}>Retry</Button>
+                        }>
+                          Please select content on the page first.
+                        </Alert>
+                      </div>
+                    }
+                  </div>
+                  
+                  {/* Shared Content View (Article or Snippet) */}
                   {
-                    !page && <div>
-                      <Alert severity={'warning'}>
-                        This webpage doesn't look like an article page.
-                      </Alert>
+                    ((activeTab === 0 && page) || (activeTab === 1 && snippetPage)) && <div>
+                      {
+                        activeTab === 1 && isRestoredSnippet && <div className={'mb-2'}>
+                          <Alert severity={'info'}>
+                            Showing your last snippet from this page.
+                          </Alert>
+                        </div>
+                      }
+                      {
+                        activeTab === 0 && autoSavedPageId > 0 && <div className={'mb-2'}>
+                          <Alert severity={'success'}>This webpage has been automatically hunted.
+                            <a href={combineUrl(storageSettings.serverUrl, "/page/" + autoSavedPageId)} target={'_blank'}
+                               className={'ml-1'}>view</a>
+                          </Alert>
+                        </div>
+                      }
+                      {
+                        !autoSavedPageId && activeOperateResult && activeOperateResult.id > 0 && <div className={'mb-2'}>
+                          <Alert severity={'info'}>
+                            {activeTab === 0 ? 'This webpage has been hunted.' : 'This snippet has been saved.'}
+                            <a href={combineUrl(storageSettings.serverUrl, "/page/" + activeOperateResult.id)} target={'_blank'}
+                               className={'ml-1'}>view</a>
+                          </Alert>
+                        </div>
+                      }
+                      <div>
+                        <div className={'flex items-center'}>
+                          <TextField value={activePage.url} size={"small"} fullWidth={true} disabled={true}/>
+                          <div className={'grow shrink-0 pl-2'}>
+                            {
+                              activeOperateResult?.readLater ? (
+                                <Tooltip title={"Remove from read later"}>
+                                  <IconButton onClick={unReadLater}>
+                                    <BookmarkAddedIcon fontSize={"small"}/>
+                                  </IconButton>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip title={"Read later"}>
+                                  <IconButton onClick={readLater}>
+                                    <BookmarkBorderIcon fontSize={"small"}/>
+                                  </IconButton>
+                                </Tooltip>
+                              )
+                            }
+                            {
+                              activeOperateResult?.starred ? (
+                                <Tooltip title={"Remove from starred"}>
+                                  <IconButton onClick={unStar}>
+                                    <StarIcon fontSize={"small"}/>
+                                  </IconButton>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip title={"Star page"}>
+                                  <IconButton onClick={star}>
+                                    <StarBorderIcon fontSize={"small"}/>
+                                  </IconButton>
+                                </Tooltip>
+                              )
+                            }
+                            {
+                              activeOperateResult?.librarySaveStatus === LibrarySaveStatus.Archived ? (
+                                groupSaveAction(
+                                  <ArchiveIcon fontSize={'small'}/>, saveToLibrary, 'Remove from archive',
+                                  <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, removeFromLibrary, 'Remove from my list')
+                              ) : activeOperateResult?.librarySaveStatus === LibrarySaveStatus.Saved ? (
+                                groupSaveAction(
+                                  <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, removeFromLibrary, 'Remove from my list',
+                                  <ArchiveOutlinedIcon fontSize={'small'}/>, archive, 'Archive'
+                                )
+                              ) : (
+                                groupSaveAction(
+                                  <PlaylistAddOutlinedIcon fontSize={"small"}/>, saveToLibrary, 'Save to my list',
+                                  <ArchiveOutlinedIcon fontSize={'small'}/>, archive, 'Archive'
+                                )
+                              )
+                            }
+                          </div>
+                        </div>
+                        <Card className={`mainBorder mt-2 w-full flex`}>
+                          {
+                            activeTab === 0 && activePage.thumbUrl &&
+                            <div className={'w-[130px] flex items-center shrink-0'}
+                                 style={{backgroundColor: 'rgb(247,249,249)'}}>
+                              <CardMedia
+                                component="img"
+                                height={130}
+                                image={activePage.thumbUrl}
+                                alt={activePage.title}
+                              />
+                            </div>
+                          }
+                          {
+                            activeTab === 0 && !activePage.thumbUrl &&
+                            <div className={'w-[130px] flex items-center shrink-0'}
+                                 style={{backgroundColor: 'rgb(247,249,249)'}}>
+                              <CardMedia
+                                component={ArticleIcon}
+                                className={'grow'}
+                              />
+                            </div>
+                          }
+                          
+                          {/* Article Card Content */}
+                          {activeTab === 0 && <div className={'flex items-center'}>
+                            <CardContent sx={{borderLeft: '1px solid #ccc'}}>
+                              <Typography variant="body2" color="text.secondary">
+                                {activePage.domain}
+                              </Typography>
+                              <Typography variant="body1" component="div" className={`line-clamp-3`}>
+                                {activePage.title}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" className={`line-clamp-3`}>
+                                {activePage.description}
+                              </Typography>
+                            </CardContent>
+                          </div>}
+
+                          {/* Snippet Card Content */}
+                          {activeTab === 1 && <div className={'w-full'}>
+                            <CardContent sx={{
+                                maxHeight: '200px',
+                                overflowY: 'auto',
+                                padding: '10px !important',
+                                '& p': { margin: '0 0 10px 0' }
+                            }}>
+                                <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.75rem' }} gutterBottom>
+                                    {activePage.title}
+                                </Typography>
+                                <Typography variant="body2" color="text.primary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                    {activePage.description}
+                                </Typography>
+                            </CardContent>
+                          </div>}
+                        </Card>
+                        
+                        <div className={'mt-2 flex justify-center gap-2'}>
+                          <Button variant={"text"} color={"info"} size={"small"} startIcon={<ArticleIcon/>}
+                                  onClick={articlePreview}>Preview</Button>
+                          
+                          {shortcuts && shortcuts.length > 0 && (
+                            <>
+                              <Button 
+                                variant={"text"} 
+                                color={"primary"} 
+                                size={"small"} 
+                                startIcon={<SmartToyOutlinedIcon />}
+                                endIcon={processingShortcut ? <CircularProgress size={14} /> : null}
+                                onClick={handleShortcutMenuOpen}
+                                disabled={processingShortcut}
+                              >
+                                AI Shortcuts
+                              </Button>
+                              <Menu
+                                anchorEl={shortcutMenuAnchorEl}
+                                open={shortcutMenuOpen}
+                                onClose={handleShortcutMenuClose}
+                              >
+                                {shortcuts.map(shortcut => (
+                                  <MenuItem 
+                                    key={shortcut.id} 
+                                    onClick={() => handleShortcutClick(shortcut.id, shortcut.name)}
+                                    disabled={processingShortcut}
+                                  >
+                                    {shortcut.name}
+                                  </MenuItem>
+                                ))}
+                              </Menu>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   }
                 </div>

@@ -18,6 +18,7 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import {ConnectorType} from "../interfaces/connectorType";
 import {GithubRepoProperties} from "../interfaces/githubRepoProperties";
 import StarOutlineIcon from '@mui/icons-material/StarOutline';
+import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 
 type MagazineItemProps = {
@@ -38,6 +39,7 @@ export default function MagazineItem({
 
   const [readed, setReaded] = useState(page.markRead);
   const isTweet = page.contentType === 1 || page.contentType === 3;
+  const isSnippet = page.contentType === 4;
   const isGithub = page.connectorType === ConnectorType.GITHUB;
   let tweetProps: TweetProperties = isTweet ? JSON.parse(page.pageJsonProperties) : null;
   let tweetStatus = tweetProps;
@@ -202,7 +204,17 @@ export default function MagazineItem({
           </Box>
         </Box>
 
-        {page.thumbUrl &&
+        {isSnippet &&
+          <Link to={`/page/${page.id}`} className={'self-center'} onClick={(e) => onPageSelect(e, page.id)}>
+            <Box className={'page-item-thumb flex flex-col items-center justify-center bg-gray-50'} sx={{width: 160, height: 120, flexShrink: 0, marginLeft: 2, borderRadius: 2}}>
+              <TextSnippetOutlinedIcon sx={{ fontSize: 28, color: 'text.secondary' }} />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: 12 }}>
+                snippet
+              </Typography>
+            </Box>
+          </Link>
+        }
+        {page.thumbUrl && !isSnippet &&
           <Link to={`/page/${page.id}`} className={'self-center'} onClick={(e) => onPageSelect(e, page.id)}>
             <Box className={'page-item-thumb'} sx={{width: 160, height: 120, flexShrink: 0, marginLeft: 2}}>
               <CardMedia

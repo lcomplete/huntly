@@ -126,6 +126,9 @@ export default function Article({
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
+  // 判断是否为 Snippet 模式
+  const isSnippetMode = page.contentType === 4;
+
   const handleClose = useCallback(() => {
     document
       .getElementById("huntly_preview_unique_root")
@@ -171,6 +174,11 @@ export default function Article({
       setCurrentShortcut(shortcut);
       setShowProcessedSection(true);
 
+      // Snippet 模式下使用 description（纯文本），否则使用 content（HTML）
+      const contentToProcess = isSnippetMode 
+        ? (page.description || page.content)
+        : page.content;
+      
       chrome.runtime.sendMessage({
         type: "shortcuts_process",
         payload: {
@@ -178,9 +186,10 @@ export default function Article({
           taskId: newTaskId,
           shortcutId: shortcut.id,
           shortcutName: shortcut.name,
-          content: page.content,
+          content: contentToProcess,
           url: page.url,
-          title: page.title,
+          title: isSnippetMode ? '' : page.title,
+          contentType: isSnippetMode ? 4 : undefined, // 4 = SNIPPET
           shortcuts: shortcuts,
         },
       });
@@ -350,7 +359,7 @@ export default function Article({
                 },
               }}
             >
-              Article AI Shortcuts
+              {isSnippetMode ? "Snippet AI Shortcuts" : "Article AI Shortcuts"}
             </Button>
 
             <Menu
@@ -585,7 +594,7 @@ export default function Article({
                   style={{ padding: "24px" }}
                 >
                   <article className={styles["markdown-body"]}>
-                    <h1 style={{ marginBottom: "16px" }}>{page.title}</h1>
+                    {!isSnippetMode && <h1 style={{ marginBottom: "16px" }}>{page.title}</h1>}
                     <div dangerouslySetInnerHTML={{ __html: page.content }} />
                   </article>
                 </div>
