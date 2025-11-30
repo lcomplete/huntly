@@ -63,7 +63,7 @@ export default function PageFilters(props: PageFilterProps) {
   function handleContentFilterChange(event, value) {
     onChange({
       ...options,
-      contentFilterType: value
+      contentFilterType: value ? parseInt(value) : 0
     });
   }
 
@@ -106,7 +106,7 @@ export default function PageFilters(props: PageFilterProps) {
     });
   }
 
-  return <div className={'text-[14px]'}>
+  return <div className={'text-[14px] flex flex-col'}>
     {
       !hideContentTypeFilter && <FormControl className={''}>
             <FormLabel id={'date-label'}>CONTENT</FormLabel>
@@ -121,6 +121,7 @@ export default function PageFilters(props: PageFilterProps) {
             >
                 <ToggleButton value="0">All</ToggleButton>
                 <ToggleButton value="1">Article</ToggleButton>
+                <ToggleButton value="4">Snippet</ToggleButton>
                 <ToggleButton value="2">Tweet</ToggleButton>
             </ToggleButtonGroup>
         </FormControl>

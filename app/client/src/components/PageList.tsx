@@ -491,7 +491,7 @@ const PageList = (props: PageListProps) => {
             }
           </div>
         </div>
-        <div className={'filter-options w-[270px] sticky mt-3 top-28 self-start'}>
+        <div className={'filter-options w-[320px] sticky mt-3 top-28 self-start'}>
           {props.filterComponent}
         </div>
       </div>

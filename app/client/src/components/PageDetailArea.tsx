@@ -9,7 +9,7 @@ import styles from "./PageDetail.module.css";
 import CardMedia from "@mui/material/CardMedia";
 import SmartMoment from "../components/SmartMoment";
 import PageOperationButtons, {PageOperateEvent, PageOperation} from "../components/PageOperationButtons";
-import {Box, CircularProgress, IconButton, Menu, MenuItem, Paper, Snackbar, Tooltip, Typography} from "@mui/material";
+import {Box, Chip, CircularProgress, IconButton, Menu, MenuItem, Paper, Snackbar, Tooltip, Typography} from "@mui/material";
 import { useSnackbar } from 'notistack';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import {setDocTitle} from "../common/docUtils";
@@ -27,6 +27,7 @@ import PageHighlightList from './highlights/PageHighlightList';
 import TextHighlighter from './highlights/TextHighlighter';
 import TableOfContents from './TableOfContents';
 import ListIcon from '@mui/icons-material/List';
+import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined';
 
 // 引入 TurndownService
 import TurndownService from 'turndown';
@@ -562,6 +563,27 @@ const PageDetailArea = ({
                 <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'!text-inherit'}>
                   {detail.page.title}
                 </a>
+                {detail.page.contentType === 4 && (
+                  <Chip
+                    icon={<TextSnippetOutlinedIcon style={{fontSize: 16}} />}
+                    label="Snippet"
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      ml: 2,
+                      verticalAlign: 'middle',
+                      height: 22,
+                      fontSize: '12px',
+                      color: 'text.secondary',
+                      borderColor: 'rgba(0, 0, 0, 0.12)',
+                      bgcolor: '#f9fafb',
+                      '& .MuiChip-label': {
+                        px: 0.8,
+                        pb: 0.1
+                      }
+                    }}
+                  />
+                )}
               </Typography>
               
               {showProcessedSection && (

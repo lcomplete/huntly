@@ -81,6 +81,7 @@ public class PageListService {
                 .eq(listQuery.getSaveStatus() != null, "librarySaveStatus", listQuery.getSaveStatus() != null ? listQuery.getSaveStatus().getCode() : null)
                 .eq(listQuery.getContentType() != null, "contentType", listQuery.getContentType() != null ? listQuery.getContentType().getCode() : null)
                 .in(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2, "contentType", Arrays.asList(ContentType.TWEET.getCode(), ContentType.QUOTED_TWEET.getCode()))
+                .eq(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 4, "contentType", ContentType.SNIPPET.getCode())
                 .predicate(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 1, Specifications.<Page>or()
                         .eq("contentType", ContentType.BROWSER_HISTORY.getCode())
                         .eq("contentType", (Object) null)
