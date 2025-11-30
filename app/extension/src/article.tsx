@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ShortTextIcon from "@mui/icons-material/ShortText";
 import CloseIcon from "@mui/icons-material/Close";
@@ -305,6 +305,13 @@ export default function Article({
         overflow: "visible",
       }}
     >
+      <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
+        <linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#4facfe" />
+          <stop offset="50%" stopColor="#a18cd1" />
+          <stop offset="100%" stopColor="#fbc2eb" />
+        </linearGradient>
+      </svg>
       {/* 左侧区域：快捷指令菜单按钮 */}
       <Box
         sx={{
@@ -323,7 +330,7 @@ export default function Article({
               id="shortcut-menu-button"
               variant="outlined"
               size="small"
-              startIcon={<SmartToyOutlinedIcon />}
+              startIcon={<AutoAwesomeIcon sx={{ fill: "url(#geminiGradient)" }} />}
               onClick={handleShortcutMenuOpen}
               aria-controls={shortcutMenuOpen ? "shortcut-menu" : undefined}
               aria-haspopup="true"
@@ -334,32 +341,16 @@ export default function Article({
                 fontSize: "12px",
                 height: "32px",
                 textTransform: "none",
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "white",
-                boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                transition: "all 0.2s ease-in-out",
+                color: "#1976d2",
+                borderColor: "rgba(25, 118, 210, 0.5)",
+                background: "transparent",
                 "&:hover": {
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
-                  transform: "none",
-                  filter: "none",
-                  opacity: 1,
-                  "@media (hover: hover)": {
-                    backgroundColor: "transparent",
-                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  },
-                },
-                "&:focus": {
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
-                },
-                "& .MuiButton-startIcon": {
-                  color: "white",
+                  background: "rgba(25, 118, 210, 0.04)",
+                  borderColor: "#1976d2",
                 },
               }}
             >
-              {isSnippetMode ? "Snippet AI Shortcuts" : "Article AI Shortcuts"}
+              AI Shortcuts
             </Button>
 
             <Menu

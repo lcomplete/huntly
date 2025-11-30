@@ -28,6 +28,7 @@ import TextHighlighter from './highlights/TextHighlighter';
 import TableOfContents from './TableOfContents';
 import ListIcon from '@mui/icons-material/List';
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 // 引入 TurndownService
 import TurndownService from 'turndown';
@@ -511,6 +512,13 @@ const PageDetailArea = ({
 
                     {shortcuts && shortcuts.length > 0 ? (
                       <>
+                        <svg width={0} height={0}>
+                          <linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#4facfe" />
+                            <stop offset="50%" stopColor="#a18cd1" />
+                            <stop offset="100%" stopColor="#fbc2eb" />
+                          </linearGradient>
+                        </svg>
                         <Tooltip title={'AI operations'} placement={"bottom"}>
                           <IconButton 
                             onClick={handleAIMenuClick}
@@ -518,7 +526,7 @@ const PageDetailArea = ({
                             aria-haspopup="true"
                             aria-expanded={openMenu ? 'true' : undefined}
                           >
-                            <SmartToyOutlinedIcon fontSize={"small"} sx={{ color: "#6366F1" }} />
+                            <AutoAwesomeIcon fontSize={"small"} sx={{ fill: "url(#geminiGradient)" }} />
                             <KeyboardArrowDownIcon fontSize={"small"} />
                           </IconButton>
                         </Tooltip>

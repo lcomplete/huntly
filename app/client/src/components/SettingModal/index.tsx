@@ -17,7 +17,7 @@ import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import AccountSetting from "./AccountSetting";
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import GeneralSetting from "./GeneralSetting";
-import ShortTextIcon from '@mui/icons-material/ShortText';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ArticleShortcutSetting from "./ArticleShortcutSetting";
 
 type SettingModalProps = {
@@ -47,6 +47,13 @@ export default function SettingModal(props: SettingModalProps) {
   return (
     <Modal open={props.open} onClose={props.onClose} className={'flex justify-center items-center'}>
       <Box className={'flex scrollbar'} sx={style}>
+        <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
+          <linearGradient id="geminiGradientSettings" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4facfe" />
+            <stop offset="50%" stopColor="#a18cd1" />
+            <stop offset="100%" stopColor="#fbc2eb" />
+          </linearGradient>
+        </svg>
         <div className={'w-[220px] h-full bg-[rgb(251,251,250)] sticky self-start top-0 left-0 shrink-0'}>
           <List component="nav" aria-label="setting items" className={''}>
             <ListItemButton
@@ -63,7 +70,7 @@ export default function SettingModal(props: SettingModalProps) {
               onClick={(event) => handleListItemClick(event, 1)}
             >
               <ListItemIcon>
-                <ShortTextIcon/>
+                <AutoAwesomeIcon sx={{ fill: "url(#geminiGradientSettings)" }} />
               </ListItemIcon>
               <ListItemText primary="AI Shortcuts"/>
             </ListItemButton>

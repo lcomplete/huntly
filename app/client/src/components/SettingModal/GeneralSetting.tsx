@@ -64,7 +64,7 @@ export default function GeneralSetting() {
   return <div>
     <form onSubmit={formikGeneral.handleSubmit} className={''}>
       <Typography variant={'h6'} className={''}>
-        OpenApi
+        AI Service Provider
       </Typography>
       <Divider/>
 
@@ -75,7 +75,7 @@ export default function GeneralSetting() {
           fullWidth={true}
           className={''}
           id="openApiKey"
-          label="OpenApi secret key"
+          label="API Key"
           value={formikGeneral.values.openApiKey || ""}
           onChange={formikGeneral.handleChange}
           error={formikGeneral.touched.openApiKey && Boolean(formikGeneral.errors.openApiKey)}
@@ -98,7 +98,7 @@ export default function GeneralSetting() {
           size={"small"}
           className={'w-[400px]'}
           id="openApiBaseUrl"
-          label="OpenApi Base URL"
+          label="API URL"
           value={formikGeneral.values.openApiBaseUrl || ""}
           onChange={formikGeneral.handleChange}
           error={formikGeneral.touched.openApiBaseUrl && Boolean(formikGeneral.errors.openApiBaseUrl)}
@@ -111,7 +111,7 @@ export default function GeneralSetting() {
           size={"small"}
           className={'w-[200px] ml-2'}
           id="openApiModel"
-          label="OpenApi Model"
+          label="API Model"
           value={formikGeneral.values.openApiModel || ""}
           onChange={formikGeneral.handleChange}
           error={formikGeneral.touched.openApiModel && Boolean(formikGeneral.errors.openApiModel)}
@@ -125,11 +125,6 @@ export default function GeneralSetting() {
           </IconButton>
         </Tooltip>
       </div>
-
-      <Alert severity="info" className="mt-2">
-        Article prompts have been moved to the <strong>Article AI Shortcuts</strong> section, where you can
-        manage multiple operation shortcuts like summaries, translations, and more.
-      </Alert>
 
       <Typography variant={'h6'} className={'mt-4'}>
         Http Proxy

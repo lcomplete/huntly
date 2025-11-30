@@ -30,7 +30,7 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import StarIcon from '@mui/icons-material/Star';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
-import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ContentCutIcon from '@mui/icons-material/ContentCut';
 import {log} from "./logger";
 import {
@@ -414,6 +414,13 @@ const Popup = () => {
 
     return (
       <div style={{minWidth: "600px", minHeight: '200px'}} className={'mb-4'}>
+        <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
+          <linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4facfe" />
+            <stop offset="50%" stopColor="#a18cd1" />
+            <stop offset="100%" stopColor="#fbc2eb" />
+          </linearGradient>
+        </svg>
         <div className={'commonPadding header'}>
           <div className="flex items-center text-sky-600 font-bold">
             <EnergySavingsLeafIcon className="h-4 w-4 mr-1"/>
@@ -658,7 +665,7 @@ const Popup = () => {
                                 variant={"text"} 
                                 color={"primary"} 
                                 size={"small"} 
-                                startIcon={<SmartToyOutlinedIcon />}
+                                startIcon={<AutoAwesomeIcon sx={{ fill: "url(#geminiGradient)" }} />}
                                 endIcon={processingShortcut ? <CircularProgress size={14} /> : null}
                                 onClick={handleShortcutMenuOpen}
                                 disabled={processingShortcut}
