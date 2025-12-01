@@ -5,11 +5,11 @@
   <parent>
     <groupId>com.huntly</groupId>
     <artifactId>integrated</artifactId>
-    <version>0.4.8</version>
+    <version>0.5.0</version>
   </parent>
   <groupId>com.huntly</groupId>
   <artifactId>huntly-server</artifactId>
-  <version>0.4.8</version>
+  <version>0.5.0</version>
   <name>huntly-server</name>
   <description>huntly api server</description>
   <licenses>

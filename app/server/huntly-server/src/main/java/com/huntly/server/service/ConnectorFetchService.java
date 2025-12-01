@@ -153,7 +153,7 @@ public class ConnectorFetchService {
 
             Page savedPage = null;
             //Avoid frequent updates of RSS articles.
-            if (isRssFetch && existPage != null && Objects.equals(existPage.getTitle(), page.getTitle()) && Objects.equals(existPage.getConnectedAt(), page.getConnectedAt())) {
+            if (isRssFetch && existPage != null && Objects.equals(existPage.getConnectorId(), page.getConnectorId()) && Objects.equals(existPage.getTitle(), page.getTitle()) && Objects.equals(existPage.getConnectedAt(), page.getConnectedAt())) {
                 savedPage = existPage;
             } else {
                 savedPage = capturePageService.save(page);
