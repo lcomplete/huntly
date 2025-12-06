@@ -2,10 +2,10 @@
 
 <div align="center">
 
-### ✨ Special Thanks To ✨
+✨ Special Thanks To ✨
 
 <a href="https://www.augmentcode.com/">
-  <img src="static/images/sponsor/augment.png" alt="Augment Code" height="60" />
+  <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
 </a>
 
 **[Augment Code](https://www.augmentcode.com/)** - Better Context. Better Agent. Better Code.
