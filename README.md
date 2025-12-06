@@ -1,8 +1,7 @@
-# Huntly
-
 <div align="center">
 
-✨ Special Thanks To ✨
+<!-- Special Thanks -->
+✨ **Special Thanks To** ✨
 
 <a href="https://www.augmentcode.com/">
   <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
@@ -12,21 +11,49 @@
 
 ---
 
+<!-- Huntly Logo & Title -->
+<img src="app/extension/public/favicon-128x128.png" alt="Huntly" width="120" />
+
+# Huntly
+
+**Your Personal AI-Powered Information Hub**
+
+Self-hosted information hub with a powerful browser extension that captures, processes, and organizes web content using AI — turning your browsing into actionable knowledge.
+
+<!-- Badges -->
+[![GitHub stars](https://img.shields.io/github/stars/lcomplete/huntly?style=flat-square)](https://github.com/lcomplete/huntly/stargazers)
+[![GitHub license](https://img.shields.io/github/license/lcomplete/huntly?style=flat-square)](https://github.com/lcomplete/huntly/blob/main/LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/lcomplete/huntly?style=flat-square)](https://hub.docker.com/r/lcomplete/huntly)
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-lcomplete%2Fhuntly-blue?style=flat-square&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC/klEQVR4nMSXz0tUURTHP+fe9+bNvBnTMRudhIoWtWgRtGoRBK2C/oAg2rUuiGpZy4L+hyC6bdu2TYto4aJFSFAQlRq5yKwZHfPNvPvj3BYzjjo/3ryZFvfAg8c793zP955z7r0PiijvdHd8FMrDVuD8RV5wLI9IPgRO9nS8e1d+wWGok1hOiHhWvkfO7wC72vrOlvMF5EPlr93dN4Z//XE5Dxj5v37AB8B/5r+6OoqCkGrzot4kvjMwQXOitR3V7qdl5AIBkP9I6kEkCvLj6/vO1kuLKhfzoblG+c2t7+33Z4pทDy9zqXOm5MLGHLf0Nff/WBTM7hnOw0HAfmi0I2xPY+EiC49ptvzPfFl79dfuP4j6VZsV9LXDK05Y4E0X3MjapuO6XFB0e5EIQ+GRWK07HuvuLLbp0Z3e+6Q9UXbnDVAT5A3pJYLYBKiT0EthbZJ1nv2ptvNXP9f7V/0kVW6rEq8F4z0NDK2l3fvt+oJPLQ4vGTe6FDypPxhgJuI3GEh4xzzWVFf5WPL2mG7xgpCRG0WaFVXJQnGqhxYU5cD1w/uZHpqVGvqbIQ4IWP/5h5WBBa1v9E2KQ4MhMD29NnNp/OeS1F44F3xz/UjTuIAEXhEHGfnCsS0KxCqXx0a0/MYjPn/SDRkLPpAQ8j8OD8L0+7XwC0Y/SXMEaLGp8nKCsN9tFllZBzgKDoYl3A2opVLOhON4Q0yMRhC0gC8gIIEQxsgnT/BDBVAI8c0PGz/HUe3CMR4IYJzGPL3J5D2DFDqg7TaXQBhYRQRTACHFE1HJLdHXx2WOFbzBhSoJxjERYCxl4E9RguNm7Ef/0M+rPsxc/1vynI4IfS76gVCNORbzR+E1BBEQS8Kg89BoF49OtfD4FFGBERHhJcTl1NB5i8m0fXp3q+7z+PKN8DL/r7OmjE8DYZWKYwYj6r3aNNQMJL6mLlX49p0VFrJ3nLsN4E7ER7G6PKNG04ApWsX+CNa3ftJsj+/ufA/+Q9KJjqMfxJPj1PkZ/B7N4j6QAAAABJRU5ErkJggg==)](https://deepwiki.com/lcomplete/huntly)
+
+🤖 **AI-Powered** · 🔒 **100% Self-Hosted** · 🚀 **Multi-Platform**
+
+[Website](https://huntly.codelc.com) · [Documentation](https://huntly.codelc.com/docs) · [Download](https://huntly.codelc.com/download)
+
 </div>
+
+---
 
 **English** | [中文](./README.zh.md)
 
-Huntly is a self-hosted information management tool, in simple terms, contains the following features.
+## Features
 
-- RSS subscription and reading.
-- Automatically saves the pages that have been viewed， then you can saves them as read later, favorites or archives.
-- There is a special treatment for Twitter sites that automatically saves the requested tweet timeline, recording whether it has been viewed or not, and in huntly you can even revisit these tweets in a more convenient way.
-- You can search by title, content, type, favorite method, and other dimensions.
-- Connect to GitHub, support Github stars management.
-- Text highlighting feature, allows you to highlight article content, with support for creating, deleting and managing personal highlights (new feature).
-- Support custom article AI shortcuts, with the ability to translate, summarize, extract key points, etc.
+| Feature | Description |
+|---------|-------------|
+| 🤖 **AI Content Processing** | Leverage AI for summarization, translation, and intelligent content analysis with custom shortcuts |
+| 📚 **Smart Web Archiving** | Automatically save and archive web pages with AI-powered content extraction using Mozilla Readability |
+| 📡 **RSS Feed Management** | Centralize all your RSS feeds with intelligent categorization, OPML import/export, and full-text search |
+| 🔍 **Powerful Full-Text Search** | Apache Lucene with IK Analyzer for Chinese text tokenization, boolean operators, and fuzzy search |
+| 🐦 **Social Media Integration** | Special handling for Twitter/X with automatic tweet thread reconstruction and media preservation |
+| ⭐ **GitHub Integration** | Sync and organize your GitHub stars with repository metadata and README extraction |
+| 🔒 **Privacy & Self-Hosting** | 100% self-hosted with SQLite database, Docker deployment, and complete data ownership |
+| 💻 **Multi-Platform Support** | Web app, Chrome extension (Manifest V3), and desktop apps (Tauri) |
 
-[![DeepWiki](https://img.shields.io/badge/DeepWiki-lcomplete%2Fhuntly-blue?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC/klEQVR4nMSXz0tUURTHP+fe9+bNvBnTMRudhIoWtWgRtGoRBK2C/oAg2rUuiGpZy4L+hyC6bdu2TYto4aJFSFAQlRq5yKwZHfPNvPvj3BYzjjo/3ryZFvfAg8c793zP955z7r0PiijvdHd8FMrDVuD8RV5wLI9IPgRO9nS8e1d+wWGok1hOiHhWvkfO7wC72vrOlvMF5EPlr93dN4Z//XE5Dxj5v37AB8B/5r+6OoqCkGrzot4kvjMwQXOitR3V7qdl5AIBkP9I6kEkCvLj6/vO1kuLKhfzoblG+c2t7+33Z4pทDy9zqXOm5MLGHLf0Nff/WBTM7hnOw0HAfmi0I2xPY+EiC49ptvzPfFl79dfuP4j6VZsV9LXDK05Y4E0X3MjapuO6XFB0e5EIQ+GRWK07HuvuLLbp0Z3e+6Q9UXbnDVAT5A3pJYLYBKiT0EthbZJ1nv2ptvNXP9f7V/0kVW6rEq8F4z0NDK2l3fvt+oJPLQ4vGTe6FDypPxhgJuI3GEh4xzzWVFf5WPL2mG7xgpCRG0WaFVXJQnGqhxYU5cD1w/uZHpqVGvqbIQ4IWP/5h5WBBa1v9E2KQ4MhMD29NnNp/OeS1F44F3xz/UjTuIAEXhEHGfnCsS0KxCqXx0a0/MYjPn/SDRkLPpAQ8j8OD8L0+7XwC0Y/SXMEaLGp8nKCsN9tFllZBzgKDoYl3A2opVLOhON4Q0yMRhC0gC8gIIEQxsgnT/BDBVAI8c0PGz/HUe3CMR4IYJzGPL3J5D2DFDqg7TaXQBhYRQRTACHFE1HJLdHXx2WOFbzBhSoJxjERYCxl4E9RguNm7Ef/0M+rPsxc/1vynI4IfS76gVCNORbzR+E1BBEQS8Kg89BoF49OtfD4FFGBERHhJcTl1NB5i8m0fXp3q+7z+PKN8DL/r7OmjE8DYZWKYwYj6r3aNNQMJL6mLlX49p0VFrJ3nLsN4E7ER7G6PKNG04ApWsX+CNa3ftJsj+/ufA/+Q9KJjqMfxJPj1PkZ/B7N4j6QAAAABJRU5ErkJggg==)](https://deepwiki.com/lcomplete/huntly)
+## Roadmap
+
+- [ ] Export all saved content to Markdown
+- [ ] Enhanced extension with standalone AI processing (no server required)
+- [ ] Flexible Organization: Tags, folders
 
 ## Screenshot
 
@@ -36,112 +63,72 @@ Huntly is a self-hosted information management tool, in simple terms, contains t
 
 ![extension_shortcuts](static/images/extension_shortcuts.png)
 
+## Getting Started
+
+### Step 1: Install the Browser Extension
+
+The browser extension is essential for automatically saving web pages and Twitter content.
+
+**Chrome:**
+- Install from [Chrome Web Store](https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm)
+
+### Step 2: Run the Server
+
+Choose one of the following methods to run the Huntly server:
+
+#### Option A: Docker Compose (Recommended)
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  huntly:
+    image: lcomplete/huntly
+    container_name: huntly
+    restart: always
+    ports:
+      - "8088:80"
+    volumes:
+      - ~/data/huntly:/data
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+```
+
+It's recommended to use [Watchtower](https://containrrr.dev/watchtower/) for automatic updates to get the latest features.  
+
+Then run:
+
+```sh
+docker-compose up -d
+```
+
+#### Option B: Desktop Client
+
+Download the installation package for your operating system from [Releases](https://github.com/lcomplete/huntly/releases) and run it after installation.
+
+If you encounter the error message `"Huntly.app" is damaged and can't be opened` on macOS, run:
+
+```sh
+sudo xattr -r -d com.apple.quarantine /YOUR_PATH/Huntly.app
+```
+
+See the [Run the Server wiki](https://github.com/lcomplete/huntly/wiki/Run-the-Server) for more options.
+
+### Step 3: Configure Extension & Login
+
+1. Click the Huntly extension icon and set the server address. For remote access, it is highly recommended to use HTTPS for privacy.
+2. Open the Huntly website for the first time to register an administrator user
+3. After registration, you will be automatically logged in, and the extension will sending only relevant browsing data (such as saved pages and tweets) to the server.
+
+**Enjoy it!**
+
 ## Requirements
 
-- Java 11
-
-## Usage
-
-### Running the server side
-You can run the server using one of the following methods.
-
-#### Using the Server Installation Package
-
-Download the installation package for your corresponding operating system from [Releases](https://github.com/lcomplete/huntly/releases), and run it after installation.
-
-If you encounter the error message `"Huntly.app" is damaged and can't be opened`. while installing software on macOS, it may be due to security settings restrictions in macOS. To solve this problem, please try the following command in Terminal:
-
-```sh
-sudo xattr -r -d com.apple.quarantine /YOUR_PATH/ChatGPT.app
-```
-
-#### Run with docker
-
-```sh
-mkdir huntly && cd huntly
-docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/data lcomplete/huntly
-```
-
-always pull the latest image. if you need to upgrade, you can delete the local latest image and run the startup command again.
-
-
-#### Run with the Java command
-
-Download the jar package from [Releases](https://github.com/lcomplete/huntly/releases), in which the react client is also packaged.
-
-After downloading, cd to the current directory from the command line and run it with the following Java command.
-
-```sh
-java -Xms128m -Xmx1024m -jar huntly-server.jar
-```
-
-By default it runs on port 8080, you can open the [http://localhost:8080/](http://localhost:8080/) port for access, or if you need to use another port, such as port 80, you can run the following command.
-
-
-```sh
-java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
-```
-
-Note that the Jar package name needs to be modified appropriately according to the downloaded package name.
-
-#### Install as Windows Service
-
-Create a new directory named Huntly, and perform the following operations in this directory.
-
-Download the jar package from [Releases](https://github.com/lcomplete/huntly/releases).
-
-Download [WinSW exe](https://github.com/winsw/winsw/releases) and rename it to `app.exe`.
-
-Create a new file named `app.xml` with the following content:
-
-```xml
-<service>
-  <id>huntly</id>
-  <name>huntly</name>
-  <description>huntly</description>
-  <executable>java</executable>
-  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=8123</arguments>
-  <log mode="roll"></log>
-</service>
-```
-
-After successful startup, you can access [http://localhost:8123](http://localhost:8123).
-
-Open the terminal and run the command:
-
-```sh
-.\app.exe install .\app.xml
-```
-
-After executing the above command, Huntly has been installed as a Windows service and set to start automatically at boot. It is currently not started. Use the following command to start the service:
-
-```sh
-.\app.exe start .\app.xml
-```
-
-If you receive an error message that java cannot be executed, change the value of `executable` to the full path of `java.exe`.
-
-Other commands such as uninstall, stop, restart, status, refresh, customize are also supported. For specific usage instructions please refer to [https://github.com/winsw/winsw](https://github.com/winsw/winsw).
-
-### Install the browser extension
-
-The plugin has been uploaded to the Chrome Web Store and can be directly installed from the [Huntly extension page on the Chrome Web Store](https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm).
-
-If you want to use the latest features, you can download browser-extension.zip from [Releases](https://github.com/lcomplete/huntly/releases) and extract it.
-
-To manage extensions in your browser, enable developer mode and load the unpacked extension.
-
-### Browser extension settings
-
-Click the huntly extension icon, choose to set huntly's server address (home page url), for the remote address, in formal use, it is highly recommended to use the https protocol, after all, the browsing history is quite private. If the server is running locally, then set it to the local address.
-
-### Login and enjoy it
-
-When you open huntly website for the first time, you will be prompted to register an administrator user, currently only single user is supported.
-
-After registration, you will be automatically logged into the system, and the huntly extension will only send browsing history to the server if you are logged in.
-
-Enjoy it.
+- Docker (for container deployment)
+- Java 11+ (for JAR deployment)
+- Chrome/Firefox (for browser extension)
 
 ## Become a Sponsor
 
