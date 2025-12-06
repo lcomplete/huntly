@@ -23,8 +23,10 @@ Huntly is a self-hosted information management tool, in simple terms, contains t
 - There is a special treatment for Twitter sites that automatically saves the requested tweet timeline, recording whether it has been viewed or not, and in huntly you can even revisit these tweets in a more convenient way.
 - You can search by title, content, type, favorite method, and other dimensions.
 - Connect to GitHub, support Github stars management.
-- **Text highlighting feature, allows you to highlight article content, with support for creating, deleting and managing personal highlights (new feature).**
+- Text highlighting feature, allows you to highlight article content, with support for creating, deleting and managing personal highlights (new feature).
 - Support custom article AI shortcuts, with the ability to translate, summarize, extract key points, etc.
+
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-lcomplete%2Fhuntly-blue?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC/klEQVR4nMSXz0tUURTHP+fe9+bNvBnTMRudhIoWtWgRtGoRBK2C/oAg2rUuiGpZy4L+hyC6bdu2TYto4aJFSFAQlRq5yKwZHfPNvPvj3BYzjjo/3ryZFvfAg8c793zP955z7r0PiijvdHd8FMrDVuD8RV5wLI9IPgRO9nS8e1d+wWGok1hOiHhWvkfO7wC72vrOlvMF5EPlr93dN4Z//XE5Dxj5v37AB8B/5r+6OoqCkGrzot4kvjMwQXOitR3V7qdl5AIBkP9I6kEkCvLj6/vO1kuLKhfzoblG+c2t7+33Z4pทDy9zqXOm5MLGHLf0Nff/WBTM7hnOw0HAfmi0I2xPY+EiC49ptvzPfFl79dfuP4j6VZsV9LXDK05Y4E0X3MjapuO6XFB0e5EIQ+GRWK07HuvuLLbp0Z3e+6Q9UXbnDVAT5A3pJYLYBKiT0EthbZJ1nv2ptvNXP9f7V/0kVW6rEq8F4z0NDK2l3fvt+oJPLQ4vGTe6FDypPxhgJuI3GEh4xzzWVFf5WPL2mG7xgpCRG0WaFVXJQnGqhxYU5cD1w/uZHpqVGvqbIQ4IWP/5h5WBBa1v9E2KQ4MhMD29NnNp/OeS1F44F3xz/UjTuIAEXhEHGfnCsS0KxCqXx0a0/MYjPn/SDRkLPpAQ8j8OD8L0+7XwC0Y/SXMEaLGp8nKCsN9tFllZBzgKDoYl3A2opVLOhON4Q0yMRhC0gC8gIIEQxsgnT/BDBVAI8c0PGz/HUe3CMR4IYJzGPL3J5D2DFDqg7TaXQBhYRQRTACHFE1HJLdHXx2WOFbzBhSoJxjERYCxl4E9RguNm7Ef/0M+rPsxc/1vynI4IfS76gVCNORbzR+E1BBEQS8Kg89BoF49OtfD4FFGBERHhJcTl1NB5i8m0fXp3q+7z+PKN8DL/r7OmjE8DYZWKYwYj6r3aNNQMJL6mLlX49p0VFrJ3nLsN4E7ER7G6PKNG04ApWsX+CNa3ftJsj+/ufA/+Q9KJjqMfxJPj1PkZ/B7N4j6QAAAABJRU5ErkJggg==)](https://deepwiki.com/lcomplete/huntly)
 
 ## Screenshot
 
@@ -141,19 +143,27 @@ After registration, you will be automatically logged into the system, and the hu
 
 Enjoy it.
 
-## Buy me a coffee
+## Become a Sponsor
+
+If you find Huntly helpful, please consider supporting its development!
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-Click%20Here-ff69b4)](https://github.com/sponsors/lcomplete)
+
 
 <p align="center">
 	<img height="360" src="static/images/wechat.JPG" />
 	<img height="360" src="static/images/zfb.JPG" />
 </p>
 
-## Thanks to JetBrains support
+### Sponsors
 
-<a href="https://www.jetbrains.com/?from=huntly">
-  <img src="static/images/jb_beam.png" height="200" />
-</a>
+Thank you to all our sponsors for your generous support!
 
-----
-
-[Huntly DeepWiki](https://deepwiki.com/lcomplete/huntly)
+<table>
+  <tr>
+    <td align="center"><a href="https://www.augmentcode.com/">augment code</a></td>
+    <td align="center"><a href="https://www.jetbrains.com/">jetbrains</a></td>
+    <td align="center"><a href="https://taresky.com/">TARESKY</a></td>
+    <td align="center"><a href="https://x.com/Db9el25LULCBrcn">抹茶</a></td>
+  </tr>
+</table>
