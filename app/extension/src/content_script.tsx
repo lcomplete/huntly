@@ -1,4 +1,5 @@
 import { log } from "./logger";
+import { setupRssDetectionListener } from "./rss/rssContentDetector";
 
 log("content script loaded");
 
@@ -20,3 +21,6 @@ if (shouldInjectTweetInterceptor()) {
 window.addEventListener("message", function (event: MessageEvent<Message>) {
   chrome.runtime.sendMessage(event.data);
 });
+
+// Setup RSS feed detection listener
+setupRssDetectionListener();
