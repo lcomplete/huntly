@@ -47,6 +47,7 @@ import {
 import {LibrarySaveStatus} from "./model/librarySaveStatus";
 import {PageOperateResult} from "./model/pageOperateResult";
 import {Settings} from "./settings";
+import {detectRssFeed, RssSubscription} from "./rss";
 
 const Popup = () => {
     const [storageSettings, setStorageSettings] = useState<StorageSettings>(null);
@@ -56,7 +57,7 @@ const Popup = () => {
     const [page, setPage] = useState<PageModel>(null);
     const [autoSavedPageId, setAutoSavedPageId] = useState<number>(0);
     const [articleOperateResult, setArticleOperateResult] = useState<PageOperateResult>(null);
-    
+
     // Tabs
     const [activeTab, setActiveTab] = useState(0);
     const [snippetPage, setSnippetPage] = useState<PageModel>(null);
@@ -76,6 +77,11 @@ const Popup = () => {
     const [shortcutMenuAnchorEl, setShortcutMenuAnchorEl] = useState<null | HTMLElement>(null);
     const shortcutMenuOpen = Boolean(shortcutMenuAnchorEl);
 
+    // RSS Feed Detection
+    const [isRssFeed, setIsRssFeed] = useState(false);
+    const [rssFeedUrl, setRssFeedUrl] = useState<string>('');
+    const [checkingRssFeed, setCheckingRssFeed] = useState(true);
+
     useEffect(() => {
       chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
         log(msg)
@@ -89,6 +95,28 @@ const Popup = () => {
       readSyncStorageSettings().then((settings) => {
         setSettingsState(settings);
       });
+    }, []);
+
+    // RSS Feed Detection Effect
+    useEffect(() => {
+      async function checkForRssFeed() {
+        try {
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          const tab = tabs[0];
+          if (tab && tab.url) {
+            const feedInfo = await detectRssFeed(tab.url);
+            if (feedInfo.isRssFeed) {
+              setIsRssFeed(true);
+              setRssFeedUrl(tab.url);
+            }
+          }
+        } catch (error) {
+          log('RSS detection error:', error);
+        } finally {
+          setCheckingRssFeed(false);
+        }
+      }
+      checkForRssFeed();
     }, []);
 
     function setSettingsState(settings: StorageSettings) {
@@ -476,6 +504,18 @@ const Popup = () => {
               }
               {
                 !loadingUser && username && <div>
+                  {/* RSS Feed Subscription Interface */}
+                  {checkingRssFeed && (
+                    <div className={'flex justify-center items-center h-[120px]'}>
+                      <CircularProgress />
+                    </div>
+                  )}
+                  {!checkingRssFeed && isRssFeed && (
+                    <RssSubscription feedUrl={rssFeedUrl} />
+                  )}
+                  {/* Regular Popup Interface - shown when not an RSS feed */}
+                  {!checkingRssFeed && !isRssFeed && (
+                    <>
                   <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
                     <Tabs value={activeTab} onChange={handleTabChange} aria-label="huntly tabs" variant="fullWidth" sx={{
                         minHeight: '36px',
@@ -693,6 +733,8 @@ const Popup = () => {
                       </div>
                     </div>
                   }
+                    </>
+                  )}
                 </div>
               }
             </div>
