@@ -2,7 +2,8 @@
 
 <div align="center">
 
-✨ Special Thanks To ✨
+<!-- Special Thanks -->
+✨ **Special Thanks To** ✨
 
 <a href="https://www.augmentcode.com/">
   <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
@@ -52,7 +53,11 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 - [ ] Enhanced extension with standalone AI processing (no server required)
 - [ ] Flexible Organization: Tags, folders
 
-[![DeepWiki](https://img.shields.io/badge/DeepWiki-lcomplete%2Fhuntly-blue?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC/klEQVR4nMSXz0tUURTHP+fe9+bNvBnTMRudhIoWtWgRtGoRBK2C/oAg2rUuiGpZy4L+hyC6bdu2TYto4aJFSFAQlRq5yKwZHfPNvPvj3BYzjjo/3ryZFvfAg8c793zP955z7r0PiijvdHd8FMrDVuD8RV5wLI9IPgRO9nS8e1d+wWGok1hOiHhWvkfO7wC72vrOlvMF5EPlr93dN4Z//XE5Dxj5v37AB8B/5r+6OoqCkGrzot4kvjMwQXOitR3V7qdl5AIBkP9I6kEkCvLj6/vO1kuLKhfzoblG+c2t7+33Z4pทDy9zqXOm5MLGHLf0Nff/WBTM7hnOw0HAfmi0I2xPY+EiC49ptvzPfFl79dfuP4j6VZsV9LXDK05Y4E0X3MjapuO6XFB0e5EIQ+GRWK07HuvuLLbp0Z3e+6Q9UXbnDVAT5A3pJYLYBKiT0EthbZJ1nv2ptvNXP9f7V/0kVW6rEq8F4z0NDK2l3fvt+oJPLQ4vGTe6FDypPxhgJuI3GEh4xzzWVFf5WPL2mG7xgpCRG0WaFVXJQnGqhxYU5cD1w/uZHpqVGvqbIQ4IWP/5h5WBBa1v9E2KQ4MhMD29NnNp/OeS1F44F3xz/UjTuIAEXhEHGfnCsS0KxCqXx0a0/MYjPn/SDRkLPpAQ8j8OD8L0+7XwC0Y/SXMEaLGp8nKCsN9tFllZBzgKDoYl3A2opVLOhON4Q0yMRhC0gC8gIIEQxsgnT/BDBVAI8c0PGz/HUe3CMR4IYJzGPL3J5D2DFDqg7TaXQBhYRQRTACHFE1HJLdHXx2WOFbzBhSoJxjERYCxl4E9RguNm7Ef/0M+rPsxc/1vynI4IfS76gVCNORbzR+E1BBEQS8Kg89BoF49OtfD4FFGBERHhJcTl1NB5i8m0fXp3q+7z+PKN8DL/r7OmjE8DYZWKYwYj6r3aNNQMJL6mLlX49p0VFrJ3nLsN4E7ER7G6PKNG04ApWsX+CNa3ftJsj+/ufA/+Q9KJjqMfxJPj1PkZ/B7N4j6QAAAABJRU5ErkJggg==)](https://deepwiki.com/lcomplete/huntly)
+## Roadmap
+
+- [ ] Export all saved content to Markdown
+- [ ] Enhanced extension with standalone AI processing (no server required)
+- [ ] Flexible Organization: Tags, folders
 
 ## Screenshot
 
