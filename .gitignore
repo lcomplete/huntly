@@ -43,3 +43,4 @@ db.sqlite*
 .vscode/
 
 .claude/
+.cursor/

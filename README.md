@@ -1,3 +1,5 @@
+**English** | [中文](./README.zh.md)
+
 <div align="center">
 
 <!-- Special Thanks -->
@@ -31,10 +33,6 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 [Website](https://huntly.codelc.com) · [Documentation](https://huntly.codelc.com/docs) · [Download](https://huntly.codelc.com/download)
 
 </div>
-
----
-
-**English** | [中文](./README.zh.md)
 
 ## Features
 
@@ -123,12 +121,6 @@ See the [Run the Server wiki](https://github.com/lcomplete/huntly/wiki/Run-the-S
 3. After registration, you will be automatically logged in, and the extension will sending only relevant browsing data (such as saved pages and tweets) to the server.
 
 **Enjoy it!**
-
-## Requirements
-
-- Docker (for container deployment)
-- Java 11+ (for JAR deployment)
-- Chrome/Firefox (for browser extension)
 
 ## Become a Sponsor
 
