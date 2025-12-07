@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Huntly is a self-hosted information management tool with multiple client options. It provides RSS feeds, web page archiving, Twitter content saving, full-text search, and integrations with external services like GitHub.
+Huntly is a self-hosted AI-powered information management tool with multiple client options. It provides AI content processing, RSS feeds, web page archiving, Twitter content saving, full-text search, and integrations with external services like GitHub.
 
 The project consists of:
 - **Backend**: Java Spring Boot application (`app/server/`)
 - **Web Client**: React TypeScript application (`app/client/`)
-- **Browser Extension**: Chrome/Firefox extension (`app/extension/`)
-- **Desktop Apps**: Electron (`app/electron/`) and Tauri (`app/tauri/`) applications
+- **Browser Extension**: Chrome/Firefox extension with Manifest V3 (`app/extension/`)
+- **Desktop App**: Tauri application with Vite + React frontend (`app/tauri/`)
 
 ## Development Commands
 
@@ -19,10 +19,13 @@ The project consists of:
 # Navigate to server directory
 cd app/server
 
-# Build with Maven
-mvn clean install
+# Build with Maven wrapper
+./mvnw clean install
 
-# Run server (default port 8080)
+# Run server in dev mode (default port 8080)
+./mvnw spring-boot:run -pl huntly-server -am
+
+# Or run the built JAR
 java -Xms128m -Xmx1024m -jar huntly-server/target/huntly-server.jar
 
 # Run with custom port
@@ -37,8 +40,10 @@ cd app/client
 # Install dependencies
 yarn install
 
-# Start development server
+# Start development server (proxies to localhost:8080)
 yarn start
+# or
+yarn dev
 
 # Build for production
 yarn build
@@ -76,83 +81,103 @@ yarn test
 yarn style
 ```
 
-### Desktop Applications
-
-#### Electron
-```bash
-cd app/electron
-yarn install
-# Check package.json for available scripts
-```
-
-#### Tauri
+### Desktop Application (Tauri)
 ```bash
 cd app/tauri
 yarn install
-# Check package.json for available scripts
+
+# Development mode (runs Vite + Tauri)
+yarn tauri dev
+
+# Build frontend only
+yarn build
+
+# Build desktop application
+yarn tauri build
+```
+
+### Docker
+```bash
+# Run with docker-compose (recommended)
+docker-compose up -d
+
+# Build local image
+docker build -t huntly-local -f Dockerfile .
 ```
 
 ## Architecture
 
 ### Backend Architecture
-- **Spring Boot** application with modular Maven structure
+- **Spring Boot 2.6** application with modular Maven structure
+- **Java 11** minimum requirement
 - **Multi-module project**: huntly-server, huntly-interfaces, huntly-common, huntly-jpa
 - **Database**: SQLite with JPA/Hibernate
-- **Search**: Apache Lucene with IK Analyzer for Chinese text
+- **Search**: Apache Lucene 9.4 with IK Analyzer for Chinese text tokenization
 - **RSS Processing**: Rome library for feed parsing
-- **Content Extraction**: Boilerpipe for article content extraction
-- **API Documentation**: Swagger/OpenAPI
+- **Content Extraction**: Boilerpipe and Mozilla Readability for article content extraction
+- **API Documentation**: Springfox/Swagger/OpenAPI
 
 Key modules:
-- `huntly-server/`: Main Spring Boot application
-- `huntly-interfaces/`: DTOs and external interfaces
+- `huntly-server/`: Main Spring Boot application with controllers and services
+- `huntly-interfaces/`: DTOs and API interfaces
 - `huntly-common/`: Shared utilities and base classes
-- `huntly-jpa/`: Custom JPA specifications and repositories
+- `huntly-jpa/`: JPA entities, repositories, and custom specifications
 
 ### Frontend Architecture
 - **React 18** with TypeScript
-- **Material-UI (MUI)** for UI components
-- **TanStack Query** for API state management
-- **React Router** for navigation
+- **Material-UI (MUI) v5** for UI components
+- **TanStack Query v4** for API state management
+- **React Router v6** for navigation
 - **Tailwind CSS** for styling
-- **OpenAPI Generated Client** for backend communication
+- **OpenAPI Generator** for backend API client generation
+- **react-markdown** with remark-gfm for Markdown rendering
 
 ### Browser Extension Architecture
-- **Manifest V3** Chrome extension
+- **Manifest V3** Chrome/Firefox extension
 - **TypeScript** with Webpack bundling
-- **React** for popup and options pages
+- **React 18** for popup and options pages
+- **Mozilla Readability** for content extraction
 - **Content Scripts** for page interaction
 - **Background Service Worker** for message handling
-- **Auto-save functionality** for web pages and Twitter content
+- **Auto-save functionality** for web pages and Twitter/X content
+
+### Desktop App Architecture (Tauri)
+- **Tauri** for native desktop wrapper
+- **Vite** for frontend bundling
+- **React 18** with TypeScript
+- **System tray** integration
+- **Embedded JRE** for running the Spring Boot server locally
 
 ### Key Features
-- **Content Processing**: Streaming content processing with shortcuts
-- **Article Preview**: Real-time preview during processing
-- **Tweet Saving**: Special handling for Twitter content
-- **Full-text Search**: Lucene-based search across all content
-- **RSS Feeds**: Automated feed fetching and caching
-- **External Connectors**: GitHub integration for stars management
+- **AI Content Processing**: Streaming content processing with configurable shortcuts for summarization, translation, etc.
+- **Article Preview**: Real-time preview during AI processing
+- **Tweet Saving**: Special handling for Twitter/X with thread reconstruction
+- **Full-text Search**: Lucene-based search with Chinese tokenization support
+- **RSS Feeds**: Automated feed fetching with file-based caching
+- **External Connectors**: GitHub integration for syncing starred repositories
 
 ## Database & Data Storage
-- **Primary DB**: SQLite (`app/server/db.sqlite`)
-- **Feed Cache**: File-based caching (`app/server/feed_cache/`)
-- **Lucene Index**: Search index (`app/server/lucene/`)
+- **Primary DB**: SQLite (`app/server/huntly-server/db.sqlite`)
+- **Feed Cache**: File-based caching (`app/server/huntly-server/feed_cache/`)
+- **Lucene Index**: Full-text search index (`app/server/huntly-server/lucene/`)
 
 ## Configuration Files
-- **Spring Boot**: `application.yml` in server resources
+- **Spring Boot**: `application.yml` in `app/server/huntly-server/src/main/resources/`
+- **AI Shortcuts**: `config/default-shortcuts.json` for AI processing shortcuts
 - **TypeScript**: Multiple `tsconfig.json` files for different modules
-- **Webpack**: Separate configs for extension dev/prod builds
-- **Tailwind**: Shared config across client and extension
+- **Webpack**: Separate configs in `app/extension/webpack/` for dev/prod builds
+- **Tailwind**: Individual configs in client, extension, and tauri apps
+- **Tauri**: `src-tauri/tauri.conf.json` for desktop app configuration
 
 ## Testing
-- **Backend**: Maven Surefire plugin for Java tests
-- **Extension**: Jest with TypeScript support
-- **Client**: React Testing Library with Jest
+- **Backend**: Maven Surefire plugin with JUnit 5 and AssertJ
+- **Extension**: Jest with ts-jest for TypeScript support
+- **Client**: React Testing Library with Jest (via react-scripts)
 
 ## Common Patterns
 - **API Controllers**: REST endpoints in `controller/` package
-- **Service Layer**: Business logic in `service/` package  
-- **Repository Pattern**: JPA repositories with custom specifications
-- **DTO Mapping**: Clean separation between internal entities and external DTOs
+- **Service Layer**: Business logic in `service/` package
+- **Repository Pattern**: JPA repositories with custom specifications in `huntly-jpa`
+- **DTO Mapping**: MapStruct for entity-DTO conversion
 - **Event-Driven**: Application events for decoupled processing
-- **Streaming**: Server-Sent Events for real-time content processing
+- **Streaming**: Server-Sent Events for real-time AI content processing
