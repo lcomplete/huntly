@@ -1,18 +1,57 @@
-# Huntly
-
 **中文** | [English](./README.md)
 
+<div align="center">
 
+<!-- Special Thanks -->
+✨ **特别感谢** ✨
 
-Huntly 是一个信息管理工具，它不仅可以自托管，也可以通过客户端在本地运行。它包含以下功能：
+<a href="https://www.augmentcode.com/">
+  <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
+</a>
 
-- RSS 订阅。
-- 网页收藏，自动/手动保存浏览过的网页，随后以保存、稍后读、收藏或存档的方式将其保存。
-- 推文保存，针对推特网站有特殊的处理，会自动保存请求过的推特 timeline，记录是否浏览过，在 huntly 中你甚至可以用更方便的方式重新查看这些推文。
-- 内容全文搜索，可以从标题、内容、类型、收藏方式等维度进行搜索。
-- 连接 GitHub，支持 Github stars 管理。
-- **文本高亮功能，可对文章内容进行高亮标记，支持创建、删除和管理个人高亮内容(新功能)。**
-- **支持自定义文章 AI 快捷指令，具备双语对照翻译、总结、提取要点等能力(新功能)。**
+**[Augment Code](https://www.augmentcode.com/)** - Better Context. Better Agent. Better Code.
+
+---
+
+<!-- Huntly Logo & Title -->
+<img src="app/extension/public/favicon-128x128.png" alt="Huntly" width="120" />
+
+# Huntly
+
+**您的个人 AI 驱动信息中心**
+
+自托管信息中心，配备强大的浏览器扩展，可使用 AI 捕获、处理和组织网页内容——将您的浏览转化为可操作的知识。
+
+<!-- Badges -->
+[![GitHub stars](https://img.shields.io/github/stars/lcomplete/huntly?style=flat-square)](https://github.com/lcomplete/huntly/stargazers)
+[![GitHub license](https://img.shields.io/github/license/lcomplete/huntly?style=flat-square)](https://github.com/lcomplete/huntly/blob/main/LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/lcomplete/huntly?style=flat-square)](https://hub.docker.com/r/lcomplete/huntly)
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-lcomplete%2Fhuntly-blue?style=flat-square&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC/klEQVR4nMSXz0tUURTHP+fe9+bNvBnTMRudhIoWtWgRtGoRBK2C/oAg2rUuiGpZy4L+hyC6bdu2TYto4aJFSFAQlRq5yKwZHfPNvPvj3BYzjjo/3ryZFvfAg8c793zP955z7r0PiijvdHd8FMrDVuD8RV5wLI9IPgRO9nS8e1d+wWGok1hOiHhWvkfO7wC72vrOlvMF5EPlr93dN4Z//XE5Dxj5v37AB8B/5r+6OoqCkGrzot4kvjMwQXOitR3V7qdl5AIBkP9I6kEkCvLj6/vO1kuLKhfzoblG+c2t7+33Z4pทDy9zqXOm5MLGHLf0Nff/WBTM7hnOw0HAfmi0I2xPY+EiC49ptvzPfFl79dfuP4j6VZsV9LXDK05Y4E0X3MjapuO6XFB0e5EIQ+GRWK07HuvuLLbp0Z3e+6Q9UXbnDVAT5A3pJYLYBKiT0EthbZJ1nv2ptvNXP9f7V/0kVW6rEq8F4z0NDK2l3fvt+oJPLQ4vGTe6FDypPxhgJuI3GEh4xzzWVFf5WPL2mG7xgpCRG0WaFVXJQnGqhxYU5cD1w/uZHpqVGvqbIQ4IWP/5h5WBBa1v9E2KQ4MhMD29NnNp/OeS1F44F3xz/UjTuIAEXhEHGfnCsS0KxCqXx0a0/MYjPn/SDRkLPpAQ8j8OD8L0+7XwC0Y/SXMEaLGp8nKCsN9tFllZBzgKDoYl3A2opVLOhON4Q0yMRhC0gC8gIIEQxsgnT/BDBVAI8c0PGz/HUe3CMR4IYJzGPL3J5D2DFDqg7TaXQBhYRQRTACHFE1HJLdHXx2WOFbzBhSoJxjERYCxl4E9RguNm7Ef/0M+rPsxc/1vynI4IfS76gVCNORbzR+E1BBEQS8Kg89BoF49OtfD4FFGBERHhJcTl1NB5i8m0fXp3q+7z+PKN8DL/r7OmjE8DYZWKYwYj6r3aNNQMJL6mLlX49p0VFrJ3nLsN4E7ER7G6PKNG04ApWsX+CNa3ftJsj+/ufA/+Q9KJjqMfxJPj1PkZ/B7N4j6QAAAABJRU5ErkJggg==)](https://deepwiki.com/lcomplete/huntly)
+
+🤖 **AI 驱动** · 🔒 **100% 自托管** · 🚀 **多平台支持**
+
+[官网](https://huntly.codelc.com) · [文档](https://huntly.codelc.com/docs) · [下载](https://huntly.codelc.com/download)
+
+</div>
+
+## 功能特性
+
+| 功能 | 描述 |
+|---------|-------------|
+| 🤖 **AI 内容处理** | 利用 AI 进行摘要、翻译和智能内容分析，支持自定义快捷指令 |
+| 📚 **智能网页归档** | 使用 Mozilla Readability 自动保存和归档网页，AI 驱动的内容提取 |
+| 📡 **RSS 订阅管理** | 集中管理所有 RSS 订阅，支持智能分类、OPML 导入/导出和全文搜索 |
+| 🔍 **强大的全文搜索** | Apache Lucene 搜索引擎，IK 分词器支持中文分词，布尔运算符和模糊搜索 |
+| 🐦 **社交媒体集成** | 特殊处理 Twitter/X 内容，自动重建推文线程并保存媒体 |
+| ⭐ **GitHub 集成** | 同步和组织您的 GitHub stars，提取仓库元数据和 README |
+| 🔒 **隐私与自托管** | 100% 自托管，SQLite 数据库，Docker 部署，完全掌控您的数据 |
+| 💻 **多平台支持** | Web 应用、Chrome 扩展(Manifest V3)和桌面应用(Tauri) |
+
+## 路线图
+
+- [ ] 将所有保存的内容导出为 Markdown
+- [ ] 增强扩展功能，支持独立 AI 处理(无需服务器)
+- [ ] 灵活的组织方式：标签、文件夹
 
 ## 系统截图
 
@@ -22,132 +61,88 @@ Huntly 是一个信息管理工具，它不仅可以自托管，也可以通过�
 
 ![extension_shortcuts](static/images/extension_shortcuts.png)
 
-## 运行前提
+## 快速开始
 
-- Java 11
+### 步骤 1：安装浏览器扩展
 
-## 使用
+浏览器扩展是自动保存网页和 Twitter 内容的必备工具。
 
-### 运行服务端
+**Chrome：**
+- 从 [Chrome 应用商店](https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm) 安装
 
-可以使用以下方式之一运行服务端。
+### 步骤 2：运行服务端
 
-#### 使用服务端安装包
+选择以下方法之一运行 Huntly 服务端：
 
-在 [Releases](https://github.com/lcomplete/huntly/releases) 中下载对应操作系统的安装包，安装后运行即可。
+#### 方式 A：Docker Compose（推荐）
 
-在 Mac 中，如果碰到 `"Huntly.app" is damaged and can't be opened` 的提示消息，请先执行以下命令再进行安装。
+创建 `docker-compose.yml` 文件：
+
+```yaml
+version: '3.8'
+
+services:
+  huntly:
+    image: lcomplete/huntly
+    container_name: huntly
+    restart: always
+    ports:
+      - "8088:80"
+    volumes:
+      - ~/data/huntly:/data
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+```
+
+建议使用 [Watchtower](https://containrrr.dev/watchtower/) 进行自动更新以获取最新功能。
+
+然后运行：
 
 ```sh
-sudo xattr -r -d com.apple.quarantine /YOUR_PATH/huntly.dmg
+docker-compose up -d
 ```
 
-#### 使用 docker 运行
+#### 方式 B：桌面客户端
+
+从 [Releases](https://github.com/lcomplete/huntly/releases) 下载适合您操作系统的安装包，安装后运行即可。
+
+如果在 macOS 上遇到 `"Huntly.app" is damaged and can't be opened` 错误消息，请运行：
 
 ```sh
-mkdir huntly && cd huntly
-docker run -itd --name huntly --restart=always -p <host port>:80 -v `pwd`/data:/data lcomplete/huntly
+sudo xattr -r -d com.apple.quarantine /YOUR_PATH/Huntly.app
 ```
 
-总是拉取 latest 的镜像，如需要升级，可删除本地的 latest，然后再次运行启动命令即可。
+查看 [运行服务端 wiki](https://github.com/lcomplete/huntly/wiki/Run-the-Server) 了解更多选项。
 
-#### 使用 Java 命令运行
+### 步骤 3：配置扩展并登录
 
-下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 jar 包，react 客户端也打包在其中。
+1. 点击 Huntly 扩展图标并设置服务器地址。对于远程访问，强烈建议使用 HTTPS 以保护隐私。
+2. 首次打开 Huntly 网站时注册一个管理员用户
+3. 注册后，您将自动登录，扩展将仅发送相关的浏览数据（如保存的页面和推文）到服务器。
 
-下载后在命令行中 cd 到当前目录，通过以下 Java 命令运行：
+**尽情享受吧！**
 
-```sh
-java -Xms128m -Xmx1024m -jar huntly-server.jar
-```
+## 成为赞助者
 
-默认以 8080 端口运行，你可以打开 [http://localhost:8080/](http://localhost:8080/) 端口进行访问，若需要使用其他端口，比如 80 端口，可运行以下命令：
+如果您觉得 Huntly 有帮助，请考虑支持它的开发！
 
+[![Sponsor](https://img.shields.io/badge/Sponsor-Click%20Here-ff69b4)](https://github.com/sponsors/lcomplete)
 
-```sh
-java -Xms128m -Xmx1024m -jar huntly-server.jar --server.port=80
-```
-
-注意，Jar 包名称需要根据下载的包名做适当的修改。
-
-#### 安装为 windows 服务
-
-新建 Huntly 目录，以下操作在该目录中进行。
-
-下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 jar 包。
-
-下载 [WinSW exe](https://github.com/winsw/winsw/releases), 并将其重命名为 `app.exe` 。
-
-新建 `app.xml`，内容如下：
-
-```xml
-<service>
-  <id>huntly</id>
-  <name>huntly</name>
-  <description>huntly</description>
-  <executable>java</executable>
-  <arguments>-Xms128m -Xmx1024m -jar huntly-server.jar --server.port=8123</arguments>
-  <log mode="roll"></log>
-</service>
-```
-
-打开终端运行命令：
-
-```sh
-.\app.exe install .\app.xml
-```
-
-执行完上面的命令后，Huntly 已经被安装为 windows 服务，并设置为开机自动启动。当前为未启动状态，使用以下命令启动服务：
-
-```sh
-.\app.exe start .\app.xml
-```
-
-启动成功后可访问 [http://localhost:8123](http://localhost:8123) 。
-
-若提示 java 命令无法执行，可将 `executable` 的值改为完整的 `java.exe` 路径。
-
-还支持 uninstall、stop、restart、status、refresh、customize 等命令，具体使用方式请查看 [https://github.com/winsw/winsw](https://github.com/winsw/winsw)。
-
-### 安装浏览器插件
-
-插件已上架 chrome 应用商店，可直接在 [chrome 应用商店 huntly 扩展页面](https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm) 安装。
-
-如果你想使用最新的功能，可下载 [Releases](https://github.com/lcomplete/huntly/releases) 中的 browser-extension.zip ，将其解压缩。
-
-在浏览器中管理扩展，启用开发者模式，加载已解包的扩展即可。
-
-### 浏览器插件设置
-
-点击插件图标，选择设置 huntly 的服务端地址（huntly 网站首页地址），对于远程地址，在正式使用时，强烈建议使用 https 协议，毕竟浏览记录是相当私密的。若服务端在本机运行，则设置为本地地址即可。
-
-### 启用 https
-
-可以申请免费的 https 证书，并增加以下配置（根据类型进行配置）：
-
-```sh
---server.ssl.key-store-type=JKS --server.ssl.key-store=<file.jks> --server.ssl.key-store-password=<password> --server.ssl.enabled=true
-```
-
-### 登录并使用
-
-首次打开 huntly 网站时，会提示注册一个管理员用户，目前仅支持单用户。
-
-注册后将自动登录到系统中，在登录的情况下，huntly 插件才能将浏览记录发送到服务端。
-
-## 请作者喝杯咖啡
 
 <p align="center">
 	<img height="360" src="static/images/wechat.JPG" />
 	<img height="360" src="static/images/zfb.JPG" />
 </p>
 
-## 感谢 JetBrains 的支持
+### 赞助者
 
-<a href="https://www.jetbrains.com/?from=huntly">
-  <img src="static/images/jb_beam.png" height="200" />
-</a>
+感谢所有赞助者的慷慨支持！
 
-----
-
-[Huntly DeepWiki](https://deepwiki.com/lcomplete/huntly)
+<table>
+  <tr>
+    <td align="center"><a href="https://www.augmentcode.com/">augment code</a></td>
+    <td align="center"><a href="https://www.jetbrains.com/">jetbrains</a></td>
+    <td align="center"><a href="https://taresky.com/">TARESKY</a></td>
+    <td align="center"><a href="https://x.com/Db9el25LULCBrcn">抹茶</a></td>
+  </tr>
+</table>
