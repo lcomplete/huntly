@@ -32,6 +32,22 @@ struct Settings {
 }
 
 fn get_app_data_dir(app: &AppHandle) -> String {
+    // 开发模式下使用 src-tauri 目录
+    #[cfg(debug_assertions)]
+    {
+        let current_dir = std::env::current_dir().unwrap();
+        // 如果当前目录是 src-tauri，直接使用；否则尝试找到 src-tauri
+        let src_tauri_dir = if current_dir.ends_with("src-tauri") {
+            current_dir
+        } else {
+            current_dir.join("src-tauri")
+        };
+        if src_tauri_dir.exists() {
+            return src_tauri_dir.to_str().unwrap().to_owned();
+        }
+    }
+    
+    // 发布模式或找不到 src-tauri 时使用应用数据目录
     let app_dir = app.path_resolver().app_data_dir().unwrap();
     if !app_dir.exists() {
         std::fs::create_dir(app_dir).unwrap();
