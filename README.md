@@ -53,12 +53,6 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 - [ ] Enhanced extension with standalone AI processing (no server required)
 - [ ] Flexible Organization: Tags, folders
 
-## Roadmap
-
-- [ ] Export all saved content to Markdown
-- [ ] Enhanced extension with standalone AI processing (no server required)
-- [ ] Flexible Organization: Tags, folders
-
 ## Screenshot
 
 ![intro1](static/images/intro1.png)

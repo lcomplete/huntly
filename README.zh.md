@@ -2,8 +2,7 @@
 
 <div align="center">
 
-<!-- Special Thanks -->
-✨ **特别感谢** ✨
+✨ 特别感谢 ✨
 
 <a href="https://www.augmentcode.com/">
   <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
