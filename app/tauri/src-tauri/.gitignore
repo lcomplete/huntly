@@ -7,3 +7,4 @@
 
 /feed_cache/
 /lucene/
+db.sqlite
