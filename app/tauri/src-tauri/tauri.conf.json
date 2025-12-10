@@ -1,47 +1,18 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Huntly",
+  "version": "0.4.6",
+  "identifier": "lcomplete.huntly",
   "build": {
     "beforeDevCommand": "yarn dev",
     "beforeBuildCommand": "yarn build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist",
-    "withGlobalTauri": false
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
   },
-  "package": {
-    "productName": "Huntly",
-    "version": "0.4.6"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true
-      },
-      "fs": {
-        "readFile": true,
-        "writeFile": true,
-        "scope": ["$APP/*", "$RESOURCE/*","server_bin/*"]
-      }
-    },
-    "bundle": {
-      "active": true,
-      "icon": [
-        "icons/favicon-16x16.png",
-        "icons/favicon-32x32.png",
-        "icons/favicon-128x128.png",
-        "icons/favicon-128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "identifier": "lcomplete.huntly",
-      "targets": "all",
-      "resources": ["./server_bin/*"]
-    },
+  "app": {
+    "withGlobalTauri": false,
     "security": {
-      "csp": ""
-    },
-    "updater": {
-      "active": false
+      "csp": null
     },
     "windows": [
       {
@@ -52,10 +23,30 @@
         "height": 550
       }
     ],
-    "systemTray": {
+    "trayIcon": {
+      "id": "main-tray",
       "iconPath": "icons/icon.ico",
-      "iconAsTemplate": true,
-      "menuOnLeftClick": true
+      "iconAsTemplate": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/favicon-16x16.png",
+      "icons/favicon-32x32.png",
+      "icons/favicon-128x128.png",
+      "icons/favicon-128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "targets": "all",
+    "resources": {
+      "server_bin/*": "./"
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true
     }
   }
 }

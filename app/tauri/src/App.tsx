@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { isString, useFormik } from "formik";
 import * as yup from "yup";
@@ -7,13 +7,12 @@ import {
   Alert,
   Button,
   CircularProgress,
-  FormControlLabel,
   Paper,
   Switch,
   TextField,
 } from "@mui/material";
 import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
-import { enable, isEnabled, disable } from "tauri-plugin-autostart-api";
+import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 
 type AppSettings = {
   port: number;
@@ -154,17 +153,15 @@ function App() {
                 variant="outlined"
               />
             </div>
-            <div className={"mt-2"}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    value={true}
-                    checked={!!formSettings.values.auto_start_up}
-                    name={"auto_start_up"}
-                    onChange={formSettings.handleChange}
-                  />
-                }
-                label="Auto startup"
+            <div className={"mt-4 flex items-center justify-between"}>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">Launch on Start</div>
+                <div className="text-sm text-gray-500">Start Huntly automatically whenever you restart your computer.</div>
+              </div>
+              <Switch
+                checked={!!formSettings.values.auto_start_up}
+                name={"auto_start_up"}
+                onChange={formSettings.handleChange}
               />
             </div>
             <div className={"mt-8"}>
