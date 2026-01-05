@@ -18,6 +18,7 @@ spring:
       matching-strategy: ant_path_matcher # use this to make springfox work
   web:
     resources:
+      static-locations: classpath:/public/
       cache:
         cachecontrol:
           max-age: 7d

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Huntly needs access to export Markdown files to your selected folder.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Huntly needs access to export Markdown files to your selected folder.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Huntly needs access to export Markdown files to your selected folder.</string>
+  </dict>
+</plist>

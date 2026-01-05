@@ -4,9 +4,10 @@ import com.huntly.common.api.ApiResult;
 import com.huntly.interfaces.external.dto.LoginUserInfo;
 import com.huntly.interfaces.external.model.LoginRequest;
 import com.huntly.server.domain.constant.AppConstants;
-import com.huntly.server.repository.UserRepository;
 import com.huntly.server.security.jwt.JwtUtils;
 import com.huntly.server.service.UserService;
+import com.huntly.server.service.SyncTokenService;
+import com.huntly.server.service.DeviceAuthService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -31,10 +32,22 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
 
-    public AuthController(UserService userService, JwtUtils jwtUtils, AuthenticationManager authenticationManager) {
+    private final SyncTokenService syncTokenService;
+
+    private final DeviceAuthService deviceAuthService;
+
+    public AuthController(
+            UserService userService,
+            JwtUtils jwtUtils,
+            AuthenticationManager authenticationManager,
+            SyncTokenService syncTokenService,
+            DeviceAuthService deviceAuthService
+    ) {
         this.userService = userService;
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
+        this.syncTokenService = syncTokenService;
+        this.deviceAuthService = deviceAuthService;
     }
 
     @PostMapping("/signin")
@@ -90,5 +103,147 @@ public class AuthController {
     @GetMapping("/isUserSet")
     public ApiResult<Boolean> isUserSet(){
         return ApiResult.ok(userService.isUserSet());
+    }
+
+    // ==================== Device Authorization Grant Flow ====================
+
+    /**
+     * Step 1: Desktop app requests device and user codes.
+     * POST /api/auth/desktop/device
+     */
+    @PostMapping("/desktop/device")
+    public ApiResult<DeviceCodeResponse> requestDeviceCode() {
+        DeviceAuthService.DeviceAuthRequest request = deviceAuthService.createDeviceAuthRequest();
+        return ApiResult.ok(new DeviceCodeResponse(
+                request.getDeviceCode(),
+                request.getUserCode(),
+                deviceAuthService.getCodeExpirationSeconds(),
+                deviceAuthService.getPollIntervalSeconds()
+        ));
+    }
+
+    /**
+     * Step 2: User authorizes in browser with user code.
+     * POST /api/auth/desktop/authorize
+     */
+    @PostMapping("/desktop/authorize")
+    public ApiResult<String> authorizeDevice(
+            @RequestBody DeviceAuthorizeRequest authorizeRequest,
+            HttpServletRequest request,
+            Principal principal
+    ) {
+        if (principal == null) {
+            return ApiResult.fail(401, "Not authenticated");
+        }
+
+        String userCode = authorizeRequest.getUserCode();
+        if (userCode == null || userCode.isBlank()) {
+            return ApiResult.fail(400, "user_code is required");
+        }
+
+        String baseUrl = request.getScheme() + "://" + request.getServerName();
+        if (!(request.getScheme().equals("http") && request.getServerPort() == 80)
+                && !(request.getScheme().equals("https") && request.getServerPort() == 443)) {
+            baseUrl = baseUrl + ":" + request.getServerPort();
+        }
+
+        String syncToken = syncTokenService.getOrCreateToken();
+        boolean success = deviceAuthService.authorizeByUserCode(userCode, syncToken, baseUrl);
+
+        if (success) {
+            return ApiResult.ok("Authorization successful");
+        } else {
+            return ApiResult.fail(400, "Invalid or expired user code");
+        }
+    }
+
+    /**
+     * Step 3: Desktop app polls for token.
+     * POST /api/auth/desktop/token
+     */
+    @PostMapping("/desktop/token")
+    public ApiResult<?> pollDeviceToken(
+            @RequestBody DeviceTokenRequest tokenRequest
+    ) {
+        String deviceCode = tokenRequest.getDeviceCode();
+        if (deviceCode == null || deviceCode.isBlank()) {
+            return ApiResult.fail(400, "device_code is required");
+        }
+
+        DeviceAuthService.DeviceAuthRequest request = deviceAuthService.checkAuthorization(deviceCode);
+
+        if (request == null) {
+            return ApiResult.fail(400, "Invalid or expired device code");
+        }
+
+        if (!request.isAuthorized()) {
+            // Authorization pending - client should continue polling
+            return ApiResult.fail(428, "authorization_pending");
+        }
+
+        // Authorization complete
+        return ApiResult.ok(new DeviceTokenResponse(
+                request.getSyncToken(),
+                request.getServerUrl()
+        ));
+    }
+
+    // ==================== Request/Response DTOs ====================
+
+    public static class DeviceCodeResponse {
+        private final String deviceCode;
+        private final String userCode;
+        private final long expiresIn;
+        private final int interval;
+
+        public DeviceCodeResponse(String deviceCode, String userCode, long expiresIn, int interval) {
+            this.deviceCode = deviceCode;
+            this.userCode = userCode;
+            this.expiresIn = expiresIn;
+            this.interval = interval;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("device_code")
+        public String getDeviceCode() { return deviceCode; }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("user_code")
+        public String getUserCode() { return userCode; }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("expires_in")
+        public long getExpiresIn() { return expiresIn; }
+
+        public int getInterval() { return interval; }
+    }
+
+    public static class DeviceAuthorizeRequest {
+        private String userCode;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("user_code")
+        public String getUserCode() { return userCode; }
+        public void setUserCode(String userCode) { this.userCode = userCode; }
+    }
+
+    public static class DeviceTokenRequest {
+        private String deviceCode;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("device_code")
+        public String getDeviceCode() { return deviceCode; }
+        public void setDeviceCode(String deviceCode) { this.deviceCode = deviceCode; }
+    }
+
+    public static class DeviceTokenResponse {
+        private final String syncToken;
+        private final String serverUrl;
+
+        public DeviceTokenResponse(String syncToken, String serverUrl) {
+            this.syncToken = syncToken;
+            this.serverUrl = serverUrl;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("sync_token")
+        public String getSyncToken() { return syncToken; }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("server_url")
+        public String getServerUrl() { return serverUrl; }
     }
 }

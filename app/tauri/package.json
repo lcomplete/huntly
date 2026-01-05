@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "TAURI_CONFIG='{\"identifier\":\"lcomplete.huntly.dev\",\"productName\":\"Huntly Dev\"}' tauri",
+    "tauri:build": "tauri build",
+    "tauri:nojar": "HUNTLY_NO_SERVER_JAR=1 yarn tauri",
+    "server:jar": "cd ../server && ./mvnw -pl huntly-server -am -DskipTests package && JAR=$(ls huntly-server/target/huntly-server-*.jar | grep -v '\\.original' | head -n 1) && cp \"$JAR\" ../tauri/src-tauri/server_bin/huntly-server.jar",
+    "tauri:jar": "yarn server:jar && yarn tauri",
+    "sync-server": "mkdir -p src-tauri/target/debug/server_bin && [ -d src-tauri/target/debug/server_bin/jre11 ] || cp -r src-tauri/server_bin/jre11 src-tauri/target/debug/server_bin/ 2>/dev/null || true; cp src-tauri/server_bin/huntly-server.jar src-tauri/target/debug/server_bin/ 2>/dev/null || true"
   },
   "dependencies": {
     "@emotion/react": "^11.10.6",
@@ -16,8 +21,11 @@
     "@mui/material": "^5.11.15",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-autostart": "^2.0.0",
-    "@tauri-apps/plugin-shell": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-fs": "^2.0.0",
+    "@tauri-apps/plugin-updater": "^2.0.0",
+    "@tauri-apps/plugin-shell": "^2.0.0",
+    "@tauri-apps/plugin-store": "^2.4.1",
     "formik": "^2.2.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

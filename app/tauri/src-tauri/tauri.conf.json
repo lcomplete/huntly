@@ -4,9 +4,9 @@
   "version": "0.4.6",
   "identifier": "lcomplete.huntly",
   "build": {
-    "beforeDevCommand": "yarn dev",
+    "beforeDevCommand": "yarn sync-server && yarn dev",
     "beforeBuildCommand": "yarn build",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../dist"
   },
   "app": {
@@ -17,10 +17,11 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": false,
+        "resizable": true,
         "title": "Huntly",
-        "width": 550,
-        "height": 550
+        "width": 680,
+        "height": 720,
+        "titleBarStyle": "Visible"
       }
     ],
     "trayIcon": {
@@ -40,6 +41,10 @@
       "icons/icon.ico"
     ],
     "targets": "all",
+    "macOS": {
+      "entitlements": "entitlements.plist",
+      "infoPlist": "Info.plist"
+    },
     "resources": {
       "server_bin/*": "./"
     }
@@ -47,6 +52,14 @@
   "plugins": {
     "shell": {
       "open": true
+    },
+    "updater": {
+      "active": true,
+      "dialog": false,
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/lcomplete/huntly/releases/latest/download/latest.json"
+      ]
     }
   }
 }
