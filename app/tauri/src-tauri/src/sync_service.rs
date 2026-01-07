@@ -2,7 +2,7 @@ use crate::sync::*;
 use chrono::Utc;
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -271,10 +271,8 @@ async fn sync_category(
             .map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    // 读取上次的游标（用于增量同步）
-    let saved_cursor = read_cursor_file(&category_folder);
-    let initial_cursor_at = saved_cursor.as_ref().and_then(|c| c.last_cursor_at.clone());
-    let initial_cursor_id = saved_cursor.as_ref().and_then(|c| c.last_cursor_id);
+    // 读取已有的索引文件，用于判断文件是否存在
+    let existing_index = read_index_file(&category_folder);
 
     // X 和 RecentlyRead 限制 200 条
     let max_items = match category {
@@ -282,7 +280,7 @@ async fn sync_category(
         _ => usize::MAX,
     };
 
-    // 获取元数据列表（支持分页）
+    // 获取元数据列表（不使用 updatedAfter，始终获取完整列表来判断缺失文件）
     let mut cursor_at: Option<String> = None;
     let mut cursor_id: Option<i64> = None;
     let mut all_items: Vec<SyncItemMeta> = Vec::new();
@@ -294,7 +292,7 @@ async fn sync_category(
             server_url,
             token,
             category,
-            initial_cursor_at.as_deref(),
+            None, // 不使用 updatedAfter，获取完整列表
             cursor_at.as_deref(),
             cursor_id,
         )
@@ -327,12 +325,16 @@ async fn sync_category(
         return Ok((0, 0, errors));
     }
 
+    // 根据索引文件检查哪些文件缺失或需要更新
+    let missing_or_updated = check_missing_or_updated_items(&category_folder, &all_items, &existing_index);
+
     push_log(
         app,
         format!(
-            "{}: Found {} items to process",
+            "{}: Found {} items, {} need sync",
             category.folder_name(),
-            all_items.len()
+            all_items.len(),
+            missing_or_updated.len()
         ),
     );
 
@@ -346,6 +348,7 @@ async fn sync_category(
                 token,
                 &category_folder,
                 &all_items,
+                &missing_or_updated,
             )
             .await;
             match result {
@@ -365,6 +368,7 @@ async fn sync_category(
                 token,
                 &category_folder,
                 &all_items,
+                &missing_or_updated,
             )
             .await;
             match result {
@@ -396,20 +400,19 @@ async fn sync_standard_items(
     token: &str,
     category_folder: &PathBuf,
     items: &[SyncItemMeta],
+    needs_sync: &std::collections::HashSet<i64>,
 ) -> Result<(u32, u32, Vec<String>), String> {
     let mut synced_count = 0u32;
     let mut skipped_count = 0u32;
     let mut errors = Vec::new();
 
-    // 筛选需要更新的项目
-    let mut items_to_update: Vec<&SyncItemMeta> = Vec::new();
-    for item in items {
-        if should_update_item(category_folder, item) {
-            items_to_update.push(item);
-        } else {
-            skipped_count += 1;
-        }
-    }
+    // 根据 needs_sync 集合筛选需要更新的项目
+    let items_to_update: Vec<&SyncItemMeta> = items
+        .iter()
+        .filter(|item| needs_sync.contains(&item.id))
+        .collect();
+
+    skipped_count = (items.len() - items_to_update.len()) as u32;
 
     if items_to_update.is_empty() {
         return Ok((0, skipped_count, errors));
@@ -453,6 +456,7 @@ async fn sync_feeds_items(
     token: &str,
     feeds_folder: &PathBuf,
     items: &[SyncItemMeta],
+    needs_sync: &std::collections::HashSet<i64>,
 ) -> Result<(u32, u32, Vec<String>), String> {
     let mut synced_count = 0u32;
     let mut skipped_count = 0u32;
@@ -487,15 +491,13 @@ async fn sync_feeds_items(
                 .map_err(|e| format!("Failed to create feeds directory: {}", e))?;
         }
 
-        // 筛选需要更新的项目
-        let mut items_to_update: Vec<&SyncItemMeta> = Vec::new();
-        for item in &group_items {
-            if should_update_item(&target_folder, item) {
-                items_to_update.push(item);
-            } else {
-                skipped_count += 1;
-            }
-        }
+        // 根据 needs_sync 集合筛选需要更新的项目
+        let items_to_update: Vec<&&SyncItemMeta> = group_items
+            .iter()
+            .filter(|item| needs_sync.contains(&item.id))
+            .collect();
+
+        skipped_count += (group_items.len() - items_to_update.len()) as u32;
 
         if items_to_update.is_empty() {
             continue;
@@ -506,7 +508,7 @@ async fn sync_feeds_items(
         for chunk in items_to_update.chunks(BATCH_SIZE) {
             let ids: Vec<i64> = chunk.iter().map(|item| item.id).collect();
             let id_to_meta: HashMap<i64, &SyncItemMeta> =
-                chunk.iter().map(|item| (item.id, *item)).collect();
+                chunk.iter().map(|item| (item.id, **item)).collect();
 
             match fetch_content_batch(server_url, token, &ids).await {
                 Ok(contents) => {
@@ -870,6 +872,74 @@ fn read_cursor_file(category_folder: &PathBuf) -> Option<crate::sync::CursorData
     }
     let content = fs::read_to_string(&cursor_path).ok()?;
     serde_json::from_str(&content).ok()
+}
+
+/// 读取索引文件
+fn read_index_file(category_folder: &PathBuf) -> Option<crate::sync::CategoryIndex> {
+    let index_path = category_folder.join("index.json");
+    if !index_path.exists() {
+        return None;
+    }
+    let content = fs::read_to_string(&index_path).ok()?;
+    serde_json::from_str(&content).ok()
+}
+
+/// 检查哪些文件缺失或需要更新
+/// 返回需要同步的项目 ID 集合
+fn check_missing_or_updated_items(
+    _category_folder: &PathBuf,
+    items: &[SyncItemMeta],
+    existing_index: &Option<crate::sync::CategoryIndex>,
+) -> HashSet<i64> {
+    let mut needs_sync: HashSet<i64> = HashSet::new();
+
+    // 如果没有索引文件，所有项目都需要同步
+    let existing_index = match existing_index {
+        Some(idx) => idx,
+        None => {
+            // 没有索引，同步所有项目
+            return items.iter().map(|item| item.id).collect();
+        }
+    };
+
+    // 构建已有索引的 id -> (filename, updated_at) 映射
+    let existing_map: HashMap<i64, (&str, Option<&str>)> = existing_index
+        .items
+        .iter()
+        .map(|item| {
+            (
+                item.id,
+                (item.filename.as_str(), item.updated_at.as_deref()),
+            )
+        })
+        .collect();
+
+    for item in items {
+        let filename = generate_filename(item);
+
+        // 情况1：不在索引中，需要同步
+        if let Some((indexed_filename, indexed_updated_at)) = existing_map.get(&item.id) {
+            // 情况2：文件名变了（标题变了）
+            if *indexed_filename != filename {
+                needs_sync.insert(item.id);
+                continue;
+            }
+
+            // 情况3：检查更新时间
+            if let (Some(new_updated), Some(old_updated)) = (&item.updated_at, indexed_updated_at) {
+                if new_updated != *old_updated {
+                    needs_sync.insert(item.id);
+                    continue;
+                }
+            }
+            // 索引中存在且文件名和更新时间都没变，跳过
+        } else {
+            // 不在索引中，需要同步
+            needs_sync.insert(item.id);
+        }
+    }
+
+    needs_sync
 }
 
 use std::sync::atomic::{AtomicBool, Ordering};
