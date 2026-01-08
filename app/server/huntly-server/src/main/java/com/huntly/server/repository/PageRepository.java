@@ -3,7 +3,6 @@ package com.huntly.server.repository;
 import com.huntly.jpa.repository.JpaRepositoryWithLimit;
 import com.huntly.jpa.repository.JpaSpecificationExecutorWithProjection;
 import com.huntly.server.domain.entity.Page;
-import com.huntly.server.domain.projection.PageMetaProjection;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,113 +18,6 @@ import java.util.Optional;
 
 @Repository
 public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificationExecutor<Page>, JpaSpecificationExecutorWithProjection<Page>, JpaRepositoryWithLimit<Page, Long> {
-
-    // ============= 高性能同步 API 投影查询 =============
-
-    /**
-     * Saved 分类查询 (librarySaveStatus IN (1, 2))
-     */
-    @Query("SELECT p.id AS id, p.title AS title, p.url AS url, p.author AS author, " +
-           "p.authorScreenName AS authorScreenName, p.description AS description, " +
-           "p.connectorType AS connectorType, p.connectorId AS connectorId, p.folderId AS folderId, " +
-           "p.contentType AS contentType, p.librarySaveStatus AS librarySaveStatus, " +
-           "p.starred AS starred, p.readLater AS readLater, p.savedAt AS savedAt, " +
-           "p.updatedAt AS updatedAt, p.createdAt AS createdAt, p.lastReadAt AS lastReadAt, " +
-           "p.archivedAt AS archivedAt, p.thumbUrl AS thumbUrl, p.highlightCount AS highlightCount, " +
-           "p.pageJsonProperties AS pageJsonProperties " +
-           "FROM Page p WHERE p.librarySaveStatus IN (1, 2) " +
-           "AND (:updatedAfter IS NULL OR p.updatedAt > :updatedAfter) " +
-           "AND (:cursorAt IS NULL OR p.updatedAt < :cursorAt OR (p.updatedAt = :cursorAt AND p.id < :cursorId)) " +
-           "ORDER BY p.updatedAt DESC, p.id DESC")
-    List<PageMetaProjection> findSavedMeta(
-            @Param("updatedAfter") Instant updatedAfter,
-            @Param("cursorAt") Instant cursorAt,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable);
-
-    /**
-     * Twitter/X 分类查询 (contentType IN (1 TWEET, 3 QUOTED_TWEET))
-     */
-    @Query("SELECT p.id AS id, p.title AS title, p.url AS url, p.author AS author, " +
-           "p.authorScreenName AS authorScreenName, p.description AS description, " +
-           "p.connectorType AS connectorType, p.connectorId AS connectorId, p.folderId AS folderId, " +
-           "p.contentType AS contentType, p.librarySaveStatus AS librarySaveStatus, " +
-           "p.starred AS starred, p.readLater AS readLater, p.savedAt AS savedAt, " +
-           "p.updatedAt AS updatedAt, p.createdAt AS createdAt, p.lastReadAt AS lastReadAt, " +
-           "p.archivedAt AS archivedAt, p.thumbUrl AS thumbUrl, p.highlightCount AS highlightCount, " +
-           "p.pageJsonProperties AS pageJsonProperties " +
-           "FROM Page p WHERE p.contentType IN (1, 3) " +
-           "AND (:updatedAfter IS NULL OR p.updatedAt > :updatedAfter) " +
-           "AND (:cursorAt IS NULL OR p.updatedAt < :cursorAt OR (p.updatedAt = :cursorAt AND p.id < :cursorId)) " +
-           "ORDER BY p.updatedAt DESC, p.id DESC")
-    List<PageMetaProjection> findTwitterMeta(
-            @Param("updatedAfter") Instant updatedAfter,
-            @Param("cursorAt") Instant cursorAt,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable);
-
-    /**
-     * GitHub 分类查询 (connectorType = 2)
-     */
-    @Query("SELECT p.id AS id, p.title AS title, p.url AS url, p.author AS author, " +
-           "p.authorScreenName AS authorScreenName, p.description AS description, " +
-           "p.connectorType AS connectorType, p.connectorId AS connectorId, p.folderId AS folderId, " +
-           "p.contentType AS contentType, p.librarySaveStatus AS librarySaveStatus, " +
-           "p.starred AS starred, p.readLater AS readLater, p.savedAt AS savedAt, " +
-           "p.updatedAt AS updatedAt, p.createdAt AS createdAt, p.lastReadAt AS lastReadAt, " +
-           "p.archivedAt AS archivedAt, p.thumbUrl AS thumbUrl, p.highlightCount AS highlightCount, " +
-           "p.pageJsonProperties AS pageJsonProperties " +
-           "FROM Page p WHERE p.connectorType = 2 " +
-           "AND (:updatedAfter IS NULL OR p.updatedAt > :updatedAfter) " +
-           "AND (:cursorAt IS NULL OR p.updatedAt < :cursorAt OR (p.updatedAt = :cursorAt AND p.id < :cursorId)) " +
-           "ORDER BY p.updatedAt DESC, p.id DESC")
-    List<PageMetaProjection> findGithubMeta(
-            @Param("updatedAfter") Instant updatedAfter,
-            @Param("cursorAt") Instant cursorAt,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable);
-
-    /**
-     * Feeds 分类查询 (connectorType = 1)
-     */
-    @Query("SELECT p.id AS id, p.title AS title, p.url AS url, p.author AS author, " +
-           "p.authorScreenName AS authorScreenName, p.description AS description, " +
-           "p.connectorType AS connectorType, p.connectorId AS connectorId, p.folderId AS folderId, " +
-           "p.contentType AS contentType, p.librarySaveStatus AS librarySaveStatus, " +
-           "p.starred AS starred, p.readLater AS readLater, p.savedAt AS savedAt, " +
-           "p.updatedAt AS updatedAt, p.createdAt AS createdAt, p.lastReadAt AS lastReadAt, " +
-           "p.archivedAt AS archivedAt, p.thumbUrl AS thumbUrl, p.highlightCount AS highlightCount, " +
-           "p.pageJsonProperties AS pageJsonProperties " +
-           "FROM Page p WHERE p.connectorType = 1 " +
-           "AND (:updatedAfter IS NULL OR p.updatedAt > :updatedAfter) " +
-           "AND (:cursorAt IS NULL OR p.updatedAt < :cursorAt OR (p.updatedAt = :cursorAt AND p.id < :cursorId)) " +
-           "ORDER BY p.updatedAt DESC, p.id DESC")
-    List<PageMetaProjection> findFeedsMeta(
-            @Param("updatedAfter") Instant updatedAfter,
-            @Param("cursorAt") Instant cursorAt,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable);
-
-    /**
-     * RecentlyRead 分类查询 (lastReadAt IS NOT NULL)
-     */
-    @Query("SELECT p.id AS id, p.title AS title, p.url AS url, p.author AS author, " +
-           "p.authorScreenName AS authorScreenName, p.description AS description, " +
-           "p.connectorType AS connectorType, p.connectorId AS connectorId, p.folderId AS folderId, " +
-           "p.contentType AS contentType, p.librarySaveStatus AS librarySaveStatus, " +
-           "p.starred AS starred, p.readLater AS readLater, p.savedAt AS savedAt, " +
-           "p.updatedAt AS updatedAt, p.createdAt AS createdAt, p.lastReadAt AS lastReadAt, " +
-           "p.archivedAt AS archivedAt, p.thumbUrl AS thumbUrl, p.highlightCount AS highlightCount, " +
-           "p.pageJsonProperties AS pageJsonProperties " +
-           "FROM Page p WHERE p.lastReadAt IS NOT NULL " +
-           "AND (:readAfter IS NULL OR p.lastReadAt > :readAfter) " +
-           "AND (:cursorAt IS NULL OR p.lastReadAt < :cursorAt OR (p.lastReadAt = :cursorAt AND p.id < :cursorId)) " +
-           "ORDER BY p.lastReadAt DESC, p.id DESC")
-    List<PageMetaProjection> findRecentlyReadMeta(
-            @Param("readAfter") Instant readAfter,
-            @Param("cursorAt") Instant cursorAt,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable);
 
     Optional<Page> findTop1ByUrl(String url);
 

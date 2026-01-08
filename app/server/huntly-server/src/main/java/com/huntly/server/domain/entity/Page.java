@@ -25,15 +25,7 @@ import java.time.Instant;
         @Index(name = "idx_page_last_read_at", columnList = "last_read_at DESC"),
         @Index(name = "idx_page_connected_at", columnList = "connected_at DESC"),
         @Index(name = "idx_page_created_at", columnList = "created_at DESC"),
-        @Index(name = "idx_page_unique_id", columnList = "page_unique_id"),
-        // 同步 API 优化索引
-        @Index(name = "idx_page_updated_at", columnList = "updated_at DESC"),
-        @Index(name = "idx_page_library_updated_at", columnList = "library_save_status, updated_at DESC"),
-        @Index(name = "idx_page_highlight_updated_at", columnList = "highlight_count, updated_at DESC"),
-        // Twitter/X 分类索引 (contentType IN 8,9)
-        @Index(name = "idx_page_content_type_updated", columnList = "content_type, updated_at DESC"),
-        // GitHub/Feeds 分类索引 (connectorType)
-        @Index(name = "idx_page_connector_type_updated", columnList = "connector_type, updated_at DESC"),
+        @Index(name = "idx_page_unique_id", columnList = "page_unique_id")
 })
 @DynamicUpdate
 public class Page implements Serializable {
