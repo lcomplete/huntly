@@ -365,8 +365,8 @@ fn handle_start_server(app: &AppHandle) -> Result<(), String> {
             .raw_arg(format!("\"{}\"", canonicalize(&file_path)))
             .raw_arg(format!("--server.port={}", port))
             .raw_arg(format!("--server.address={}", server_address))
-            .raw_arg(format!("--huntly.dataDir={}/", data_dir))
-            .raw_arg(format!("--huntly.luceneDir={}/lucene", data_dir))
+            .raw_arg(format!("--huntly.dataDir=\"{}/\"", data_dir))
+            .raw_arg(format!("--huntly.luceneDir=\"{}/lucene\"", data_dir))
             .spawn()
             .map_err(|e| e.to_string())?;
         let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
