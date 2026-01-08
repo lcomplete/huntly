@@ -91,18 +91,67 @@ pub struct SyncContentResponse {
     pub id: i64,
     pub title: Option<String>,
     pub content: Option<String>,
+    pub markdown: Option<String>,
     #[serde(rename = "updatedAt")]
     pub updated_at: Option<String>,
     pub highlights: Option<Vec<HighlightInfo>>,
 }
 
-/// 高亮信息
+/// 高亮信息（用于内容响应）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HighlightInfo {
     pub id: i64,
     pub text: Option<String>,
     #[serde(rename = "createdAt")]
     pub created_at: Option<String>,
+}
+
+/// 高亮同步项（直接从 PageHighlight 表获取）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncHighlightItem {
+    pub id: i64,
+    #[serde(rename = "pageId")]
+    pub page_id: i64,
+    #[serde(rename = "highlightedText")]
+    pub highlighted_text: Option<String>,
+    #[serde(rename = "pageTitle")]
+    pub page_title: Option<String>,
+    #[serde(rename = "pageUrl")]
+    pub page_url: Option<String>,
+    pub author: Option<String>,
+    #[serde(rename = "contentType")]
+    pub content_type: Option<i32>,
+    #[serde(rename = "connectorType")]
+    pub connector_type: Option<i32>,
+    #[serde(rename = "connectorId")]
+    pub connector_id: Option<i32>,
+    #[serde(rename = "connectorName")]
+    pub connector_name: Option<String>,
+    #[serde(rename = "folderId")]
+    pub folder_id: Option<i32>,
+    #[serde(rename = "folderName")]
+    pub folder_name: Option<String>,
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "pageUpdatedAt")]
+    pub page_updated_at: Option<String>,
+}
+
+/// 高亮同步列表响应
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncHighlightListResponse {
+    pub items: Vec<SyncHighlightItem>,
+    #[serde(rename = "hasMore")]
+    pub has_more: bool,
+    #[serde(rename = "nextCursorAt")]
+    pub next_cursor_at: Option<String>,
+    #[serde(rename = "nextCursorId")]
+    pub next_cursor_id: Option<i64>,
+    pub count: Option<i32>,
+    #[serde(rename = "syncAt")]
+    pub sync_at: Option<String>,
 }
 
 /// 目录索引项（精简版，不含描述和内容）
@@ -146,6 +195,40 @@ pub struct CategoryIndex {
     #[serde(rename = "totalCount")]
     pub total_count: usize,
     pub items: Vec<IndexItem>,
+}
+
+/// 高亮索引项
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HighlightIndexItem {
+    pub id: i64,
+    #[serde(rename = "pageId")]
+    pub page_id: i64,
+    pub filename: String,
+    #[serde(rename = "pageTitle")]
+    pub page_title: Option<String>,
+    #[serde(rename = "pageUrl")]
+    pub page_url: Option<String>,
+    #[serde(rename = "contentType")]
+    pub content_type: Option<i32>,
+    #[serde(rename = "connectorType")]
+    pub connector_type: Option<i32>,
+    #[serde(rename = "connectorId")]
+    pub connector_id: Option<i32>,
+    #[serde(rename = "folderId")]
+    pub folder_id: Option<i32>,
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<String>,
+}
+
+/// 高亮索引文件结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HighlightIndex {
+    pub category: String,
+    #[serde(rename = "syncAt")]
+    pub sync_at: String,
+    #[serde(rename = "totalCount")]
+    pub total_count: usize,
+    pub items: Vec<HighlightIndexItem>,
 }
 
 /// 游标文件结构（用于增量同步）

@@ -1,13 +1,17 @@
 package com.huntly.server.service;
 
 import com.huntly.interfaces.external.dto.SyncContentResponse;
+import com.huntly.interfaces.external.dto.SyncHighlightItem;
+import com.huntly.interfaces.external.dto.SyncHighlightListResponse;
 import com.huntly.interfaces.external.dto.SyncItemMeta;
 import com.huntly.interfaces.external.dto.SyncListResponse;
+import com.huntly.interfaces.external.query.SyncHighlightQuery;
 import com.huntly.interfaces.external.query.SyncQuery;
 import com.huntly.interfaces.external.query.SyncReadQuery;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.Folder;
 import com.huntly.server.domain.entity.Page;
+import com.huntly.server.domain.projection.HighlightMetaProjection;
 import com.huntly.server.domain.projection.PageMetaProjection;
 import com.huntly.server.repository.ConnectorRepository;
 import com.huntly.server.repository.FolderRepository;
@@ -164,16 +168,88 @@ public class SyncService {
     }
 
     /**
-     * 获取 Highlights 分类同步列表（使用投影查询，不加载 content）
+     * 获取 Highlights 分类同步列表 - 直接从 PageHighlight 表查询
      */
-    public SyncListResponse getHighlightsList(SyncQuery query) {
+    public SyncHighlightListResponse getHighlightsList(SyncHighlightQuery query) {
         int limit = query.getLimit();
-        var projections = pageRepository.findHighlightsMeta(
-                query.getUpdatedAfter(),
-                query.getCursorUpdatedAt(),
+        var projections = pageHighlightRepository.findHighlightsMeta(
+                query.getCreatedAfter(),
+                query.getCursorCreatedAt(),
                 query.getCursorId(),
                 PageRequest.of(0, limit + 1));
-        return buildResponse(projections, limit, false);
+        return buildHighlightResponse(projections, limit);
+    }
+
+    /**
+     * 构建高亮响应，处理分页
+     */
+    private SyncHighlightListResponse buildHighlightResponse(List<HighlightMetaProjection> projections, int limit) {
+        boolean hasMore = projections.size() > limit;
+        if (hasMore) {
+            projections = projections.subList(0, limit);
+        }
+
+        List<SyncHighlightItem> items = projections.stream()
+                .map(this::toHighlightItem)
+                .collect(Collectors.toList());
+
+        Instant nextCursorAt = null;
+        Long nextCursorId = null;
+        if (!projections.isEmpty() && hasMore) {
+            HighlightMetaProjection last = projections.get(projections.size() - 1);
+            nextCursorAt = last.getCreatedAt();
+            nextCursorId = last.getId();
+        }
+
+        return SyncHighlightListResponse.builder()
+                .items(items)
+                .hasMore(hasMore)
+                .nextCursorAt(nextCursorAt)
+                .nextCursorId(nextCursorId)
+                .count(items.size())
+                .syncAt(Instant.now())
+                .build();
+    }
+
+    /**
+     * 转换高亮投影为 DTO
+     */
+    private SyncHighlightItem toHighlightItem(HighlightMetaProjection h) {
+        ensureCacheValid();
+
+        String connectorName = null;
+        String folderName = null;
+
+        if (h.getConnectorId() != null) {
+            Connector connector = connectorCache.get(h.getConnectorId());
+            if (connector != null) {
+                connectorName = connector.getName();
+            }
+        }
+        if (h.getFolderId() != null) {
+            Folder folder = folderCache.get(h.getFolderId());
+            if (folder != null) {
+                folderName = folder.getName();
+            }
+        }
+
+        return SyncHighlightItem.builder()
+                .id(h.getId())
+                .pageId(h.getPageId())
+                .highlightedText(h.getHighlightedText())
+                .pageTitle(h.getPageTitle())
+                .pageUrl(h.getPageUrl())
+                .author(h.getAuthor())
+                .contentType(h.getContentType())
+                .connectorType(h.getConnectorType())
+                .connectorId(h.getConnectorId())
+                .connectorName(connectorName)
+                .folderId(h.getFolderId())
+                .folderName(folderName)
+                .createdAt(h.getCreatedAt())
+                .updatedAt(h.getUpdatedAt())
+                .pageUpdatedAt(h.getPageUpdatedAt())
+                .build();
     }
 
     /**
@@ -240,10 +316,18 @@ public class SyncService {
                             .build())
                     .collect(Collectors.toList());
         }
+
+        // Convert HTML to Markdown with size limits
+        String markdown = null;
+        if (page.getContent() != null && !page.getContent().isEmpty()) {
+            markdown = com.huntly.server.util.MarkdownUtils.htmlToMarkdown(page.getContent());
+        }
+
         return SyncContentResponse.builder()
                 .id(page.getId())
                 .title(page.getTitle())
                 .content(page.getContent())
+                .markdown(markdown)
                 .updatedAt(page.getUpdatedAt())
                 .highlights(highlights)
                 .build();

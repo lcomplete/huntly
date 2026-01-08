@@ -40,7 +40,7 @@ RUN mkdir -p /data /data/lucene
 # 从构建阶段复制 JAR 文件
 COPY --from=server-builder /app/server/huntly-server/target/huntly-server-*.jar /app/server.jar
 
-ENV JAVA_ARGS="-Xms128m -Xmx1024m"
+ENV JAVA_ARGS="-Xms128m -Xmx512m"
 ENV VM_ARGS="-Duser.timezone=GMT+08"
 ENV APP_ARGS=""
 ENV PROFILE="default"

@@ -251,6 +251,21 @@ async fn do_sync(
     })
 }
 
+/// 获取 .huntly 元数据目录路径
+fn get_metadata_dir(export_folder: &str) -> PathBuf {
+    PathBuf::from(export_folder).join(".huntly")
+}
+
+/// 获取分类索引文件路径
+fn get_category_index_path(export_folder: &str, category: SyncCategory) -> PathBuf {
+    get_metadata_dir(export_folder).join(format!("{}-index.json", category.folder_name().to_lowercase()))
+}
+
+/// 获取分类游标文件路径
+fn get_category_cursor_path(export_folder: &str, category: SyncCategory) -> PathBuf {
+    get_metadata_dir(export_folder).join(format!("{}-cursor.json", category.folder_name().to_lowercase()))
+}
+
 /// 同步单个分类
 async fn sync_category(
     app: &AppHandle,
@@ -264,6 +279,13 @@ async fn sync_category(
     let mut skipped_count = 0u32;
     let mut errors = Vec::new();
 
+    // 创建 .huntly 元数据目录
+    let metadata_dir = get_metadata_dir(export_folder);
+    if !metadata_dir.exists() {
+        fs::create_dir_all(&metadata_dir)
+            .map_err(|e| format!("Failed to create .huntly directory: {}", e))?;
+    }
+
     // 创建分类目录
     let category_folder = PathBuf::from(export_folder).join(category.folder_name());
     if !category_folder.exists() {
@@ -271,55 +293,47 @@ async fn sync_category(
             .map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    // 读取已有的索引文件，用于判断文件是否存在
-    let existing_index = read_index_file(&category_folder);
+    // 读取已有的索引文件（从 .huntly 目录），用于判断文件是否存在
+    let existing_index = read_index_file(export_folder, category);
 
-    // X 和 RecentlyRead 限制 200 条
-    let max_items = match category {
-        SyncCategory::Twitter | SyncCategory::RecentlyRead => 200,
-        _ => usize::MAX,
-    };
+    // 读取上次保存的游标（从 .huntly 目录），实现增量同步
+    let saved_cursor = read_cursor_file(export_folder, category);
+    let mut cursor_at: Option<String> = saved_cursor.as_ref().and_then(|c| c.last_cursor_at.clone());
+    let mut cursor_id: Option<i64> = saved_cursor.as_ref().and_then(|c| c.last_cursor_id);
 
-    // 获取元数据列表（不使用 updatedAfter，始终获取完整列表来判断缺失文件）
-    let mut cursor_at: Option<String> = None;
-    let mut cursor_id: Option<i64> = None;
-    let mut all_items: Vec<SyncItemMeta> = Vec::new();
-    let mut last_cursor_at: Option<String> = None;
-    let mut last_cursor_id: Option<i64> = None;
+    // 每次同步只获取一批数据（200条），而不是全部数据
+    // 这样可以：
+    // 1. 控制内存使用
+    // 2. 后台同步时不会阻塞太久
+    // 3. 通过游标逐步同步所有数据
+    const BATCH_SIZE: usize = 200;
 
-    loop {
-        let response = fetch_category_list(
-            server_url,
-            token,
-            category,
-            None, // 不使用 updatedAfter，获取完整列表
-            cursor_at.as_deref(),
-            cursor_id,
-        )
-        .await?;
+    let response = fetch_category_list(
+        server_url,
+        token,
+        category,
+        None, // 不使用 updatedAfter，通过游标实现增量
+        cursor_at.as_deref(),
+        cursor_id,
+    )
+    .await?;
 
-        // 记录第一页的游标作为下次同步的起点
-        if all_items.is_empty() && !response.items.is_empty() {
-            let first = &response.items[0];
-            last_cursor_at = first.updated_at.clone();
-            last_cursor_id = Some(first.id);
+    let all_items = response.items;
+
+    if all_items.is_empty() {
+        // 没有数据了，重置游标从头开始
+        if saved_cursor.is_some() {
+            push_log(
+                app,
+                format!("{}: No more data, resetting cursor", category.folder_name()),
+            );
         }
-
-        all_items.extend(response.items);
-
-        // 检查是否达到限制
-        if all_items.len() >= max_items {
-            all_items.truncate(max_items);
-            break;
-        }
-
-        if response.has_more {
-            cursor_at = response.next_cursor_at;
-            cursor_id = response.next_cursor_id;
-        } else {
-            break;
-        }
+        return Ok((0, 0, errors));
     }
+
+    // 保存本次获取到的最后一个位置作为下次的游标
+    let last_cursor_at = response.next_cursor_at;
+    let last_cursor_id = response.next_cursor_id;
 
     if all_items.is_empty() {
         return Ok((0, 0, errors));
@@ -346,6 +360,7 @@ async fn sync_category(
                 app,
                 server_url,
                 token,
+                export_folder,
                 &category_folder,
                 &all_items,
                 &missing_or_updated,
@@ -382,12 +397,12 @@ async fn sync_category(
         }
     }
 
-    // 写入目录索引
-    write_category_index(&category_folder, category, &all_items)?;
+    // 写入目录索引到 .huntly 目录
+    write_category_index(export_folder, category, &all_items)?;
 
-    // 写入游标文件（用于下次增量同步）
+    // 写入游标文件到 .huntly 目录（用于下次增量同步）
     if let (Some(at), Some(id)) = (last_cursor_at, last_cursor_id) {
-        write_cursor_file(&category_folder, Some(&at), Some(id))?;
+        write_cursor_file(export_folder, category, Some(&at), Some(id))?;
     }
 
     Ok((synced_count, skipped_count, errors))
@@ -449,11 +464,12 @@ async fn sync_standard_items(
     Ok((synced_count, skipped_count, errors))
 }
 
-/// Feeds 分类目录同步（按 folder/connector 创建目录）
+/// Feeds 分类目录同步（按 connector 创建子目录，索引集中在 .huntly 目录）
 async fn sync_feeds_items(
     _app: &AppHandle,
     server_url: &str,
     token: &str,
+    export_folder: &str,
     feeds_folder: &PathBuf,
     items: &[SyncItemMeta],
     needs_sync: &std::collections::HashSet<i64>,
@@ -462,34 +478,38 @@ async fn sync_feeds_items(
     let mut skipped_count = 0u32;
     let mut errors = Vec::new();
 
-    // 按 (folderId, connectorId) 分组
-    let mut grouped: HashMap<(Option<i32>, Option<i32>), Vec<&SyncItemMeta>> = HashMap::new();
+    // 按 connectorId 分组（简化结构，只按RSS源分组）
+    let mut grouped: HashMap<Option<i32>, Vec<&SyncItemMeta>> = HashMap::new();
     for item in items {
-        grouped
-            .entry((item.folder_id, item.connector_id))
-            .or_default()
-            .push(item);
+        grouped.entry(item.connector_id).or_default().push(item);
     }
 
-    for ((folder_id, connector_id), group_items) in grouped {
-        // 创建目录结构：Feeds/{folderId-folderName}/{connectorId-connectorName}/
-        let folder_name = group_items
-            .first()
-            .and_then(|i| i.folder_name.as_ref())
-            .map(|n| format!("{}-{}", folder_id.unwrap_or(0), sanitize_dirname(n)))
-            .unwrap_or_else(|| format!("{}-未分类", folder_id.unwrap_or(0)));
+    // 用于Feeds总索引的数据
+    let mut feed_list = Vec::new();
 
+    for (connector_id, group_items) in grouped {
+        // 创建目录结构：Feeds/{connectorId-connectorName}/
         let connector_name = group_items
             .first()
             .and_then(|i| i.connector_name.as_ref())
-            .map(|n| format!("{}-{}", connector_id.unwrap_or(0), sanitize_dirname(n)))
-            .unwrap_or_else(|| format!("{}-unknown", connector_id.unwrap_or(0)));
+            .map(|n| sanitize_dirname(n))
+            .unwrap_or_else(|| "unknown".to_string());
 
-        let target_folder = feeds_folder.join(&folder_name).join(&connector_name);
+        let feed_folder_name = format!("{}-{}", connector_id.unwrap_or(0), connector_name);
+        let target_folder = feeds_folder.join(&feed_folder_name);
+
         if !target_folder.exists() {
             fs::create_dir_all(&target_folder)
-                .map_err(|e| format!("Failed to create feeds directory: {}", e))?;
+                .map_err(|e| format!("Failed to create feed directory: {}", e))?;
         }
+
+        // 添加到总索引
+        feed_list.push(serde_json::json!({
+            "connectorId": connector_id,
+            "connectorName": connector_name,
+            "folder": feed_folder_name,
+            "itemCount": group_items.len()
+        }));
 
         // 根据 needs_sync 集合筛选需要更新的项目
         let items_to_update: Vec<&&SyncItemMeta> = group_items
@@ -500,6 +520,13 @@ async fn sync_feeds_items(
         skipped_count += (group_items.len() - items_to_update.len()) as u32;
 
         if items_to_update.is_empty() {
+            // 即使没有需要同步的项目，也更新该feed的索引到 .huntly 目录
+            write_feed_subfolder_index(
+                export_folder,
+                connector_id.unwrap_or(0),
+                &connector_name,
+                &group_items,
+            )?;
             continue;
         }
 
@@ -530,9 +557,90 @@ async fn sync_feeds_items(
                 }
             }
         }
+
+        // 为该feed子目录生成索引到 .huntly 目录
+        write_feed_subfolder_index(
+            export_folder,
+            connector_id.unwrap_or(0),
+            &connector_name,
+            &group_items,
+        )?;
     }
 
+    // 写入Feeds总索引到 .huntly 目录
+    write_feeds_master_index(export_folder, &feed_list)?;
+
     Ok((synced_count, skipped_count, errors))
+}
+
+/// 写入Feeds总索引到 .huntly 目录（列出所有RSS源）
+fn write_feeds_master_index(
+    export_folder: &str,
+    feed_list: &[serde_json::Value],
+) -> Result<(), String> {
+    let index_file = get_metadata_dir(export_folder).join("feeds-index.json");
+    let master_index = serde_json::json!({
+        "category": "Feeds",
+        "syncAt": chrono::Utc::now().to_rfc3339(),
+        "totalFeeds": feed_list.len(),
+        "feeds": feed_list
+    });
+
+    let json_str = serde_json::to_string_pretty(&master_index).map_err(|e| e.to_string())?;
+    fs::write(&index_file, json_str).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// 写入单个Feed子目录的索引到 .huntly 目录
+fn write_feed_subfolder_index(
+    export_folder: &str,
+    connector_id: i32,
+    connector_name: &str,
+    items: &[&SyncItemMeta],
+) -> Result<(), String> {
+    let index_file = get_metadata_dir(export_folder).join(format!("feeds-{}-index.json", connector_id));
+
+    // 构建索引项
+    let index_items: Vec<IndexItem> = items
+        .iter()
+        .map(|item| {
+            let filename = generate_filename(item);
+            let item_type = if item.content_type == Some(1) || item.content_type == Some(3) {
+                "x"
+            } else {
+                "page"
+            };
+
+            IndexItem {
+                id: item.id,
+                filename,
+                item_type: item_type.to_string(),
+                content_type: item.content_type,
+                connector_type: item.connector_type,
+                connector_id: item.connector_id,
+                folder_id: item.folder_id,
+                starred: item.starred,
+                read_later: item.read_later,
+                saved_at: item.saved_at.clone(),
+                updated_at: item.updated_at.clone(),
+                created_at: item.created_at.clone(),
+                last_read_at: item.last_read_at.clone(),
+                archived_at: item.archived_at.clone(),
+                highlight_count: item.highlight_count,
+            }
+        })
+        .collect();
+
+    let feed_index = CategoryIndex {
+        category: connector_name.to_string(),
+        sync_at: chrono::Utc::now().to_rfc3339(),
+        total_count: index_items.len(),
+        items: index_items,
+    };
+
+    let json_str = serde_json::to_string_pretty(&feed_index).map_err(|e| e.to_string())?;
+    fs::write(&index_file, json_str).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// 清理目录名
@@ -572,10 +680,20 @@ async fn fetch_category_list(
     let mut params: Vec<(&str, String)> = vec![("limit", "100".to_string())];
 
     if let Some(after) = updated_after {
-        params.push(("updatedAfter", after.to_string()));
+        // RecentlyRead uses different parameter name than other categories
+        let param_name = match category {
+            SyncCategory::RecentlyRead => "readAfter",
+            _ => "updatedAfter",
+        };
+        params.push((param_name, after.to_string()));
     }
     if let Some(at) = cursor_at {
-        params.push(("cursorUpdatedAt", at.to_string()));
+        // RecentlyRead uses different cursor parameter name than other categories
+        let param_name = match category {
+            SyncCategory::RecentlyRead => "cursorReadAt",
+            _ => "cursorUpdatedAt",
+        };
+        params.push((param_name, at.to_string()));
     }
     if let Some(id) = cursor_id {
         params.push(("cursorId", id.to_string()));
@@ -694,7 +812,7 @@ fn export_item_to_markdown(
     Ok(file_path.to_string_lossy().to_string())
 }
 
-/// 将内容转换为 Markdown
+/// 将内容转换为 Markdown（使用服务端预转换的markdown）
 fn convert_to_markdown(meta: &SyncItemMeta, content: &SyncContentResponse) -> String {
     let mut md = String::new();
 
@@ -728,11 +846,10 @@ fn convert_to_markdown(meta: &SyncItemMeta, content: &SyncContentResponse) -> St
         md.push_str(&format!("# {}\n\n", title));
     }
 
-    // 转换 HTML 内容为 Markdown
-    if let Some(html_content) = &content.content {
-        if !html_content.is_empty() {
-            let markdown_body = html2md::parse_html(html_content);
-            md.push_str(&markdown_body);
+    // 使用服务端预转换的 Markdown（已经包含大小限制保护）
+    if let Some(markdown_content) = &content.markdown {
+        if !markdown_content.is_empty() {
+            md.push_str(markdown_content);
         }
     }
 
@@ -747,9 +864,9 @@ fn escape_yaml(s: &str) -> String {
         .replace('\r', "")
 }
 
-/// 判断内容类型是否为 Twitter/X（contentType 8 或 9）
+/// 判断内容类型是否为 Twitter/X（contentType 1=TWEET 或 3=QUOTED_TWEET）
 fn is_twitter_content(item: &SyncItemMeta) -> bool {
-    matches!(item.content_type, Some(8) | Some(9))
+    matches!(item.content_type, Some(1) | Some(3))
 }
 
 /// 获取内容类型标识
@@ -802,50 +919,70 @@ fn generate_filename(item: &SyncItemMeta) -> String {
     format!("{}-{}-{}.md", item.id, type_label, safe_content)
 }
 
-/// 写入目录索引文件（精简版，不含描述和内容）
+/// 写入目录索引文件到 .huntly 目录（精简版，不含描述和内容）
 fn write_category_index(
-    category_folder: &PathBuf,
+    export_folder: &str,
     category: SyncCategory,
     items: &[SyncItemMeta],
 ) -> Result<(), String> {
     use crate::sync::{CategoryIndex, IndexItem};
+    use std::collections::HashMap;
+
+    // 读取现有索引（从 .huntly 目录）
+    let existing_index = read_index_file(export_folder, category);
+    let mut items_map: HashMap<i64, IndexItem> = existing_index
+        .map(|idx| {
+            idx.items
+                .into_iter()
+                .map(|item| (item.id, item))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // 更新/添加新项目
+    for item in items {
+        let index_item = IndexItem {
+            id: item.id,
+            filename: generate_filename(item),
+            item_type: get_type_label(item).to_string(),
+            content_type: item.content_type,
+            connector_type: item.connector_type,
+            connector_id: item.connector_id,
+            folder_id: item.folder_id,
+            starred: item.starred,
+            read_later: item.read_later,
+            saved_at: item.saved_at.clone(),
+            updated_at: item.updated_at.clone(),
+            created_at: item.created_at.clone(),
+            last_read_at: item.last_read_at.clone(),
+            archived_at: item.archived_at.clone(),
+            highlight_count: item.highlight_count,
+        };
+        items_map.insert(item.id, index_item);
+    }
+
+    // 转换回 Vec 并排序（按 ID 降序）
+    let mut all_items: Vec<IndexItem> = items_map.into_values().collect();
+    all_items.sort_by(|a, b| b.id.cmp(&a.id));
 
     let index = CategoryIndex {
         category: category.folder_name().to_string(),
         sync_at: Utc::now().to_rfc3339(),
-        total_count: items.len(),
-        items: items
-            .iter()
-            .map(|item| IndexItem {
-                id: item.id,
-                filename: generate_filename(item),
-                item_type: get_type_label(item).to_string(),
-                content_type: item.content_type,
-                connector_type: item.connector_type,
-                connector_id: item.connector_id,
-                folder_id: item.folder_id,
-                starred: item.starred,
-                read_later: item.read_later,
-                saved_at: item.saved_at.clone(),
-                updated_at: item.updated_at.clone(),
-                created_at: item.created_at.clone(),
-                last_read_at: item.last_read_at.clone(),
-                archived_at: item.archived_at.clone(),
-                highlight_count: item.highlight_count,
-            })
-            .collect(),
+        total_count: all_items.len(),
+        items: all_items,
     };
 
-    let index_path = category_folder.join("index.json");
+    let index_path = get_category_index_path(export_folder, category);
     let json = serde_json::to_string_pretty(&index).map_err(|e| e.to_string())?;
     fs::write(&index_path, json).map_err(|e| e.to_string())?;
 
     Ok(())
 }
 
-/// 写入游标文件（用于下一次增量获取）
+/// 写入游标文件到 .huntly 目录（用于下一次增量获取）
 fn write_cursor_file(
-    category_folder: &PathBuf,
+    export_folder: &str,
+    category: SyncCategory,
     cursor_at: Option<&str>,
     cursor_id: Option<i64>,
 ) -> Result<(), String> {
@@ -857,7 +994,7 @@ fn write_cursor_file(
         last_sync_at: Some(Utc::now().to_rfc3339()),
     };
 
-    let cursor_path = category_folder.join("cursor.json");
+    let cursor_path = get_category_cursor_path(export_folder, category);
     let json = serde_json::to_string_pretty(&cursor).map_err(|e| e.to_string())?;
     fs::write(&cursor_path, json).map_err(|e| e.to_string())?;
 
@@ -865,8 +1002,9 @@ fn write_cursor_file(
 }
 
 /// 读取游标文件
-fn read_cursor_file(category_folder: &PathBuf) -> Option<crate::sync::CursorData> {
-    let cursor_path = category_folder.join("cursor.json");
+/// 从 .huntly 目录读取游标文件
+fn read_cursor_file(export_folder: &str, category: SyncCategory) -> Option<crate::sync::CursorData> {
+    let cursor_path = get_category_cursor_path(export_folder, category);
     if !cursor_path.exists() {
         return None;
     }
@@ -874,9 +1012,9 @@ fn read_cursor_file(category_folder: &PathBuf) -> Option<crate::sync::CursorData
     serde_json::from_str(&content).ok()
 }
 
-/// 读取索引文件
-fn read_index_file(category_folder: &PathBuf) -> Option<crate::sync::CategoryIndex> {
-    let index_path = category_folder.join("index.json");
+/// 从 .huntly 目录读取索引文件
+fn read_index_file(export_folder: &str, category: SyncCategory) -> Option<crate::sync::CategoryIndex> {
+    let index_path = get_category_index_path(export_folder, category);
     if !index_path.exists() {
         return None;
     }
@@ -949,7 +1087,7 @@ lazy_static::lazy_static! {
     static ref BACKGROUND_SYNC_RUNNING: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
 }
 
-const REALTIME_SYNC_INTERVAL_SECONDS: u64 = 10;
+const REALTIME_SYNC_INTERVAL_SECONDS: u64 = 60;  // 改为 60 秒，避免频繁同步导致内存暴涨
 
 #[command]
 pub async fn start_background_sync(

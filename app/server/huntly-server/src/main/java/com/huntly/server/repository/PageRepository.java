@@ -44,7 +44,7 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
             Pageable pageable);
 
     /**
-     * Twitter/X 分类查询 (contentType IN (8, 9))
+     * Twitter/X 分类查询 (contentType IN (1 TWEET, 3 QUOTED_TWEET))
      */
     @Query("SELECT p.id AS id, p.title AS title, p.url AS url, p.author AS author, " +
            "p.authorScreenName AS authorScreenName, p.description AS description, " +
@@ -54,7 +54,7 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
            "p.updatedAt AS updatedAt, p.createdAt AS createdAt, p.lastReadAt AS lastReadAt, " +
            "p.archivedAt AS archivedAt, p.thumbUrl AS thumbUrl, p.highlightCount AS highlightCount, " +
            "p.pageJsonProperties AS pageJsonProperties " +
-           "FROM Page p WHERE p.contentType IN (8, 9) " +
+           "FROM Page p WHERE p.contentType IN (1, 3) " +
            "AND (:updatedAfter IS NULL OR p.updatedAt > :updatedAfter) " +
            "AND (:cursorAt IS NULL OR p.updatedAt < :cursorAt OR (p.updatedAt = :cursorAt AND p.id < :cursorId)) " +
            "ORDER BY p.updatedAt DESC, p.id DESC")
@@ -123,27 +123,6 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
            "ORDER BY p.lastReadAt DESC, p.id DESC")
     List<PageMetaProjection> findRecentlyReadMeta(
             @Param("readAfter") Instant readAfter,
-            @Param("cursorAt") Instant cursorAt,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable);
-
-    /**
-     * Highlights 分类查询 (highlightCount > 0)
-     */
-    @Query("SELECT p.id AS id, p.title AS title, p.url AS url, p.author AS author, " +
-           "p.authorScreenName AS authorScreenName, p.description AS description, " +
-           "p.connectorType AS connectorType, p.connectorId AS connectorId, p.folderId AS folderId, " +
-           "p.contentType AS contentType, p.librarySaveStatus AS librarySaveStatus, " +
-           "p.starred AS starred, p.readLater AS readLater, p.savedAt AS savedAt, " +
-           "p.updatedAt AS updatedAt, p.createdAt AS createdAt, p.lastReadAt AS lastReadAt, " +
-           "p.archivedAt AS archivedAt, p.thumbUrl AS thumbUrl, p.highlightCount AS highlightCount, " +
-           "p.pageJsonProperties AS pageJsonProperties " +
-           "FROM Page p WHERE p.highlightCount > 0 " +
-           "AND (:updatedAfter IS NULL OR p.updatedAt > :updatedAfter) " +
-           "AND (:cursorAt IS NULL OR p.updatedAt < :cursorAt OR (p.updatedAt = :cursorAt AND p.id < :cursorId)) " +
-           "ORDER BY p.updatedAt DESC, p.id DESC")
-    List<PageMetaProjection> findHighlightsMeta(
-            @Param("updatedAfter") Instant updatedAfter,
             @Param("cursorAt") Instant cursorAt,
             @Param("cursorId") Long cursorId,
             Pageable pageable);

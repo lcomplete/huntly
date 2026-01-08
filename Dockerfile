@@ -13,7 +13,7 @@ ARG JAR_PATH=/app/server.jar
 
 COPY ${JAR_FILE} ${JAR_PATH}
 
-ENV JAVA_ARGS="-Xms128m -Xmx1024m"
+ENV JAVA_ARGS="-Xms128m -Xmx512m"
 ENV VM_ARGS="-Duser.timezone=GMT+08"
 ENV APP_ARGS=""
 ENV PROFILE="default"

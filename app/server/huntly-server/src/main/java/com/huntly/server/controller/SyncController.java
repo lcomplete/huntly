@@ -1,7 +1,9 @@
 package com.huntly.server.controller;
 
 import com.huntly.interfaces.external.dto.SyncContentResponse;
+import com.huntly.interfaces.external.dto.SyncHighlightListResponse;
 import com.huntly.interfaces.external.dto.SyncListResponse;
+import com.huntly.interfaces.external.query.SyncHighlightQuery;
 import com.huntly.interfaces.external.query.SyncQuery;
 import com.huntly.interfaces.external.query.SyncReadQuery;
 import com.huntly.server.service.SyncService;
@@ -81,10 +83,10 @@ public class SyncController {
     }
 
     /**
-     * Highlights 分类同步列表
+     * Highlights 分类同步列表 - 直接返回高亮记录
      */
     @GetMapping("/highlights")
-    public SyncListResponse getHighlightsList(@Valid SyncQuery query, HttpServletRequest request) {
+    public SyncHighlightListResponse getHighlightsList(@Valid SyncHighlightQuery query, HttpServletRequest request) {
         requireValidSyncToken(request);
         return syncService.getHighlightsList(query);
     }

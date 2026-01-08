@@ -28,6 +28,11 @@ public class SyncContentResponse {
     private String content;
 
     /**
+     * Markdown 内容（从 HTML 转换而来，限制大小以防止内存问题）
+     */
+    private String markdown;
+
+    /**
      * 最后更新时间
      */
     private Instant updatedAt;
