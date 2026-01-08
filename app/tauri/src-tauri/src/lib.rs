@@ -18,11 +18,6 @@ use tauri_plugin_autostart::MacosLauncher;
 #[macro_use]
 extern crate lazy_static;
 
-mod sync;
-mod sync_commands;
-mod sync_service;
-mod sync_persistence;
-mod macos_security_scope;
 
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -628,7 +623,6 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
@@ -648,12 +642,6 @@ pub fn run() {
 
             setup_tray(app)?;
 
-            // Restore persisted sync state.
-            if let Ok(state) = sync_persistence::load_sync_state(&app.handle()) {
-                let mut guard = sync::SYNC_STATE.lock().unwrap();
-                *guard = state;
-            }
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -670,27 +658,6 @@ pub fn run() {
             stop_server,
             is_server_running,
             is_server_started,
-            // Sync commands
-            sync_commands::save_sync_settings,
-            sync_commands::read_sync_settings,
-            sync_commands::get_sync_state,
-            sync_commands::save_sync_token,
-            sync_commands::get_sync_token,
-            sync_commands::delete_sync_token,
-            sync_commands::check_server_connection,
-            sync_commands::verify_sync_token,
-            sync_commands::validate_folder,
-            sync_commands::select_export_folder,
-            sync_commands::get_default_export_folder,
-            // Device Authorization Grant commands
-            sync_commands::request_device_code,
-            sync_commands::poll_device_token,
-            sync_service::fetch_library_pages,
-            sync_service::sync_library_to_markdown,
-            sync_service::start_background_sync,
-            sync_service::stop_background_sync,
-            sync_service::is_background_sync_running,
-            sync_service::init_local_server_token,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -732,4 +699,3 @@ pub fn run() {
         _ => {}
     })
 }
-

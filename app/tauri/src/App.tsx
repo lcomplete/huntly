@@ -5,17 +5,14 @@ import "./App.css";
 import { isString, useFormik } from "formik";
 import * as yup from "yup";
 import {
-  Paper,
   Tabs,
   Tab,
   Box,
 } from "@mui/material";
-import SyncIcon from "@mui/icons-material/Sync";
 import SettingsIcon from "@mui/icons-material/Settings";
 import DnsIcon from "@mui/icons-material/Dns";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { check } from "@tauri-apps/plugin-updater";
-import SyncSettings from "./components/SyncSettings";
 import ServerTab from "./components/ServerTab";
 import SettingsTab from "./components/SettingsTab";
 
@@ -359,8 +356,7 @@ function App() {
     invoke("stop_server").then(() => startServer());
   }
 
-  const allowLocalServer = serverBundleAvailable !== false;
-  const tabKeys = ["server", "markdown", "settings"];
+  const tabKeys = ["server", "settings"];
   const activeTabKey = tabKeys[activeTab] ?? tabKeys[0];
 
   useEffect(() => {
@@ -395,9 +391,6 @@ function App() {
             if (key === "server") {
               return <Tab key={key} icon={<DnsIcon />} label="Server" />;
             }
-            if (key === "markdown") {
-              return <Tab key={key} icon={<SyncIcon />} label="Markdown" />;
-            }
             return <Tab key={key} icon={<SettingsIcon />} label="Settings" />;
           })}
         </Tabs>
@@ -420,18 +413,6 @@ function App() {
           onPortBlur={handlePortBlur}
           onListenPublicChange={handleListenPublicChange}
         />
-      </div>
-
-      <div
-        className={"flex-1 overflow-auto"}
-        style={{ display: activeTabKey === "markdown" ? "block" : "none" }}
-      >
-        <Paper
-          className={"max-w-[760px] mx-auto my-6 p-6 page-shell reveal reveal-2"}
-          elevation={0}
-        >
-          <SyncSettings allowLocalServer={allowLocalServer} />
-        </Paper>
       </div>
 
       <div

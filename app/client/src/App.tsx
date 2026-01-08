@@ -20,7 +20,6 @@ import Twitter from "./pages/Twitter";
 import Highlights from "./pages/Highlights";
 import {AuthControllerApiFactory} from "./api";
 import SignIn from "./pages/SignIn";
-import DesktopAuthorize from "./pages/DesktopAuthorize";
 import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
 
 function App() {
@@ -28,7 +27,6 @@ function App() {
     createRoutesFromElements(
       <Route>
         <Route path="/signin" element={<SignIn/>}/>
-        <Route path="/desktop-authorize" element={<DesktopAuthorize/>}/>
         <Route element={<Layout/>}>
           <Route index element={<Index/>}/>
           <Route path={"/list"} element={<MyList/>}/>
@@ -50,7 +48,7 @@ function App() {
   useEffect(() => {
     const location = window.location;
     // Skip auth check for public pages
-    const publicPaths = ['/signin', '/signup', '/desktop-authorize'];
+    const publicPaths = ['/signin', '/signup'];
     if (!publicPaths.some(p => location.pathname.startsWith(p))) {
       AuthControllerApiFactory().loginUserInfoUsingGET().then((res) => {
         if (res.data.username === null) {
