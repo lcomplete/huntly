@@ -2,6 +2,268 @@
 @tailwind components;
 @tailwind utilities;
 
-html,body,#root{
-	@apply h-full;
+html,
+body,
+#root {
+  @apply h-full;
+}
+
+:root {
+  --ink: #1f2a2a;
+  --muted: #5f6b68;
+  --accent: #1b8a78;
+  --accent-strong: #0f766e;
+  --border: #d8e1dc;
+  --paper: rgba(255, 255, 255, 0.78);
+  --font-body: "Space Grotesk", "IBM Plex Sans", "Avenir Next", "Segoe UI",
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 420px at 10% -10%, rgba(27, 138, 120, 0.2), transparent 55%),
+    radial-gradient(900px 480px at 110% 0%, rgba(245, 201, 140, 0.25), transparent 55%),
+    linear-gradient(180deg, #f8f5f0 0%, #eef6f4 100%);
+}
+
+.app-shell {
+  font-family: var(--font-body);
+}
+
+.app-shell .MuiTypography-root,
+.app-shell .MuiButton-root,
+.app-shell .MuiInputBase-root,
+.app-shell .MuiFormLabel-root {
+  font-family: inherit;
+}
+
+.tab-rail {
+  background: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+.tab-rail .MuiTab-root {
+  color: var(--muted);
+}
+
+.tab-rail .MuiTab-root.Mui-selected {
+  color: var(--ink);
+}
+
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(20, 30, 28, 0.08);
+}
+
+.page-shell {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.26em;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.hero-title {
+  letter-spacing: -0.01em;
+}
+
+.hero-sub {
+  max-width: 420px;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.url-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  margin-bottom: 16px;
+}
+
+.url-label {
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.url-link {
+  color: var(--accent-strong);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.url-link:hover {
+  text-decoration: underline;
+}
+
+.panel-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.section-card {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.export-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.export-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--accent-strong);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.18);
+}
+
+.export-path {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  background: rgba(15, 118, 110, 0.08);
+}
+
+.export-path-text {
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.setting-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.setting-row:last-of-type {
+  padding-bottom: 0;
+}
+
+.setting-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.setting-sub {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.app-shell .MuiButton-root {
+  border-radius: 999px;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.app-shell .MuiButton-containedPrimary {
+  background: var(--accent-strong);
+}
+
+.app-shell .MuiButton-containedPrimary:hover {
+  background: #0b5d52;
+}
+
+.app-shell .MuiOutlinedInput-root {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.app-shell .MuiOutlinedInput-notchedOutline {
+  border-color: var(--border);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeUp 520ms ease forwards;
+}
+
+.reveal-1 {
+  animation-delay: 60ms;
+}
+
+.reveal-2 {
+  animation-delay: 120ms;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }

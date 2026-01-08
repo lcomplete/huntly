@@ -4,7 +4,6 @@ import com.huntly.common.api.ApiResult;
 import com.huntly.interfaces.external.dto.LoginUserInfo;
 import com.huntly.interfaces.external.model.LoginRequest;
 import com.huntly.server.domain.constant.AppConstants;
-import com.huntly.server.repository.UserRepository;
 import com.huntly.server.security.jwt.JwtUtils;
 import com.huntly.server.service.UserService;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,7 +30,11 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
 
-    public AuthController(UserService userService, JwtUtils jwtUtils, AuthenticationManager authenticationManager) {
+    public AuthController(
+            UserService userService,
+            JwtUtils jwtUtils,
+            AuthenticationManager authenticationManager
+    ) {
         this.userService = userService;
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;

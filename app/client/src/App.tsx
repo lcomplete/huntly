@@ -3,7 +3,7 @@ import {
   createBrowserRouter,
   createRoutesFromElements, createSearchParams,
   Route,
-  RouterProvider, 
+  RouterProvider,
 } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
@@ -47,11 +47,13 @@ function App() {
 
   useEffect(() => {
     const location = window.location;
-    if (location.pathname !== '/signin' && location.pathname !== "signup") {
+    // Skip auth check for public pages
+    const publicPaths = ['/signin', '/signup'];
+    if (!publicPaths.some(p => location.pathname.startsWith(p))) {
       AuthControllerApiFactory().loginUserInfoUsingGET().then((res) => {
         if (res.data.username === null) {
           window.location.href = `/signin?${createSearchParams({
-            'from': location.pathname,
+            'from': location.pathname + location.search,
           })}`;
         }
       });

@@ -27,4 +27,5 @@ public interface PageHighlightRepository extends BaseRepository<PageHighlight, L
 
     @Query("SELECT DISTINCT h.pageId FROM PageHighlight h")
     List<Long> findDistinctPageIds();
+
 }

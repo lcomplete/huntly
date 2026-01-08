@@ -25,7 +25,7 @@ import java.time.Instant;
         @Index(name = "idx_page_last_read_at", columnList = "last_read_at DESC"),
         @Index(name = "idx_page_connected_at", columnList = "connected_at DESC"),
         @Index(name = "idx_page_created_at", columnList = "created_at DESC"),
-        @Index(name = "idx_page_unique_id", columnList = "page_unique_id"),
+        @Index(name = "idx_page_unique_id", columnList = "page_unique_id")
 })
 @DynamicUpdate
 public class Page implements Serializable {

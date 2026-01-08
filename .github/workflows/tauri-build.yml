@@ -5,48 +5,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
-
+  build-server-jar:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-20.04'
-        # You can remove libayatana-appindicator3-dev if you don't use the system tray feature.
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libayatana-appindicator3-dev librsvg2-dev
-
-      - name: Rust setup
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
-      - name: Set Node.js
+      - name: Set Node.js (client)
         uses: actions/setup-node@v3
         with:
           node-version: "20.10.0"
           cache: "yarn"
-          cache-dependency-path: "app/tauri/yarn.lock"
-      
+          cache-dependency-path: "app/client/yarn.lock"
+
       - name: Setup yarn
         run: npm install -g yarn --version 1.22.19
 
-      - name: Install client dependencies
+      - name: Build client
         run: |
-          cd app/tauri
-          yarn install
+          cd app/client
+          yarn install --frozen-lockfile
+          yarn build
 
       - name: Set up JDK 11
         uses: actions/setup-java@v3
@@ -54,45 +33,103 @@ jobs:
           java-version: "11"
           distribution: "temurin"
 
-      # Retrieve maven dependencies from cache. After a successful run, these dependencies are cached again
       - name: Cache maven dependencies
         uses: actions/cache@v3
         env:
           cache-name: cache-maven-dependencies
         with:
-          # maven dependencies are stored in `~/.m2` on Linux/macOS
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Build with Maven
+      - name: Build server jar
         run: |
           cd app/server
-          mvn clean package
+          mvn -B clean package
         env:
           CI: false
 
+      - name: Upload server jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: huntly-server-jar
+          path: app/server/huntly-server/target/huntly-*.jar
+
+  tauri-build:
+    permissions:
+      contents: write
+    needs: build-server-jar
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-14
+            tauri_target: aarch64-apple-darwin
+          - platform: windows-2022
+            tauri_target: i686-pc-windows-msvc
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Rust setup
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'app/tauri/src-tauri -> app/tauri/src-tauri/target'
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.tauri_target }}
+
+      - name: Set Node.js (tauri)
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.10.0"
+          cache: "yarn"
+          cache-dependency-path: "app/tauri/yarn.lock"
+
+      - name: Setup yarn
+        run: npm install -g yarn --version 1.22.19
+
+      - name: Install tauri dependencies
+        run: |
+          cd app/tauri
+          yarn install --frozen-lockfile
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+
+      - name: Download server jar
+        uses: actions/download-artifact@v4
+        with:
+          name: huntly-server-jar
+          path: app/tauri/src-tauri/server_bin
+
       - name: Move to server_bin
         run: |
-          mkdir app/tauri/src-tauri/server_bin/
-          mv app/server/huntly-server/target/huntly-*.jar app/tauri/src-tauri/server_bin/huntly-server.jar
-      
+          mv app/tauri/src-tauri/server_bin/huntly-*.jar app/tauri/src-tauri/server_bin/huntly-server.jar
+
       - name: jlink
         run: |
           cd app/tauri/src-tauri/server_bin/
           jlink --module-path $JAVA_HOME/jmods --add-modules java.compiler,java.sql,java.naming,java.management,java.instrument,java.rmi,java.desktop,jdk.internal.vm.compiler.management,java.xml.crypto,java.scripting,java.security.jgss,jdk.httpserver,java.net.http,jdk.naming.dns,jdk.crypto.cryptoki,jdk.unsupported --verbose --strip-debug --compress 2 --no-header-files --no-man-pages --output jre11
 
-      - name: Install frontend dependencies
-        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
-        run: yarn install # Change this to npm, yarn or pnpm.
-
       - name: Build the app
         run: |
           cd app/tauri
-          yarn tauri build
+          yarn tauri build --target ${{ matrix.tauri_target }}
 
       - name: Upload the build artifact
         uses: actions/upload-artifact@v4
         with:
           name: tauri-build-${{ matrix.platform }}
-          path: app/tauri/src-tauri/target/release/bundle
+          path: app/tauri/src-tauri/target/${{ matrix.tauri_target }}/release/bundle

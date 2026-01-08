@@ -6,7 +6,7 @@ import {
 import React, {useEffect, useState} from "react";
 import {useFormik} from "formik";
 import * as yup from "yup";
-import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
+
 import {setDocTitle} from "../common/docUtils";
 import {AuthControllerApiFactory} from "../api";
 import {useSearchParams} from "react-router-dom";
@@ -74,8 +74,8 @@ export default function SignIn() {
     <Paper className={'w-[530px] flex justify-center'} elevation={4}>
       <div className={'w-9/12'}>
         <form onSubmit={formikLogin.handleSubmit} className={''}>
-          <div className="mt-8 flex justify-center text-sky-600 font-bold">
-            <EnergySavingsLeafIcon className="h-4 w-4 mr-1" sx={{width: 50, height: 50}}/>
+          <div className="mt-8 flex justify-center">
+            <img src="/android-chrome-192x192.png" alt="Huntly" className="h-[50px] w-[50px]" />
           </div>
           <div className={'flex justify-center'}>
             <h1>Sign In</h1>

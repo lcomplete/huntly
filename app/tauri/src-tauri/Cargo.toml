@@ -22,10 +22,17 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2.0.0"
 serde = { version = "1.0", features = ["derive"] }
-reqwest = { version = "0.11.16", features = ["json"] }
+reqwest = { version = "0.11.16", features = ["json", "cookies"] }
 serde_json = "1.0"
 lazy_static = "1.4"
+zip = "7.0.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.3"
+objc2-foundation = { version = "0.3.2", features = ["NSArray", "NSData", "NSError", "NSString", "NSURL"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

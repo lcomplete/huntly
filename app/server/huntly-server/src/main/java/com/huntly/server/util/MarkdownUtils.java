@@ -1,6 +1,10 @@
 package com.huntly.server.util;
 
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
+
+import javax.persistence.Convert;
+import javax.swing.text.html.HTML;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.safety.Safelist;
@@ -9,12 +13,12 @@ import org.jsoup.safety.Safelist;
  * Utilities for Markdown processing
  */
 public class MarkdownUtils {
-    
+
     private static final FlexmarkHtmlConverter CONVERTER = FlexmarkHtmlConverter.builder().build();
-    
+
     /**
      * Convert HTML content to Markdown
-     * 
+     *
      * @param html the HTML content to convert
      * @return the converted Markdown content
      */

@@ -1,4 +1,3 @@
-import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
 import SearchBox from "./SearchBox";
 import React, {useCallback, useEffect, useState} from "react";
 import {WindowStateListenerType} from "../domain/electronTypes";
@@ -70,7 +69,7 @@ export default function Header() {
             <DehazeIcon/>
           </IconButton>
         </span>
-        <EnergySavingsLeafIcon className="h-6 w-6 mr-1"/>
+        <img src="/favicon-32x32.png" alt="Huntly" className="h-6 w-6 mr-1" />
         <span className={'logo-text'}>
           Huntly
         </span>
