@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import "../components/PageList.css";
 import {
   Box,
   Typography,
@@ -318,11 +319,6 @@ const Highlights: React.FC = () => {
     console.log('Page operation:', event);
   };
 
-  const handleRefresh = useCallback(() => {
-    // Invalidate and refetch the highlights data
-    queryClient.invalidateQueries(['highlights']);
-  }, [queryClient]);
-
   // Delete highlight mutation
   const deleteHighlightMutation = useMutation(
     (highlightId: number) => PageHighlightControllerApiFactory().deleteHighlightUsingDELETE(highlightId),
@@ -353,8 +349,7 @@ const Highlights: React.FC = () => {
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail} />
       <SubHeader
         navLabel={navLabels.highlights}
-        onRefresh={handleRefresh}
-        buttonOptions={{ markRead: false, viewSwitch: false, refresh: true }}
+        buttonOptions={{ markRead: false, viewSwitch: false }}
         navLabelArea={
           totalCount > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontSize: '0.875rem' }}>

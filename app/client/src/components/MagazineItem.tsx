@@ -1,4 +1,5 @@
 import * as React from 'react';
+import "./MagazineItem.css";
 import CardMedia from '@mui/material/CardMedia';
 import Typography from '@mui/material/Typography';
 import {Box} from '@mui/material';

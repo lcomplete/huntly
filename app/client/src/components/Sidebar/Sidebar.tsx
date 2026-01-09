@@ -39,7 +39,8 @@ const Sidebar = () => {
   function folderConnectorsView(folderConnectorsArray: FolderConnectors[], isRss: boolean) {
     const treeItems = folderConnectorsToTreeItems(folderConnectorsArray, isRss);
     return <NavTreeView treeItems={treeItems} ariaLabel={isRss ? 'rss' : 'connectors'} defaultExpanded={[]}
-                        selectedNodeId={location.pathname}/>
+                        selectedNodeId={location.pathname}
+                        emphasizeCounts={isRss}/>
   }
 
 

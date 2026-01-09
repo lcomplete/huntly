@@ -10,6 +10,8 @@ import BallotOutlinedIcon from "@mui/icons-material/BallotOutlined";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import TwitterIcon from '@mui/icons-material/Twitter';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+import SearchIcon from '@mui/icons-material/Search';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 
 export type NavLabel = {
   labelText: string,
@@ -20,6 +22,7 @@ export type NavLabel = {
 }
 
 export type NavLabels = {
+  home: NavLabel,
   recently: NavLabel,
   myList: NavLabel,
   starred: NavLabel,
@@ -29,7 +32,8 @@ export type NavLabels = {
   allFeeds: NavLabel,
   twitter: NavLabel,
   highlights: NavLabel,
-  folder: NavLabel
+  folder: NavLabel,
+  search: NavLabel
 }
 
 export function navLabel(labelText: string, labelIcon: React.ElementType<SvgIconProps>, linkTo?: string, iconColor?: string): NavLabel {
@@ -42,7 +46,8 @@ export function navLabel(labelText: string, labelIcon: React.ElementType<SvgIcon
 }
 
 const navLabels: NavLabels = {
-  recently: navLabel('Recently Read', AccessTimeIcon, '/'),
+  home: navLabel('Home', HomeOutlinedIcon, '/'),
+  recently: navLabel('Recently Read', AccessTimeIcon, '/recently-read'),
   myList: navLabel('My List', FormatListBulletedIcon, '/list'),
   starred: navLabel('Starred', AutoAwesomeOutlinedIcon, '/starred'),
   readLater: navLabel('Read Later', BookmarksOutlinedIcon, '/later'),
@@ -51,7 +56,8 @@ const navLabels: NavLabels = {
   allFeeds: navLabel('All Feeds', BallotOutlinedIcon, '/feeds'),
   twitter: navLabel('Twitter', TwitterIcon, '/twitter', 'rgb(29, 155, 240)'),
   highlights: navLabel('Highlights', FormatQuoteIcon, '/highlights'),
-  folder: navLabel('', FolderOpenIcon)
+  folder: navLabel('', FolderOpenIcon),
+  search: navLabel('Search', SearchIcon, '/search')
 }
 
 export default navLabels;

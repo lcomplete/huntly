@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import "./TableOfContents.css";
 
 interface TocItem {
   id: string;

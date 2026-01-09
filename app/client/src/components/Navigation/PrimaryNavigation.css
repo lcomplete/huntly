@@ -1,0 +1,117 @@
+.primary-nav {
+    width: 75px;
+    height: 100%;
+    background: #E3E5E7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 14px;
+}
+
+.primary-nav-logo {
+    height: 44px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 100%;
+}
+
+.primary-nav-logo img {
+    width: 20px;
+    height: 20px;
+}
+
+.primary-nav-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    padding-top: 4px;
+}
+
+.primary-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 2px;
+    margin: 4px 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.primary-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+.primary-nav-item.active {
+    background-color: #cbced0;
+}
+
+.primary-nav-item.active:hover {
+    background-color: rgba(99, 102, 241, 0.15);
+}
+
+.primary-nav-item-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.primary-nav-item-icon {
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.primary-nav-item-icon .MuiSvgIcon-root {
+    font-size: 24px;
+}
+
+.primary-nav-item.active .primary-nav-item-icon {
+    color: #475569;
+}
+
+.primary-nav-item-label {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    transition: color 0.2s ease;
+}
+
+.primary-nav-item.active .primary-nav-item-label {
+    color: #334155;
+    font-weight: 600;
+}
+
+.primary-nav-settings {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.primary-nav-settings:hover {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+.primary-nav-settings .MuiSvgIcon-root {
+    font-size: 20px;
+    color: #64748b;
+    transition: color 0.2s ease;
+}

@@ -1,4 +1,5 @@
 import MagazineItem from "../components/MagazineItem";
+import "./PageList.css";
 import {ApiResultOfint, PageControllerApiFactory, PageItem} from "../api";
 import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tanstack/react-query";
 import {useInView} from "react-intersection-observer";
@@ -222,9 +223,7 @@ const PageList = (props: PageListProps) => {
     error,
     isFetchingNextPage,
     fetchNextPage,
-    hasNextPage,
-    remove,
-    refetch
+    hasNextPage
   } = useInfiniteQuery(
     queryKey,
     async ({
@@ -390,11 +389,6 @@ const PageList = (props: PageListProps) => {
     setParams({p: pageId}, {preventScrollReset: true});
   }
 
-  function refreshPages() {
-    remove();
-    refetch();
-  }
-
   // ============ Effects ============
   // if there is no un read pages, then load all pages
   if (filters.markRead === false && data && data.pages && (data.pages.length === 0 || data.pages[0].length === 0)) {
@@ -428,7 +422,7 @@ const PageList = (props: PageListProps) => {
     <>
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail}/>
       <SubHeader navLabel={navLabel} onMarkListAsRead={markListAsRead} onMarkAllAsRead={markAllAsRead}
-                 onRefresh={refreshPages} navLabelArea={navLabelArea}
+                 navLabelArea={navLabelArea}
                  buttonOptions={buttonOptions}/>
       <div className={'flex flex-auto'}>
         <div className="p-2 flex flex-col grow items-center">

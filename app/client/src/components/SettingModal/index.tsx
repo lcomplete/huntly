@@ -1,4 +1,5 @@
 import React, {useEffect} from "react";
+import "./SettingModal.css";
 import {
   Box,
   List,

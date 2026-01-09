@@ -1,16 +1,48 @@
 import React, {useEffect} from "react";
+import "./Layout.css";
 import {CssBaseline, StyledEngineProvider} from "@mui/material";
-import Sidebar from "./Sidebar/Sidebar";
 import {Outlet, ScrollRestoration, useLocation} from "react-router-dom";
-import Header from "./Header";
+import { NavigationProvider, useNavigation } from "../contexts/NavigationContext";
+import PrimaryNavigation from "./Navigation/PrimaryNavigation";
+import SecondarySidebar from "./Navigation/SecondarySidebar";
 
-const Layout = () => {
+const LayoutContent = () => {
   const location = useLocation();
+  const { activeNav } = useNavigation();
+
   useEffect(() => {
     const rootEl = document.getElementById('root');
     rootEl?.classList.remove('toggle-sidebar');
   },[location]);
-  
+
+  // Check if current nav has secondary sidebar
+  const hasSecondarySidebar = activeNav === 'saved' || activeNav === 'feeds';
+
+  return (
+    <div className="h-full layoutRoot">
+      {/* Primary nav - left column */}
+      <aside className="primary-nav-container">
+        <PrimaryNavigation />
+      </aside>
+
+      {/* Right section: content area */}
+      <div className="layout-right">
+        <div className="content-area">
+          {hasSecondarySidebar && (
+            <aside className="secondary-sidebar-container">
+              <SecondarySidebar />
+            </aside>
+          )}
+          <main className="main-content">
+            <Outlet/>
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Layout = () => {
   return (
     <StyledEngineProvider injectFirst>
       <CssBaseline/>
@@ -25,17 +57,9 @@ const Layout = () => {
             location.key;
         }}
       />
-      <div className="h-full layoutRoot">
-        <Header />
-        <div className="main_window flex flex-row">
-          <div className="main_sidebar">
-            <Sidebar/>
-          </div>
-          <div className="flex-auto">
-            <Outlet/>
-          </div>
-        </div>
-      </div>
+      <NavigationProvider>
+        <LayoutContent />
+      </NavigationProvider>
     </StyledEngineProvider>
   );
 };

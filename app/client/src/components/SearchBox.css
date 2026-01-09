@@ -1,0 +1,11 @@
+.search-wrapper {
+    -webkit-app-region: no-drag;
+    @apply flex justify-start;
+}
+
+@media (max-width: 900px) {
+    .search-box {
+        min-width: 0;
+        @apply grow;
+    }
+}

@@ -1,0 +1,50 @@
+.page-detail-layout {
+    @apply pl-2 pr-2;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.page-detail-content-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.page-detail-spacer {
+    width: 240px;
+    flex-shrink: 0;
+}
+
+/* Sticky header in main layout */
+.main-content .page-detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+/* TOC area in main layout */
+.main-content .page-detail-toc-area {
+    width: 240px;
+    flex-shrink: 0;
+    padding-left: 20px;
+    position: sticky;
+    top: 16px;
+    align-self: flex-start;
+}
+
+@media (max-width: 1300px) {
+    .page-detail-toc-area,
+    .page-detail-spacer {
+        display: none !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .page-detail-paper {
+        width: 100%;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+}

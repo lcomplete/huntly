@@ -6,6 +6,7 @@ import * as React from "react";
 import {useEffect, useState} from "react";
 import {useLocation} from "react-router-dom";
 import styles from "./PageDetail.module.css";
+import "./PageDetailArea.css";
 import CardMedia from "@mui/material/CardMedia";
 import SmartMoment from "../components/SmartMoment";
 import PageOperationButtons, {PageOperateEvent, PageOperation} from "../components/PageOperationButtons";

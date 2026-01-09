@@ -1,9 +1,9 @@
 import {Box, IconButton, SvgIcon, Tooltip} from "@mui/material";
+import "./SubHeader.css";
 import * as React from "react";
 import {ReactElement} from "react";
 import {NavLabel} from "./Sidebar/NavLabels";
 import CheckIcon from '@mui/icons-material/Check';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import ViewHeadlineOutlinedIcon from '@mui/icons-material/ViewHeadlineOutlined';
@@ -13,15 +13,13 @@ import ViewDayOutlinedIcon from '@mui/icons-material/ViewDayOutlined';
 
 export type ButtonOptions = {
   markRead?: boolean,
-  viewSwitch?: boolean,
-  refresh?: boolean
+  viewSwitch?: boolean
 }
 
 type SubHeaderProps = {
   navLabel: NavLabel,
   onMarkListAsRead?: () => void,
   onMarkAllAsRead?: () => void,
-  onRefresh?: () => void,
   buttonOptions?: ButtonOptions,
   navLabelArea?: ReactElement
 }
@@ -31,14 +29,15 @@ const SubHeader = (props: SubHeaderProps) => {
     navLabel,
     navLabelArea,
     onMarkListAsRead,
-    onMarkAllAsRead,
-    onRefresh
+    onMarkAllAsRead
   } = props;
-  const defaultBtnOptions: ButtonOptions = {markRead: true, viewSwitch: false, refresh: true};
+  const defaultBtnOptions: ButtonOptions = {markRead: true, viewSwitch: false};
   const buttonOptions = {...defaultBtnOptions, ...props.buttonOptions};
 
+  const hasButtons = buttonOptions.markRead || buttonOptions.viewSwitch;
+
   return <div className={'subheader w-full'}>
-    <div className={'flex content-between border-b-gray-500 pl-3 pr-3 pt-1 pb-1'}>
+    <div className={'flex items-center border-b-gray-500 pl-3 pr-3 pt-1 pb-1 min-h-[48px]'}>
       <div className={'flex items-center'}>
         {
           navLabel.iconUrl ? <Box component={'img'}
@@ -49,19 +48,19 @@ const SubHeader = (props: SubHeaderProps) => {
         {navLabelArea}
       </div>
 
-      <div className={'ml-auto'}>
-        <div className={'flex'}>
+      {hasButtons && (
+        <div className={'flex items-center ml-2'}>
           {
             buttonOptions.markRead && <div className={'group'}>
-                  <Tooltip title={'Mark list as read'} placement={"left"}>
-                      <IconButton onClick={onMarkListAsRead}>
-                          <CheckIcon/>
+                  <Tooltip title={'Mark list as read'} placement={"bottom"}>
+                      <IconButton size="small" onClick={onMarkListAsRead}>
+                          <CheckIcon fontSize="small"/>
                       </IconButton>
                   </Tooltip>
                   <div className={"group-hover:flex hidden absolute flex-col"}>
-                      <Tooltip title={'Mark all as read'} placement={"left"}>
-                          <IconButton onClick={onMarkAllAsRead}>
-                              <DoneAllIcon/>
+                      <Tooltip title={'Mark all as read'} placement={"bottom"}>
+                          <IconButton size="small" onClick={onMarkAllAsRead}>
+                              <DoneAllIcon fontSize="small"/>
                           </IconButton>
                       </Tooltip>
                   </div>
@@ -70,45 +69,36 @@ const SubHeader = (props: SubHeaderProps) => {
 
           {
             buttonOptions.viewSwitch && <div className={'group'}>
-                  <Tooltip title={'Magazine view'} placement={"left"}>
-                      <IconButton>
-                          <ListAltIcon/>
+                  <Tooltip title={'Magazine view'} placement={"bottom"}>
+                      <IconButton size="small">
+                          <ListAltIcon fontSize="small"/>
                       </IconButton>
                   </Tooltip>
                   <div className={"group-hover:flex hidden absolute flex-col"}>
-                      <Tooltip title={'Column view'} placement={"left"}>
-                          <IconButton>
-                              <VerticalSplitOutlinedIcon/>
+                      <Tooltip title={'Column view'} placement={"bottom"}>
+                          <IconButton size="small">
+                              <VerticalSplitOutlinedIcon fontSize="small"/>
                           </IconButton>
                       </Tooltip>
-                      <Tooltip title={'List view'} placement={"left"}>
-                          <IconButton>
-                              <ViewHeadlineOutlinedIcon/>
+                      <Tooltip title={'List view'} placement={"bottom"}>
+                          <IconButton size="small">
+                              <ViewHeadlineOutlinedIcon fontSize="small"/>
                           </IconButton>
                       </Tooltip>
-                      <Tooltip title={'Expanded view'} placement={"left"}>
-                          <IconButton>
-                              <ViewDayOutlinedIcon/>
+                      <Tooltip title={'Expanded view'} placement={"bottom"}>
+                          <IconButton size="small">
+                              <ViewDayOutlinedIcon fontSize="small"/>
                           </IconButton>
                       </Tooltip>
                   </div>
               </div>
           }
-
-          {
-            buttonOptions.refresh && <Tooltip title={'Refresh'} placement={"bottom"}>
-                  <IconButton onClick={onRefresh}>
-                      <RefreshIcon/>
-                  </IconButton>
-              </Tooltip>
-          }
-
         </div>
-      </div>
+      )}
     </div>
 
     <Box component={"hr"} sx={{
-      "background-color": "rgba(230, 230, 230, 1)",
+      backgroundColor: "rgba(230, 230, 230, 1)",
       border: 0,
       height: '1px'
     }} className={"m-0"}/>

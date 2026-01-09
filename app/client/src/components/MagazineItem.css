@@ -1,0 +1,6 @@
+@media (max-width: 900px) {
+    .page-item-thumb {
+        width: 100px !important;
+        height: 100px !important;
+    }
+}

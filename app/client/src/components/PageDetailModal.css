@@ -1,0 +1,50 @@
+.page-detail-modal {
+    @apply w-[1500px] p-4;
+}
+
+/* Sticky header in modal */
+.page-detail-modal .page-detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+/* TOC area in modal */
+.page-detail-modal .page-detail-toc-area {
+    width: 240px;
+    flex-shrink: 0;
+    padding-left: 20px;
+    position: sticky;
+    top: 26px;
+    align-self: flex-start;
+}
+
+@media (min-width: 1800px) {
+    .page-detail-modal {
+        @apply w-[1600px];
+    }
+}
+
+@media (max-width: 1500px) {
+    .page-detail-modal {
+        @apply w-[1300px];
+    }
+}
+
+@media (max-width: 1300px) {
+    .page-detail-modal {
+        @apply w-[1100px];
+    }
+}
+
+@media (max-width: 1100px) {
+    .page-detail-modal {
+        @apply w-[900px];
+    }
+}
+
+@media (max-width: 900px) {
+    .page-detail-modal {
+        @apply w-[100%];
+    }
+}

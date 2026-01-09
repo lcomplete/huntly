@@ -27,45 +27,64 @@ type StyledTreeItemProps = TreeItemProps & {
   labelInfo?: string;
   labelText: string;
   linkTo?: string;
+  emphasizeCounts?: boolean;
 };
 
 const StyledTreeItemRoot = styled(TreeItem)(({theme}) => ({
-  color: theme.palette.text.primary,
+  color: '#64748b',
   [`& .${treeItemClasses.content}`]: {
-    color: theme.palette.text.primary,
-    borderTopRightRadius: theme.spacing(2),
-    borderBottomRightRadius: theme.spacing(2),
-    paddingRight: theme.spacing(1),
+    color: 'inherit',
+    borderRadius: '6px',
+    paddingTop: theme.spacing(0.25),
+    paddingBottom: theme.spacing(0.25),
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1.5),
+    marginTop: theme.spacing(0.25),
+    marginBottom: theme.spacing(0.25),
     fontWeight: theme.typography.fontWeightMedium,
+    transition: 'background-color 0.15s ease, color 0.15s ease',
     '&.Mui-expanded': {
       fontWeight: theme.typography.fontWeightRegular,
     },
     '&:hover': {
-      backgroundColor: theme.palette.action.hover,
+      backgroundColor: 'rgba(59, 130, 246, 0.06)',
+      color: '#475569',
     },
     '&.Mui-focused, &.Mui-selected, &.Mui-selected.Mui-focused': {
-      backgroundColor: `var(--tree-view-bg-color, ${theme.palette.action.selected})`,
-      color: 'var(--tree-view-color)',
-      fontWeight: theme.typography.fontWeightBold,
+      backgroundColor: 'rgba(59, 130, 246, 0.10)',
+      color: '#2563eb',
+      fontWeight: 600,
+      [`& .${treeItemClasses.iconContainer}`]: {
+        color: '#3b82f6',
+      },
     },
     [`& .${treeItemClasses.label}`]: {
       fontWeight: 'inherit',
       color: 'inherit',
-      paddingLeft: 0
+      paddingLeft: 0,
     },
     [`& .${treeItemClasses.iconContainer}`]: {
-      marginRight: 0,
-    },
-    [`& .${treeItemClasses.root}`]: {
-      paddingLeft: 0,
+      marginRight: theme.spacing(0.5),
+      width: 20,
+      color: '#94a3b8',
+      '& svg': {
+        fontSize: 18,
+      },
     },
   },
 
   [`& .${treeItemClasses.group}`]: {
-    marginLeft: 0,
+    marginLeft: theme.spacing(2),
     [`& .${treeItemClasses.content}`]: {
-      paddingLeft: theme.spacing(2),
+      paddingLeft: theme.spacing(1),
     },
+  },
+
+  // NavLink 样式重置
+  '& a': {
+    color: 'inherit',
+    textDecoration: 'none',
+    display: 'block',
   },
 }));
 
@@ -75,11 +94,12 @@ function StyledTreeItem(props: StyledTreeItemProps) {
     color,
     labelIcon: LabelIcon,
     labelInfo,
-    labelText,
-    iconColor,
-    iconUrl,
-    linkTo,
-    ...other
+  labelText,
+  iconColor,
+  iconUrl,
+  linkTo,
+  emphasizeCounts,
+  ...other
   } = props;
 
   return (
@@ -87,28 +107,47 @@ function StyledTreeItem(props: StyledTreeItemProps) {
       label={
         <ConditionalWrapper condition={linkTo}
                             wrapper={children => <NavLink to={linkTo}>{children}</NavLink>}>
-          <Box sx={{display: 'flex', alignItems: 'center', p: 0.5, pr: 0, pl: 0}}>
-
+          <Box sx={{display: 'flex', alignItems: 'center', py: 0.375, pr: 0, pl: 0, minHeight: 28}}>
             {
               iconUrl && <Box component={'img'}
-                              color={iconColor || 'inherit'} sx={{mr: 1, width: 24, height: 24}} src={iconUrl}/>
+                              sx={{mr: 0.875, width: 18, height: 18, opacity: 0.8, flexShrink: 0}} src={iconUrl}/>
             }
             {
-              !iconUrl && <Box component={LabelIcon} color={iconColor || 'inherit'} sx={{mr: 1}}/>
+              !iconUrl && <Box component={LabelIcon} sx={{mr: 0.875, fontSize: 18, color: iconColor || '#64748b', flexShrink: 0}}/>
             }
-            <Typography variant="body2" sx={{fontWeight: 'inherit', flexGrow: 1}}
-                        className={'whitespace-nowrap overflow-hidden overflow-ellipsis'}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 'inherit',
+                flexGrow: 1,
+                fontSize: '13.5px',
+                lineHeight: 1.4,
+                color: 'inherit',
+              }}
+              className={'whitespace-nowrap overflow-hidden overflow-ellipsis'}
+            >
               {labelText}
             </Typography>
-            <Typography variant="caption" color="inherit" className={'leading-4'}>
-              {labelInfo}
-            </Typography>
+            {labelInfo && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: emphasizeCounts ? '#64748b' : '#94a3b8',
+                  fontSize: emphasizeCounts ? '11.5px' : '11px',
+                  fontWeight: emphasizeCounts ? 600 : 500,
+                  ml: 0.75,
+                  flexShrink: 0,
+                }}
+              >
+                {labelInfo}
+              </Typography>
+            )}
           </Box>
         </ConditionalWrapper>
       }
       style={{
-        '--tree-view-color': color || '#202124',
-        '--tree-view-bg-color': bgColor || '#d3e3fd',
+        '--tree-view-color': color || '#2563eb',
+        '--tree-view-bg-color': bgColor || 'rgba(59, 130, 246, 0.10)',
       }}
       {...other}
     />
@@ -124,8 +163,9 @@ export default function NavTreeView({
                                       treeItems,
                                       ariaLabel,
                                       defaultExpanded,
-                                      selectedNodeId
-                                    }: { treeItems: NavTreeViewItem[], ariaLabel: string, defaultExpanded: string[], selectedNodeId: string }) {
+                                      selectedNodeId,
+                                      emphasizeCounts = false,
+                                    }: { treeItems: NavTreeViewItem[], ariaLabel: string, defaultExpanded: string[], selectedNodeId: string, emphasizeCounts?: boolean }) {
   function itemView(item: NavTreeViewItem, parentNodeId: string, index: number) {
     const nodeId = item.linkTo || (parentNodeId ? parentNodeId + "_" + index.toString() : index.toString());
     return (<React.Fragment key={nodeId}>
@@ -133,6 +173,7 @@ export default function NavTreeView({
         <StyledTreeItem nodeId={nodeId} labelIcon={item.labelIcon} iconColor={item.iconColor} iconUrl={item.iconUrl}
                         labelText={item.labelText} labelInfo={item.inboxCount > 0 ? item.inboxCount.toString() : ""}
                         linkTo={item.linkTo}
+                        emphasizeCounts={emphasizeCounts}
         >
           {item.childItems && item.childItems.map((child, i) => itemView(child, nodeId, i))}
         </StyledTreeItem>
@@ -144,11 +185,11 @@ export default function NavTreeView({
     <TreeView
       aria-label={ariaLabel}
       defaultExpanded={defaultExpanded}
-      defaultCollapseIcon={<ArrowDropDownIcon/>}
-      defaultExpandIcon={<ArrowRightIcon/>}
-      defaultEndIcon={<div style={{width: 24}}/>}
+      defaultCollapseIcon={<ArrowDropDownIcon sx={{ color: '#94a3b8', fontSize: 18 }}/>}
+      defaultExpandIcon={<ArrowRightIcon sx={{ color: '#94a3b8', fontSize: 18 }}/>}
+      defaultEndIcon={<div style={{width: 18}}/>}
       selected={selectedNodeId}
-      sx={{flexGrow: 1, overflowY: 'auto'}}
+      sx={{flexGrow: 1, overflowY: 'auto', px: 0, pt: 0.5}}
     >
       {
         treeItems.map((item, i) => itemView(item, "", i))

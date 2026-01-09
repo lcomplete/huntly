@@ -6,7 +6,8 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Layout from "./components/Layout";
-import Index from "./pages/Index";
+import Home from "./pages/Home";
+import RecentlyRead from "./pages/RecentlyRead";
 import Page from "./pages/Page";
 import MyList from "./pages/MyList";
 import Starred from "./pages/Starred";
@@ -28,7 +29,8 @@ function App() {
       <Route>
         <Route path="/signin" element={<SignIn/>}/>
         <Route element={<Layout/>}>
-          <Route index element={<Index/>}/>
+          <Route index element={<Home/>}/>
+          <Route path={"/recently-read"} element={<RecentlyRead/>}/>
           <Route path={"/list"} element={<MyList/>}/>
           <Route path={"/starred"} element={<Starred/>}/>
           <Route path={"/later"} element={<ReadLater/>}/>

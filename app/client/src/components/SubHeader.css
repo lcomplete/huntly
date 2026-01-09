@@ -1,0 +1,6 @@
+.subheader {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    @apply sticky top-0;
+}
