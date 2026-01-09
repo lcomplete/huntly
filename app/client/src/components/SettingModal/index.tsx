@@ -19,6 +19,8 @@ import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import GeneralSetting from "./GeneralSetting";
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ArticleShortcutSetting from "./ArticleShortcutSetting";
+import LocalLibraryOutlinedIcon from "@mui/icons-material/LocalLibraryOutlined";
+import LibrarySetting from "./LibrarySetting";
 
 type SettingModalProps = {
   open: boolean,
@@ -106,6 +108,15 @@ export default function SettingModal(props: SettingModalProps) {
               onClick={(event) => handleListItemClick(event, 5)}
             >
               <ListItemIcon>
+                <LocalLibraryOutlinedIcon/>
+              </ListItemIcon>
+              <ListItemText primary="Library"/>
+            </ListItemButton>
+            <ListItemButton
+              selected={selectedIndex === 6}
+              onClick={(event) => handleListItemClick(event, 6)}
+            >
+              <ListItemIcon>
                 <AccountBoxIcon/>
               </ListItemIcon>
               <ListItemText primary="Account"/>
@@ -131,7 +142,10 @@ export default function SettingModal(props: SettingModalProps) {
               selectedIndex === 4 && <FoldersSetting/>
             }
             {
-              selectedIndex === 5 && <AccountSetting/>
+              selectedIndex === 5 && <LibrarySetting/>
+            }
+            {
+              selectedIndex === 6 && <AccountSetting/>
             }
           </div>
         </div>

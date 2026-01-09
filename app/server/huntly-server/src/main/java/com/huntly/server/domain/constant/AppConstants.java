@@ -13,6 +13,8 @@ public class AppConstants {
 
     public static final Long HTTP_FEED_CACHE_MAXSIZE = 50L * 1024L * 1024L; // 50 MB
 
+    public static final String MARKDOWN_CACHE_DIR = "markdown_cache";
+
     public static final Integer DEFAULT_COLD_DATA_KEEP_DAYS = 60;
 
     public static final String AUTH_TOKEN_COOKIE_NAME = "auth_token";

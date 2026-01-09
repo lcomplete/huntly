@@ -112,3 +112,4 @@ fabric.properties
 
 lucene/
 feed_cache/
+markdown_cache/
