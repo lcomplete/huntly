@@ -31,7 +31,7 @@ type StyledTreeItemProps = TreeItemProps & {
 };
 
 const StyledTreeItemRoot = styled(TreeItem)(({theme}) => ({
-  color: '#64748b',
+  color: '#475569',
   [`& .${treeItemClasses.content}`]: {
     color: 'inherit',
     borderRadius: '6px',
@@ -66,7 +66,7 @@ const StyledTreeItemRoot = styled(TreeItem)(({theme}) => ({
     [`& .${treeItemClasses.iconContainer}`]: {
       marginRight: theme.spacing(0.5),
       width: 20,
-      color: '#94a3b8',
+      color: '#64748b',
       '& svg': {
         fontSize: 18,
       },
@@ -94,13 +94,15 @@ function StyledTreeItem(props: StyledTreeItemProps) {
     color,
     labelIcon: LabelIcon,
     labelInfo,
-  labelText,
-  iconColor,
-  iconUrl,
-  linkTo,
-  emphasizeCounts,
-  ...other
+    labelText,
+    iconColor,
+    iconUrl,
+    linkTo,
+    emphasizeCounts,
+    ...other
   } = props;
+
+  const [hasIconError, setHasIconError] = React.useState(false);
 
   return (
     <StyledTreeItemRoot
@@ -109,11 +111,22 @@ function StyledTreeItem(props: StyledTreeItemProps) {
                             wrapper={children => <NavLink to={linkTo}>{children}</NavLink>}>
           <Box sx={{display: 'flex', alignItems: 'center', py: 0.375, pr: 0, pl: 0, minHeight: 28}}>
             {
-              iconUrl && <Box component={'img'}
-                              sx={{mr: 0.875, width: 18, height: 18, opacity: 0.8, flexShrink: 0}} src={iconUrl}/>
+              iconUrl && !hasIconError && (
+                <Box
+                  component={'img'}
+                  sx={{mr: 0.875, width: 18, height: 18, opacity: 0.8, flexShrink: 0}}
+                  src={iconUrl}
+                  onError={() => setHasIconError(true)}
+                />
+              )
             }
             {
-              !iconUrl && <Box component={LabelIcon} sx={{mr: 0.875, fontSize: 18, color: iconColor || '#64748b', flexShrink: 0}}/>
+              (!iconUrl || hasIconError) && (
+                <Box
+                  component={LabelIcon}
+                  sx={{mr: 0.875, fontSize: 18, color: iconColor || '#64748b', flexShrink: 0}}
+                />
+              )
             }
             <Typography
               variant="body2"

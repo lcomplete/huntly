@@ -4,7 +4,7 @@ import { IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { useQuery } from "@tanstack/react-query";
-import { ConnectorControllerApiFactory, ConnectorItem, FolderConnectors } from "../../api";
+import { ConnectorControllerApiFactory, ConnectorItem, FolderConnectors, PageControllerApiFactory } from "../../api";
 import NavTreeView, { NavTreeViewItem } from "../Sidebar/NavTreeView";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import RssFeedIcon from "@mui/icons-material/RssFeed";
@@ -141,6 +141,8 @@ const SecondarySidebar: React.FC = () => {
     });
   }
 
+  const shouldLoadFeeds = activeNav === 'feeds';
+
   const {
     isLoading,
     error,
@@ -149,6 +151,7 @@ const SecondarySidebar: React.FC = () => {
     ['folder-connector-view'],
     async () => (await ConnectorControllerApiFactory().getFolderConnectorViewUsingGET()).data,
     {
+      enabled: shouldLoadFeeds,
       refetchInterval: 5000,
       refetchIntervalInBackground: true,
     }
@@ -171,7 +174,18 @@ const SecondarySidebar: React.FC = () => {
     setSettingModalOpen(false);
   }, []);
 
-  const readLaterCount = 10;
+  const shouldLoadReadLaterCount = activeNav === 'saved';
+
+  const { data: readLaterCountData } = useQuery(
+    ['read-later-count'],
+    async () => (await PageControllerApiFactory().getReadLaterCountUsingGET()).data,
+    {
+      enabled: shouldLoadReadLaterCount,
+      refetchInterval: 30000,
+    }
+  );
+
+  const readLaterCount = readLaterCountData?.data;
 
   // Determine which content to show based on active navigation
   const renderContent = () => {

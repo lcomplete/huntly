@@ -39,6 +39,17 @@ const SubHeader = (props: SubHeaderProps) => {
   const defaultBtnOptions: ButtonOptions = {markRead: true, viewSwitch: false};
   const buttonOptions = {...defaultBtnOptions, ...props.buttonOptions};
 
+  const viewOptions = [
+    {id: 'magazine', label: 'Magazine view', icon: ListAltIcon},
+    {id: 'column', label: 'Column view', icon: VerticalSplitOutlinedIcon},
+    {id: 'list', label: 'List view', icon: ViewHeadlineOutlinedIcon},
+    {id: 'expanded', label: 'Expanded view', icon: ViewDayOutlinedIcon}
+  ] as const;
+
+  const [viewMode, setViewMode] = React.useState<typeof viewOptions[number]['id']>('magazine');
+  const activeView = viewOptions.find((option) => option.id === viewMode) ?? viewOptions[0];
+  const ActiveViewIcon = activeView.icon;
+
   const hasButtons = buttonOptions.markRead || buttonOptions.viewSwitch;
   const hasRightContent = Boolean(rightContent);
 
@@ -76,27 +87,26 @@ const SubHeader = (props: SubHeaderProps) => {
 
             {
               buttonOptions.viewSwitch && <div className={'subheader-action-group group'}>
-                    <Tooltip title={'Magazine view'} placement={"bottom"}>
-                        <IconButton size="small" className={'subheader-action'}>
-                            <ListAltIcon fontSize="small"/>
+                    <Tooltip title={activeView.label} placement={"bottom"}>
+                        <IconButton size="small" className={'subheader-action subheader-action-active'}>
+                            <ActiveViewIcon fontSize="small"/>
                         </IconButton>
                     </Tooltip>
-                    <div className={"subheader-action-stack group-hover:flex hidden absolute flex-col"}>
-                        <Tooltip title={'Column view'} placement={"bottom"}>
-                            <IconButton size="small" className={'subheader-action'}>
-                                <VerticalSplitOutlinedIcon fontSize="small"/>
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title={'List view'} placement={"bottom"}>
-                            <IconButton size="small" className={'subheader-action'}>
-                                <ViewHeadlineOutlinedIcon fontSize="small"/>
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title={'Expanded view'} placement={"bottom"}>
-                            <IconButton size="small" className={'subheader-action'}>
-                                <ViewDayOutlinedIcon fontSize="small"/>
-                            </IconButton>
-                        </Tooltip>
+                    <div className={"subheader-action-stack subheader-action-menu group-hover:flex hidden absolute"}>
+                        {viewOptions.map((option) => {
+                          const OptionIcon = option.icon;
+                          return (
+                            <Tooltip title={option.label} placement={"bottom"} key={option.id}>
+                                <IconButton
+                                  size="small"
+                                  className={`subheader-action subheader-action-option ${option.id === viewMode ? 'subheader-action-active' : ''}`}
+                                  onClick={() => setViewMode(option.id)}
+                                >
+                                    <OptionIcon fontSize="small"/>
+                                </IconButton>
+                            </Tooltip>
+                          );
+                        })}
                     </div>
                 </div>
             }

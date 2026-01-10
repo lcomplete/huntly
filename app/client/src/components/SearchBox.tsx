@@ -20,10 +20,30 @@ import HistoryIcon from '@mui/icons-material/History';
 import {SearchControllerApiFactory} from "../api";
 import {useQuery} from "@tanstack/react-query";
 
-export default function SearchBox() {
+type SearchBoxProps = {
+  variant?: 'default' | 'large';
+  value?: string;
+  onValueChange?: (value: string) => void;
+  selectedKeywords?: string[];
+  onSelectedKeywordsChange?: (keywords: string[]) => void;
+  focusSignal?: number;
+}
+
+export default function SearchBox({
+  variant = 'default',
+  value,
+  onValueChange,
+  selectedKeywords,
+  onSelectedKeywordsChange,
+  focusSignal
+}: SearchBoxProps) {
   const [focus, setFocus] = useState(false);
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
+  const isLarge = variant === 'large';
+  const isControlled = value !== undefined;
+  const isOptionsControlled = selectedKeywords !== undefined;
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const queryOp = params.get('op') ? params.get('op').split(',') : [];
   const queryOptions = defaultSearchOptions.filter(option => queryOp.indexOf(option.keyword) >= 0);
@@ -31,9 +51,32 @@ export default function SearchBox() {
   const [searchOptions, setSearchOptions] = React.useState<SearchOption[]>(queryOptions);
 
   useEffect(() => {
-    setSearchText(params.get('q') || '');
-    setSearchOptions(defaultSearchOptions.filter(option => queryOp.indexOf(option.keyword) >= 0));
-  }, [params]);
+    if (!isControlled) {
+      setSearchText(params.get('q') || '');
+    }
+    if (!isOptionsControlled) {
+      setSearchOptions(defaultSearchOptions.filter(option => queryOp.indexOf(option.keyword) >= 0));
+    }
+  }, [params, isControlled, isOptionsControlled]);
+
+  useEffect(() => {
+    if (isControlled) {
+      setSearchText(value || '');
+    }
+  }, [value, isControlled]);
+
+  useEffect(() => {
+    if (isOptionsControlled) {
+      const keywords = selectedKeywords || [];
+      setSearchOptions(defaultSearchOptions.filter(option => keywords.includes(option.keyword)));
+    }
+  }, [selectedKeywords, isOptionsControlled]);
+
+  useEffect(() => {
+    if (focusSignal && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [focusSignal]);
 
   function inputFocus() {
     setFocus(true);
@@ -43,24 +86,29 @@ export default function SearchBox() {
     setFocus(false);
   }
 
-  function inputChange(e) {
-    setSearchText(e.target.value || '');
+  function setSearchTextValue(nextValue: string) {
+    if (isControlled) {
+      onValueChange?.(nextValue);
+      return;
+    }
+    setSearchText(nextValue);
   }
 
-  function clearInput() {
-    setSearchText('');
+  function inputChange(e) {
+    setSearchTextValue(e.target.value || '');
   }
 
   function searchSubmit(e) {
     e.preventDefault();
-    if (!searchText.trim() && searchOptions.length === 0) {
+    const submitText = (isControlled ? (value || '') : searchText).trim();
+    if (!submitText && searchOptions.length === 0) {
       return;
     }
     // use set search params
     navigate({
       pathname: "/search",
       search: `?${createSearchParams({
-        'q': searchText.trim(),
+        'q': submitText,
         'op': searchOptions.filter(option => defaultSearchOptions.map(def => def.keyword).indexOf(option.keyword) >= 0).map(option => option.keyword).join(',')
       })}`
     });
@@ -93,12 +141,12 @@ export default function SearchBox() {
       }
       if (!option.keyword) {
         clearText = false;
-        setSearchText(option.label);
+        setSearchTextValue(option.label);
         continue;
       }
       if(option.type === 'Advanced'){
         clearText = false;
-        setSearchText(option.keyword);
+        setSearchTextValue(option.keyword);
         continue;
       }
       if (!mapResults[option.type]) {
@@ -111,12 +159,18 @@ export default function SearchBox() {
       }
     }
     if (clearText) {
-      setSearchText("");
+      setSearchTextValue("");
     }
     for (const key in mapResults) {
       results.push(...mapResults[key]);
     }
     setSearchOptions(results);
+    if (isOptionsControlled) {
+      const nextKeywords = results
+        .map(option => option.keyword)
+        .filter(keyword => keyword);
+      onSelectedKeywordsChange?.(nextKeywords);
+    }
   }
 
   function inputKeyDown(event) {
@@ -155,16 +209,22 @@ export default function SearchBox() {
     return filtered;
   }, []);
 
+  const largeHeight = 52;
+  const inputValue = isControlled ? (value || '') : searchText;
+
   return (
     <div className={'search-wrapper'}>
       <div
         className={
-          `search-box w-4/12 min-w-[700px] text-xs leading-6 text-slate-500 rounded-md pl-1 pr-1 border border-solid ${focus ? "bg-white border-slate-300 shadow-md" : "bg-white border-slate-200"}`
+          isLarge
+            ? `search-box w-full text-xs leading-6 text-slate-500 rounded-xl pl-2 pr-2 border-2 border-solid transition-all duration-200 ${focus ? "bg-white border-slate-300 shadow-lg" : "bg-white border-slate-300 shadow-sm"}`
+            : `search-box w-4/12 min-w-[700px] text-xs leading-6 text-slate-500 rounded-md pl-1 pr-1 border border-solid ${focus ? "bg-white border-slate-300 shadow-md" : "bg-white border-slate-200"}`
         }
+        style={isLarge ? { minHeight: `${largeHeight}px` } : {}}
       >
-        <form action={'/search'} className={'flex grow items-center'} onSubmit={searchSubmit}>
+        <form action={'/search'} className={'flex grow items-center'} style={isLarge ? { minHeight: `${largeHeight}px` } : {}} onSubmit={searchSubmit}>
           <IconButton aria-label={"search"} type={"submit"} className={''}>
-            <SearchIcon fontSize="small"/>
+            <SearchIcon fontSize={isLarge ? "medium" : "small"}/>
           </IconButton>
           {/*<InputBase name={'q'} type={"text"} className={"w-full peer"} placeholder={'Search'} onFocus={inputFocus}*/}
           {/*           onChange={inputChange}*/}
@@ -174,21 +234,34 @@ export default function SearchBox() {
             PaperComponent={CustomPaper}
             className={'grow'}
             sx={{
+              display: 'flex',
+              alignItems: 'center',
+              minHeight: isLarge ? `${largeHeight}px` : 'auto',
               "& .MuiInputBase-root": {
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                minHeight: isLarge ? `${largeHeight}px` : 'auto',
+                paddingTop: isLarge ? '0 !important' : 'inherit',
+                paddingBottom: isLarge ? '0 !important' : 'inherit'
               },
               "& input": {
-                paddingBottom: '4px'
+                paddingTop: '0 !important',
+                paddingBottom: '0 !important',
+                fontSize: isLarge ? '15px' : '14px',
+                fontWeight: isLarge ? 400 : 'inherit'
               },
               "& .MuiAutocomplete-popupIndicator": {
                 p: '4px'
+              },
+              "& .MuiChip-root": {
+                height: isLarge ? '28px' : '24px',
+                fontSize: isLarge ? '13px' : '12px'
               }
             }}
             multiple
             id="q"
             value={searchOptions}
-            inputValue={searchText}
+            inputValue={inputValue}
             onOpen={() => {
               refetchRecentSearches()
             }}
@@ -244,12 +317,18 @@ export default function SearchBox() {
             renderInput={(params) => {
               const {InputLabelProps, InputProps, ...rest} = params;
               // <TextField {...params} name={'q'} placeholder={'Search'} size={"small"} variant={'standard'} fullWidth={true} />
-              return <InputBase {...params.InputProps} {...rest} name={'q'} placeholder={'Search'} type={'text'}
+              return <InputBase {...params.InputProps} {...rest} name={'q'} placeholder={isLarge ? 'Search everything in Huntly...' : 'Search'} type={'text'}
                                 onKeyDown={inputKeyDown} onKeyUp={inputKeyUp}
-                                sx={{}}
+                                inputRef={inputRef}
+                                sx={{
+                                  '& input::placeholder': {
+                                    fontSize: isLarge ? '15px' : '14px',
+                                    color: '#94a3b8'
+                                  }
+                                }}
               />;
             }}
-            popupIcon={<TuneIcon fontSize={'small'} sx={{}}/>}
+            popupIcon={<TuneIcon fontSize={isLarge ? 'medium' : 'small'} />}
           />
         </form>
         {/*{*/}

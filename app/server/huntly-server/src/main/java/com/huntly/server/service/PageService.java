@@ -168,6 +168,10 @@ public class PageService extends BasePageService {
         return toPageOperateResult(page);
     }
 
+    public long getReadLaterCount() {
+        return pageRepository.countReadLaterByLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+    }
+
     public void markReadPage(Long id) {
         var page = requireOne(id);
         if (!Objects.equals(page.getMarkRead(), true)) {

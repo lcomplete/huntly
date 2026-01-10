@@ -13,6 +13,9 @@ import CompactItem from "../components/CompactItem";
 import Loading from "../components/Loading";
 import { Link, useNavigate } from "react-router-dom";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import ExtensionIcon from "@mui/icons-material/Extension";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import InfoIcon from "@mui/icons-material/Info";
 import SubHeader from "../components/SubHeader";
 import navLabels from "../components/Sidebar/NavLabels";
 import moment from "moment";
@@ -426,6 +429,154 @@ const Home = () => {
                   <Typography color="error">Failed to load highlights</Typography>
                 )}
                 {!isLoadingHighlights && !highlightsError && renderHighlights(highlights || [])}
+              </Box>
+
+              <Box sx={moduleSx}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    pb: 1.5,
+                    borderBottom: "1px solid",
+                    borderColor: "rgba(0,0,0,0.06)",
+                    mb: 2.5,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Huntly Info
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between" }}>
+                  {/* Version */}
+                  <Box sx={{ flex: 1, textAlign: "center" }}>
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 2,
+                        backgroundColor: "rgba(25, 118, 210, 0.1)",
+                        color: "primary.main",
+                        mx: "auto",
+                        mb: 1.5,
+                      }}
+                    >
+                      <InfoIcon sx={{ fontSize: 24 }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Version
+                    </Typography>
+                    <Button
+                      href="https://github.com/lcomplete/huntly/releases"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      sx={{
+                        textTransform: "none",
+                        p: 0,
+                        minWidth: 0,
+                        fontSize: "0.875rem",
+                        fontWeight: 400,
+                        color: "primary.main",
+                        "&:hover": {
+                          backgroundColor: "transparent",
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
+                      v0.5.1
+                    </Button>
+                  </Box>
+
+                  {/* Chrome Extension */}
+                  <Box sx={{ flex: 1, textAlign: "center" }}>
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 2,
+                        backgroundColor: "rgba(25, 118, 210, 0.1)",
+                        color: "primary.main",
+                        mx: "auto",
+                        mb: 1.5,
+                      }}
+                    >
+                      <ExtensionIcon sx={{ fontSize: 24 }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Extension
+                    </Typography>
+                    <Button
+                      href="https://chromewebstore.google.com/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      sx={{
+                        textTransform: "none",
+                        p: 0,
+                        minWidth: 0,
+                        fontSize: "0.875rem",
+                        fontWeight: 400,
+                        color: "primary.main",
+                        "&:hover": {
+                          backgroundColor: "transparent",
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
+                      Install
+                    </Button>
+                  </Box>
+
+                  {/* GitHub */}
+                  <Box sx={{ flex: 1, textAlign: "center" }}>
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 2,
+                        backgroundColor: "rgba(0, 0, 0, 0.05)",
+                        color: "text.primary",
+                        mx: "auto",
+                        mb: 1.5,
+                      }}
+                    >
+                      <GitHubIcon sx={{ fontSize: 24 }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      GitHub
+                    </Typography>
+                    <Button
+                      href="https://github.com/lcomplete/huntly"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      sx={{
+                        textTransform: "none",
+                        p: 0,
+                        minWidth: 0,
+                        fontSize: "0.875rem",
+                        fontWeight: 400,
+                        color: "primary.main",
+                        "&:hover": {
+                          backgroundColor: "transparent",
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
+                      Star
+                    </Button>
+                  </Box>
+                </Box>
               </Box>
             </Box>
 

@@ -105,6 +105,11 @@ public class PageController {
         return pageService.unReadLaterPage(id);
     }
 
+    @GetMapping("readLaterCount")
+    public ApiResult<Long> getReadLaterCount() {
+        return ApiResult.ok(pageService.getReadLaterCount());
+    }
+
     @PostMapping("markRead/{id}")
     public void markReadPage(@Valid @NotNull @PathVariable("id") Long id) {
         pageService.markReadPage(id);

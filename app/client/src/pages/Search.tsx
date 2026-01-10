@@ -4,7 +4,7 @@ import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tans
 import {PageSearchResult, SearchControllerApiFactory, SearchQuery} from "../api";
 import MainContainer from "../components/MainContainer";
 import Loading from "../components/Loading";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import MagazineItem from "../components/MagazineItem";
 import {Box, Button, Typography} from "@mui/material";
 import {useInView} from "react-intersection-observer";
@@ -27,6 +27,24 @@ export default function Search() {
   const options = searchParams.get("op");
   const selectedPageId = safeInt(searchParams.get("p"));
   const hasSearchQuery = Boolean(q && q.trim().length > 0);
+  const [draftQuery, setDraftQuery] = useState('');
+  const [draftOptions, setDraftOptions] = useState<string[]>([]);
+  const [focusSignal, setFocusSignal] = useState(0);
+
+  // Quick search suggestions with their keywords
+  const quickSearchSuggestions = [
+    { label: 'title', keyword: 'title', description: 'Search in titles only' },
+    { label: 'tweet', keyword: 'tweet', description: 'Twitter/X content' },
+    { label: 'github', keyword: 'github', description: 'GitHub repositories' },
+    { label: 'starred', keyword: 'starred', description: 'Your starred items' },
+    { label: 'read later', keyword: 'later', description: 'Read later list' },
+  ];
+
+  const handleQuickSearch = (keyword: string) => {
+    setDraftQuery('');
+    setDraftOptions([keyword]);
+    setFocusSignal((prev) => prev + 1);
+  };
 
   useEffect(() => {
     if (hasSearchQuery) {
@@ -134,45 +152,70 @@ export default function Search() {
     >
       <Box
         sx={{
-          width: 80,
-          height: 80,
+          width: 88,
+          height: 88,
           borderRadius: '50%',
-          bgcolor: 'rgba(14, 165, 233, 0.1)',
+          bgcolor: 'rgba(59, 130, 246, 0.08)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          mb: 3,
+          mb: 3.5,
+          border: '1px solid rgba(59, 130, 246, 0.12)',
+          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.08)',
         }}
       >
-        <SearchIcon sx={{ fontSize: 40, color: '#0ea5e9' }} />
+        <SearchIcon sx={{ fontSize: 42, color: '#3b82f6' }} />
       </Box>
-      <Typography variant="h5" sx={{ fontWeight: 600, color: '#374151', mb: 1.5 }}>
+      <Typography variant="h5" sx={{ fontWeight: 600, color: '#1e293b', mb: 1.5, letterSpacing: '-0.01em' }}>
         Search everything in Huntly
       </Typography>
-      <Typography variant="body1" sx={{ color: '#6b7280', mb: 4, maxWidth: 400 }}>
+      <Typography variant="body1" sx={{ color: '#64748b', mb: 4.5, maxWidth: 480, lineHeight: 1.6, fontSize: '15px' }}>
         Find articles, tweets, highlights, feeds, and more across all your hunted content.
       </Typography>
-      <Box sx={{ width: '100%', maxWidth: 600 }}>
-        <SearchBox />
+      <Box sx={{ width: '100%', maxWidth: 800 }}>
+        <SearchBox
+          variant="large"
+          value={draftQuery}
+          onValueChange={setDraftQuery}
+          selectedKeywords={draftOptions}
+          onSelectedKeywordsChange={setDraftOptions}
+          focusSignal={focusSignal}
+        />
       </Box>
-      <Box sx={{ mt: 4, color: '#9ca3af' }}>
-        <Typography variant="body2" sx={{ mb: 1 }}>
+      <Box sx={{ mt: 5, color: '#94a3b8' }}>
+        <Typography variant="body2" sx={{ mb: 1.5, fontSize: '13px', fontWeight: 500, color: '#64748b' }}>
           Try searching for:
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {['author:', 'url:', 'tweet', 'github', 'feeds'].map((term) => (
+        <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {quickSearchSuggestions.map((suggestion) => (
             <Box
-              key={term}
+              key={suggestion.keyword}
+              onClick={() => handleQuickSearch(suggestion.keyword)}
               sx={{
-                px: 2,
-                py: 0.5,
-                bgcolor: '#f3f4f6',
-                borderRadius: '16px',
+                px: 2.5,
+                py: 0.75,
+                bgcolor: 'rgba(59, 130, 246, 0.05)',
+                border: '1px solid rgba(59, 130, 246, 0.1)',
+                borderRadius: '20px',
                 fontSize: '13px',
-                color: '#6b7280',
+                fontWeight: 500,
+                color: '#475569',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer',
+                '&:hover': {
+                  bgcolor: 'rgba(59, 130, 246, 0.12)',
+                  borderColor: 'rgba(59, 130, 246, 0.3)',
+                  color: '#1e40af',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 2px 8px rgba(59, 130, 246, 0.15)',
+                },
+                '&:active': {
+                  transform: 'translateY(0)',
+                },
               }}
+              title={suggestion.description}
             >
-              {term}
+              {suggestion.label}
             </Box>
           ))}
         </Box>
@@ -184,21 +227,34 @@ export default function Search() {
   const renderResults = () => (
     <>
       {/* Search Box at top */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, px: 2 }}>
-        <Box sx={{ width: '100%', maxWidth: 720 }}>
-          <SearchBox />
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3.5, px: 2 }}>
+        <Box sx={{ width: '100%', maxWidth: 800 }}>
+          <SearchBox variant="large" />
         </Box>
       </Box>
 
       {/* Results count */}
       {data?.pages && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-          <Typography variant="body2" sx={{ color: '#6b7280' }}>
-            {data.pages[0].totalHits} results
-            <Typography component="span" sx={{ ml: 1, color: '#9ca3af' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              px: 2.5,
+              py: 0.75,
+              borderRadius: '999px',
+              bgcolor: 'rgba(148, 163, 184, 0.12)',
+              border: '1px solid rgba(148, 163, 184, 0.28)',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)'
+            }}
+          >
+            <Typography variant="body2" sx={{ color: '#334155', fontWeight: 600, fontSize: '13.5px' }}>
+              {data.pages[0].totalHits.toLocaleString()} results
+            </Typography>
+            <Typography component="span" sx={{ ml: 1.5, color: '#94a3b8', fontWeight: 500, fontSize: '12.5px' }}>
               ({data.pages[0].costSeconds.toFixed(3)}s)
             </Typography>
-          </Typography>
+          </Box>
         </Box>
       )}
 
@@ -225,23 +281,33 @@ export default function Search() {
                   ))}
                 </React.Fragment>
               ))}
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
                 {isFetchingNextPage ? (
                   <Loading />
                 ) : hasNextPage ? (
-                  <Button variant="text" ref={inViewRef}>
+                  <Button
+                    variant="text"
+                    ref={inViewRef}
+                    sx={{
+                      color: '#3b82f6',
+                      fontWeight: 500,
+                      '&:hover': {
+                        bgcolor: 'rgba(59, 130, 246, 0.08)',
+                      }
+                    }}
+                  >
                     Load More
                   </Button>
                 ) : data.pages[0].totalHits > 0 ? (
-                  <Typography variant="body2" sx={{ color: '#9ca3af' }}>
+                  <Typography variant="body2" sx={{ color: '#94a3b8', fontSize: '13px' }}>
                     No more results
                   </Typography>
                 ) : (
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="body1" sx={{ color: '#6b7280' }}>
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <Typography variant="body1" sx={{ color: '#475569', fontWeight: 500, mb: 1 }}>
                       No results found for "{q}"
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#9ca3af', mt: 1 }}>
+                    <Typography variant="body2" sx={{ color: '#94a3b8', fontSize: '13.5px' }}>
                       Try adjusting your search terms
                     </Typography>
                   </Box>

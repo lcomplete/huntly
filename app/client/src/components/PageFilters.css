@@ -15,6 +15,7 @@
     border-radius: 8px;
     padding: 4px 10px;
     min-width: auto;
+    transition: all 0.2s ease;
 }
 
 .page-filters-content {
@@ -32,32 +33,83 @@
     border-radius: 999px;
     padding: 2px 10px;
     min-width: 0;
+    min-height: 30px;
     white-space: nowrap;
     background: rgba(248, 250, 252, 0.6);
 }
 
-.page-filters-clear {
-    margin-left: -4px;
+.page-filters-date.is-empty {
+    padding-right: 6px;
+}
+
+.page-filters-date.is-empty .MuiButton-startIcon {
+    margin-right: 0;
+}
+
+.page-filters-date-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1;
+}
+
+.page-filters-date .MuiButton-startIcon {
+    margin-top: 0;
+    margin-bottom: 0;
+    align-self: center;
+}
+
+.page-filters-date-clear {
+    display: inline-flex;
+    align-items: center;
+    color: #94a3b8;
+    transition: color 0.2s ease;
+}
+
+.page-filters-date-clear:hover {
+    color: #475569;
 }
 
 .page-filters-menu {
-    border-radius: 10px;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+    padding: 6px;
+    min-width: 160px;
 }
 
 .page-filters-menu .MuiMenuItem-root {
-    font-size: 12.5px;
-    padding: 6px 12px;
+    font-size: 13px;
+    padding: 8px 12px;
     border-radius: 8px;
     color: #475569;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.page-filters-menu .MuiMenuItem-root .MuiListItemIcon-root {
+    min-width: 28px;
+    color: #64748b;
+}
+
+.page-filters-menu .MuiMenuItem-root:hover {
+    background-color: rgba(148, 163, 184, 0.12);
 }
 
 .page-filters-menu .MuiMenuItem-root.Mui-selected,
 .page-filters-menu .MuiMenuItem-root.Mui-selected:hover {
-    background-color: rgba(59, 130, 246, 0.12);
-    color: #2563eb;
+    background-color: rgba(148, 163, 184, 0.14);
+    color: #334155;
+}
+
+.page-filters-menu .MuiMenuItem-root.Mui-selected .MuiListItemIcon-root {
+    color: #334155;
+}
+
+.page-filters-check {
+    margin-left: auto;
+    color: #64748b;
+    font-size: 16px !important;
 }
 
 @media (max-width: 900px) {
@@ -71,21 +123,40 @@
         position: relative;
     }
 
+    .page-filters-toggle {
+        background: #fff;
+        border-radius: 10px;
+        padding: 6px 12px;
+        border-color: rgba(148, 163, 184, 0.3);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    }
+
+    .page-filters-toggle.is-active {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        border-bottom-color: transparent;
+        box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.08);
+        position: relative;
+        z-index: 22;
+    }
+
     .page-filters-content {
         display: none;
         position: absolute;
         right: 0;
-        top: calc(100% + 8px);
-        width: min(88vw, 320px);
+        top: 100%;
+        margin-top: -1px;
+        width: min(88vw, 240px);
         flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+        align-items: stretch;
+        gap: 0;
         background: #fff;
         border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 10px;
-        padding: 12px;
-        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
-        z-index: 20;
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        padding: 4px 0;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+        z-index: 21;
     }
 
     .page-filters-content.is-open {
@@ -95,5 +166,23 @@
     .page-filters-pill {
         width: 100%;
         justify-content: flex-start;
+        padding: 10px 14px;
+        border-radius: 0;
+        font-size: 13px;
+        border: none;
+        background: transparent;
+        color: #475569;
+    }
+
+    .page-filters-pill:hover {
+        background: rgba(148, 163, 184, 0.1);
+    }
+
+
+    .page-filters-overlay {
+        position: fixed;
+        inset: 0;
+        background: transparent;
+        z-index: 20;
     }
 }

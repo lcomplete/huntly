@@ -68,4 +68,7 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Page p SET p.folderId = null, p.connectorId = null, p.connectorType = null WHERE p.connectorId = :connectorId")
     void deleteConnectorId(Integer connectorId);
+
+    @Query("SELECT COUNT(p) FROM Page p WHERE p.readLater = true AND p.librarySaveStatus = :librarySaveStatus")
+    long countReadLaterByLibrarySaveStatus(@Param("librarySaveStatus") Integer librarySaveStatus);
 }

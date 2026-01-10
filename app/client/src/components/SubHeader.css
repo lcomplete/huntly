@@ -140,13 +140,19 @@
 .subheader-action-stack {
     position: absolute;
     right: 0;
-    top: calc(100% + 4px);
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 10px;
-    padding: 4px;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    top: calc(100% + 6px);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
     z-index: 30;
+}
+
+.subheader-action-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .subheader-mark-group {
@@ -188,6 +194,16 @@
     border-radius: 10px;
     color: #64748b;
     transition: all 0.2s ease;
+}
+
+.subheader-action-option {
+    width: 34px;
+    height: 34px;
+}
+
+.subheader-action-active {
+    background-color: rgba(148, 163, 184, 0.16);
+    color: #1f2937;
 }
 
 .subheader-action:hover {

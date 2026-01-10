@@ -51,7 +51,7 @@ export default function LibraryNavTree({ selectedNodeId, readLaterCount }: Libra
                   alignItems: 'center',
                   justifyContent: 'center',
                   mr: 1,
-                  color: isSelected ? '#3b82f6' : '#94a3b8',
+                  color: isSelected ? '#3b82f6' : '#64748b',
                   transition: 'color 0.15s ease',
                   '& .MuiSvgIcon-root': {
                     fontSize: 20,
@@ -64,7 +64,7 @@ export default function LibraryNavTree({ selectedNodeId, readLaterCount }: Libra
                 sx={{
                   fontSize: '14px',
                   fontWeight: isSelected ? 600 : 500,
-                  color: isSelected ? '#2563eb' : '#64748b',
+                  color: isSelected ? '#2563eb' : '#475569',
                   lineHeight: 1.4,
                   transition: 'color 0.15s ease',
                   flexGrow: 1,

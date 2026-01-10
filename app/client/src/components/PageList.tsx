@@ -4,7 +4,7 @@ import {ApiResultOfint, PageControllerApiFactory, PageItem} from "../api";
 import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tanstack/react-query";
 import {useInView} from "react-intersection-observer";
 import React, {ReactElement, useEffect, useState, useRef, useCallback, useMemo} from "react";
-import {AlertTitle, Button} from "@mui/material";
+import {Button} from "@mui/material";
 import Loading from "./Loading";
 import {NavLabel} from "./Sidebar/NavLabels";
 import SubHeader, {ButtonOptions} from "./SubHeader";
@@ -429,9 +429,8 @@ const PageList = (props: PageListProps) => {
         <div className="p-2 flex flex-col grow items-center">
           <div className={'page-list w-[720px] flex flex-col items-center'} ref={pageListRef}>
             {showDoneTip && <div className={'w-full'}>
-                <TransitionAlert severity="success" color="info">
-                    <AlertTitle>Well done!</AlertTitle>
-                    There are no unread articles in this section.
+                <TransitionAlert severity="info">
+                    You've read all articles in this section.
                 </TransitionAlert>
                 <div className="separator pt-2 pb-2"><ExpandMoreIcon/> Older articles</div>
             </div>}
@@ -440,20 +439,9 @@ const PageList = (props: PageListProps) => {
             {!isLoading && !error && data &&
                 <>
                   {
-                    (data.pages.length === 0 || data.pages[0].length === 0) && <div>
+                    (data.pages.length === 0 || data.pages[0].length === 0) && <div className={'w-full'}>
                           <Alert severity="info">
-                              <div>
-                                  You have arrived in the desert of information, go hunt some information.
-                              </div>
-                              <br/>
-                              <div>
-                                  If you haven't installed the browser plugin yet, you can download and install it here.
-                              </div>
-                              <br />
-                              <div>
-                                  <a href={'https://chrome.google.com/webstore/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm'}
-                                     target={'_blank'} rel="noreferrer" className={'text-blue-600 hover:underline'}>Web Store</a>
-                              </div>
+                              No articles found in this section.
                           </Alert>
                       </div>
                   }
