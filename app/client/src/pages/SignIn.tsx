@@ -70,15 +70,15 @@ export default function SignIn() {
     }
   })
 
-  return <div className={'flex items-center justify-center h-full bg-[#fafafa]'}>
-    <Paper className={'w-[530px] flex justify-center'} elevation={4}>
-      <div className={'w-9/12'}>
+  return <div className={'flex items-center justify-center min-h-full h-auto py-6 sm:py-0 sm:h-full bg-[#fafafa] px-4 sm:px-0'}>
+    <Paper className={'w-full max-w-[530px] flex justify-center mx-auto'} elevation={4}>
+      <div className={'w-full px-6 sm:px-0 sm:w-9/12'}>
         <form onSubmit={formikLogin.handleSubmit} className={''}>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-6 sm:mt-8 flex justify-center">
             <img src="/android-chrome-192x192.png" alt="Huntly" className="h-[50px] w-[50px]" />
           </div>
           <div className={'flex justify-center'}>
-            <h1>Sign In</h1>
+            <h1 className="text-xl sm:text-2xl">Sign In</h1>
           </div>
 
           <div>
@@ -94,6 +94,7 @@ export default function SignIn() {
               type="text"
               fullWidth
               variant="outlined"
+              size="medium"
             />
           </div>
           <div className={'mt-2'}>
@@ -108,15 +109,18 @@ export default function SignIn() {
               type="password"
               fullWidth={true}
               variant="outlined"
+              size="medium"
             />
           </div>
-          <div className={'mt-8'}>
+          <div className={'mt-6 sm:mt-8'}>
             {isUserSet &&
                 <Button
                     type="submit"
                     color="primary"
                     variant="contained"
                     fullWidth={true}
+                    size="large"
+                    sx={{ py: { xs: 1.5, sm: 1 } }}
                 >
                     sign in
                 </Button>
@@ -127,6 +131,8 @@ export default function SignIn() {
                     color="secondary"
                     variant="contained"
                     fullWidth={true}
+                    size="large"
+                    sx={{ py: { xs: 1.5, sm: 1 } }}
                 >
                     create admin user
                 </Button>
@@ -134,7 +140,7 @@ export default function SignIn() {
           </div>
         </form>
 
-        <div className={'text-center mt-20 mb-6 text-gray-400'}>Copyright © <a
+        <div className={'text-center mt-12 sm:mt-20 mb-6 text-gray-400 text-sm sm:text-base'}>Copyright © <a
           href={'https://twitter.com/lcomplete_wild'} target={'_blank'}
           className={'text-sky-600 hover:underline'}>lcomplete</a> 2023.
         </div>

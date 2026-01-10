@@ -62,7 +62,7 @@ const SubHeader = (props: SubHeaderProps) => {
                            sx={{mr: 1, width: 24, height: 24}} src={navLabel.iconUrl}/>
               : <SvgIcon component={navLabel.labelIcon} sx={{color: navLabel.iconColor}}/>
           }
-          {navLabel.showLabel !== false && <span className={'subheader-label'}>{navLabel.labelText}</span>}
+          {navLabel.showLabel !== false && <span className={'subheader-label'} title={navLabel.labelText}>{navLabel.labelText}</span>}
           {navLabelArea}
         </div>
 

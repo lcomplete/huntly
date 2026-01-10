@@ -47,4 +47,52 @@
         max-width: 100% !important;
         min-width: 0 !important;
     }
+
+    .page-detail-layout {
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 480px) {
+    .page-detail-paper {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+
+    .page-detail-header {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    .page-detail-layout {
+        padding: 0;
+    }
+}
+
+/* Mobile header optimization */
+@media (max-width: 768px) {
+    .page-detail-header {
+        padding: 8px 12px !important;
+    }
+
+    /* Make tool buttons smaller on mobile */
+    .page-detail-tools .MuiIconButton-root {
+        padding: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-detail-header {
+        padding: 6px 8px !important;
+    }
+
+    .page-detail-tools .MuiIconButton-root {
+        padding: 4px;
+    }
+
+    .page-detail-tools .MuiSvgIcon-root {
+        font-size: 18px;
+    }
 }

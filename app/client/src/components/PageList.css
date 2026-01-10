@@ -22,9 +22,23 @@
 @media (max-width: 900px) {
     .page-list {
         width: 100%;
+        max-width: 100%;
     }
 
     .filter-options {
         display: none;
+    }
+}
+
+/* Mobile overflow prevention */
+@media (max-width: 480px) {
+    .page-list-container {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .page-list {
+        max-width: 100%;
     }
 }

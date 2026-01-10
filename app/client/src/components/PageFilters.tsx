@@ -4,11 +4,13 @@ import {
   Menu,
   MenuItem,
   Popover,
-  useMediaQuery
+  useMediaQuery,
+  Portal
 } from "@mui/material";
 import React from "react";
 import "./PageFilters.css";
 import {SORT_VALUE} from "../model";
+import {isDeepEqual} from "../common/objectUtils";
 import 'react-date-range/dist/styles.css'; // main style file
 import 'react-date-range/dist/theme/default.css'; // theme css file
 import {DateRangePicker} from 'react-date-range';
@@ -63,10 +65,10 @@ export default function PageFilters(props: PageFilterProps) {
   const [pickerAnchorEl, setPickerAnchorEl] = React.useState(null);
   const [tempStartDate, setTempStartDate] = React.useState(startDate);
   const [tempEndDate, setTempEndDate] = React.useState(endDate);
+  const initialOptionsRef = React.useRef<PageFilterOptions>(options);
   const hasDateRange = Boolean(tempStartDate && tempEndDate);
   const isPhone = useMediaQuery('(max-width: 720px)');
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const showFilters = !isPhone || mobileOpen;
   const [contentAnchorEl, setContentAnchorEl] = React.useState<HTMLElement | null>(null);
   const [sortAnchorEl, setSortAnchorEl] = React.useState<HTMLElement | null>(null);
   const [orderAnchorEl, setOrderAnchorEl] = React.useState<HTMLElement | null>(null);
@@ -81,12 +83,17 @@ export default function PageFilters(props: PageFilterProps) {
   const orderLabel = asc ? 'Oldest' : 'Newest';
   const showSort = sortFields.length > 1 || isPhone;
   const showOrder = defaultSortValue !== 'VOTE_SCORE';
+  const hasFilterChanges = !isDeepEqual(initialOptionsRef.current, options);
 
   function handleSortingChange(event, value) {
     onChange({
       ...options,
       asc: value === 'true'
     });
+    // Close mobile filters after selection
+    if (isPhone) {
+      setMobileOpen(false);
+    }
   }
 
   function handleSortByChange(event, value) {
@@ -95,6 +102,10 @@ export default function PageFilters(props: PageFilterProps) {
       defaultSortValue: value,
       asc: value === 'VOTE_SCORE' ? false : asc
     });
+    // Close mobile filters after selection
+    if (isPhone) {
+      setMobileOpen(false);
+    }
   }
 
   function handleContentFilterChange(event, value) {
@@ -103,6 +114,10 @@ export default function PageFilters(props: PageFilterProps) {
       ...options,
       contentFilterType: nextValue ? parseInt(nextValue) : 0
     });
+    // Close mobile filters after selection
+    if (isPhone) {
+      setMobileOpen(false);
+    }
   }
 
   function handleDateChange(item) {
@@ -168,7 +183,7 @@ export default function PageFilters(props: PageFilterProps) {
     {isPhone && (
       <Button
         size="small"
-        className={`page-filters-toggle ${mobileOpen ? 'is-active' : ''}`}
+        className={`page-filters-toggle ${mobileOpen ? 'is-active' : ''} ${hasFilterChanges ? 'has-changes' : ''}`}
         startIcon={<TuneIcon fontSize="small" />}
         onClick={() => setMobileOpen((prev) => !prev)}
       >
@@ -177,29 +192,65 @@ export default function PageFilters(props: PageFilterProps) {
     )}
 
     {isPhone && mobileOpen && (
-      <div
-        className={'page-filters-overlay'}
-        onClick={() => setMobileOpen(false)}
-        onKeyDown={(e) => e.key === 'Escape' && setMobileOpen(false)}
-        role="button"
-        tabIndex={0}
-        aria-label="Close filters"
-      />
+      <Portal>
+        <div
+          className={'page-filters-overlay'}
+          onClick={() => setMobileOpen(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setMobileOpen(false)}
+          role="button"
+          tabIndex={0}
+          aria-label="Close filters"
+        />
+        <div className={'page-filters-content is-open'}>
+          {!hideContentTypeFilter && (
+            <Button
+              size="small"
+              className={'page-filters-pill'}
+              startIcon={activeContentIcon}
+              onClick={(event) => setContentAnchorEl(event.currentTarget)}
+            >
+              {contentLabel}
+            </Button>
+          )}
+
+          {showSort && (
+            <Button
+              size="small"
+              className={'page-filters-pill'}
+              startIcon={activeSortIcon}
+              onClick={(event) => setSortAnchorEl(event.currentTarget)}
+            >
+              {sortLabel}
+            </Button>
+          )}
+
+          {showOrder && (
+            <Button
+              size="small"
+              className={'page-filters-pill'}
+              startIcon={activeOrderIcon}
+              onClick={(event) => setOrderAnchorEl(event.currentTarget)}
+            >
+              {orderLabel}
+            </Button>
+          )}
+        </div>
+      </Portal>
     )}
 
-    <div className={`page-filters-content ${showFilters ? 'is-open' : ''}`}>
-      {!hideContentTypeFilter && (
-        <Button
-          size="small"
-          className={'page-filters-pill'}
-          startIcon={activeContentIcon}
-          onClick={(event) => setContentAnchorEl(event.currentTarget)}
-        >
-          {contentLabel}
-        </Button>
-      )}
+    {!isPhone && (
+      <div className={'page-filters-content is-open'}>
+        {!hideContentTypeFilter && (
+          <Button
+            size="small"
+            className={'page-filters-pill'}
+            startIcon={activeContentIcon}
+            onClick={(event) => setContentAnchorEl(event.currentTarget)}
+          >
+            {contentLabel}
+          </Button>
+        )}
 
-      {!isPhone && (
         <Button
           size="small"
           className={`page-filters-pill page-filters-date ${hasDateRange ? 'has-range' : 'is-empty'}`}
@@ -230,30 +281,30 @@ export default function PageFilters(props: PageFilterProps) {
             </span>
           ) : null}
         </Button>
-      )}
 
-      {showSort && (
-        <Button
-          size="small"
-          className={'page-filters-pill'}
-          startIcon={activeSortIcon}
-          onClick={(event) => setSortAnchorEl(event.currentTarget)}
-        >
-          {sortLabel}
-        </Button>
-      )}
+        {showSort && (
+          <Button
+            size="small"
+            className={'page-filters-pill'}
+            startIcon={activeSortIcon}
+            onClick={(event) => setSortAnchorEl(event.currentTarget)}
+          >
+            {sortLabel}
+          </Button>
+        )}
 
-      {showOrder && (
-        <Button
-          size="small"
-          className={'page-filters-pill'}
-          startIcon={activeOrderIcon}
-          onClick={(event) => setOrderAnchorEl(event.currentTarget)}
-        >
-          {orderLabel}
-        </Button>
-      )}
-    </div>
+        {showOrder && (
+          <Button
+            size="small"
+            className={'page-filters-pill'}
+            startIcon={activeOrderIcon}
+            onClick={(event) => setOrderAnchorEl(event.currentTarget)}
+          >
+            {orderLabel}
+          </Button>
+        )}
+      </div>
+    )}
 
     <Menu
       anchorEl={contentAnchorEl}

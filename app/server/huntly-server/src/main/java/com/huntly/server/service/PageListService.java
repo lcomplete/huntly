@@ -19,6 +19,11 @@ import org.springframework.util.CollectionUtils;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
@@ -116,10 +121,33 @@ public class PageListService {
         if (strDate == null) {
             return null;
         }
+        if (strDate.contains("T") || strDate.contains(":")) {
+            return parseDateTimeInstant(strDate);
+        }
         try {
-            return new SimpleDateFormat("yyyy-MM-dd").parse(strDate).toInstant().plus(plusDay, ChronoUnit.DAYS);
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
+            return LocalDate.parse(strDate).atStartOfDay(ZoneOffset.UTC).toInstant().plus(plusDay, ChronoUnit.DAYS);
+        } catch (DateTimeParseException e) {
+            try {
+                return new SimpleDateFormat("yyyy-MM-dd").parse(strDate).toInstant().plus(plusDay, ChronoUnit.DAYS);
+            } catch (ParseException parseException) {
+                throw new RuntimeException(parseException);
+            }
+        }
+    }
+
+    private Instant parseDateTimeInstant(String strDateTime) {
+        try {
+            return Instant.parse(strDateTime);
+        } catch (DateTimeParseException e) {
+            try {
+                return OffsetDateTime.parse(strDateTime).toInstant();
+            } catch (DateTimeParseException offsetException) {
+                try {
+                    return LocalDateTime.parse(strDateTime).toInstant(ZoneOffset.UTC);
+                } catch (DateTimeParseException localException) {
+                    throw new RuntimeException(localException);
+                }
+            }
         }
     }
 

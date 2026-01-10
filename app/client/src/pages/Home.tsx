@@ -25,8 +25,8 @@ import SmartMoment from "../components/SmartMoment";
 const Home = () => {
   const navigate = useNavigate();
   const hotTweetsDateRange = React.useMemo(() => {
-    const endDate = moment().format("YYYY-MM-DD");
-    const startDate = moment().subtract(1, "day").format("YYYY-MM-DD");
+    const endDate = moment().toISOString();
+    const startDate = moment().subtract(1, "day").toISOString();
     return { startDate, endDate };
   }, []);
 
@@ -171,18 +171,23 @@ const Home = () => {
 
   const columnSx = {
     width: "100%",
+    maxWidth: "100%",
     display: "flex",
     flexDirection: "column",
     gap: 3,
+    minWidth: 0,
   };
 
   const moduleSx = {
-    p: 2.5,
+    p: { xs: 2, md: 2.5 },
     borderRadius: 2,
     backgroundColor: "background.paper",
     border: "1px solid",
     borderColor: "rgba(0,0,0,0.1)",
     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+    maxWidth: "100%",
+    minWidth: 0,
+    overflow: "hidden",
   };
 
   const renderPageList = (pages: PageItem[], emptyText: string, useTweetStyle: boolean = false) => {
@@ -286,16 +291,18 @@ const Home = () => {
         buttonOptions={{ markRead: false, viewSwitch: false }}
         hideSearchOnMobile={false}
       />
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
-        <Box sx={{ width: "100%" }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: '100vw', overflowX: 'hidden' }}>
+        <Box sx={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
           <Box
             sx={{
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                md: "repeat(3, 1fr)",
+                md: "repeat(2, 1fr)",
+                lg: "repeat(3, 1fr)",
               },
               gap: { xs: 3, md: 4 },
+              maxWidth: "100%",
             }}
           >
             <Box sx={columnSx}>
@@ -305,22 +312,30 @@ const Home = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    pb: 1.5,
+                    pb: { xs: 1, md: 1.5 },
                     borderBottom: "1px solid",
                     borderColor: "rgba(0,0,0,0.06)",
-                    mb: 2.5,
+                    mb: { xs: 2, md: 2.5 },
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
                     Latest Feed
                   </Typography>
                   <Button
-                    endIcon={<ArrowForwardIcon />}
+                    endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
                     onClick={handleViewAll("/feeds")}
                     size="small"
-                    sx={{ textTransform: "none" }}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: { xs: "0.75rem", md: "0.875rem" },
+                      minWidth: { xs: "auto", md: "64px" },
+                      px: { xs: 0.5, md: 1 },
+                      "& .MuiButton-endIcon": {
+                        ml: { xs: 0, md: 0.5 }
+                      }
+                    }}
                   >
-                    View All
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
                   </Button>
                 </Box>
                 {isLoadingLatestFeed && <Loading />}
@@ -338,22 +353,30 @@ const Home = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    pb: 1.5,
+                    pb: { xs: 1, md: 1.5 },
                     borderBottom: "1px solid",
                     borderColor: "rgba(0,0,0,0.06)",
-                    mb: 2.5,
+                    mb: { xs: 2, md: 2.5 },
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
                     Recently Read
                   </Typography>
                   <Button
-                    endIcon={<ArrowForwardIcon />}
+                    endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
                     onClick={handleViewAll("/recently-read")}
                     size="small"
-                    sx={{ textTransform: "none" }}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: { xs: "0.75rem", md: "0.875rem" },
+                      minWidth: { xs: "auto", md: "64px" },
+                      px: { xs: 0.5, md: 1 },
+                      "& .MuiButton-endIcon": {
+                        ml: { xs: 0, md: 0.5 }
+                      }
+                    }}
                   >
-                    View All
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
                   </Button>
                 </Box>
                 {isLoadingRecentlyRead && <Loading />}
@@ -373,22 +396,30 @@ const Home = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    pb: 1.5,
+                    pb: { xs: 1, md: 1.5 },
                     borderBottom: "1px solid",
                     borderColor: "rgba(0,0,0,0.06)",
-                    mb: 2.5,
+                    mb: { xs: 2, md: 2.5 },
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
                     Read Later
                   </Typography>
                   <Button
-                    endIcon={<ArrowForwardIcon />}
+                    endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
                     onClick={handleViewAll("/later")}
                     size="small"
-                    sx={{ textTransform: "none" }}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: { xs: "0.75rem", md: "0.875rem" },
+                      minWidth: { xs: "auto", md: "64px" },
+                      px: { xs: 0.5, md: 1 },
+                      "& .MuiButton-endIcon": {
+                        ml: { xs: 0, md: 0.5 }
+                      }
+                    }}
                   >
-                    View All
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
                   </Button>
                 </Box>
                 {isLoadingReadLater && <Loading />}
@@ -406,22 +437,30 @@ const Home = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    pb: 1.5,
+                    pb: { xs: 1, md: 1.5 },
                     borderBottom: "1px solid",
                     borderColor: "rgba(0,0,0,0.06)",
-                    mb: 2.5,
+                    mb: { xs: 2, md: 2.5 },
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
                     Highlights
                   </Typography>
                   <Button
-                    endIcon={<ArrowForwardIcon />}
+                    endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
                     onClick={handleViewAll("/highlights")}
                     size="small"
-                    sx={{ textTransform: "none" }}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: { xs: "0.75rem", md: "0.875rem" },
+                      minWidth: { xs: "auto", md: "64px" },
+                      px: { xs: 0.5, md: 1 },
+                      "& .MuiButton-endIcon": {
+                        ml: { xs: 0, md: 0.5 }
+                      }
+                    }}
                   >
-                    View All
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
                   </Button>
                 </Box>
                 {isLoadingHighlights && <Loading />}
@@ -437,23 +476,23 @@ const Home = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    pb: 1.5,
+                    pb: { xs: 1, md: 1.5 },
                     borderBottom: "1px solid",
                     borderColor: "rgba(0,0,0,0.06)",
-                    mb: 2.5,
+                    mb: { xs: 2, md: 2.5 },
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
                     Huntly Info
                   </Typography>
                 </Box>
-                <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between" }}>
+                <Box sx={{ display: "flex", gap: { xs: 1.5, md: 2 }, justifyContent: "space-between" }}>
                   {/* Version */}
                   <Box sx={{ flex: 1, textAlign: "center" }}>
                     <Box
                       sx={{
-                        width: 48,
-                        height: 48,
+                        width: { xs: 36, md: 48 },
+                        height: { xs: 36, md: 48 },
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -461,12 +500,12 @@ const Home = () => {
                         backgroundColor: "rgba(25, 118, 210, 0.1)",
                         color: "primary.main",
                         mx: "auto",
-                        mb: 1.5,
+                        mb: { xs: 1, md: 1.5 },
                       }}
                     >
-                      <InfoIcon sx={{ fontSize: 24 }} />
+                      <InfoIcon sx={{ fontSize: { xs: 18, md: 24 } }} />
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
                       Version
                     </Typography>
                     <Button
@@ -495,8 +534,8 @@ const Home = () => {
                   <Box sx={{ flex: 1, textAlign: "center" }}>
                     <Box
                       sx={{
-                        width: 48,
-                        height: 48,
+                        width: { xs: 36, md: 48 },
+                        height: { xs: 36, md: 48 },
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -504,12 +543,12 @@ const Home = () => {
                         backgroundColor: "rgba(25, 118, 210, 0.1)",
                         color: "primary.main",
                         mx: "auto",
-                        mb: 1.5,
+                        mb: { xs: 1, md: 1.5 },
                       }}
                     >
-                      <ExtensionIcon sx={{ fontSize: 24 }} />
+                      <ExtensionIcon sx={{ fontSize: { xs: 18, md: 24 } }} />
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
                       Extension
                     </Typography>
                     <Button
@@ -538,8 +577,8 @@ const Home = () => {
                   <Box sx={{ flex: 1, textAlign: "center" }}>
                     <Box
                       sx={{
-                        width: 48,
-                        height: 48,
+                        width: { xs: 36, md: 48 },
+                        height: { xs: 36, md: 48 },
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -547,12 +586,12 @@ const Home = () => {
                         backgroundColor: "rgba(0, 0, 0, 0.05)",
                         color: "text.primary",
                         mx: "auto",
-                        mb: 1.5,
+                        mb: { xs: 1, md: 1.5 },
                       }}
                     >
-                      <GitHubIcon sx={{ fontSize: 24 }} />
+                      <GitHubIcon sx={{ fontSize: { xs: 18, md: 24 } }} />
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
                       GitHub
                     </Typography>
                     <Button
@@ -587,22 +626,30 @@ const Home = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    pb: 1.5,
+                    pb: { xs: 1, md: 1.5 },
                     borderBottom: "1px solid",
                     borderColor: "rgba(0,0,0,0.06)",
-                    mb: 2.5,
+                    mb: { xs: 2, md: 2.5 },
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
                     24h Hot Tweets
                   </Typography>
                   <Button
-                    endIcon={<ArrowForwardIcon />}
+                    endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
                     onClick={handleViewAll("/twitter")}
                     size="small"
-                    sx={{ textTransform: "none" }}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: { xs: "0.75rem", md: "0.875rem" },
+                      minWidth: { xs: "auto", md: "64px" },
+                      px: { xs: 0.5, md: 1 },
+                      "& .MuiButton-endIcon": {
+                        ml: { xs: 0, md: 0.5 }
+                      }
+                    }}
                   >
-                    View All
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
                   </Button>
                 </Box>
                 <Box

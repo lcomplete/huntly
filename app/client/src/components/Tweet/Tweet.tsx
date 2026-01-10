@@ -26,14 +26,14 @@ export default function Tweet({
   let imageStyles = {};
   if (tweetProps.medias) {
     if (tweetProps.medias.length > 2) {
-      imageStyles = {height: 180, width: isInQuote ? 280 : 320, mt: 1};
+      imageStyles = {height: 180, width: isInQuote ? 280 : 320, maxWidth: '100%', mt: 1};
     } else if (tweetProps.medias.length === 2) {
-      imageStyles = {height: isInQuote ? 300 : 330, width: isInQuote ? 280 : 320};
+      imageStyles = {height: isInQuote ? 300 : 330, width: isInQuote ? 280 : 320, maxWidth: '100%'};
     } else {
       if (tweetProps.medias[0].rawSize.width > tweetProps.medias[0].rawSize.height) {
-        imageStyles = {maxWidth: 530};
+        imageStyles = {maxWidth: '100%', width: 530};
       } else {
-        imageStyles = {maxHeight: 530, maxWidth: 530};
+        imageStyles = {maxHeight: 530, maxWidth: '100%', width: 530};
       }
     }
   }
@@ -134,15 +134,15 @@ export default function Tweet({
     window.open(tweetProps.url, '_blank');
   }
 
-  return <div className={`flex ${styles.mainSize} cursor-pointer`} onClick={handleClick}>
-    <div>
+  return <div className={`flex ${styles.mainSize} cursor-pointer w-full min-w-0`} onClick={handleClick}>
+    <div className="flex-shrink-0">
       <a href={`https://twitter.com/${tweetProps.userScreeName}`} target={'_blank'}>
         <CardMedia component={'img'} image={tweetProps.userProfileImageUrl} sx={{
           width: 48, height: 48, borderRadius: 9999
         }}/>
       </a>
     </div>
-    <div className={'tweet-area ml-2 grow'}>
+    <div className={'tweet-area ml-2 grow min-w-0 overflow-hidden'}>
       <span className={`font-bold ${styles.mainColor}`}>
         <a href={`https://twitter.com/${tweetProps.userScreeName}`} target={'_blank'}>{tweetProps.userName}</a>
       </span>
@@ -167,11 +167,11 @@ export default function Tweet({
         <pre className={`break-all break-words whitespace-pre-wrap mt-0 mb-1`}
              dangerouslySetInnerHTML={{__html: renderText}}></pre>
         {
-          !hasVideo && tweetProps.medias && <div className={'flex justify-between flex-wrap '}>
+          !hasVideo && tweetProps.medias && <div className={`flex justify-between flex-wrap ${styles.mediaContainer}`}>
             <PhotoProvider maskOpacity={0.8}>
               {
                 tweetProps.medias.map(media => {
-                  return <div key={'media-' + media.mediaUrl}>
+                  return <div key={'media-' + media.mediaUrl} className="max-w-full">
                     <PhotoView src={media.mediaUrl + "?name=large"}>
                       <CardMedia className={`${styles.mainBorder}`}
                                  component={'img'}
@@ -184,7 +184,7 @@ export default function Tweet({
           </div>
         }
         {
-          hasVideo && <div>
+          hasVideo && <div className={styles.videoContainer}>
             <Player src={normalBitrateVideo.url} poster={videoMedia.mediaUrl}
                     fluid={videoMedia.videoInfo.aspectRatio[0] > videoMedia.videoInfo.aspectRatio[1]}
             >

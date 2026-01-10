@@ -15,7 +15,6 @@ import { useSnackbar } from 'notistack';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import {setDocTitle} from "../common/docUtils";
 import ScreenSearchDesktopOutlinedIcon from '@mui/icons-material/ScreenSearchDesktopOutlined';
-import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import ScreenSearchDesktopRoundedIcon from '@mui/icons-material/ScreenSearchDesktopRounded';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ShortTextIcon from '@mui/icons-material/ShortText';
@@ -26,7 +25,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import PageHighlightList from './highlights/PageHighlightList';
 import TextHighlighter from './highlights/TextHighlighter';
-import TableOfContents from './TableOfContents';
+import TableOfContents, { getTocItems } from './TableOfContents';
 import ListIcon from '@mui/icons-material/List';
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -116,6 +115,12 @@ const PageDetailArea = ({
   if (!siteName && detail && detail.source) {
     siteName = detail.source.siteName;
   }
+
+  const tocItems = React.useMemo(
+    () => (detail?.page.content ? getTocItems(detail.page.content) : []),
+    [detail?.page.content]
+  );
+  const hasToc = tocItems.length > 2;
 
   useEffect(() => {
     PageControllerApiFactory().recordReadPageUsingPOST(id);
@@ -439,136 +444,119 @@ const PageDetailArea = ({
       {error && <p>error...</p>}
       {detail && (
         <div className="page-detail-content-wrapper">
-          {/* 左侧占位区域 - 用于居中，始终保留空间 */}
-          <div className="page-detail-spacer hidden xl:block"></div>
+          {/* 左侧占位区域 - 仅在目录存在时保留空间 */}
+          {hasToc && <div className="page-detail-spacer hidden xl:block"></div>}
           
           {/* 主内容区域 */}
           <Paper
             className={"page-detail-paper"}
-            sx={{maxWidth: 800, minWidth: 800}}
+            sx={{
+              maxWidth: 800,
+              minWidth: { xs: 0, md: 800 },
+              width: { xs: '100%', md: 800 }
+            }}
             key={detail.page.id}
             elevation={2}
           >
             <div
-              className={'page-detail-header bg-sky-50 pl-2 pr-2 pt-1 pb-1 mb-4 border-0 border-solid border-b-[2px] border-b-blue-100 sticky top-0 backdrop-blur-2xl bg-opacity-60 z-40'}>
-              <Box sx={{}} className={"flex items-center justify-between"}>
-                <div className={'flex items-center'}>
-                  <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'hover:underline'}>
-                    <div className={"flex items-center"}>
-                      {iconUrl &&
-                      <span className={"mr-2"}>
-                        <CardMedia component={'img'} image={iconUrl}
-                                   sx={{
-                                     width: 16, height: 16
-                                   }}/>
-                      </span>
+              className={'page-detail-header bg-sky-50 pl-2 pr-2 pt-1.5 pb-1.5 mb-4 border-0 border-solid border-b-[2px] border-b-blue-100 sticky top-0 backdrop-blur-2xl bg-opacity-60 z-40'}>
+              {/* Tool buttons on left, page operations on right */}
+              <Box className={"flex items-center justify-between"}>
+                {/* Left side: Tool buttons */}
+                <div className={'page-detail-tools flex items-center gap-0.5'}>
+                  <Tooltip title={'Load full content'} placement={"bottom"}>
+                    {
+                      isFullContent ? <IconButton size="small" onClick={switchRawContent}>
+                        <ScreenSearchDesktopRoundedIcon fontSize={"small"}/>
+                      </IconButton> : <IconButton size="small" onClick={loadFullContent}>
+                        <ScreenSearchDesktopOutlinedIcon fontSize={"small"}/>
+                      </IconButton>
                     }
-                    <Typography variant={"body2"} color={"text.secondary"} component={"span"}
-                                className={'flex'}>
-                       <span
-                         className={"max-w-[260px] text-ellipsis break-all whitespace-nowrap overflow-hidden"}>
-                         {siteName}
-                       </span>
-                      <span className={"mr-1 ml-1"}>·</span>
-                      <SmartMoment
-                        dt={detail.page.connectorId ? detail.page.connectedAt : detail.page.createdAt}></SmartMoment>
-                    </Typography>
-                  </div>
-                </a>
+                  </Tooltip>
 
-                <span className={'ml-2'}>
-                    <Tooltip title={'Load full content'} placement={"bottom"}>
-                      {
-                        isFullContent ? <IconButton onClick={switchRawContent}>
-                          <ScreenSearchDesktopRoundedIcon fontSize={"small"}/>
-                        </IconButton> : <IconButton onClick={loadFullContent}>
-                          <ScreenSearchDesktopOutlinedIcon fontSize={"small"}/>
-                        </IconButton>
-                      }
-                    </Tooltip>
-                    
-                    <Tooltip title={'Export to Markdown'} placement={"bottom"}>
-                      <IconButton onClick={exportToMarkdown}>
-                        <SaveAltIcon fontSize={"small"} />
-                      </IconButton>
-                    </Tooltip>
-                    
-                    <Tooltip title={'Copy Markdown content'} placement={"bottom"}>
-                      <IconButton onClick={copyMarkdownToClipboard}>
-                        <ContentCopyIcon fontSize={"small"} />
-                      </IconButton>
-                    </Tooltip>
+                  <Tooltip title={'Export to Markdown'} placement={"bottom"}>
+                    <IconButton size="small" onClick={exportToMarkdown}>
+                      <SaveAltIcon fontSize={"small"} />
+                    </IconButton>
+                  </Tooltip>
 
-                    <Tooltip title={highlightMode ? 'Disable text highlighting selection tool' : 'Enable text highlighting selection tool'} placement={"bottom"}>
-                      <IconButton onClick={() => setHighlightMode(!highlightMode)}>
-                        <FormatQuoteIcon fontSize={"small"} sx={{ color: highlightMode ? "#f59e0b" : "#9e9e9e" }} />
-                      </IconButton>
-                    </Tooltip>
+                  <Tooltip title={'Copy Markdown content'} placement={"bottom"}>
+                    <IconButton size="small" onClick={copyMarkdownToClipboard}>
+                      <ContentCopyIcon fontSize={"small"} />
+                    </IconButton>
+                  </Tooltip>
 
-                    <Tooltip title={showToc ? 'Hide outline' : 'Show outline'} placement={"bottom"}>
-                      <IconButton onClick={() => setShowToc(!showToc)}>
-                        <ListIcon fontSize={"small"} sx={{ color: showToc ? "#3b82f6" : "#9e9e9e" }} />
-                      </IconButton>
-                    </Tooltip>
+                  <Tooltip title={highlightMode ? 'Disable text highlighting selection tool' : 'Enable text highlighting selection tool'} placement={"bottom"}>
+                    <IconButton size="small" onClick={() => setHighlightMode(!highlightMode)}>
+                      <FormatQuoteIcon fontSize={"small"} sx={{ color: highlightMode ? "#f59e0b" : "#9e9e9e" }} />
+                    </IconButton>
+                  </Tooltip>
 
-                    {shortcuts && shortcuts.length > 0 ? (
-                      <>
-                        <svg width={0} height={0}>
-                          <linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#4facfe" />
-                            <stop offset="50%" stopColor="#a18cd1" />
-                            <stop offset="100%" stopColor="#fbc2eb" />
-                          </linearGradient>
-                        </svg>
-                        <Tooltip title={'AI operations'} placement={"bottom"}>
-                          <IconButton 
-                            onClick={handleAIMenuClick}
-                            aria-controls={openMenu ? 'ai-menu' : undefined}
-                            aria-haspopup="true"
-                            aria-expanded={openMenu ? 'true' : undefined}
-                          >
-                            <AutoAwesomeIcon fontSize={"small"} sx={{ fill: "url(#geminiGradient)" }} />
-                            <KeyboardArrowDownIcon fontSize={"small"} />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        <Menu
-                          id="ai-menu"
-                          anchorEl={anchorEl}
-                          open={openMenu}
-                          onClose={handleAIMenuClose}
-                          MenuListProps={{
-                            'aria-labelledby': 'ai-button',
-                          }}
+                  <Tooltip title={showToc ? 'Hide outline' : 'Show outline'} placement={"bottom"}>
+                    <IconButton size="small" onClick={() => setShowToc(!showToc)}>
+                      <ListIcon fontSize={"small"} sx={{ color: showToc ? "#3b82f6" : "#9e9e9e" }} />
+                    </IconButton>
+                  </Tooltip>
+
+                  {shortcuts && shortcuts.length > 0 ? (
+                    <>
+                      <svg width={0} height={0}>
+                        <linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#4facfe" />
+                          <stop offset="50%" stopColor="#a18cd1" />
+                          <stop offset="100%" stopColor="#fbc2eb" />
+                        </linearGradient>
+                      </svg>
+                      <Tooltip title={'AI operations'} placement={"bottom"}>
+                        <IconButton
+                          size="small"
+                          onClick={handleAIMenuClick}
+                          aria-controls={openMenu ? 'ai-menu' : undefined}
+                          aria-haspopup="true"
+                          aria-expanded={openMenu ? 'true' : undefined}
                         >
-                          {shortcuts.map((shortcut) => (
-                            <MenuItem 
-                              key={shortcut.id} 
-                              onClick={() => handleShortcutSelect(shortcut.id!, shortcut.name!)}
-                              disabled={isProcessingContent}
-                            >
-                              <ShortTextIcon fontSize="small" className="mr-2" sx={{ color: "#8B5CF6" }} />
-                              {shortcut.name}
-                            </MenuItem>
-                          ))}
-                        </Menu>
-                      </>
-                    ) : null}
-                  </span>
-              </div>
+                          <AutoAwesomeIcon fontSize={"small"} sx={{ fill: "url(#geminiGradient)" }} />
+                          <KeyboardArrowDownIcon fontSize={"small"} />
+                        </IconButton>
+                      </Tooltip>
 
-              <PageOperationButtons pageStatus={{
-                id: detail.page.id,
-                starred: detail.page.starred,
-                readLater: detail.page.readLater,
-                librarySaveStatus: detail.page.librarySaveStatus
-              }} onOperateSuccess={operateSuccess}/>
-            </Box>
+                      <Menu
+                        id="ai-menu"
+                        anchorEl={anchorEl}
+                        open={openMenu}
+                        onClose={handleAIMenuClose}
+                        MenuListProps={{
+                          'aria-labelledby': 'ai-button',
+                        }}
+                      >
+                        {shortcuts.map((shortcut) => (
+                          <MenuItem
+                            key={shortcut.id}
+                            onClick={() => handleShortcutSelect(shortcut.id!, shortcut.name!)}
+                            disabled={isProcessingContent}
+                          >
+                            <ShortTextIcon fontSize="small" className="mr-2" sx={{ color: "#8B5CF6" }} />
+                            {shortcut.name}
+                          </MenuItem>
+                        ))}
+                      </Menu>
+                    </>
+                  ) : null}
+                </div>
+
+                {/* Right side: Page operation buttons */}
+                <PageOperationButtons pageStatus={{
+                  id: detail.page.id,
+                  starred: detail.page.starred,
+                  readLater: detail.page.readLater,
+                  librarySaveStatus: detail.page.librarySaveStatus
+                }} onOperateSuccess={operateSuccess}/>
+              </Box>
           </div>
 
           <div className={'pl-4 pr-4 mb-4'}>
             <article className={styles["markdown-body"]}>
-              <Typography variant={"h1"} sx={{marginBottom: 2}}>
+              <Typography variant={"h1"} sx={{marginBottom: 1}}>
                 <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'!text-inherit'}>
                   {detail.page.title}
                 </a>
@@ -594,7 +582,22 @@ const PageDetailArea = ({
                   />
                 )}
               </Typography>
-              
+
+              {/* Site info and time - moved below title */}
+              <div className={'flex items-center gap-2 mb-4 text-sm text-slate-500'}>
+                <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'hover:text-slate-700 transition-colors flex items-center gap-1.5'}>
+                  {iconUrl && (
+                    <CardMedia component={'img'} image={iconUrl}
+                               sx={{ width: 14, height: 14, borderRadius: '2px' }}/>
+                  )}
+                  <span className={'hover:underline'}>{siteName}</span>
+                </a>
+                <span className={'text-slate-300'}>•</span>
+                <span className={'text-slate-400'}>
+                  <SmartMoment dt={detail.page.connectorId ? detail.page.connectedAt : detail.page.createdAt} />
+                </span>
+              </div>
+
               {showProcessedSection && (
                 <Paper elevation={0} className={"p-4 mb-5 bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 transition-all duration-300 rounded-lg"}>
                   <div className="flex items-center justify-between mb-2">
@@ -719,11 +722,13 @@ const PageDetailArea = ({
         </Paper>
         
         {/* 目录区域 - 显示在内容右侧，使用 visibility 而不是 display 保持占位 */}
-        <div className={`page-detail-toc-area hidden xl:block ${showToc ? '' : 'invisible'}`}>
-          {detail.page.content && (
-            <TableOfContents content={detail.page.content} />
-          )}
-        </div>
+        {hasToc && (
+          <div className={`page-detail-toc-area hidden xl:block ${showToc ? '' : 'invisible'}`}>
+            {detail.page.content && (
+              <TableOfContents content={detail.page.content} />
+            )}
+          </div>
+        )}
         </div>
       )}
       <Snackbar

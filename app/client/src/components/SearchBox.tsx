@@ -218,7 +218,7 @@ export default function SearchBox({
         className={
           isLarge
             ? `search-box w-full text-xs leading-6 text-slate-500 rounded-xl pl-2 pr-2 border-2 border-solid transition-all duration-200 ${focus ? "bg-white border-slate-300 shadow-lg" : "bg-white border-slate-300 shadow-sm"}`
-            : `search-box w-4/12 min-w-[700px] text-xs leading-6 text-slate-500 rounded-md pl-1 pr-1 border border-solid ${focus ? "bg-white border-slate-300 shadow-md" : "bg-white border-slate-200"}`
+            : `search-box w-full md:w-4/12 md:min-w-[700px] text-xs leading-6 text-slate-500 rounded-md pl-1 pr-1 border border-solid ${focus ? "bg-white border-slate-300 shadow-md" : "bg-white border-slate-200"}`
         }
         style={isLarge ? { minHeight: `${largeHeight}px` } : {}}
       >

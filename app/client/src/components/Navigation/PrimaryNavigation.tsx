@@ -106,6 +106,9 @@ const PrimaryNavigation: React.FC = () => {
     const path = location.pathname;
     if (path === '/search') {
       setActiveNav(null);
+    } else if (path.startsWith('/page/')) {
+      // Page detail page - no nav item should be active
+      setActiveNav(null);
     } else if (path === '/' || path === '/recently-read') {
       setActiveNav('home');
     } else if (['/list', '/starred', '/later', '/archive', '/highlights'].includes(path)) {
