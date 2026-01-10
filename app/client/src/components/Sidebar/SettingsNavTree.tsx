@@ -1,33 +1,52 @@
 import { NavLink } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
-import navLabels, { NavLabel } from "./NavLabels";
+import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import HubIcon from '@mui/icons-material/Hub';
+import RssFeedIcon from '@mui/icons-material/RssFeed';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import LocalLibraryOutlinedIcon from '@mui/icons-material/LocalLibraryOutlined';
+import AccountBoxIcon from '@mui/icons-material/AccountBox';
+import { SvgIconProps } from "@mui/material/SvgIcon";
+import * as React from "react";
 
-const libraryItems: NavLabel[] = [
-  navLabels.myList,
-  navLabels.readLater,
-  navLabels.starred,
-  navLabels.archive,
-  navLabels.highlights,
-];
-
-type LibraryNavTreeProps = {
-  selectedNodeId: string;
-  readLaterCount?: number;
+type SettingsNavItem = {
+  labelText: string;
+  labelIcon: React.ElementType<SvgIconProps>;
+  linkTo: string;
+  useGradient?: boolean;
 };
 
-export default function LibraryNavTree({ selectedNodeId, readLaterCount }: LibraryNavTreeProps) {
+const settingsItems: SettingsNavItem[] = [
+  { labelText: 'General', labelIcon: SettingsApplicationsIcon, linkTo: '/settings/general' },
+  { labelText: 'AI Shortcuts', labelIcon: AutoAwesomeIcon, linkTo: '/settings/ai-shortcuts', useGradient: true },
+  { labelText: 'Connect', labelIcon: HubIcon, linkTo: '/settings/connect' },
+  { labelText: 'Feeds', labelIcon: RssFeedIcon, linkTo: '/settings/feeds' },
+  { labelText: 'Folders', labelIcon: FolderOpenIcon, linkTo: '/settings/folders' },
+  // { labelText: 'Library', labelIcon: LocalLibraryOutlinedIcon, linkTo: '/settings/library' },
+  { labelText: 'Account', labelIcon: AccountBoxIcon, linkTo: '/settings/account' },
+];
+
+type SettingsNavTreeProps = {
+  selectedNodeId: string;
+};
+
+export default function SettingsNavTree({ selectedNodeId }: SettingsNavTreeProps) {
   return (
     <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, pt: 0.5 }}>
-      {libraryItems.map((item) => {
+      {settingsItems.map((item) => {
         const isSelected = selectedNodeId === item.linkTo;
-        const isReadLater = item.linkTo === navLabels.readLater.linkTo;
-        const showReadLaterCount = isReadLater && typeof readLaterCount === 'number';
         const IconComponent = item.labelIcon;
+
+        // For gradient icon, use CSS background-clip technique
+        const iconColor = item.useGradient
+          ? '#a78bfa' // Fallback purple color for AI icon
+          : (isSelected ? '#3b82f6' : '#64748b');
 
         return (
           <NavLink
             key={item.linkTo}
-            to={item.linkTo || '/'}
+            to={item.linkTo}
             style={{ textDecoration: 'none' }}
           >
             <Box
@@ -51,7 +70,7 @@ export default function LibraryNavTree({ selectedNodeId, readLaterCount }: Libra
                   alignItems: 'center',
                   justifyContent: 'center',
                   mr: 1,
-                  color: isSelected ? '#3b82f6' : '#64748b',
+                  color: iconColor,
                   transition: 'color 0.15s ease',
                   '& .MuiSvgIcon-root': {
                     fontSize: 20,
@@ -72,19 +91,6 @@ export default function LibraryNavTree({ selectedNodeId, readLaterCount }: Libra
               >
                 {item.labelText}
               </Typography>
-              {showReadLaterCount && (
-                <Box
-                  sx={{
-                    ml: 1,
-                    color: isSelected ? '#475569' : '#64748b',
-                    fontSize: '11.5px',
-                    fontWeight: 600,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {readLaterCount}
-                </Box>
-              )}
             </Box>
           </NavLink>
         );
@@ -92,3 +98,6 @@ export default function LibraryNavTree({ selectedNodeId, readLaterCount }: Libra
     </Box>
   );
 }
+
+export { settingsItems };
+

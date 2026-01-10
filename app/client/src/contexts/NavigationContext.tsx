@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type PrimaryNavItem = 'home' | 'saved' | 'feeds' | 'x' | 'github';
+export type PrimaryNavItem = 'home' | 'saved' | 'feeds' | 'x' | 'github' | 'settings';
 
 interface NavigationContextType {
   activeNav: PrimaryNavItem | null;

@@ -10,11 +10,16 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import SearchIcon from '@mui/icons-material/Search';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SvgIcon from '@mui/material/SvgIcon';
+import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import { useNavigation, PrimaryNavItem } from '../../contexts/NavigationContext';
 import { useQuery } from '@tanstack/react-query';
-import { ConnectorControllerApiFactory } from '../../api';
+import { ConnectorControllerApiFactory, PageControllerApiFactory } from '../../api';
 import { ConnectorType } from '../../interfaces/connectorType';
-import SettingModal from '../SettingModal';
+import LibraryNavTree from '../Sidebar/LibraryNavTree';
+import NavTreeView, { NavTreeViewItem } from '../Sidebar/NavTreeView';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import navLabels from '../Sidebar/NavLabels';
+import SettingsNavTree from '../Sidebar/SettingsNavTree';
 
 // X (Twitter) Icon Component
 const XIcon: React.FC<{ className?: string }> = (props) => (
@@ -35,14 +40,12 @@ interface NavItemConfig {
 const PrimaryNavigation: React.FC = () => {
   const location = useLocation();
   const { activeNav, setActiveNav } = useNavigation();
-  const [settingModalOpen, setSettingModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<'saved' | 'feeds' | 'settings' | null>(null);
 
-  const openSettingModal = useCallback(() => {
-    setSettingModalOpen(true);
-  }, []);
+  const isMobile = () => window.innerWidth <= 900;
 
-  const closeSettingModal = useCallback(() => {
-    setSettingModalOpen(false);
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuOpen(null);
   }, []);
 
   const {
@@ -52,6 +55,16 @@ const PrimaryNavigation: React.FC = () => {
     refetchInterval: 5000,
     refetchIntervalInBackground: true,
   });
+
+  const {
+    data: readLaterCountData,
+  } = useQuery(
+    ['read-later-count'],
+    async () => (await PageControllerApiFactory().getReadLaterCountUsingGET()).data,
+    { refetchInterval: 30000 }
+  );
+
+  const readLaterCount = readLaterCountData?.data;
 
   // Find first GitHub connector
   let firstGithubConnector = null;
@@ -135,10 +148,78 @@ const PrimaryNavigation: React.FC = () => {
       }
     } else if (path === '/twitter') {
       setActiveNav('x');
+    } else if (path.startsWith('/settings')) {
+      setActiveNav('settings');
     }
   }, [location.pathname, setActiveNav, view]);
 
   const isSearchActive = location.pathname === '/search';
+  const isSettingsActive = location.pathname.startsWith('/settings');
+
+  // Handle nav item click - on mobile, show popup for items with secondary menu
+  const handleNavClick = (e: React.MouseEvent, item: NavItemConfig) => {
+    if (isMobile() && (item.id === 'saved' || item.id === 'feeds' || item.id === 'settings')) {
+      e.preventDefault();
+      setMobileMenuOpen(item.id as 'saved' | 'feeds' | 'settings');
+    }
+  };
+
+  // Handle settings click on mobile
+  const handleSettingsClick = (e: React.MouseEvent) => {
+    if (isMobile()) {
+      e.preventDefault();
+      setMobileMenuOpen('settings');
+    }
+  };
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    closeMobileMenu();
+  }, [location.pathname, closeMobileMenu]);
+
+  // Build feeds tree items for mobile menu
+  const getFeedsTreeItems = (): NavTreeViewItem[] => {
+    if (!view?.folderFeedConnectors) return [];
+
+    const items: NavTreeViewItem[] = [
+      {
+        labelText: navLabels.allFeeds.labelText,
+        labelIcon: navLabels.allFeeds.labelIcon,
+        linkTo: '/feeds',
+      }
+    ];
+
+    view.folderFeedConnectors.forEach(folder => {
+      if (folder.connectorItems && folder.connectorItems.length > 0) {
+        if (folder.name) {
+          // Folder with items
+          const folderItem: NavTreeViewItem = {
+            labelText: folder.name,
+            labelIcon: FolderOpenIcon,
+            linkTo: `/folder/${folder.id}`,
+            childItems: folder.connectorItems.map(item => ({
+              labelText: item.name || '',
+              labelIcon: RssFeedIcon,
+              linkTo: `/connector/${item.id}`,
+              inboxCount: item.inboxCount,
+            })),
+          };
+          items.push(folderItem);
+        } else {
+          // Items without folder
+          folder.connectorItems.forEach(item => {
+            items.push({
+              labelText: item.name || '',
+              labelIcon: RssFeedIcon,
+              linkTo: `/connector/${item.id}`,
+              inboxCount: item.inboxCount,
+            });
+          });
+        }
+      }
+    });
+    return items;
+  };
 
   return (
     <div className="primary-nav">
@@ -156,6 +237,7 @@ const PrimaryNavigation: React.FC = () => {
               key={item.id}
               className={`primary-nav-item ${activeNav === item.id ? 'active' : ''}`}
               to={item.path}
+              onClick={(e) => handleNavClick(e, item)}
             >
               <div className="primary-nav-item-icon-wrapper">
                 <div className="primary-nav-item-icon">
@@ -181,11 +263,64 @@ const PrimaryNavigation: React.FC = () => {
       </div>
 
       {/* Settings Button - Bottom, icon only */}
-      <div className="primary-nav-settings" onClick={openSettingModal}>
+      <Link
+        className={`primary-nav-settings ${isSettingsActive ? 'active' : ''}`}
+        to="/settings/general"
+        onClick={handleSettingsClick}
+      >
         <SettingsOutlinedIcon />
-      </div>
+      </Link>
 
-      <SettingModal open={settingModalOpen} onClose={closeSettingModal} />
+      {/* Mobile Menu Drawer */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={mobileMenuOpen !== null}
+        onClose={closeMobileMenu}
+        onOpen={() => {}}
+        disableSwipeToOpen={true}
+        swipeAreaWidth={0}
+        PaperProps={{
+          sx: {
+            maxHeight: '70vh',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            pb: '56px', // Space for bottom nav
+          }
+        }}
+      >
+        <div className="mobile-menu-drawer">
+          <div className="mobile-menu-handle" />
+          <div className="mobile-menu-content">
+            {mobileMenuOpen === 'saved' && (
+              <>
+                <div className="mobile-menu-header">Library</div>
+                <LibraryNavTree
+                  selectedNodeId={location.pathname}
+                  readLaterCount={readLaterCount}
+                />
+              </>
+            )}
+            {mobileMenuOpen === 'feeds' && (
+              <>
+                <div className="mobile-menu-header">Feeds</div>
+                <NavTreeView
+                  treeItems={getFeedsTreeItems()}
+                  ariaLabel="feeds"
+                  defaultExpanded={[]}
+                  selectedNodeId={location.pathname}
+                  emphasizeCounts={true}
+                />
+              </>
+            )}
+            {mobileMenuOpen === 'settings' && (
+              <>
+                <div className="mobile-menu-header">Settings</div>
+                <SettingsNavTree selectedNodeId={location.pathname} />
+              </>
+            )}
+          </div>
+        </div>
+      </SwipeableDrawer>
     </div>
   );
 };

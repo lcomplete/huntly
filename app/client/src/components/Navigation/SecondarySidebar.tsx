@@ -1,25 +1,24 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import "./SecondarySidebar.css";
 import { IconButton } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { useQuery } from "@tanstack/react-query";
 import { ConnectorControllerApiFactory, ConnectorItem, FolderConnectors, PageControllerApiFactory } from "../../api";
 import NavTreeView, { NavTreeViewItem } from "../Sidebar/NavTreeView";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import RssFeedIcon from "@mui/icons-material/RssFeed";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import navLabels from "../Sidebar/NavLabels";
 import { ConnectorType } from "../../interfaces/connectorType";
-import SettingModal from "../SettingModal";
 import { useNavigation } from "../../contexts/NavigationContext";
 import LibraryNavTree from "../Sidebar/LibraryNavTree";
+import SettingsNavTree from "../Sidebar/SettingsNavTree";
 
 const SecondarySidebar: React.FC = () => {
   const location = useLocation();
   const { activeNav } = useNavigation();
 
-  function leadingHeader(leadingText: string, showAction = true) {
+  function leadingHeader(leadingText: string, showAction = true, actionLink?: string) {
     return (
       <div
         className={'secondary-sidebar-header flex items-center'}
@@ -33,34 +32,25 @@ const SecondarySidebar: React.FC = () => {
         }}>
           {leadingText}
         </div>
-        {showAction && (
-          <IconButton
-            onClick={() => {
-              if (leadingText === 'Connect') {
-                openConnectSettingModal();
-              } else {
-                openFeedsSettingModal();
-              }
-            }}
-            size="small"
-            sx={{
-              width: 24,
-              height: 24,
-              bgcolor: 'transparent',
-              borderRadius: '5px',
-              transition: 'color 0.15s ease',
-              color: '#94a3b8',
-              '&:hover': {
-                color: '#64748b',
-              },
-            }}
-          >
-            {leadingText === 'Feeds' ? (
+        {showAction && actionLink && (
+          <Link to={actionLink}>
+            <IconButton
+              size="small"
+              sx={{
+                width: 24,
+                height: 24,
+                bgcolor: 'transparent',
+                borderRadius: '5px',
+                transition: 'color 0.15s ease',
+                color: '#94a3b8',
+                '&:hover': {
+                  color: '#64748b',
+                },
+              }}
+            >
               <SettingsOutlinedIcon sx={{ fontSize: 17 }} />
-            ) : (
-              <AddIcon sx={{ fontSize: 17 }} />
-            )}
-          </IconButton>
+            </IconButton>
+          </Link>
         )}
       </div>
     );
@@ -144,8 +134,6 @@ const SecondarySidebar: React.FC = () => {
   const shouldLoadFeeds = activeNav === 'feeds';
 
   const {
-    isLoading,
-    error,
     data: view,
   } = useQuery(
     ['folder-connector-view'],
@@ -156,23 +144,6 @@ const SecondarySidebar: React.FC = () => {
       refetchIntervalInBackground: true,
     }
   );
-
-  const [settingModalOpen, setSettingModalOpen] = useState(false);
-  const [settingIndex, setSettingIndex] = useState(0);
-
-  const openConnectSettingModal = useCallback(() => {
-    setSettingIndex(2);
-    setSettingModalOpen(true);
-  }, []);
-
-  const openFeedsSettingModal = useCallback(() => {
-    setSettingIndex(3);
-    setSettingModalOpen(true);
-  }, []);
-
-  const closeSettingModal = useCallback(() => {
-    setSettingModalOpen(false);
-  }, []);
 
   const shouldLoadReadLaterCount = activeNav === 'saved';
 
@@ -201,8 +172,16 @@ const SecondarySidebar: React.FC = () => {
       case 'feeds':
         return (
           <>
-            {leadingHeader('Feeds')}
+            {leadingHeader('Feeds', true, '/settings/feeds')}
             {view && view.folderFeedConnectors && folderConnectorsView(view.folderFeedConnectors, true)}
+          </>
+        );
+
+      case 'settings':
+        return (
+          <>
+            {leadingHeader('Settings', false)}
+            <SettingsNavTree selectedNodeId={location.pathname} />
           </>
         );
 
@@ -224,9 +203,6 @@ const SecondarySidebar: React.FC = () => {
   return (
     <div className="secondary-sidebar">
       {content}
-      {settingModalOpen && (
-        <SettingModal open={settingModalOpen} onClose={closeSettingModal} defaultIndex={settingIndex} />
-      )}
     </div>
   );
 };

@@ -22,6 +22,14 @@ import Highlights from "./pages/Highlights";
 import {AuthControllerApiFactory} from "./api";
 import SignIn from "./pages/SignIn";
 import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
+import Settings from "./pages/settings";
+import SettingsGeneral from "./pages/settings/SettingsGeneral";
+import SettingsAIShortcuts from "./pages/settings/SettingsAIShortcuts";
+import SettingsConnect from "./pages/settings/SettingsConnect";
+import SettingsFeeds from "./pages/settings/SettingsFeeds";
+import SettingsFolders from "./pages/settings/SettingsFolders";
+import SettingsLibrary from "./pages/settings/SettingsLibrary";
+import SettingsAccount from "./pages/settings/SettingsAccount";
 
 function App() {
   const router = createBrowserRouter(
@@ -42,6 +50,14 @@ function App() {
           <Route path="/search" element={<Search/>}/>
           <Route path="/twitter" element={<Twitter/>}/>
           <Route path="/highlights" element={<Highlights/>}/>
+          <Route path="/settings" element={<Settings/>}/>
+          <Route path="/settings/general" element={<SettingsGeneral/>}/>
+          <Route path="/settings/ai-shortcuts" element={<SettingsAIShortcuts/>}/>
+          <Route path="/settings/connect" element={<SettingsConnect/>}/>
+          <Route path="/settings/feeds" element={<SettingsFeeds/>}/>
+          <Route path="/settings/folders" element={<SettingsFolders/>}/>
+          <Route path="/settings/library" element={<SettingsLibrary/>}/>
+          <Route path="/settings/account" element={<SettingsAccount/>}/>
         </Route>
       </Route>
     )

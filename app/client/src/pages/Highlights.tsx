@@ -434,10 +434,6 @@ const Highlights: React.FC = () => {
             )}
           </div>
         </div>
-
-        {/* 右侧占位区域 - 移动端隐藏 */}
-        <div className={'hidden lg:block w-[270px] sticky mt-3 top-28 self-start'}>
-        </div>
       </div>
       
     </MainContainer>

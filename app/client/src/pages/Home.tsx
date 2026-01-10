@@ -289,7 +289,6 @@ const Home = () => {
       <SubHeader
         navLabel={navLabels.home}
         buttonOptions={{ markRead: false, viewSwitch: false }}
-        hideSearchOnMobile={false}
       />
       <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: '100vw', overflowX: 'hidden' }}>
         <Box sx={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>

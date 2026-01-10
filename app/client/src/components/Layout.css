@@ -75,11 +75,15 @@
 @media (max-width: 900px) {
     .layoutRoot {
         flex-direction: column;
+        min-height: 100vh;
     }
 
     .primary-nav-container {
-        position: sticky;
-        top: 0;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
         width: 100%;
         height: auto;
         z-index: 210;
@@ -88,6 +92,9 @@
     .layout-right {
         width: 100%;
         height: auto;
+        flex: 1;
+        /* Add padding at bottom for fixed nav */
+        padding-bottom: 56px;
     }
 
     .content-area {
@@ -96,11 +103,9 @@
         overflow: visible;
     }
 
+    /* Hide secondary sidebar on mobile - will be shown as popup */
     .secondary-sidebar-container {
-        width: 100%;
-        max-height: 40vh;
-        border-right: none;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        display: none;
     }
 
     .main-content {

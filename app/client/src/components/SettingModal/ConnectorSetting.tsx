@@ -131,9 +131,9 @@ export const ConnectorSetting = () => {
                    error={formikGithub.touched.apiToken && Boolean(formikGithub.errors.apiToken)}
                    helperText={formikGithub.touched.apiToken && formikGithub.errors.apiToken}
         />
-        <div className={'flex items-center mb-2 mt-1'}>
+        <div className={'flex flex-wrap items-center gap-2 mb-2 mt-1'}>
           <TextField size={'small'} margin={'dense'}
-                     className={'w-[200px]'}
+                     className={'w-full sm:w-[200px]'}
                      label={'Display name'}
                      id={'name'} name={'name'}
                      value={formikGithub.values.name || ''}
@@ -143,7 +143,7 @@ export const ConnectorSetting = () => {
           />
           <TextField
             margin="dense"
-            className={'w-[180px] ml-2'}
+            className={'w-[calc(50%-4px)] sm:w-[180px]'}
             id="fetchIntervalMinutes"
             label="Fetch interval minutes"
             value={formikGithub.values.fetchIntervalMinutes || 0}
@@ -156,7 +156,7 @@ export const ConnectorSetting = () => {
           />
           <TextField
             margin="dense"
-            className={'w-[180px] ml-2'}
+            className={'w-[calc(50%-4px)] sm:w-[180px]'}
             id="fetchPageSize"
             label="Fetch page size"
             value={formikGithub.values.fetchPageSize || 0}
@@ -167,7 +167,7 @@ export const ConnectorSetting = () => {
             variant="outlined"
             size={"small"}
           />
-          <FormControlLabel className={'ml-2'}
+          <FormControlLabel
                             control={<Checkbox value={true} name={'enabled'} onChange={formikGithub.handleChange}
                                                checked={!!formikGithub.values.enabled}/>
                             }
@@ -248,8 +248,8 @@ export const ConnectorSetting = () => {
                       const myself = `settings[${index}].myself`;
 
                       return (
-                        <div key={index} className={`${index % 2 == 1 ? "bg-amber-50" : ""}`}>
-                          <div>
+                        <div key={index} className={`${index % 2 == 1 ? "bg-amber-50" : ""} p-2 sm:p-0`}>
+                          <div className={'flex flex-wrap items-start gap-2'}>
                             <TextField
                               margin="normal"
                               size={'small'}
@@ -257,7 +257,7 @@ export const ConnectorSetting = () => {
                               label="Name"
                               name={name}
                               value={setting.name}
-                              className={'w-[200px]'}
+                              className={'w-full sm:w-[200px]'}
                               required
                               helperText={
                                 touchedName && errorName
@@ -270,7 +270,7 @@ export const ConnectorSetting = () => {
                             />
                             <TextField
                               margin="normal"
-                              className={'ml-2 w-[200px]'}
+                              className={'w-full sm:w-[200px]'}
                               size={'small'}
                               variant="outlined"
                               label="Screen name"
@@ -289,22 +289,24 @@ export const ConnectorSetting = () => {
                               onChange={handleChange}
                               onBlur={handleBlur}
                             />
-                            <FormControlLabel className={'ml-2 mt-4'}
-                                              control={<Checkbox value={true} name={myself} onChange={handleChange}
-                                                                 checked={!!(setting.myself)}/>} label="Me"/>
-                            <Button
-                              className={'ml-2 float right mt-4'}
-                              type="button"
-                              color="secondary"
-                              variant="outlined"
-                              startIcon={<DeleteIcon/>}
-                              onClick={() => remove(index)}
-                            >
-                              DELETE
-                            </Button>
+                            <div className={'flex items-center gap-2 mt-2 sm:mt-4'}>
+                              <FormControlLabel
+                                control={<Checkbox value={true} name={myself} onChange={handleChange}
+                                                   checked={!!(setting.myself)}/>} label="Me"/>
+                              <Button
+                                type="button"
+                                color="secondary"
+                                variant="outlined"
+                                size="small"
+                                startIcon={<DeleteIcon/>}
+                                onClick={() => remove(index)}
+                              >
+                                DELETE
+                              </Button>
+                            </div>
                           </div>
-                          <div className={'flex mt-1'}>
-                            <FormControl className={'w-[200px]'}>
+                          <div className={'flex flex-wrap gap-2 mt-2'}>
+                            <FormControl className={'w-full sm:w-[200px]'} size="small">
                               <InputLabel size={'small'}>Tweets hunt</InputLabel>
                               <Select
                                 name={tweetToLibraryType}
@@ -320,7 +322,7 @@ export const ConnectorSetting = () => {
                                 <MenuItem value={4}>Save to archive</MenuItem>
                               </Select>
                             </FormControl>
-                            <FormControl className={'w-[200px] ml-2'}>
+                            <FormControl className={'w-full sm:w-[200px]'} size="small">
                               <InputLabel size={'small'}>Bookmarks hunt</InputLabel>
                               <Select
                                 name={bookmarkToLibraryType}
@@ -336,7 +338,7 @@ export const ConnectorSetting = () => {
                                 <MenuItem value={4}>Save to archive</MenuItem>
                               </Select>
                             </FormControl>
-                            <FormControl className={'w-[200px] ml-2'}>
+                            <FormControl className={'w-full sm:w-[200px]'} size="small">
                               <InputLabel size={'small'}>Likes hunt</InputLabel>
                               <Select
                                 name={likeToLibraryType}
