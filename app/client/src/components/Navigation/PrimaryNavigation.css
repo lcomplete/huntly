@@ -136,6 +136,7 @@
         backdrop-filter: saturate(180%) blur(20px);
         -webkit-backdrop-filter: saturate(180%) blur(20px);
         border-top: 1px solid rgba(60, 60, 67, 0.18);
+        justify-content: space-evenly;
     }
 
     .primary-nav-logo {
@@ -143,20 +144,13 @@
     }
 
     .primary-nav-items {
-        flex: 1;
-        flex-direction: row;
-        align-items: stretch;
-        justify-content: space-evenly;
-        gap: 0;
-        overflow-x: visible;
-        padding: 0 4px;
-        height: 100%;
+        display: contents;
     }
 
     .primary-nav-item {
         flex: 0 1 auto;
         margin: 0;
-        padding: 5px 8px 4px;
+        padding: 5px 4px 4px;
         min-width: 44px;
         border-radius: 0;
         position: relative;
@@ -229,7 +223,7 @@
         display: flex;
         flex: 0 1 auto;
         margin: 0;
-        padding: 5px 8px 4px;
+        padding: 5px 4px 4px;
         min-width: 44px;
         flex-direction: column;
         align-items: center;
