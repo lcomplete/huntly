@@ -1,20 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import "./PrimaryNavigation.css";
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import HomeIcon from '@mui/icons-material/Home';
 import LocalLibraryOutlinedIcon from '@mui/icons-material/LocalLibraryOutlined';
 import LocalLibraryIcon from '@mui/icons-material/LocalLibrary';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
-import TwitterIcon from '@mui/icons-material/Twitter';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import SearchIcon from '@mui/icons-material/Search';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import SvgIcon from '@mui/material/SvgIcon';
 import { useNavigation, PrimaryNavItem } from '../../contexts/NavigationContext';
 import { useQuery } from '@tanstack/react-query';
 import { ConnectorControllerApiFactory } from '../../api';
 import { ConnectorType } from '../../interfaces/connectorType';
 import SettingModal from '../SettingModal';
+
+// X (Twitter) Icon Component
+const XIcon: React.FC<{ className?: string }> = (props) => (
+  <SvgIcon {...props} viewBox="0 0 24 24">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </SvgIcon>
+);
 
 interface NavItemConfig {
   id: PrimaryNavItem;
@@ -26,7 +33,6 @@ interface NavItemConfig {
 }
 
 const PrimaryNavigation: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { activeNav, setActiveNav } = useNavigation();
   const [settingModalOpen, setSettingModalOpen] = useState(false);
@@ -82,7 +88,7 @@ const PrimaryNavigation: React.FC = () => {
     },
     {
       id: 'x',
-      icon: <TwitterIcon />,
+      icon: <XIcon />,
       label: 'X',
       path: '/twitter',
     },
@@ -129,29 +135,24 @@ const PrimaryNavigation: React.FC = () => {
     }
   }, [location.pathname, setActiveNav, view]);
 
-  const handleNavClick = (item: NavItemConfig) => {
-    setActiveNav(item.id);
-    navigate(item.path);
-  };
-
   const isSearchActive = location.pathname === '/search';
 
   return (
     <div className="primary-nav">
       {/* Logo Area */}
-      <div className="primary-nav-logo" onClick={() => handleNavClick(navItems[0])}>
+      <Link className="primary-nav-logo" to={navItems[0].path}>
         <img src="/favicon-32x32.png" alt="Huntly" />
-      </div>
+      </Link>
 
       {/* Navigation Items */}
       <div className="primary-nav-items">
         {navItems
           .filter((item) => item.condition !== false)
           .map((item) => (
-            <div
+            <Link
               key={item.id}
               className={`primary-nav-item ${activeNav === item.id ? 'active' : ''}`}
-              onClick={() => handleNavClick(item)}
+              to={item.path}
             >
               <div className="primary-nav-item-icon-wrapper">
                 <div className="primary-nav-item-icon">
@@ -159,13 +160,13 @@ const PrimaryNavigation: React.FC = () => {
                 </div>
               </div>
               <span className="primary-nav-item-label">{item.label}</span>
-            </div>
+            </Link>
           ))}
 
         {/* Search Button - Last in nav items */}
-        <div
+        <Link
           className={`primary-nav-item ${isSearchActive ? 'active' : ''}`}
-          onClick={() => navigate('/search')}
+          to="/search"
         >
           <div className="primary-nav-item-icon-wrapper">
             <div className="primary-nav-item-icon">
@@ -173,7 +174,7 @@ const PrimaryNavigation: React.FC = () => {
             </div>
           </div>
           <span className="primary-nav-item-label">Search</span>
-        </div>
+        </Link>
       </div>
 
       {/* Settings Button - Bottom, icon only */}

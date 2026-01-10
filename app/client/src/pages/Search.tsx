@@ -147,10 +147,10 @@ export default function Search() {
         <SearchIcon sx={{ fontSize: 40, color: '#0ea5e9' }} />
       </Box>
       <Typography variant="h5" sx={{ fontWeight: 600, color: '#374151', mb: 1.5 }}>
-        Search your library
+        Search everything in Huntly
       </Typography>
       <Typography variant="body1" sx={{ color: '#6b7280', mb: 4, maxWidth: 400 }}>
-        Find articles, tweets, highlights, and more across your entire collection.
+        Find articles, tweets, highlights, feeds, and more across all your hunted content.
       </Typography>
       <Box sx={{ width: '100%', maxWidth: 600 }}>
         <SearchBox />

@@ -189,7 +189,7 @@ export default function NavTreeView({
       defaultExpandIcon={<ArrowRightIcon sx={{ color: '#94a3b8', fontSize: 18 }}/>}
       defaultEndIcon={<div style={{width: 18}}/>}
       selected={selectedNodeId}
-      sx={{flexGrow: 1, overflowY: 'auto', px: 0, pt: 0.5}}
+      sx={{flexGrow: 1, overflowY: 'auto', px: 0, pt: 0.25, pb: 0.25}}
     >
       {
         treeItems.map((item, i) => itemView(item, "", i))

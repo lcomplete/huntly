@@ -60,7 +60,13 @@ public class PageListService {
             listSort = listQuery.getSort();
         }
         var sortField = listSort.getSortField();
-        var sortFilterField = listSort.equals(PageListSort.VOTE_SCORE) ? PageListSort.CREATED_AT.getSortField() : sortField;
+        // For tweets sorted by VOTE_SCORE, use CONNECTED_AT (tweet publish time) for date filtering
+        // For other content types, use CREATED_AT (system creation time)
+        var sortFilterField = sortField;
+        if (listSort.equals(PageListSort.VOTE_SCORE)) {
+            boolean isTweetQuery = listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2;
+            sortFilterField = isTweetQuery ? PageListSort.CONNECTED_AT.getSortField() : PageListSort.CREATED_AT.getSortField();
+        }
         var specs = Specifications.<Page>and()
                 .ne(StringUtils.isNotBlank(sortField), sortField, (Object) null)
                 .gt(listQuery.getLastRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getLastRecordAt())

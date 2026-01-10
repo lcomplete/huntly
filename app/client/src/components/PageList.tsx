@@ -421,10 +421,11 @@ const PageList = (props: PageListProps) => {
   return (
     <>
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail}/>
-      <SubHeader navLabel={navLabel} onMarkListAsRead={markListAsRead} onMarkAllAsRead={markAllAsRead}
+       <SubHeader navLabel={navLabel} onMarkListAsRead={markListAsRead} onMarkAllAsRead={markAllAsRead}
                  navLabelArea={navLabelArea}
+                 rightContent={props.filterComponent}
                  buttonOptions={buttonOptions}/>
-      <div className={'flex flex-auto'}>
+       <div className={'flex flex-auto'}>
         <div className="p-2 flex flex-col grow items-center">
           <div className={'page-list w-[720px] flex flex-col items-center'} ref={pageListRef}>
             {showDoneTip && <div className={'w-full'}>
@@ -484,9 +485,6 @@ const PageList = (props: PageListProps) => {
                 </>
             }
           </div>
-        </div>
-        <div className={'filter-options w-[320px] sticky mt-3 top-28 self-start'}>
-          {props.filterComponent}
         </div>
       </div>
     </>

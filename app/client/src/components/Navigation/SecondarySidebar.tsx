@@ -208,7 +208,7 @@ const SecondarySidebar: React.FC = () => {
   }
 
   return (
-    <div className="secondary-sidebar pb-14">
+    <div className="secondary-sidebar">
       {content}
       {settingModalOpen && (
         <SettingModal open={settingModalOpen} onClose={closeSettingModal} defaultIndex={settingIndex} />

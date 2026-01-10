@@ -115,3 +115,48 @@
     color: #64748b;
     transition: color 0.2s ease;
 }
+
+@media (max-width: 900px) {
+    .primary-nav {
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .primary-nav-logo {
+        height: 36px;
+        width: auto;
+        margin-top: 0;
+        padding: 0 6px;
+    }
+
+    .primary-nav-items {
+        flex: 1;
+        flex-direction: row;
+        align-items: center;
+        gap: 2px;
+        overflow-x: auto;
+        padding-top: 0;
+    }
+
+    .primary-nav-item {
+        margin: 0 2px;
+        padding: 6px 6px;
+        min-width: 56px;
+    }
+
+    .primary-nav-item-icon-wrapper {
+        margin-bottom: 2px;
+    }
+
+    .primary-nav-item-label {
+        font-size: 9px;
+    }
+
+    .primary-nav-settings {
+        margin-bottom: 0;
+        margin-left: 4px;
+    }
+}

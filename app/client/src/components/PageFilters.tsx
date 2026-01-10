@@ -1,13 +1,14 @@
 import {
+  Button,
   Divider,
-  FormControl,
-  FormControlLabel,
-  FormLabel, IconButton, Popover,
-  Radio,
-  RadioGroup, Switch, ToggleButton,
-  ToggleButtonGroup
+  IconButton,
+  Menu,
+  MenuItem,
+  Popover,
+  useMediaQuery
 } from "@mui/material";
 import React from "react";
+import "./PageFilters.css";
 import {SORT_VALUE} from "../model";
 import 'react-date-range/dist/styles.css'; // main style file
 import 'react-date-range/dist/theme/default.css'; // theme css file
@@ -15,6 +16,10 @@ import {DateRangePicker} from 'react-date-range';
 import {CalendarMonth} from "@mui/icons-material";
 import moment from "moment";
 import ClearIcon from '@mui/icons-material/Clear';
+import TuneIcon from '@mui/icons-material/Tune';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+import SortOutlinedIcon from '@mui/icons-material/SortOutlined';
+import SwapVertOutlinedIcon from '@mui/icons-material/SwapVertOutlined';
 
 export type SortField = {
   value: SORT_VALUE,
@@ -44,6 +49,22 @@ export default function PageFilters(props: PageFilterProps) {
   const [pickerAnchorEl, setPickerAnchorEl] = React.useState(null);
   const [tempStartDate, setTempStartDate] = React.useState(startDate);
   const [tempEndDate, setTempEndDate] = React.useState(endDate);
+  const isMobile = useMediaQuery('(max-width: 720px)');
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const showFilters = !isMobile || mobileOpen;
+  const [contentAnchorEl, setContentAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [sortAnchorEl, setSortAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [orderAnchorEl, setOrderAnchorEl] = React.useState<HTMLElement | null>(null);
+  const contentLabelMap = {
+    0: 'All',
+    1: 'Article',
+    4: 'Snippet',
+    2: 'Tweet'
+  };
+  const contentLabel = contentLabelMap[contentFilterType || 0];
+  const sortLabel = sortFields.find((field) => field.value === defaultSortValue)?.label || 'Sort';
+  const orderLabel = asc ? 'Oldest' : 'Newest';
+  const showOrder = defaultSortValue !== 'VOTE_SCORE';
 
   function handleSortingChange(event, value) {
     onChange({
@@ -61,9 +82,10 @@ export default function PageFilters(props: PageFilterProps) {
   }
 
   function handleContentFilterChange(event, value) {
+    const nextValue = typeof value === 'string' ? value : event?.target?.value;
     onChange({
       ...options,
-      contentFilterType: value ? parseInt(value) : 0
+      contentFilterType: nextValue ? parseInt(nextValue) : 0
     });
   }
 
@@ -106,120 +128,136 @@ export default function PageFilters(props: PageFilterProps) {
     });
   }
 
-  return <div className={'text-[14px] flex flex-col'}>
-    {
-      !hideContentTypeFilter && <FormControl className={''}>
-            <FormLabel id={'date-label'}>CONTENT</FormLabel>
-            <ToggleButtonGroup
-                className={'mt-2'}
-                color="primary"
-                exclusive
-                value={(contentFilterType || 0).toString()}
-                aria-label="content filter"
-                size={"small"}
-                onChange={handleContentFilterChange}
-            >
-                <ToggleButton value="0">All</ToggleButton>
-                <ToggleButton value="1">Article</ToggleButton>
-                <ToggleButton value="4">Snippet</ToggleButton>
-                <ToggleButton value="2">Tweet</ToggleButton>
-            </ToggleButtonGroup>
-        </FormControl>
-    }
+  return <div className={'page-filters'}>
+    {isMobile && (
+      <Button
+        size="small"
+        className={'page-filters-toggle'}
+        startIcon={<TuneIcon fontSize="small" />}
+        onClick={() => setMobileOpen((prev) => !prev)}
+      >
+        Filters
+      </Button>
+    )}
 
-    <div className={`${hideContentTypeFilter ? "" : "mt-4"}`}>
-      <div className={''}>
-        <div className={'w-11/12'}>
-          <div className={'flex items-center text-base cursor-pointer'}>
-            <div className={'flex items-center text-[rgba(0,0,0,0.7)] grow'} onClick={openPicker}>
-              <CalendarMonth sx={{color: '#1976d2', mr: 1, my: 0.5}}/>
-              {tempStartDate && tempEndDate ? <span>
-              {moment(tempStartDate).format('L')} - {moment(tempEndDate).format('L')}
-            </span> :
-                <span>
-              Date range
-            </span>
-              }
-            </div>
-            {
-              tempStartDate && tempEndDate && <span className={'ml-1'}>
-                <IconButton size={"small"} onClick={handleClearDate}>
-                  <ClearIcon fontSize={"small"}/>
-                </IconButton>
-              </span>
-            }
-          </div>
-          <Divider/>
-        </div>
-        <Popover open={pickerOpen} anchorEl={pickerAnchorEl} onClose={handlePickerClose} anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
-        }}>
-          <DateRangePicker ranges={[{
-            startDate: tempStartDate,
-            endDate: tempEndDate,
-            key: 'selection'
-          }]}
-                           showSelectionPreview={true}
-                           moveRangeOnFirstSelection={false}
-                           months={2}
-                           onChange={handleDateChange}/>
-        </Popover>
-      </div>
+    <div className={`page-filters-content ${showFilters ? 'is-open' : ''}`}>
+      {!hideContentTypeFilter && (
+        <Button
+          size="small"
+          className={'page-filters-pill'}
+          startIcon={<CategoryOutlinedIcon fontSize="small" />}
+          onClick={(event) => setContentAnchorEl(event.currentTarget)}
+        >
+          {contentLabel}
+        </Button>
+      )}
+
+      <Button
+        size="small"
+        className={'page-filters-pill'}
+        startIcon={<CalendarMonth fontSize="small" />}
+        onClick={openPicker}
+      >
+        {tempStartDate && tempEndDate
+          ? `${moment(tempStartDate).format('L')} - ${moment(tempEndDate).format('L')}`
+          : 'Date range'}
+      </Button>
+      {tempStartDate && tempEndDate && (
+        <IconButton size={"small"} onClick={handleClearDate} className={'page-filters-clear'}>
+          <ClearIcon fontSize={"small"}/>
+        </IconButton>
+      )}
+
+      <Button
+        size="small"
+        className={'page-filters-pill'}
+        startIcon={<SortOutlinedIcon fontSize="small" />}
+        onClick={(event) => setSortAnchorEl(event.currentTarget)}
+      >
+        {sortLabel}
+      </Button>
+
+      {showOrder && (
+        <Button
+          size="small"
+          className={'page-filters-pill'}
+          startIcon={<SwapVertOutlinedIcon fontSize="small" />}
+          onClick={(event) => setOrderAnchorEl(event.currentTarget)}
+        >
+          {orderLabel}
+        </Button>
+      )}
     </div>
 
-    {
-      options.showAllArticlesOption && (
-        <FormControl className={`mt-4`}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={options.showAllArticles || false}
-                onChange={(e, checked) => {
-                  onChange({
-                    ...options,
-                    showAllArticles: checked
-                  });
-                }}
-                size="small"
-              />
-            }
-            label="Show all articles"
-          />
-        </FormControl>
-      )
-    }
+    <Menu
+      anchorEl={contentAnchorEl}
+      open={Boolean(contentAnchorEl)}
+      onClose={() => setContentAnchorEl(null)}
+      PaperProps={{
+        className: 'page-filters-menu'
+      }}
+    >
+      <MenuItem onClick={() => { handleContentFilterChange(null, '0'); setContentAnchorEl(null); }}>
+        All
+      </MenuItem>
+      <MenuItem onClick={() => { handleContentFilterChange(null, '1'); setContentAnchorEl(null); }}>
+        Article
+      </MenuItem>
+      <MenuItem onClick={() => { handleContentFilterChange(null, '4'); setContentAnchorEl(null); }}>
+        Snippet
+      </MenuItem>
+      <MenuItem onClick={() => { handleContentFilterChange(null, '2'); setContentAnchorEl(null); }}>
+        Tweet
+      </MenuItem>
+    </Menu>
 
-    <FormControl className={`mt-4`} size={"small"}>
-      <FormLabel id="sort-field-label">SORT BY</FormLabel>
-      <RadioGroup
-        aria-labelledby="sort-field-label"
-        defaultValue={defaultSortValue}
-        name="sort-field-buttons"
-        onChange={handleSortByChange}
-      >
-        {
-          sortFields.map((field) => {
-            return <FormControlLabel key={field.value} value={field.value} control={<Radio/>} label={field.label}/>;
-          })
-        }
-      </RadioGroup>
-    </FormControl>
+    <Menu
+      anchorEl={sortAnchorEl}
+      open={Boolean(sortAnchorEl)}
+      onClose={() => setSortAnchorEl(null)}
+      PaperProps={{
+        className: 'page-filters-menu'
+      }}
+    >
+      {sortFields.map((field) => (
+        <MenuItem
+          key={field.value}
+          onClick={() => { handleSortByChange(null, field.value); setSortAnchorEl(null); }}
+        >
+          {field.label}
+        </MenuItem>
+      ))}
+    </Menu>
 
-    {
-      defaultSortValue !== 'VOTE_SCORE' &&
-        <FormControl className={'mt-2'} size={"small"}>
-            <FormLabel id="sorting-label">SORTING</FormLabel>
-            <RadioGroup
-                aria-labelledby="sorting-label"
-                defaultValue={asc ? "true" : "false"}
-                name="sorting-buttons"
-                onChange={handleSortingChange}
-            >
-                <FormControlLabel value="false" control={<Radio/>} label="Newest first"/>
-                <FormControlLabel value="true" control={<Radio/>} label="Oldest first"/>
-            </RadioGroup>
-        </FormControl>
-    }
+    <Menu
+      anchorEl={orderAnchorEl}
+      open={Boolean(orderAnchorEl)}
+      onClose={() => setOrderAnchorEl(null)}
+      PaperProps={{
+        className: 'page-filters-menu'
+      }}
+    >
+      <MenuItem onClick={() => { handleSortingChange(null, 'false'); setOrderAnchorEl(null); }}>
+        Newest first
+      </MenuItem>
+      <MenuItem onClick={() => { handleSortingChange(null, 'true'); setOrderAnchorEl(null); }}>
+        Oldest first
+      </MenuItem>
+    </Menu>
+
+    <Popover open={pickerOpen} anchorEl={pickerAnchorEl} onClose={handlePickerClose} anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'center',
+    }}>
+      <DateRangePicker ranges={[{
+        startDate: tempStartDate,
+        endDate: tempEndDate,
+        key: 'selection'
+      }]}
+                       showSelectionPreview={true}
+                       moveRangeOnFirstSelection={false}
+                       months={2}
+                       onChange={handleDateChange}/>
+    </Popover>
   </div>;
 }

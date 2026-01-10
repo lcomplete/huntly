@@ -1,0 +1,99 @@
+.page-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #475569;
+    flex-wrap: nowrap;
+}
+
+.page-filters-toggle {
+    text-transform: none;
+    font-weight: 600;
+    color: #475569;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 8px;
+    padding: 4px 10px;
+    min-width: auto;
+}
+
+.page-filters-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.page-filters-pill {
+    text-transform: none;
+    font-size: 12px;
+    color: #475569;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 999px;
+    padding: 2px 10px;
+    min-width: 0;
+    white-space: nowrap;
+    background: rgba(248, 250, 252, 0.6);
+}
+
+.page-filters-clear {
+    margin-left: -4px;
+}
+
+.page-filters-menu {
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    padding: 4px;
+}
+
+.page-filters-menu .MuiMenuItem-root {
+    font-size: 12.5px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: #475569;
+}
+
+.page-filters-menu .MuiMenuItem-root.Mui-selected,
+.page-filters-menu .MuiMenuItem-root.Mui-selected:hover {
+    background-color: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+}
+
+@media (max-width: 900px) {
+    .page-filters-content {
+        gap: 6px;
+    }
+}
+
+@media (max-width: 720px) {
+    .page-filters {
+        position: relative;
+    }
+
+    .page-filters-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        width: min(88vw, 320px);
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 10px;
+        padding: 12px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        z-index: 20;
+    }
+
+    .page-filters-content.is-open {
+        display: flex;
+    }
+
+    .page-filters-pill {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}

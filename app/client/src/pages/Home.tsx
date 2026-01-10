@@ -9,6 +9,7 @@ import {
   PageItem,
 } from "../api";
 import MagazineItem from "../components/MagazineItem";
+import CompactItem from "../components/CompactItem";
 import Loading from "../components/Loading";
 import { Link, useNavigate } from "react-router-dom";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -37,7 +38,7 @@ const Home = () => {
       ConnectorType.RSS, // connectorType
       undefined, // contentFilterType
       undefined, // contentType
-      5, // count
+      8, // count
       undefined, // endDate
       undefined, // firstRecordAt
       undefined, // firstVoteScore
@@ -67,7 +68,7 @@ const Home = () => {
       undefined, // connectorType
       undefined, // contentFilterType
       undefined, // contentType
-      5, // count
+      8, // count
       undefined, // endDate
       undefined, // firstRecordAt
       undefined, // firstVoteScore
@@ -97,7 +98,7 @@ const Home = () => {
       undefined, // connectorType
       undefined, // contentFilterType
       undefined, // contentType
-      5, // count
+      8, // count
       undefined, // endDate
       undefined, // firstRecordAt
       undefined, // firstVoteScore
@@ -125,7 +126,7 @@ const Home = () => {
       "desc",
       undefined,
       0,
-      5,
+      8,
       "created_at"
     );
     return response.data?.data?.content || [];
@@ -140,8 +141,8 @@ const Home = () => {
       false, // asc
       undefined, // connectorId
       undefined, // connectorType
-      undefined, // contentFilterType
-      "TWEET", // contentType
+      2, // contentFilterType (2 = Tweet, includes both TWEET and QUOTED_TWEET)
+      undefined, // contentType
       8, // count
       hotTweetsDateRange.endDate, // endDate
       undefined, // firstRecordAt
@@ -167,26 +168,21 @@ const Home = () => {
 
   const columnSx = {
     width: "100%",
-    borderRadius: 2,
-    border: "1px solid",
-    borderColor: "divider",
-    backgroundColor: "action.hover",
-    padding: { xs: 2, md: 2.5 },
     display: "flex",
     flexDirection: "column",
     gap: 3,
   };
 
   const moduleSx = {
-    p: 2,
+    p: 2.5,
     borderRadius: 2,
-    border: "1px solid",
-    borderColor: "divider",
     backgroundColor: "background.paper",
-    boxShadow: 1,
+    border: "1px solid",
+    borderColor: "rgba(0,0,0,0.1)",
+    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
   };
 
-  const renderPageList = (pages: PageItem[], emptyText: string) => {
+  const renderPageList = (pages: PageItem[], emptyText: string, useTweetStyle: boolean = false) => {
     if (!pages || pages.length === 0) {
       return (
         <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
@@ -195,10 +191,16 @@ const Home = () => {
       );
     }
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {pages.map((page: PageItem) => (
-          <MagazineItem key={page.id} page={page} />
-        ))}
+      <Box sx={{ display: "flex", flexDirection: "column", gap: useTweetStyle ? 2.5 : 1 }}>
+        {pages.map((page: PageItem) => {
+          const isTweet = page.contentType === 1 || page.contentType === 3;
+          // Use MagazineItem for tweets or when explicitly requested
+          if (isTweet || useTweetStyle) {
+            return <MagazineItem key={page.id} page={page} />;
+          }
+          // Use CompactItem for other content types
+          return <CompactItem key={page.id} page={page} />;
+        })}
       </Box>
     );
   };
@@ -225,9 +227,11 @@ const Home = () => {
               sx={{
                 p: 2,
                 borderRadius: 1.5,
-                border: "1px solid",
-                borderColor: "divider",
-                backgroundColor: "action.hover",
+                backgroundColor: "rgba(0,0,0,0.02)",
+                transition: "background-color 0.2s",
+                "&:hover": {
+                  backgroundColor: "rgba(0,0,0,0.04)",
+                },
               }}
             >
               <Link
@@ -277,6 +281,7 @@ const Home = () => {
       <SubHeader
         navLabel={navLabels.home}
         buttonOptions={{ markRead: false, viewSwitch: false }}
+        hideSearchOnMobile={false}
       />
       <Box sx={{ p: { xs: 2, md: 4 } }}>
         <Box sx={{ width: "100%" }}>
@@ -285,9 +290,9 @@ const Home = () => {
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                md: "33.33% 33.33% 33.33%",
+                md: "repeat(3, 1fr)",
               },
-              gap: { xs: 3, md: 3 },
+              gap: { xs: 3, md: 4 },
             }}
           >
             <Box sx={columnSx}>
@@ -299,7 +304,7 @@ const Home = () => {
                     justifyContent: "space-between",
                     pb: 1.5,
                     borderBottom: "1px solid",
-                    borderColor: "divider",
+                    borderColor: "rgba(0,0,0,0.06)",
                     mb: 2.5,
                   }}
                 >
@@ -332,7 +337,7 @@ const Home = () => {
                     justifyContent: "space-between",
                     pb: 1.5,
                     borderBottom: "1px solid",
-                    borderColor: "divider",
+                    borderColor: "rgba(0,0,0,0.06)",
                     mb: 2.5,
                   }}
                 >
@@ -367,7 +372,7 @@ const Home = () => {
                     justifyContent: "space-between",
                     pb: 1.5,
                     borderBottom: "1px solid",
-                    borderColor: "divider",
+                    borderColor: "rgba(0,0,0,0.06)",
                     mb: 2.5,
                   }}
                 >
@@ -400,7 +405,7 @@ const Home = () => {
                     justifyContent: "space-between",
                     pb: 1.5,
                     borderBottom: "1px solid",
-                    borderColor: "divider",
+                    borderColor: "rgba(0,0,0,0.06)",
                     mb: 2.5,
                   }}
                 >
@@ -433,7 +438,7 @@ const Home = () => {
                     justifyContent: "space-between",
                     pb: 1.5,
                     borderBottom: "1px solid",
-                    borderColor: "divider",
+                    borderColor: "rgba(0,0,0,0.06)",
                     mb: 2.5,
                   }}
                 >
@@ -462,7 +467,7 @@ const Home = () => {
                   )}
                   {!isLoadingHotTweets &&
                     !hotTweetsError &&
-                    renderPageList(hotTweets || [], "No hot tweets in the last 24h.")}
+                    renderPageList(hotTweets || [], "No hot tweets in the last 24h.", true)}
                 </Box>
               </Box>
             </Box>

@@ -42,6 +42,16 @@ export default function MagazineItem({
   const isTweet = page.contentType === 1 || page.contentType === 3;
   const isSnippet = page.contentType === 4;
   const isGithub = page.connectorType === ConnectorType.GITHUB;
+
+  const handleFaviconError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = '/fallback-icon.svg';
+  };
+
+  const handleThumbError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = '/fallback-thumb.svg';
+  };
   let tweetProps: TweetProperties = isTweet ? JSON.parse(page.pageJsonProperties) : null;
   let tweetStatus = tweetProps;
   if (tweetProps && tweetProps.retweetedTweet) {
@@ -100,6 +110,7 @@ export default function MagazineItem({
                   {page.faviconUrl &&
                     <span className={"mr-2"}>
                         <CardMedia component={'img'} image={page.faviconUrl}
+                                   onError={handleFaviconError}
                                    sx={{
                                      width: 16, height: 16
                                    }}/>
@@ -223,6 +234,7 @@ export default function MagazineItem({
                 sx={{width: '100%', height: '100%'}}
                 image={page.thumbUrl}
                 alt={page.title}
+                onError={handleThumbError}
               />
             </Box>
           </Link>

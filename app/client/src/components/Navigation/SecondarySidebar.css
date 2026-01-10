@@ -6,7 +6,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    @apply px-2 pt-0 pb-3;
+    padding: 0 8px;
 }
 
 .secondary-sidebar::-webkit-scrollbar {
@@ -27,8 +27,20 @@
 }
 
 .secondary-sidebar-header {
-    padding: 6px 18px 6px 20px;
+    padding: 6px 16px;
     min-height: 52px;
     margin: 0 -8px 8px -8px;
     border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+@media (max-width: 900px) {
+    .secondary-sidebar {
+        padding: 0 8px;
+    }
+
+    .secondary-sidebar-header {
+        min-height: 40px;
+        margin-bottom: 2px;
+        padding: 4px 12px 4px 16px;
+    }
 }
