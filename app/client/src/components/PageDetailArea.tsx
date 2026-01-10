@@ -450,11 +450,7 @@ const PageDetailArea = ({
           {/* 主内容区域 */}
           <Paper
             className={"page-detail-paper"}
-            sx={{
-              maxWidth: 800,
-              minWidth: { xs: 0, md: 800 },
-              width: { xs: '100%', md: 800 }
-            }}
+            sx={{maxWidth: 800, minWidth: 800}}
             key={detail.page.id}
             elevation={2}
           >

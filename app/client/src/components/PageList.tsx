@@ -377,7 +377,7 @@ const PageList = (props: PageListProps) => {
   }
 
   // ============ Navigation and UI ============
-  const isMobile = () => window.innerWidth <= 768;
+  const isMobile = () => window.innerWidth <= 900;
 
   function closePageDetail() {
     setParams({}, {preventScrollReset: true});
