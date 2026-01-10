@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import "./SecondarySidebar.css";
 import { IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { useQuery } from "@tanstack/react-query";
 import { ConnectorControllerApiFactory, ConnectorItem, FolderConnectors } from "../../api";
 import NavTreeView, { NavTreeViewItem } from "../Sidebar/NavTreeView";
@@ -21,19 +22,14 @@ const SecondarySidebar: React.FC = () => {
   function leadingHeader(leadingText: string, showAction = true) {
     return (
       <div
-        className={'flex items-center'}
-        style={{
-          padding: '16px 10px 12px 10px',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.12)',
-          marginBottom: 4,
-        }}
+        className={'secondary-sidebar-header flex items-center'}
       >
         <div style={{
           flex: 1,
-          fontSize: '15px',
-          fontWeight: 700,
-          color: '#1e293b',
-          letterSpacing: '-0.01em',
+          fontSize: '14px',
+          fontWeight: 600,
+          color: '#334155',
+          letterSpacing: '0.01em',
         }}>
           {leadingText}
         </div>
@@ -52,13 +48,18 @@ const SecondarySidebar: React.FC = () => {
               height: 24,
               bgcolor: 'transparent',
               borderRadius: '5px',
-              transition: 'background-color 0.15s ease',
+              transition: 'color 0.15s ease',
+              color: '#94a3b8',
               '&:hover': {
-                bgcolor: 'rgba(100, 116, 139, 0.10)',
+                color: '#64748b',
               },
             }}
           >
-            <AddIcon sx={{ fontSize: 15, color: '#94a3b8' }} />
+            {leadingText === 'Feeds' ? (
+              <SettingsOutlinedIcon sx={{ fontSize: 17 }} />
+            ) : (
+              <AddIcon sx={{ fontSize: 17 }} />
+            )}
           </IconButton>
         )}
       </div>

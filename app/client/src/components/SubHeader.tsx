@@ -3,6 +3,7 @@ import "./SubHeader.css";
 import * as React from "react";
 import {ReactElement} from "react";
 import {NavLabel} from "./Sidebar/NavLabels";
+import SearchBox from "./SearchBox";
 import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ListAltIcon from '@mui/icons-material/ListAlt';
@@ -37,71 +38,73 @@ const SubHeader = (props: SubHeaderProps) => {
   const hasButtons = buttonOptions.markRead || buttonOptions.viewSwitch;
 
   return <div className={'subheader w-full'}>
-    <div className={'flex items-center border-b-gray-500 pl-3 pr-3 pt-1 pb-1 min-h-[48px]'}>
-      <div className={'flex items-center'}>
-        {
-          navLabel.iconUrl ? <Box component={'img'}
-                         sx={{mr: 1, width: 24, height: 24}} src={navLabel.iconUrl}/>
-            : <SvgIcon component={navLabel.labelIcon} sx={{color: navLabel.iconColor}}/>
-        }
-        <span className={'ml-1'}>{navLabel.labelText}</span>
-        {navLabelArea}
+    <div className={'subheader-bar'}>
+      <div className={'subheader-left'}>
+        <div className={'subheader-title'}>
+          {
+            navLabel.iconUrl ? <Box component={'img'}
+                           sx={{mr: 1, width: 24, height: 24}} src={navLabel.iconUrl}/>
+              : <SvgIcon component={navLabel.labelIcon} sx={{color: navLabel.iconColor}}/>
+          }
+          <span className={'subheader-label'}>{navLabel.labelText}</span>
+          {navLabelArea}
+        </div>
+
+        {hasButtons && (
+          <div className={'subheader-actions subheader-actions-left'}>
+            {
+              buttonOptions.markRead && <div className={'subheader-action-group group'}>
+                    <Tooltip title={'Mark list as read'} placement={"bottom"}>
+                        <IconButton size="small" className={'subheader-action'} onClick={onMarkListAsRead}>
+                            <CheckIcon fontSize="small"/>
+                        </IconButton>
+                    </Tooltip>
+                    <div className={"subheader-action-stack group-hover:flex hidden absolute flex-col"}>
+                        <Tooltip title={'Mark all as read'} placement={"bottom"}>
+                            <IconButton size="small" className={'subheader-action'} onClick={onMarkAllAsRead}>
+                                <DoneAllIcon fontSize="small"/>
+                            </IconButton>
+                        </Tooltip>
+                    </div>
+                </div>
+            }
+
+            {
+              buttonOptions.viewSwitch && <div className={'subheader-action-group group'}>
+                    <Tooltip title={'Magazine view'} placement={"bottom"}>
+                        <IconButton size="small" className={'subheader-action'}>
+                            <ListAltIcon fontSize="small"/>
+                        </IconButton>
+                    </Tooltip>
+                    <div className={"subheader-action-stack group-hover:flex hidden absolute flex-col"}>
+                        <Tooltip title={'Column view'} placement={"bottom"}>
+                            <IconButton size="small" className={'subheader-action'}>
+                                <VerticalSplitOutlinedIcon fontSize="small"/>
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={'List view'} placement={"bottom"}>
+                            <IconButton size="small" className={'subheader-action'}>
+                                <ViewHeadlineOutlinedIcon fontSize="small"/>
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={'Expanded view'} placement={"bottom"}>
+                            <IconButton size="small" className={'subheader-action'}>
+                                <ViewDayOutlinedIcon fontSize="small"/>
+                            </IconButton>
+                        </Tooltip>
+                    </div>
+                </div>
+            }
+          </div>
+        )}
       </div>
 
-      {hasButtons && (
-        <div className={'flex items-center ml-2'}>
-          {
-            buttonOptions.markRead && <div className={'group'}>
-                  <Tooltip title={'Mark list as read'} placement={"bottom"}>
-                      <IconButton size="small" onClick={onMarkListAsRead}>
-                          <CheckIcon fontSize="small"/>
-                      </IconButton>
-                  </Tooltip>
-                  <div className={"group-hover:flex hidden absolute flex-col"}>
-                      <Tooltip title={'Mark all as read'} placement={"bottom"}>
-                          <IconButton size="small" onClick={onMarkAllAsRead}>
-                              <DoneAllIcon fontSize="small"/>
-                          </IconButton>
-                      </Tooltip>
-                  </div>
-              </div>
-          }
-
-          {
-            buttonOptions.viewSwitch && <div className={'group'}>
-                  <Tooltip title={'Magazine view'} placement={"bottom"}>
-                      <IconButton size="small">
-                          <ListAltIcon fontSize="small"/>
-                      </IconButton>
-                  </Tooltip>
-                  <div className={"group-hover:flex hidden absolute flex-col"}>
-                      <Tooltip title={'Column view'} placement={"bottom"}>
-                          <IconButton size="small">
-                              <VerticalSplitOutlinedIcon fontSize="small"/>
-                          </IconButton>
-                      </Tooltip>
-                      <Tooltip title={'List view'} placement={"bottom"}>
-                          <IconButton size="small">
-                              <ViewHeadlineOutlinedIcon fontSize="small"/>
-                          </IconButton>
-                      </Tooltip>
-                      <Tooltip title={'Expanded view'} placement={"bottom"}>
-                          <IconButton size="small">
-                              <ViewDayOutlinedIcon fontSize="small"/>
-                          </IconButton>
-                      </Tooltip>
-                  </div>
-              </div>
-          }
+      <div className={'subheader-right'}>
+        <div className={'subheader-search'}>
+          <SearchBox />
         </div>
-      )}
+      </div>
     </div>
-
-    <Box component={"hr"} sx={{
-      backgroundColor: "rgba(230, 230, 230, 1)",
-      border: 0,
-      height: '1px'
-    }} className={"m-0"}/>
   </div>
 }
 

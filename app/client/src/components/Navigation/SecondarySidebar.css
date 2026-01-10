@@ -25,3 +25,10 @@
 .secondary-sidebar::-webkit-scrollbar-thumb:hover {
     background-color: rgba(148, 163, 184, 0.4);
 }
+
+.secondary-sidebar-header {
+    padding: 6px 18px 6px 20px;
+    min-height: 52px;
+    margin: 0 -8px 8px -8px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}

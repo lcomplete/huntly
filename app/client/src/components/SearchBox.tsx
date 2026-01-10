@@ -159,7 +159,7 @@ export default function SearchBox() {
     <div className={'search-wrapper'}>
       <div
         className={
-          `search-box w-4/12 min-w-[700px] text-xs leading-6 text-slate-400 rounded-md shadow-sm pl-1 pr-1 border-slate-300 border border-solid ${focus ? "bg-white" : "bg-slate-50"}`
+          `search-box w-4/12 min-w-[700px] text-xs leading-6 text-slate-500 rounded-md pl-1 pr-1 border border-solid ${focus ? "bg-white border-slate-300 shadow-md" : "bg-white border-slate-200"}`
         }
       >
         <form action={'/search'} className={'flex grow items-center'} onSubmit={searchSubmit}>
