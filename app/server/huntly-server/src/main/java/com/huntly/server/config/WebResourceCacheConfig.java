@@ -1,50 +1,58 @@
 package com.huntly.server.config;
 
-import java.util.concurrent.TimeUnit;
-import org.springframework.boot.autoconfigure.web.WebProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
-public class WebResourceCacheConfig implements WebMvcConfigurer {
+public class WebResourceCacheConfig {
 
-    private final WebProperties.Resources resources;
-
-    public WebResourceCacheConfig(WebProperties webProperties) {
-        this.resources = webProperties.getResources();
+    @Bean
+    public FilterRegistrationBean<OncePerRequestFilter> staticResourceCacheFilter() {
+        FilterRegistrationBean<OncePerRequestFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                    FilterChain filterChain) throws ServletException, IOException {
+                String path = request.getRequestURI();
+                String cacheHeader = getCacheControlHeader(path);
+                if (cacheHeader != null) {
+                    response.setHeader("Cache-Control", cacheHeader);
+                }
+                filterChain.doFilter(request, response);
+            }
+        });
+        registration.addUrlPatterns("/*");
+        registration.setOrder(1);
+        return registration;
     }
 
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String[] staticLocations = resources.getStaticLocations();
-        CacheControl noCache = CacheControl.noCache();
-        CacheControl weekCache = CacheControl.maxAge(7, TimeUnit.DAYS).cachePublic();
-        CacheControl dayCache = CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic();
-
-        registry.addResourceHandler("/index.html")
-                .addResourceLocations(staticLocations)
-                .setCacheControl(noCache);
-
-        registry.addResourceHandler("/static/media/**")
-                .addResourceLocations(staticLocations)
-                .setCacheControl(dayCache);
-
-        registry.addResourceHandler("/static/js/**", "/static/css/**")
-                .addResourceLocations(staticLocations)
-                .setCacheControl(weekCache);
-
-        registry.addResourceHandler(
-                        "/*.png",
-                        "/*.jpg",
-                        "/*.jpeg",
-                        "/*.gif",
-                        "/*.webp",
-                        "/*.svg",
-                        "/*.ico"
-                )
-                .addResourceLocations(staticLocations)
-                .setCacheControl(dayCache);
+    private String getCacheControlHeader(String path) {
+        // index.html 不缓存
+        if (path.endsWith("/index.html") || path.equals("/")) {
+            return CacheControl.noCache().getHeaderValue();
+        }
+        // 带 hash 的 js/css 文件长期缓存
+        if (path.startsWith("/static/js/") || path.startsWith("/static/css/")) {
+            return CacheControl.maxAge(7, TimeUnit.DAYS).cachePublic().getHeaderValue();
+        }
+        // 媒体文件缓存1天
+        if (path.startsWith("/static/media/")) {
+            return CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic().getHeaderValue();
+        }
+        // 根目录图片缓存1天
+        if (path.matches("^/[^/]+\\.(png|jpg|jpeg|gif|webp|svg|ico)$")) {
+            return CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic().getHeaderValue();
+        }
+        return null;
     }
 }
