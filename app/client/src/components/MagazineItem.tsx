@@ -1,7 +1,9 @@
 import * as React from 'react';
+import "./MagazineItem.css";
 import CardMedia from '@mui/material/CardMedia';
 import Typography from '@mui/material/Typography';
 import {Box} from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {Link} from "react-router-dom";
 import {PageItem} from "../api";
 import SmartMoment from "./SmartMoment";
@@ -41,6 +43,17 @@ export default function MagazineItem({
   const isTweet = page.contentType === 1 || page.contentType === 3;
   const isSnippet = page.contentType === 4;
   const isGithub = page.connectorType === ConnectorType.GITHUB;
+  const isMobile = useMediaQuery('(max-width:600px)');
+
+  const handleFaviconError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = '/fallback-icon.svg';
+  };
+
+  const handleThumbError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = '/fallback-thumb.svg';
+  };
   let tweetProps: TweetProperties = isTweet ? JSON.parse(page.pageJsonProperties) : null;
   let tweetStatus = tweetProps;
   if (tweetProps && tweetProps.retweetedTweet) {
@@ -65,8 +78,8 @@ export default function MagazineItem({
       className={`w-full pt-3 pl-2 pr-2 hover:bg-blue-50 ${currentVisit ? "shadow shadow-blue-300 bg-blue-50" : ""}`}
       key={page.id}
     >
-      <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: ''}}>
-        <Box className={"grow flex flex-col self-center"}>
+      <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1}}>
+        <Box className={"grow flex flex-col self-center"} sx={{ minWidth: 0 }}>
           {
             !isTweet &&
             <Link to={`/page/${page.id}`} onClick={(e) => pageSelect(e, page.id)}>
@@ -92,20 +105,21 @@ export default function MagazineItem({
             isTweet && <TweetRoot tweetProps={tweetProps} page={page}/>
           }
 
-          <Box sx={{}} className={"flex items-center justify-between mt-1 text-[15px]"}>
-            <div className={'flex text-gray-500 items-center'}>
-              <a href={page.url} target={"_blank"} className={'hover:underline'}>
+          <Box sx={{}} className={"flex items-center mt-1 text-[15px] magazine-item-meta"}>
+            <div className={'flex text-gray-500 items-center min-w-0 flex-1'}>
+              <a href={page.url} target={"_blank"} className={'hover:underline min-w-0'}>
                 <div className={"flex items-center flex-wrap"}>
                   {page.faviconUrl &&
-                    <span className={"mr-2"}>
+                    <span className={"mr-2 flex-shrink-0"}>
                         <CardMedia component={'img'} image={page.faviconUrl}
+                                   onError={handleFaviconError}
                                    sx={{
                                      width: 16, height: 16
                                    }}/>
                     </span>
                   }
                   {
-                    !page.faviconUrl && isTweet && <span className={"mr-2 ml-2"}><CardMedia component={TwitterIcon}
+                    !page.faviconUrl && isTweet && <span className={"mr-2 ml-2 flex-shrink-0"}><CardMedia component={TwitterIcon}
                                                                                             sx={{
                                                                                               width: 16,
                                                                                               height: 16,
@@ -114,24 +128,25 @@ export default function MagazineItem({
                   </span>
                   }
                   {
-                    !page.faviconUrl && !isTweet && page.connectorType === 2 &&
-                    <span className={"mr-2"}><CardMedia component={GitHubIcon}
-                                                        sx={{
-                                                          width: 16,
-                                                          height: 16,
-                                                          color: 'rgb(24, 23, 23)'
-                                                        }}/>
-                  </span>
+                    !page.faviconUrl && !isTweet && page.connectorType === 2 && !isMobile &&
+                    <span className={"mr-2 flex-shrink-0"}><CardMedia component={GitHubIcon}
+                                                         sx={{
+                                                           width: 16,
+                                                           height: 16,
+                                                           color: 'rgb(24, 23, 23)'
+                                                         }}/>
+                   </span>
                   }
+
                   {!isTweet && <React.Fragment>
                     <Typography variant={"body2"} color={"text.secondary"} component={"span"}
-                                className={'flex'}>
-                      <span className={"max-w-[260px] text-ellipsis break-all whitespace-nowrap overflow-hidden"}>
+                                className={'flex min-w-0'}>
+                      <span className={"max-w-[260px] magazine-item-site-name text-ellipsis break-all whitespace-nowrap overflow-hidden"}>
                        {
                          page.siteName || page.domain
                        }
                       </span>
-                      <span className={"mr-1 ml-1"}>·</span>
+                      <span className={"mr-1 ml-1 flex-shrink-0"}>·</span>
                     </Typography>
                   </React.Fragment>
                   }
@@ -140,51 +155,50 @@ export default function MagazineItem({
               </a>
 
               {isTweet &&
-                <div className={'flex items-center'}>
-                  <span className={"ml-4"}>
+                <div className={'flex items-center flex-wrap magazine-item-stats'}>
+                  <span className={"ml-4 sm:ml-3 flex-shrink-0 tweet-stat-reply hidden sm:flex items-center"}>
                     <CardMedia component={ChatBubbleOutlineIcon}
                                sx={{
                                  width: 16, height: 16
                                }}/>
+                    <span className={'ml-1'}>{tweetStatus.replyCount}</span>
                   </span>
-                  <span className={'ml-2'}>{tweetStatus.replyCount}</span>
-                  <span className={"ml-3"}>
+                  <span className={"sm:ml-3 flex-shrink-0 tweet-stat-retweet hidden sm:flex items-center"}>
                     <CardMedia component={RepeatIcon}
                                sx={{
                                  width: 16, height: 16
                                }}/>
+                    <span className={'ml-1'}>{tweetStatus.retweetCount + (tweetStatus.quoteCount || 0)}</span>
                   </span>
-                  <span className={'ml-2'}>{tweetStatus.retweetCount + (tweetStatus.quoteCount || 0)}</span>
-                  <span className={"ml-3"}>
+                  <span className={"ml-4 sm:ml-3 flex-shrink-0 tweet-stat-like flex items-center"}>
                     <CardMedia component={FavoriteBorderIcon}
                                sx={{
                                  width: 16, height: 16
                                }}/>
+                    <span className={'ml-1'}>{tweetStatus.favoriteCount}</span>
                   </span>
-                  <span className={'ml-2'}>{tweetStatus.favoriteCount}</span>
                   {
-                    tweetProps.viewCount > 0 && <React.Fragment>
-                  <span className={"ml-3"}>
+                    tweetProps.viewCount > 0 &&
+                  <span className={"sm:ml-3 flex-shrink-0 tweet-stat-view hidden sm:flex items-center"}>
                     <CardMedia component={BarChartIcon}
                                sx={{
                                  width: 16, height: 16
                                }}/>
+                    <span className={'ml-1'}>{tweetStatus.viewCount}</span>
                   </span>
-                      <span className={'ml-2'}>{tweetStatus.viewCount}</span>
-                    </React.Fragment>
                   }
                 </div>
               }
-              {isGithub && repoProps &&
-                <div className={'flex items-center'}>
-                  <span className={"ml-4"}>
+              {isGithub && repoProps && !isMobile &&
+                <div className={'flex items-center flex-wrap magazine-item-stats'}>
+                  <span className={"ml-4 flex-shrink-0"}>
                     <CardMedia component={StarOutlineIcon}
                                sx={{
                                  width: 16, height: 16
                                }}/>
                   </span>
                   <span className={'ml-2'}>{repoProps.stargazersCount}</span>
-                  <span className={"ml-3"}>
+                  <span className={"ml-3 flex-shrink-0"}>
                     <CardMedia component={AltRouteIcon}
                                sx={{
                                  width: 16, height: 16
@@ -222,6 +236,7 @@ export default function MagazineItem({
                 sx={{width: '100%', height: '100%'}}
                 image={page.thumbUrl}
                 alt={page.title}
+                onError={handleThumbError}
               />
             </Box>
           </Link>

@@ -44,3 +44,4 @@ db.sqlite*
 
 .claude/
 .cursor/
+.playwright-mcp/

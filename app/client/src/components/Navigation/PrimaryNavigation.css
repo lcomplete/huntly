@@ -1,0 +1,298 @@
+.primary-nav {
+    width: 75px;
+    height: 100%;
+    background: #E3E5E7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 14px;
+}
+
+.primary-nav-logo {
+    height: 44px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 100%;
+}
+
+.primary-nav-logo img {
+    width: 20px;
+    height: 20px;
+}
+
+.primary-nav-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    padding-top: 4px;
+}
+
+.primary-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 2px;
+    margin: 4px 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.primary-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+.primary-nav-item.active {
+    background-color: #cbced0;
+}
+
+.primary-nav-item.active:hover {
+    background-color: rgba(99, 102, 241, 0.15);
+}
+
+.primary-nav-item-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.primary-nav-item-icon {
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.primary-nav-item-icon .MuiSvgIcon-root {
+    font-size: 24px;
+}
+
+.primary-nav-item.active .primary-nav-item-icon {
+    color: #475569;
+}
+
+.primary-nav-item-label {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    transition: color 0.2s ease;
+}
+
+.primary-nav-item.active .primary-nav-item-label {
+    color: #334155;
+    font-weight: 600;
+}
+
+.primary-nav-settings {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.primary-nav-settings:hover {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+.primary-nav-settings.active {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.primary-nav-settings.active .MuiSvgIcon-root {
+    color: #0284c7;
+}
+
+.primary-nav-settings .MuiSvgIcon-root {
+    font-size: 20px;
+    color: #64748b;
+    transition: color 0.2s ease;
+}
+
+@media (max-width: 900px) {
+    .primary-nav {
+        width: 100%;
+        height: 50px;
+        flex-direction: row;
+        padding: 0;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        gap: 0;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: saturate(180%) blur(20px);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        border-top: 1px solid rgba(60, 60, 67, 0.18);
+    }
+
+    .primary-nav-logo {
+        display: none;
+    }
+
+    .primary-nav-items {
+        flex: 1;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-evenly;
+        gap: 0;
+        overflow-x: visible;
+        padding: 0 4px;
+        height: 100%;
+    }
+
+    .primary-nav-item {
+        flex: 0 1 auto;
+        margin: 0;
+        padding: 5px 8px 4px;
+        min-width: 44px;
+        border-radius: 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .primary-nav-item:hover {
+        background-color: transparent !important;
+    }
+
+    .primary-nav-item:focus,
+    .primary-nav-item:focus-visible,
+    .primary-nav-item:active {
+        background-color: transparent !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    .primary-nav-item.active {
+        background-color: transparent !important;
+    }
+
+    .primary-nav-item.active:hover,
+    .primary-nav-item.active:focus,
+    .primary-nav-item.active:active {
+        background-color: transparent !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    .primary-nav-item-icon {
+        color: #8a8a8e;
+    }
+
+    .primary-nav-item.active .primary-nav-item-icon {
+        color: #007aff;
+    }
+
+    .primary-nav-item-label {
+        color: #8a8a8e;
+        font-size: 10px;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 1;
+        margin-top: 2px;
+        white-space: nowrap;
+    }
+
+    .primary-nav-item.active .primary-nav-item-label {
+        color: #007aff;
+        font-weight: 500;
+    }
+
+    .primary-nav-item-icon-wrapper {
+        margin-bottom: 0;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .primary-nav-item-icon .MuiSvgIcon-root {
+        font-size: 22px;
+    }
+
+    .primary-nav-settings {
+        display: flex;
+        flex: 0 1 auto;
+        margin: 0;
+        padding: 5px 8px 4px;
+        min-width: 44px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .primary-nav-settings:focus {
+        outline: none;
+        background-color: transparent;
+    }
+
+    .primary-nav-settings .MuiSvgIcon-root {
+        font-size: 22px;
+        color: #8a8a8e;
+    }
+
+    .primary-nav-settings::after {
+        content: 'Settings';
+        font-size: 10px;
+        color: #8a8a8e;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 1;
+        margin-top: 2px;
+        white-space: nowrap;
+    }
+
+    .primary-nav-settings.active .MuiSvgIcon-root {
+        color: #0284c7;
+    }
+
+    .primary-nav-settings.active::after {
+        color: #0284c7;
+        font-weight: 500;
+    }
+}
+
+/* Mobile Menu Drawer */
+.mobile-menu-drawer {
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+}
+
+.mobile-menu-handle {
+    width: 36px;
+    height: 4px;
+    background: #d1d5db;
+    border-radius: 2px;
+    margin: 8px auto 4px;
+}
+
+.mobile-menu-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px 16px;
+}
+
+.mobile-menu-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    padding: 8px 4px 12px;
+}

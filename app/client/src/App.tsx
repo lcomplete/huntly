@@ -6,7 +6,8 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Layout from "./components/Layout";
-import Index from "./pages/Index";
+import Home from "./pages/Home";
+import RecentlyRead from "./pages/RecentlyRead";
 import Page from "./pages/Page";
 import MyList from "./pages/MyList";
 import Starred from "./pages/Starred";
@@ -21,6 +22,14 @@ import Highlights from "./pages/Highlights";
 import {AuthControllerApiFactory} from "./api";
 import SignIn from "./pages/SignIn";
 import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
+import Settings from "./pages/settings";
+import SettingsGeneral from "./pages/settings/SettingsGeneral";
+import SettingsAIShortcuts from "./pages/settings/SettingsAIShortcuts";
+import SettingsConnect from "./pages/settings/SettingsConnect";
+import SettingsFeeds from "./pages/settings/SettingsFeeds";
+import SettingsFolders from "./pages/settings/SettingsFolders";
+import SettingsLibrary from "./pages/settings/SettingsLibrary";
+import SettingsAccount from "./pages/settings/SettingsAccount";
 
 function App() {
   const router = createBrowserRouter(
@@ -28,7 +37,8 @@ function App() {
       <Route>
         <Route path="/signin" element={<SignIn/>}/>
         <Route element={<Layout/>}>
-          <Route index element={<Index/>}/>
+          <Route index element={<Home/>}/>
+          <Route path={"/recently-read"} element={<RecentlyRead/>}/>
           <Route path={"/list"} element={<MyList/>}/>
           <Route path={"/starred"} element={<Starred/>}/>
           <Route path={"/later"} element={<ReadLater/>}/>
@@ -40,6 +50,14 @@ function App() {
           <Route path="/search" element={<Search/>}/>
           <Route path="/twitter" element={<Twitter/>}/>
           <Route path="/highlights" element={<Highlights/>}/>
+          <Route path="/settings" element={<Settings/>}/>
+          <Route path="/settings/general" element={<SettingsGeneral/>}/>
+          <Route path="/settings/ai-shortcuts" element={<SettingsAIShortcuts/>}/>
+          <Route path="/settings/connect" element={<SettingsConnect/>}/>
+          <Route path="/settings/feeds" element={<SettingsFeeds/>}/>
+          <Route path="/settings/folders" element={<SettingsFolders/>}/>
+          <Route path="/settings/library" element={<SettingsLibrary/>}/>
+          <Route path="/settings/account" element={<SettingsAccount/>}/>
         </Route>
       </Route>
     )

@@ -7,16 +7,16 @@ import {getPageListFilter} from "../domain/utils";
 
 export default function Twitter() {
   const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>({
-    defaultSortValue: 'CREATED_AT',
+    defaultSortValue: 'LAST_READ_AT',
     sortFields: [{
+      value: 'LAST_READ_AT',
+      label: 'Recently read'
+    }, {
       value: 'CREATED_AT',
       label: 'Recently hunted'
     }, {
       value: 'CONNECTED_AT',
       label: 'Recently tweeted'
-    }, {
-      value: 'LAST_READ_AT',
-      label: 'Recently read'
     }, {
       value: 'VOTE_SCORE',
       label: 'Most popular'

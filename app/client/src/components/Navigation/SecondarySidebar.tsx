@@ -1,0 +1,210 @@
+import React from "react";
+import "./SecondarySidebar.css";
+import { IconButton } from "@mui/material";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import { useQuery } from "@tanstack/react-query";
+import { ConnectorControllerApiFactory, ConnectorItem, FolderConnectors, PageControllerApiFactory } from "../../api";
+import NavTreeView, { NavTreeViewItem } from "../Sidebar/NavTreeView";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import RssFeedIcon from "@mui/icons-material/RssFeed";
+import { Link, useLocation } from "react-router-dom";
+import navLabels from "../Sidebar/NavLabels";
+import { ConnectorType } from "../../interfaces/connectorType";
+import { useNavigation } from "../../contexts/NavigationContext";
+import LibraryNavTree from "../Sidebar/LibraryNavTree";
+import SettingsNavTree from "../Sidebar/SettingsNavTree";
+
+const SecondarySidebar: React.FC = () => {
+  const location = useLocation();
+  const { activeNav } = useNavigation();
+
+  function leadingHeader(leadingText: string, showAction = true, actionLink?: string) {
+    return (
+      <div
+        className={'secondary-sidebar-header flex items-center'}
+      >
+        <div style={{
+          flex: 1,
+          fontSize: '14px',
+          fontWeight: 600,
+          color: '#334155',
+          letterSpacing: '0.01em',
+        }}>
+          {leadingText}
+        </div>
+        {showAction && actionLink && (
+          <Link to={actionLink}>
+            <IconButton
+              size="small"
+              sx={{
+                width: 24,
+                height: 24,
+                bgcolor: 'transparent',
+                borderRadius: '5px',
+                transition: 'color 0.15s ease',
+                color: '#94a3b8',
+                '&:hover': {
+                  color: '#64748b',
+                },
+              }}
+            >
+              <SettingsOutlinedIcon sx={{ fontSize: 17 }} />
+            </IconButton>
+          </Link>
+        )}
+      </div>
+    );
+  }
+
+  function folderConnectorsView(folderConnectorsArray: FolderConnectors[], isRss: boolean) {
+    const treeItems = folderConnectorsToTreeItems(folderConnectorsArray, isRss);
+    return (
+      <NavTreeView
+        treeItems={treeItems}
+        ariaLabel={isRss ? 'rss' : 'connectors'}
+        defaultExpanded={[]}
+        selectedNodeId={location.pathname}
+        emphasizeCounts={isRss}
+      />
+    );
+  }
+
+  function folderConnectorsToTreeItems(folderConnectorsArray: FolderConnectors[], isRss: boolean) {
+    let treeItems: NavTreeViewItem[] = [];
+
+    let allInboxCount = 0;
+    folderConnectorsArray.forEach((folderConnectors) => {
+      const folderInBoxCount = sumInboxCount(folderConnectors.connectorItems);
+      allInboxCount += folderInBoxCount;
+      if (folderConnectors.id && folderConnectors.name) {
+        const item: NavTreeViewItem = {
+          linkTo: '/folder/' + folderConnectors.id,
+          labelIcon: FolderOpenIcon,
+          labelText: folderConnectors.name,
+          inboxCount: folderInBoxCount,
+          childItems: connectorToTreeItems(folderConnectors.connectorItems),
+        };
+        treeItems.push(item);
+      } else {
+        const partItems = connectorToTreeItems(folderConnectors.connectorItems);
+        treeItems.push(...partItems);
+      }
+    });
+
+    if (isRss) {
+      const rssItems = [];
+      rssItems.push(
+        {
+          ...navLabels.allFeeds,
+          inboxCount: allInboxCount,
+        },
+        ...treeItems
+      );
+      treeItems = rssItems;
+    } else {
+      const connectorItems = [];
+      connectorItems.push(
+        {
+          ...navLabels.twitter,
+        },
+        ...treeItems
+      );
+      treeItems = connectorItems;
+    }
+    return treeItems;
+  }
+
+  function sumInboxCount(connectorItems: Array<ConnectorItem>) {
+    return connectorItems.reduce((sum, cur) => sum + (cur.inboxCount || 0), 0);
+  }
+
+  function connectorToTreeItems(connectorItems: Array<ConnectorItem>): NavTreeViewItem[] {
+    return connectorItems.map((connectorItem) => {
+      const icon = connectorItem.type === ConnectorType.RSS ? RssFeedIcon : navLabels.github.labelIcon;
+      return {
+        labelText: connectorItem.name,
+        labelIcon: icon,
+        linkTo: "/connector/" + connectorItem.id,
+        inboxCount: connectorItem.inboxCount,
+        iconUrl: connectorItem.iconUrl,
+      };
+    });
+  }
+
+  const shouldLoadFeeds = activeNav === 'feeds';
+
+  const {
+    data: view,
+  } = useQuery(
+    ['folder-connector-view'],
+    async () => (await ConnectorControllerApiFactory().getFolderConnectorViewUsingGET()).data,
+    {
+      enabled: shouldLoadFeeds,
+      refetchInterval: 5000,
+      refetchIntervalInBackground: true,
+    }
+  );
+
+  const shouldLoadReadLaterCount = activeNav === 'saved';
+
+  const { data: readLaterCountData } = useQuery(
+    ['read-later-count'],
+    async () => (await PageControllerApiFactory().getReadLaterCountUsingGET()).data,
+    {
+      enabled: shouldLoadReadLaterCount,
+      refetchInterval: 30000,
+    }
+  );
+
+  const readLaterCount = readLaterCountData?.data;
+
+  // Determine which content to show based on active navigation
+  const renderContent = () => {
+    switch (activeNav) {
+      case 'saved':
+        return (
+          <>
+            {leadingHeader('Library', false)}
+            <LibraryNavTree selectedNodeId={location.pathname} readLaterCount={readLaterCount} />
+          </>
+        );
+
+      case 'feeds':
+        return (
+          <>
+            {leadingHeader('Feeds', true, '/settings/feeds')}
+            {view && view.folderFeedConnectors && folderConnectorsView(view.folderFeedConnectors, true)}
+          </>
+        );
+
+      case 'settings':
+        return (
+          <>
+            {leadingHeader('Settings', false)}
+            <SettingsNavTree selectedNodeId={location.pathname} />
+          </>
+        );
+
+      case 'home':
+      case 'x':
+      case 'github':
+      default:
+        return null;
+    }
+  };
+
+  const content = renderContent();
+
+  // If there's no content to show, don't render the sidebar
+  if (!content) {
+    return null;
+  }
+
+  return (
+    <div className="secondary-sidebar">
+      {content}
+    </div>
+  );
+};
+
+export default SecondarySidebar;

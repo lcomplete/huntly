@@ -1,0 +1,236 @@
+.subheader {
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    @apply sticky top-0;
+}
+
+.subheader-bar {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    padding: 6px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    color: #475569;
+}
+
+.subheader-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.subheader-middle {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.subheader-right-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+    margin-left: 16px;
+    border-left: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.subheader-search {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.subheader-search .search-wrapper {
+    width: 100%;
+}
+
+.subheader-search-separated {
+    min-width: 0;
+}
+
+.subheader-search .search-box {
+    min-width: 480px;
+    width: 480px;
+}
+
+@media (max-width: 1200px) {
+    .subheader-search .search-box {
+        min-width: 360px;
+        width: 360px;
+    }
+}
+
+/* Hide search on mobile for non-home pages when width is not enough */
+@media (max-width: 1200px) {
+    .subheader-right-hide-mobile {
+        display: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .subheader-bar {
+        position: relative;
+    }
+
+    .subheader-left {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    .subheader-middle {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .subheader-right {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-left: 12px;
+    }
+
+    .subheader-right-content {
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: 0;
+        border-left: none;
+    }
+
+    .subheader-search {
+        width: 100%;
+    }
+
+    .subheader-search .search-box {
+        min-width: 0;
+        width: 100% !important;
+    }
+}
+
+.subheader-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.subheader-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+}
+
+.subheader-label {
+    color: #334155;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* On mobile, title takes full width with minimal margin */
+@media (max-width: 720px) {
+    .subheader-label {
+        max-width: calc(100vw - 80px);
+    }
+}
+
+.subheader-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.subheader-actions-left {
+    padding-left: 0px;
+}
+
+.subheader-action-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.subheader-action-stack {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    z-index: 30;
+}
+
+.subheader-action-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.subheader-mark-group {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.subheader-mark-primary {
+    background: transparent;
+    box-shadow: none;
+}
+
+.subheader-mark-group:hover .subheader-mark-primary {
+    background: #fff;
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+}
+
+.subheader-mark-stack {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 40;
+}
+
+.subheader-mark-secondary {
+    background: #fff;
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+}
+
+.subheader-mark-secondary:hover {
+    background: #fff;
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+}
+
+.subheader-action {
+    border-radius: 10px;
+    color: #64748b;
+    transition: all 0.2s ease;
+}
+
+.subheader-action-option {
+    width: 34px;
+    height: 34px;
+}
+
+.subheader-action-active {
+    background-color: rgba(148, 163, 184, 0.16);
+    color: #1f2937;
+}
+
+.subheader-action:hover {
+    background-color: rgba(148, 163, 184, 0.18);
+    color: #334155;
+}
+
+.subheader-action .MuiSvgIcon-root {
+    font-size: 18px;
+}

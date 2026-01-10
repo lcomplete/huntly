@@ -1,6 +1,7 @@
 package com.huntly.server.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
@@ -14,6 +15,11 @@ public class ServiceExecutorConfig implements AsyncConfigurer {
 
     @Override
     public Executor getAsyncExecutor() {
+        return serviceTaskExecutor();
+    }
+
+    @Bean(name = "serviceTaskExecutor")
+    public Executor serviceTaskExecutor() {
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
         taskExecutor.setCorePoolSize(2);
         taskExecutor.setMaxPoolSize(10);

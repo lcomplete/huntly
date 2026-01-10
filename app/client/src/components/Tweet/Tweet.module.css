@@ -29,3 +29,38 @@
 .tweet a:hover, .mainLink:hover{
     text-decoration: underline;
 }
+
+/* Video responsive fix for mobile */
+.videoContainer {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.videoContainer :global(.video-react) {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Limit video height on mobile to prevent overly tall videos */
+@media (max-width: 640px) {
+    .videoContainer :global(.video-react) {
+        max-height: 50vh;
+    }
+
+    .videoContainer :global(.video-react .video-react-video) {
+        max-height: 50vh;
+        object-fit: contain;
+    }
+}
+
+/* Image responsive fix for mobile */
+.mediaContainer {
+    width: 100%;
+    max-width: 100%;
+}
+
+.mediaContainer img {
+    max-width: 100%;
+    height: auto;
+}

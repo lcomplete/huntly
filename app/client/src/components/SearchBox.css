@@ -1,0 +1,23 @@
+.search-wrapper {
+    -webkit-app-region: no-drag;
+    @apply flex justify-start;
+}
+
+.search-box {
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-box .MuiAutocomplete-option[aria-selected="true"] {
+    background-color: rgba(148, 163, 184, 0.18);
+}
+
+.search-box .MuiAutocomplete-option.Mui-focused {
+    background-color: rgba(148, 163, 184, 0.12);
+}
+
+@media (max-width: 900px) {
+    .search-box {
+        min-width: 0;
+        @apply grow;
+    }
+}

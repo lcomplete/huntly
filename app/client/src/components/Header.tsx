@@ -1,4 +1,5 @@
 import SearchBox from "./SearchBox";
+import "./Header.css";
 import React, {useCallback, useEffect, useState} from "react";
 import {WindowStateListenerType} from "../domain/electronTypes";
 import {IconButton} from "@mui/material";
@@ -68,10 +69,6 @@ export default function Header() {
           <IconButton onClick={toggleSidebar}>
             <DehazeIcon/>
           </IconButton>
-        </span>
-        <img src="/favicon-32x32.png" alt="Huntly" className="h-6 w-6 mr-1" />
-        <span className={'logo-text'}>
-          Huntly
         </span>
       </span>
     )}

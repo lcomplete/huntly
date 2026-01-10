@@ -1,0 +1,39 @@
+@media (max-width: 900px) {
+    .page-item-thumb {
+        width: 100px !important;
+        height: 100px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-item-thumb {
+        width: 80px !important;
+        height: 80px !important;
+    }
+
+    .magazine-item-meta {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .magazine-item-site-name {
+        max-width: 120px !important;
+    }
+
+    .magazine-item-stats {
+        flex-wrap: wrap;
+        gap: 4px 8px;
+    }
+
+    /* Hide reply, retweet, and view stats on mobile, only show likes */
+    .tweet-stat-reply,
+    .tweet-stat-retweet,
+    .tweet-stat-view {
+        display: none;
+    }
+
+    /* Reduce margin between like icon and count on mobile */
+    span.tweet-stat-like + span.tweet-stat-like {
+        margin-left: 0.25rem;
+    }
+}

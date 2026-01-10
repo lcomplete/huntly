@@ -1,0 +1,48 @@
+.title_bar {
+    position: sticky;
+    top: 0;
+    z-index: 300;
+    -webkit-app-region: drag;
+    background: #e5e7eb;
+    flex-shrink: 0;
+    @apply h-12 items-center flex;
+}
+
+.slide-button {
+    display: none;
+}
+
+.nodrag {
+    -webkit-app-region: no-drag;
+}
+
+.btn-size-ctrl {
+    -webkit-app-region: no-drag;
+    @apply border-0 bg-transparent hover:bg-slate-200 h-11 w-11;
+}
+
+.btn-size-ctrl svg {
+    @apply w-[0.6rem] h-[0.6rem];
+}
+
+.btn-size-close {
+    @apply hover:bg-red-400;
+}
+
+@media (max-width: 900px) {
+    .logo-area {
+        position: relative;
+    }
+
+    .setting-area {
+        position: relative;
+    }
+
+    .logo-text {
+        display: none;
+    }
+
+    .slide-button {
+        display: block;
+    }
+}

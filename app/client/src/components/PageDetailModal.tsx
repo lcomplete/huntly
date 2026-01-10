@@ -1,4 +1,5 @@
 import PageDetailArea from "./PageDetailArea";
+import "./PageDetailModal.css";
 import {Drawer} from "@mui/material";
 import React from "react";
 import {PageOperateEvent} from "./PageOperationButtons";

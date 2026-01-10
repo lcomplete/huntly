@@ -24,6 +24,31 @@ import { BASE_PATH, COLLECTION_FORMATS, RequestArgs, BaseAPI, RequiredError } fr
 /**
  * 
  * @export
+ * @interface ApiResultOfLibraryExportInfo
+ */
+export interface ApiResultOfLibraryExportInfo {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOfLibraryExportInfo
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {LibraryExportInfo}
+     * @memberof ApiResultOfLibraryExportInfo
+     */
+    'data'?: LibraryExportInfo;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOfLibraryExportInfo
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
  * @interface ApiResultOfListOfPageHighlightDto
  */
 export interface ApiResultOfListOfPageHighlightDto {
@@ -43,6 +68,31 @@ export interface ApiResultOfListOfPageHighlightDto {
      * 
      * @type {string}
      * @memberof ApiResultOfListOfPageHighlightDto
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ApiResultOfMapOflongAndListOfPageHighlightDto
+ */
+export interface ApiResultOfMapOflongAndListOfPageHighlightDto {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOfMapOflongAndListOfPageHighlightDto
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {{ [key: string]: Array<PageHighlightDto>; }}
+     * @memberof ApiResultOfMapOflongAndListOfPageHighlightDto
+     */
+    'data'?: { [key: string]: Array<PageHighlightDto>; };
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOfMapOflongAndListOfPageHighlightDto
      */
     'message'?: string;
 }
@@ -312,6 +362,12 @@ export interface CapturePage {
      * @memberof CapturePage
      */
     'content'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapturePage
+     */
+    'contentType'?: number;
     /**
      * 
      * @type {string}
@@ -936,6 +992,60 @@ export interface InterceptTweets {
      */
     'loginScreenName'?: string;
 }
+/**
+ * 
+ * @export
+ * @interface LibraryExportInfo
+ */
+export interface LibraryExportInfo {
+    /**
+     * 
+     * @type {string}
+     * @memberof LibraryExportInfo
+     */
+    'completedAt'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof LibraryExportInfo
+     */
+    'fileName'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof LibraryExportInfo
+     */
+    'message'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof LibraryExportInfo
+     */
+    'sizeBytes'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof LibraryExportInfo
+     */
+    'startedAt'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof LibraryExportInfo
+     */
+    'status'?: LibraryExportInfoStatusEnum;
+}
+
+export const LibraryExportInfoStatusEnum = {
+    Empty: 'EMPTY',
+    Failed: 'FAILED',
+    InProgress: 'IN_PROGRESS',
+    Missing: 'MISSING',
+    Ready: 'READY'
+} as const;
+
+export type LibraryExportInfoStatusEnum = typeof LibraryExportInfoStatusEnum[keyof typeof LibraryExportInfoStatusEnum];
+
 /**
  * 
  * @export
@@ -4115,6 +4225,302 @@ export class HealthControllerApi extends BaseAPI {
 
 
 /**
+ * LibraryExportControllerApi - axios parameter creator
+ * @export
+ */
+export const LibraryExportControllerApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary downloadExport
+         * @param {string} fileName fileName
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        downloadExportUsingGET: async (fileName: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'fileName' is not null or undefined
+            assertParamExists('downloadExportUsingGET', 'fileName', fileName)
+            const localVarPath = `/api/library-export/download`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (fileName !== undefined) {
+                localVarQueryParameter['fileName'] = fileName;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getExportStatus
+         * @param {string} [fileName] fileName
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getExportStatusUsingGET: async (fileName?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/library-export/status`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (fileName !== undefined) {
+                localVarQueryParameter['fileName'] = fileName;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getLatestExport
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getLatestExportUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/library-export/latest`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary startExport
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        startExportUsingPOST: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/library-export/start`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * LibraryExportControllerApi - functional programming interface
+ * @export
+ */
+export const LibraryExportControllerApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = LibraryExportControllerApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary downloadExport
+         * @param {string} fileName fileName
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async downloadExportUsingGET(fileName: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Resource>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.downloadExportUsingGET(fileName, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getExportStatus
+         * @param {string} [fileName] fileName
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getExportStatusUsingGET(fileName?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfLibraryExportInfo>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExportStatusUsingGET(fileName, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getLatestExport
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getLatestExportUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfLibraryExportInfo>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getLatestExportUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary startExport
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async startExportUsingPOST(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfLibraryExportInfo>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.startExportUsingPOST(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * LibraryExportControllerApi - factory interface
+ * @export
+ */
+export const LibraryExportControllerApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = LibraryExportControllerApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary downloadExport
+         * @param {string} fileName fileName
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        downloadExportUsingGET(fileName: string, options?: any): AxiosPromise<Resource> {
+            return localVarFp.downloadExportUsingGET(fileName, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getExportStatus
+         * @param {string} [fileName] fileName
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getExportStatusUsingGET(fileName?: string, options?: any): AxiosPromise<ApiResultOfLibraryExportInfo> {
+            return localVarFp.getExportStatusUsingGET(fileName, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getLatestExport
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getLatestExportUsingGET(options?: any): AxiosPromise<ApiResultOfLibraryExportInfo> {
+            return localVarFp.getLatestExportUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary startExport
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        startExportUsingPOST(options?: any): AxiosPromise<ApiResultOfLibraryExportInfo> {
+            return localVarFp.startExportUsingPOST(options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * LibraryExportControllerApi - object-oriented interface
+ * @export
+ * @class LibraryExportControllerApi
+ * @extends {BaseAPI}
+ */
+export class LibraryExportControllerApi extends BaseAPI {
+    /**
+     * 
+     * @summary downloadExport
+     * @param {string} fileName fileName
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof LibraryExportControllerApi
+     */
+    public downloadExportUsingGET(fileName: string, options?: AxiosRequestConfig) {
+        return LibraryExportControllerApiFp(this.configuration).downloadExportUsingGET(fileName, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getExportStatus
+     * @param {string} [fileName] fileName
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof LibraryExportControllerApi
+     */
+    public getExportStatusUsingGET(fileName?: string, options?: AxiosRequestConfig) {
+        return LibraryExportControllerApiFp(this.configuration).getExportStatusUsingGET(fileName, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getLatestExport
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof LibraryExportControllerApi
+     */
+    public getLatestExportUsingGET(options?: AxiosRequestConfig) {
+        return LibraryExportControllerApiFp(this.configuration).getLatestExportUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary startExport
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof LibraryExportControllerApi
+     */
+    public startExportUsingPOST(options?: AxiosRequestConfig) {
+        return LibraryExportControllerApiFp(this.configuration).startExportUsingPOST(options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
  * PageControllerApi - axios parameter creator
  * @export
  */
@@ -4303,7 +4709,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {number} [connectorId] 
          * @param {number} [connectorType] 
          * @param {number} [contentFilterType] 
-         * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
+         * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET'} [contentType] 
          * @param {number} [count] 
          * @param {string} [endDate] 
          * @param {string} [firstRecordAt] 
@@ -4322,7 +4728,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET: async (asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        listPageItemsUsingGET: async (asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/page/list`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4715,7 +5121,37 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
             };
         },
         /**
-         * 
+         *
+         * @summary getReadLaterCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getReadLaterCountUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page/readLaterCount`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         *
          * @summary recordReadPage
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -5093,7 +5529,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {number} [connectorId] 
          * @param {number} [connectorType] 
          * @param {number} [contentFilterType] 
-         * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
+         * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET'} [contentType] 
          * @param {number} [count] 
          * @param {string} [endDate] 
          * @param {string} [firstRecordAt] 
@@ -5112,7 +5548,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
+        async listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -5207,7 +5643,17 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * 
+         *
+         * @summary getReadLaterCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getReadLaterCountUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOflong>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getReadLaterCountUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         *
          * @summary recordReadPage
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -5373,7 +5819,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {number} [connectorId] 
          * @param {number} [connectorType] 
          * @param {number} [contentFilterType] 
-         * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
+         * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET'} [contentType] 
          * @param {number} [count] 
          * @param {string} [endDate] 
          * @param {string} [firstRecordAt] 
@@ -5392,7 +5838,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: any): AxiosPromise<Array<PageItem>> {
+        listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: any): AxiosPromise<Array<PageItem>> {
             return localVarFp.listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(axios, basePath));
         },
         /**
@@ -5478,7 +5924,16 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
             return localVarFp.readLaterPageUsingPOST(id, options).then((request) => request(axios, basePath));
         },
         /**
-         * 
+         *
+         * @summary getReadLaterCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getReadLaterCountUsingGET(options?: any): AxiosPromise<ApiResultOflong> {
+            return localVarFp.getReadLaterCountUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
          * @summary recordReadPage
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -5645,7 +6100,7 @@ export class PageControllerApi extends BaseAPI {
      * @param {number} [connectorId] 
      * @param {number} [connectorType] 
      * @param {number} [contentFilterType] 
-     * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET'} [contentType] 
+     * @param {'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET'} [contentType] 
      * @param {number} [count] 
      * @param {string} [endDate] 
      * @param {string} [firstRecordAt] 
@@ -5665,7 +6120,7 @@ export class PageControllerApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof PageControllerApi
      */
-    public listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig) {
+    public listPageItemsUsingGET(asc?: boolean, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig) {
         return PageControllerApiFp(this.configuration).listPageItemsUsingGET(asc, connectorId, connectorType, contentFilterType, contentType, count, endDate, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -5768,7 +6223,18 @@ export class PageControllerApi extends BaseAPI {
     }
 
     /**
-     * 
+     *
+     * @summary getReadLaterCount
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageControllerApi
+     */
+    public getReadLaterCountUsingGET(options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).getReadLaterCountUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     *
      * @summary recordReadPage
      * @param {number} id id
      * @param {*} [options] Override http request option.
@@ -6083,6 +6549,40 @@ export const PageHighlightControllerApiAxiosParamCreator = function (configurati
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * 
+         * @summary getHighlightsByPageIds
+         * @param {Array<number>} [requestBody] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHighlightsByPageIdsUsingPOST: async (requestBody?: Array<number>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page-highlight/batch`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(requestBody, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -6153,6 +6653,17 @@ export const PageHighlightControllerApiFp = function(configuration?: Configurati
             const localVarAxiosArgs = await localVarAxiosParamCreator.getHighlightsByPageIdUsingGET(pageId, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
+        /**
+         * 
+         * @summary getHighlightsByPageIds
+         * @param {Array<number>} [requestBody] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getHighlightsByPageIdsUsingPOST(requestBody?: Array<number>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfMapOflongAndListOfPageHighlightDto>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getHighlightsByPageIdsUsingPOST(requestBody, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
     }
 };
 
@@ -6217,6 +6728,16 @@ export const PageHighlightControllerApiFactory = function (configuration?: Confi
          */
         getHighlightsByPageIdUsingGET(pageId: number, options?: any): AxiosPromise<ApiResultOfListOfPageHighlightDto> {
             return localVarFp.getHighlightsByPageIdUsingGET(pageId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getHighlightsByPageIds
+         * @param {Array<number>} [requestBody] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHighlightsByPageIdsUsingPOST(requestBody?: Array<number>, options?: any): AxiosPromise<ApiResultOfMapOflongAndListOfPageHighlightDto> {
+            return localVarFp.getHighlightsByPageIdsUsingPOST(requestBody, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -6291,6 +6812,18 @@ export class PageHighlightControllerApi extends BaseAPI {
      */
     public getHighlightsByPageIdUsingGET(pageId: number, options?: AxiosRequestConfig) {
         return PageHighlightControllerApiFp(this.configuration).getHighlightsByPageIdUsingGET(pageId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getHighlightsByPageIds
+     * @param {Array<number>} [requestBody] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageHighlightControllerApi
+     */
+    public getHighlightsByPageIdsUsingPOST(requestBody?: Array<number>, options?: AxiosRequestConfig) {
+        return PageHighlightControllerApiFp(this.configuration).getHighlightsByPageIdsUsingPOST(requestBody, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

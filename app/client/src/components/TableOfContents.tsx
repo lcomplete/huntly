@@ -1,10 +1,29 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
+import "./TableOfContents.css";
 
-interface TocItem {
+export interface TocItem {
   id: string;
   text: string;
   level: number;
 }
+
+export const getTocItems = (htmlContent: string): TocItem[] => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+  const items: TocItem[] = [];
+  headings.forEach((heading, index) => {
+    const level = parseInt(heading.tagName.substring(1));
+    const text = heading.textContent?.trim() || '';
+    if (text) {
+      const id = `toc-heading-${index}`;
+      items.push({ id, text, level });
+    }
+  });
+
+  return items;
+};
 
 interface TableOfContentsProps {
   content: string;
@@ -18,31 +37,11 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
   const [activeId, setActiveId] = useState<string>('');
   const [tocItems, setTocItems] = useState<TocItem[]>([]);
 
-  // 从内容中提取标题
-  const extractHeadings = useCallback((htmlContent: string): TocItem[] => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlContent, 'text/html');
-    const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    
-    const items: TocItem[] = [];
-    headings.forEach((heading, index) => {
-      const level = parseInt(heading.tagName.substring(1));
-      const text = heading.textContent?.trim() || '';
-      if (text) {
-        // 生成唯一 ID
-        const id = `toc-heading-${index}`;
-        items.push({ id, text, level });
-      }
-    });
-    
-    return items;
-  }, []);
-
   // 初始化时提取标题
   useEffect(() => {
-    const items = extractHeadings(content);
+    const items = getTocItems(content);
     setTocItems(items);
-  }, [content, extractHeadings]);
+  }, [content]);
 
   // 为实际 DOM 中的标题元素添加 ID
   useEffect(() => {

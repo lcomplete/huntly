@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import "../components/PageList.css";
 import {
   Box,
   Typography,
@@ -122,7 +123,7 @@ const HighlightItem = React.memo(({
       onClick={handleHighlightClick}
       onMouseDown={handleHighlightClick}
     >
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         {/* 高亮内容 - 主要内容 */}
         <Box sx={{ mb: 2 }}>
           <Box
@@ -170,11 +171,18 @@ const HighlightItem = React.memo(({
         {/* 文章信息 - 次要内容（与 MagazineItem 对齐：原文链接 + 时间 | 右侧 Delete） */}
         <Box sx={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: { xs: 'flex-start', sm: 'center' },
           justifyContent: 'space-between',
-          gap: 2
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 2 }
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            minWidth: 0,
+            width: { xs: '100%', sm: 'auto' },
+            flexWrap: { xs: 'wrap', sm: 'nowrap' }
+          }}>
             <Typography
               component="a"
               href={highlight.pageUrl}
@@ -183,11 +191,11 @@ const HighlightItem = React.memo(({
               variant="body2"
               color="text.secondary"
               sx={{
-                fontSize: '0.9rem',
+                fontSize: { xs: '0.8rem', sm: '0.9rem' },
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                maxWidth: 420,
+                maxWidth: { xs: '100%', sm: 420 },
                 textDecoration: 'none',
                 cursor: 'pointer',
                 '&:hover': {
@@ -197,30 +205,48 @@ const HighlightItem = React.memo(({
             >
               {highlight.pageTitle}
             </Typography>
-            <Typography variant="body2" color="text.secondary" component="span" sx={{ mx: 1 }}>·</Typography>
-            <Typography variant="body2" color="text.secondary" component="span" sx={{ fontSize: '0.9rem' }}>
+            <Typography variant="body2" color="text.secondary" component="span" sx={{ mx: 1, display: { xs: 'none', sm: 'inline' } }}>·</Typography>
+            <Typography variant="body2" color="text.secondary" component="span" sx={{
+              fontSize: { xs: '0.75rem', sm: '0.9rem' },
+              display: { xs: 'none', sm: 'inline' }
+            }}>
               <SmartMoment dt={highlight.createdAt} />
             </Typography>
           </Box>
 
-          <Button
-            variant="text"
-            size="small"
-            onClick={handleDeleteClick}
-            sx={{
-              color: 'text.secondary',
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: { xs: 'space-between', sm: 'flex-end' },
+            width: { xs: '100%', sm: 'auto' },
+            gap: 1
+          }}>
+            {/* 移动端显示时间 */}
+            <Typography variant="body2" color="text.secondary" component="span" sx={{
               fontSize: '0.75rem',
-              minWidth: 'auto',
-              px: 1,
-              py: 0.25,
-              '&:hover': {
-                color: 'error.main',
-                backgroundColor: theme => alpha(theme.palette.error.main, 0.08)
-              }
-            }}
-          >
-            Delete
-          </Button>
+              display: { xs: 'inline', sm: 'none' }
+            }}>
+              <SmartMoment dt={highlight.createdAt} />
+            </Typography>
+            <Button
+              variant="text"
+              size="small"
+              onClick={handleDeleteClick}
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.75rem',
+                minWidth: 'auto',
+                px: 1,
+                py: 0.25,
+                '&:hover': {
+                  color: 'error.main',
+                  backgroundColor: theme => alpha(theme.palette.error.main, 0.08)
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </Box>
         </Box>
       </CardContent>
 
@@ -318,11 +344,6 @@ const Highlights: React.FC = () => {
     console.log('Page operation:', event);
   };
 
-  const handleRefresh = useCallback(() => {
-    // Invalidate and refetch the highlights data
-    queryClient.invalidateQueries(['highlights']);
-  }, [queryClient]);
-
   // Delete highlight mutation
   const deleteHighlightMutation = useMutation(
     (highlightId: number) => PageHighlightControllerApiFactory().deleteHighlightUsingDELETE(highlightId),
@@ -353,8 +374,7 @@ const Highlights: React.FC = () => {
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail} />
       <SubHeader
         navLabel={navLabels.highlights}
-        onRefresh={handleRefresh}
-        buttonOptions={{ markRead: false, viewSwitch: false, refresh: true }}
+        buttonOptions={{ markRead: false, viewSwitch: false }}
         navLabelArea={
           totalCount > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontSize: '0.875rem' }}>
@@ -365,8 +385,8 @@ const Highlights: React.FC = () => {
       />
 
       <div className="flex flex-auto justify-center mt-2">
-        <div className="p-2 flex flex-col grow items-center">
-          <div className="page-list w-[720px] flex flex-col items-center mx-auto">
+        <div className="p-2 sm:p-2 px-3 flex flex-col grow items-center">
+          <div className="page-list w-full max-w-[720px] flex flex-col items-center mx-auto">
             {isLoading && <Loading />}
             {error && (
               <div className="w-full">
@@ -413,9 +433,6 @@ const Highlights: React.FC = () => {
               )
             )}
           </div>
-        </div>
-
-        <div className={'w-[270px] sticky mt-3 top-28 self-start'}>
         </div>
       </div>
       
