@@ -35,7 +35,6 @@ import {
   TravelExploreOutlined,
   WatchLaterOutlined,
   MarkEmailUnreadOutlined,
-  DraftsOutlined,
   WhatshotOutlined
 } from "@mui/icons-material";
 import moment from "moment";
@@ -354,7 +353,7 @@ export default function PageFilters(props: PageFilterProps) {
             <Button
               size="small"
               className={`page-filters-pill ${showAllArticles ? 'is-active' : ''}`}
-              startIcon={showAllArticles ? <DraftsOutlined fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
+              startIcon={showAllArticles ? <GridViewOutlinedIcon fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
               onClick={handleShowAllArticlesToggle}
             >
               {showAllArticles ? 'All' : 'Unread'}
@@ -434,7 +433,7 @@ export default function PageFilters(props: PageFilterProps) {
           <Button
             size="small"
             className={`page-filters-pill ${showAllArticles ? 'is-active' : ''}`}
-            startIcon={showAllArticles ? <DraftsOutlined fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
+            startIcon={showAllArticles ? <GridViewOutlinedIcon fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
             onClick={handleShowAllArticlesToggle}
           >
             {showAllArticles ? 'All' : 'Unread'}
