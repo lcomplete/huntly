@@ -15,17 +15,28 @@ import 'react-date-range/dist/styles.css'; // main style file
 import 'react-date-range/dist/theme/default.css'; // theme css file
 import {DateRangePicker} from 'react-date-range';
 import {
+  addDays,
+  addHours,
+  addMinutes,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  isSameMinute
+} from 'date-fns';
+import {
   ArchiveOutlined,
   BookmarkBorderOutlined,
   CalendarMonth,
   HistoryOutlined,
-  LinkOutlined,
   StarOutlineOutlined,
-  ThumbUpOutlined,
   TravelExploreOutlined,
   WatchLaterOutlined,
   MarkEmailUnreadOutlined,
-  DraftsOutlined
+  DraftsOutlined,
+  WhatshotOutlined
 } from "@mui/icons-material";
 import moment from "moment";
 import ClearIcon from '@mui/icons-material/Clear';
@@ -61,12 +72,123 @@ export type PageFilterProps = {
   onChange: (props: PageFilterOptions) => void,
 }
 
+// Helper to extract date and time from ISO string
+function parseDateTimeString(dateStr: string | undefined) {
+  if (!dateStr) return { date: undefined, time: '00:00' };
+  if (dateStr.includes('T')) {
+    const [datePart, timePart] = dateStr.split('T');
+    return { date: new Date(datePart), time: timePart?.substring(0, 5) || '00:00' };
+  }
+  return { date: new Date(dateStr), time: '00:00' };
+}
+
+// Custom static ranges
+const customStaticRanges = [
+  {
+    label: 'Last 30 Min',
+    range: () => ({ startDate: addMinutes(new Date(), -30), endDate: new Date() }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      return isSameMinute(range.startDate, addMinutes(new Date(), -30)) && isSameMinute(range.endDate, new Date());
+    },
+  },
+  {
+    label: 'Last 1 Hour',
+    range: () => ({ startDate: addHours(new Date(), -1), endDate: new Date() }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      return isSameMinute(range.startDate, addHours(new Date(), -1)) && isSameMinute(range.endDate, new Date());
+    },
+  },
+  {
+    label: 'Last 3 Hours',
+    range: () => ({ startDate: addHours(new Date(), -3), endDate: new Date() }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      return isSameMinute(range.startDate, addHours(new Date(), -3)) && isSameMinute(range.endDate, new Date());
+    },
+  },
+  {
+    label: 'Last 6 Hours',
+    range: () => ({ startDate: addHours(new Date(), -6), endDate: new Date() }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      return isSameMinute(range.startDate, addHours(new Date(), -6)) && isSameMinute(range.endDate, new Date());
+    },
+  },
+  {
+    label: 'Today',
+    range: () => ({ startDate: startOfDay(new Date()), endDate: endOfDay(new Date()) }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      const todayStart = startOfDay(new Date());
+      const todayEnd = endOfDay(new Date());
+      // Must match exactly: start at 00:00 and end at 23:59
+      return isSameMinute(range.startDate, todayStart) && isSameMinute(range.endDate, todayEnd);
+    },
+  },
+  {
+    label: 'Yesterday',
+    range: () => ({ startDate: startOfDay(addDays(new Date(), -1)), endDate: endOfDay(addDays(new Date(), -1)) }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      const yesterdayStart = startOfDay(addDays(new Date(), -1));
+      const yesterdayEnd = endOfDay(addDays(new Date(), -1));
+      return isSameMinute(range.startDate, yesterdayStart) && isSameMinute(range.endDate, yesterdayEnd);
+    },
+  },
+  {
+    label: 'Last 7 Days',
+    range: () => ({ startDate: startOfDay(addDays(new Date(), -6)), endDate: endOfDay(new Date()) }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      const start = startOfDay(addDays(new Date(), -6));
+      const end = endOfDay(new Date());
+      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+    },
+  },
+  {
+    label: 'This Week',
+    range: () => ({ startDate: startOfWeek(new Date()), endDate: endOfWeek(new Date()) }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      const start = startOfWeek(new Date());
+      const end = endOfWeek(new Date());
+      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+    },
+  },
+  {
+    label: 'This Month',
+    range: () => ({ startDate: startOfMonth(new Date()), endDate: endOfMonth(new Date()) }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      const start = startOfMonth(new Date());
+      const end = endOfMonth(new Date());
+      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+    },
+  },
+  {
+    label: 'Last 30 Days',
+    range: () => ({ startDate: startOfDay(addDays(new Date(), -29)), endDate: endOfDay(new Date()) }),
+    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+      if (!range.startDate || !range.endDate) return false;
+      const start = startOfDay(addDays(new Date(), -29));
+      const end = endOfDay(new Date());
+      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+    },
+  },
+];
+
 export default function PageFilters(props: PageFilterProps) {
   const {options, onChange} = props;
   const {sortFields, defaultSortValue, asc, hideContentTypeFilter, contentFilterType, startDate, endDate, showAllArticles, showAllArticlesOption} = options;
   const [pickerAnchorEl, setPickerAnchorEl] = React.useState(null);
-  const [tempStartDate, setTempStartDate] = React.useState(startDate);
-  const [tempEndDate, setTempEndDate] = React.useState(endDate);
+  const parsedStart = parseDateTimeString(startDate);
+  const parsedEnd = parseDateTimeString(endDate);
+  const [tempStartDate, setTempStartDate] = React.useState<Date | undefined>(parsedStart.date);
+  const [tempEndDate, setTempEndDate] = React.useState<Date | undefined>(parsedEnd.date);
+  const [startTime, setStartTime] = React.useState(parsedStart.time);
+  const [endTime, setEndTime] = React.useState(parsedEnd.time === '00:00' ? '23:59' : parsedEnd.time);
   const initialOptionsRef = React.useRef<PageFilterOptions>(options);
   const hasDateRange = Boolean(tempStartDate && tempEndDate);
   const isPhone = useMediaQuery('(max-width: 720px)');
@@ -111,8 +233,21 @@ export default function PageFilters(props: PageFilterProps) {
   }
 
   function handleDateChange(item) {
-    setTempStartDate(item.selection.startDate);
-    setTempEndDate(item.selection.endDate);
+    const newStartDate = item.selection.startDate;
+    const newEndDate = item.selection.endDate;
+    setTempStartDate(newStartDate);
+    setTempEndDate(newEndDate);
+    // Extract time from selected dates (for quick ranges)
+    if (newStartDate) {
+      const h = newStartDate.getHours().toString().padStart(2, '0');
+      const m = newStartDate.getMinutes().toString().padStart(2, '0');
+      setStartTime(`${h}:${m}`);
+    }
+    if (newEndDate) {
+      const h = newEndDate.getHours().toString().padStart(2, '0');
+      const m = newEndDate.getMinutes().toString().padStart(2, '0');
+      setEndTime(`${h}:${m}`);
+    }
   }
 
   function openPicker(event) {
@@ -121,13 +256,9 @@ export default function PageFilters(props: PageFilterProps) {
 
   function handlePickerClose() {
     setPickerAnchorEl(null);
-
-    if (!tempStartDate || !tempEndDate) {
-      return;
-    }
-    const strStartDate = moment(tempStartDate).format('YYYY-MM-DD');
-    const strEndDate = moment(tempEndDate).format('YYYY-MM-DD');
-
+    if (!tempStartDate || !tempEndDate) return;
+    const strStartDate = `${moment(tempStartDate).format('YYYY-MM-DD')}T${startTime}:00`;
+    const strEndDate = `${moment(tempEndDate).format('YYYY-MM-DD')}T${endTime}:00`;
     if (strStartDate !== startDate || strEndDate !== endDate) {
       onChange({
         ...options,
@@ -140,12 +271,14 @@ export default function PageFilters(props: PageFilterProps) {
   const pickerOpen = Boolean(pickerAnchorEl);
 
   function handleClearDate() {
-    setTempStartDate(null);
-    setTempEndDate(null);
+    setTempStartDate(undefined);
+    setTempEndDate(undefined);
+    setStartTime('00:00');
+    setEndTime('23:59');
     onChange({
       ...options,
-      startDate: null,
-      endDate: null
+      startDate: undefined,
+      endDate: undefined
     });
   }
 
@@ -171,13 +304,13 @@ export default function PageFilters(props: PageFilterProps) {
   };
   const sortIconMap: Record<SORT_VALUE, React.ReactElement> = {
     ARCHIVED_AT: <ArchiveOutlined fontSize="small" />,
-    CONNECTED_AT: <LinkOutlined fontSize="small" />,
+    CONNECTED_AT: <TwitterIcon fontSize="small" />,
     CREATED_AT: <TravelExploreOutlined fontSize="small" />,
     LAST_READ_AT: <HistoryOutlined fontSize="small" />,
     READ_LATER_AT: <WatchLaterOutlined fontSize="small" />,
     SAVED_AT: <BookmarkBorderOutlined fontSize="small" />,
     STARRED_AT: <StarOutlineOutlined fontSize="small" />,
-    VOTE_SCORE: <ThumbUpOutlined fontSize="small" />
+    VOTE_SCORE: <WhatshotOutlined fontSize="small" />
   };
   const activeContentIcon = contentIconMap[contentFilterType || 0];
   const activeSortIcon = sortIconMap[defaultSortValue] ?? <SortOutlinedIcon fontSize="small" />;
@@ -239,6 +372,37 @@ export default function PageFilters(props: PageFilterProps) {
             </Button>
           )}
 
+          <Button
+            size="small"
+            className={`page-filters-pill page-filters-date ${hasDateRange ? 'has-range' : 'is-empty'}`}
+            startIcon={<CalendarMonth fontSize="small" />}
+            onClick={openPicker}
+          >
+            {hasDateRange ? (
+              <span className="page-filters-date-label">
+                {`${moment(tempStartDate).format('M/D')} ${startTime} - ${moment(tempEndDate).format('M/D')} ${endTime}`}
+                <span
+                  className="page-filters-date-clear"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleClearDate();
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleClearDate();
+                    }
+                  }}
+                  aria-label="Clear date range"
+                >
+                  <ClearIcon fontSize="small" />
+                </span>
+              </span>
+            ) : null}
+          </Button>
+
           {showOrder && (
             <Button
               size="small"
@@ -277,6 +441,17 @@ export default function PageFilters(props: PageFilterProps) {
           </Button>
         )}
 
+        {showSort && (
+          <Button
+            size="small"
+            className={'page-filters-pill'}
+            startIcon={activeSortIcon}
+            onClick={(event) => setSortAnchorEl(event.currentTarget)}
+          >
+            {sortLabel}
+          </Button>
+        )}
+
         <Button
           size="small"
           className={`page-filters-pill page-filters-date ${hasDateRange ? 'has-range' : 'is-empty'}`}
@@ -285,7 +460,7 @@ export default function PageFilters(props: PageFilterProps) {
         >
           {hasDateRange ? (
             <span className="page-filters-date-label">
-              {`${moment(tempStartDate).format('L')} - ${moment(tempEndDate).format('L')}`}
+              {`${moment(tempStartDate).format('M/D')} ${startTime} - ${moment(tempEndDate).format('M/D')} ${endTime}`}
               <span
                 className="page-filters-date-clear"
                 onClick={(event) => {
@@ -307,17 +482,6 @@ export default function PageFilters(props: PageFilterProps) {
             </span>
           ) : null}
         </Button>
-
-        {showSort && (
-          <Button
-            size="small"
-            className={'page-filters-pill'}
-            startIcon={activeSortIcon}
-            onClick={(event) => setSortAnchorEl(event.currentTarget)}
-          >
-            {sortLabel}
-          </Button>
-        )}
 
         {showOrder && (
           <Button
@@ -410,16 +574,34 @@ export default function PageFilters(props: PageFilterProps) {
           vertical: 'top',
           horizontal: 'left',
         }}
+        className="page-filters-date-popover"
       >
         <DateRangePicker ranges={[{
           startDate: tempStartDate,
           endDate: tempEndDate,
           key: 'selection'
         }]}
+                         staticRanges={customStaticRanges}
+                         inputRanges={[]}
                          showSelectionPreview={true}
                          moveRangeOnFirstSelection={false}
                          months={2}
                          onChange={handleDateChange}/>
+        <div className="page-filters-time-picker">
+          <input
+            type="time"
+            className="time-input"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+          />
+          <span className="page-filters-time-separator">—</span>
+          <input
+            type="time"
+            className="time-input"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+          />
+        </div>
       </Popover>
     )}
   </div>;

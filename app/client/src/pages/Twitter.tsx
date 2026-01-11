@@ -12,14 +12,14 @@ export default function Twitter() {
       value: 'LAST_READ_AT',
       label: 'Recently read'
     }, {
-      value: 'CREATED_AT',
-      label: 'Recently hunted'
+      value: 'VOTE_SCORE',
+      label: 'Most popular'
     }, {
       value: 'CONNECTED_AT',
       label: 'Recently tweeted'
     }, {
-      value: 'VOTE_SCORE',
-      label: 'Most popular'
+      value: 'CREATED_AT',
+      label: 'Recently hunted'
     }],
     asc: false,
     hideContentTypeFilter: true

@@ -124,6 +124,240 @@
     }
 }
 
+/* DateRangePicker Popover Styles */
+.page-filters-date-popover .MuiPaper-root {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12), 0 4px 16px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.page-filters-date-popover .rdrDefinedRangesWrapper {
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    border-right: 1px solid rgba(148, 163, 184, 0.15);
+    padding: 12px 0;
+    width: 160px;
+}
+
+.page-filters-date-popover .rdrStaticRange {
+    border: none;
+    background: transparent;
+    transition: all 0.15s ease;
+    margin: 2px 8px;
+    border-radius: 6px;
+}
+
+.page-filters-date-popover .rdrStaticRangeLabel {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #475569;
+    font-weight: 500;
+}
+
+.page-filters-date-popover .rdrStaticRange:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.page-filters-date-popover .rdrStaticRange:hover .rdrStaticRangeLabel {
+    color: #3b82f6;
+}
+
+.page-filters-date-popover .rdrStaticRangeSelected {
+    background: rgba(59, 130, 246, 0.12) !important;
+}
+
+.page-filters-date-popover .rdrStaticRangeSelected .rdrStaticRangeLabel {
+    color: #2563eb !important;
+    font-weight: 600;
+}
+
+.page-filters-date-popover .rdrCalendarWrapper {
+    background: #fff;
+}
+
+.page-filters-date-popover .rdrMonthAndYearWrapper {
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.page-filters-date-popover .rdrMonthAndYearPickers select {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+/* Calendar background */
+.page-filters-date-popover .rdrMonth {
+    background: #fff;
+}
+
+.page-filters-date-popover .rdrMonths {
+    background: #fff;
+}
+
+/* Navigation arrows */
+.page-filters-date-popover .rdrNextPrevButton {
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.page-filters-date-popover .rdrNextPrevButton:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.page-filters-date-popover .rdrPprevButton i,
+.page-filters-date-popover .rdrNextButton i {
+    border-style: solid;
+    border-width: 0 2px 2px 0;
+    border-color: #475569;
+    display: inline-block;
+    padding: 3px;
+}
+
+.page-filters-date-popover .rdrPprevButton i {
+    transform: rotate(135deg);
+    margin-left: 3px;
+}
+
+.page-filters-date-popover .rdrNextButton i {
+    transform: rotate(-45deg);
+    margin-right: 3px;
+}
+
+/* Weekday headers */
+.page-filters-date-popover .rdrWeekDay {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* Day cells - clean minimal style */
+.page-filters-date-popover .rdrDay {
+    background: transparent;
+}
+
+.page-filters-date-popover .rdrDayNumber span {
+    font-weight: 500;
+    color: #334155;
+}
+
+.page-filters-date-popover .rdrDayPassive .rdrDayNumber span {
+    color: #cbd5e1;
+}
+
+.page-filters-date-popover .rdrDayDisabled .rdrDayNumber span {
+    color: #e2e8f0;
+}
+
+/* Today indicator */
+.page-filters-date-popover .rdrDayToday .rdrDayNumber span::after {
+    background: #3b82f6;
+}
+
+/* Preview states - remove border, keep minimal */
+.page-filters-date-popover .rdrDayStartPreview,
+.page-filters-date-popover .rdrDayInPreview,
+.page-filters-date-popover .rdrDayEndPreview {
+    border: none;
+    background: transparent;
+}
+
+/* Selected range */
+.page-filters-date-popover .rdrInRange {
+    background: rgba(59, 130, 246, 0.2) !important;
+}
+
+.page-filters-date-popover .rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
+    color: #1e40af;
+}
+
+.page-filters-date-popover .rdrStartEdge,
+.page-filters-date-popover .rdrEndEdge {
+    background: #3b82f6 !important;
+}
+
+.page-filters-date-popover .rdrDayStartOfMonth .rdrInRange,
+.page-filters-date-popover .rdrDayStartOfMonth .rdrEndEdge,
+.page-filters-date-popover .rdrDayStartOfWeek .rdrInRange,
+.page-filters-date-popover .rdrDayStartOfWeek .rdrEndEdge {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.page-filters-date-popover .rdrDayEndOfMonth .rdrInRange,
+.page-filters-date-popover .rdrDayEndOfMonth .rdrStartEdge,
+.page-filters-date-popover .rdrDayEndOfWeek .rdrInRange,
+.page-filters-date-popover .rdrDayEndOfWeek .rdrStartEdge {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+/* Time picker - simple style */
+.page-filters-time-picker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.page-filters-time-separator {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.time-input {
+    width: 110px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    color: #334155;
+    transition: border-color 0.15s ease;
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.time-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.time-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Time picker dropdown popup styling */
+.time-input::-webkit-datetime-edit {
+    padding: 0;
+}
+
+.time-input::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+}
+
+/* Hide label for simple design */
+.time-input-group {
+    display: contents;
+}
+
+.time-label {
+    display: none;
+}
+
 @media (max-width: 720px) {
     .page-filters {
         position: static;

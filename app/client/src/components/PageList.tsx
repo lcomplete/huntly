@@ -267,6 +267,8 @@ const PageList = (props: PageListProps) => {
         lastPage && lastPage.length > 0 && lastPage.length >= pageSize
           ? (filters.sort === 'VOTE_SCORE' ? {lastVoteScore: lastPage[lastPage.length - 1].voteScore} : {lastRecordAt: lastPage[lastPage.length - 1].recordAt})
           : undefined,
+      keepPreviousData: false,
+      refetchOnMount: true,
     },
   );
 
@@ -352,7 +354,16 @@ const PageList = (props: PageListProps) => {
   }
 
   function updatePageListQueryData(event: PageOperateEvent, queryClient: QueryClient, queryKey) {
-    if (event.operation !== PageOperation.delete) {
+    if (event.operation === PageOperation.markRead || event.operation === PageOperation.unMarkRead) {
+      // Handle markRead/unMarkRead operations (they don't have result)
+      queryClient.setQueryData<InfiniteData<PageItem[]>>(queryKey, oldData => ({
+        ...oldData,
+        pages: oldData.pages.map(pages => pages.map(rawPage => rawPage.id === event.rawPageStatus.id ? {
+          ...rawPage,
+          markRead: event.operation === PageOperation.markRead
+        } : rawPage))
+      }));
+    } else if (event.operation !== PageOperation.delete) {
       const res = event.result;
       queryClient.setQueryData<InfiniteData<PageItem[]>>(queryKey, oldData => ({
         ...oldData,
@@ -406,6 +417,8 @@ const PageList = (props: PageListProps) => {
     if (!isDeepEqual(filters, propFilters)) {
       setShowDoneTip(false);
       setFilters(propFilters);
+      // Reset processed pages when filters change
+      setProcessedPages(new Set());
     }
   }, [propFilters, filters]);
 
