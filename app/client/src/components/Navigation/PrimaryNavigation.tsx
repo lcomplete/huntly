@@ -181,22 +181,24 @@ const PrimaryNavigation: React.FC = () => {
   const getFeedsTreeItems = (): NavTreeViewItem[] => {
     if (!view?.folderFeedConnectors) return [];
 
-    const items: NavTreeViewItem[] = [
-      {
-        labelText: navLabels.allFeeds.labelText,
-        labelIcon: navLabels.allFeeds.labelIcon,
-        linkTo: '/feeds',
-      }
-    ];
+    let allInboxCount = 0;
+    const items: NavTreeViewItem[] = [];
 
     view.folderFeedConnectors.forEach(folder => {
       if (folder.connectorItems && folder.connectorItems.length > 0) {
+        const folderInboxCount = folder.connectorItems.reduce(
+          (sum, item) => sum + (item.inboxCount || 0),
+          0
+        );
+        allInboxCount += folderInboxCount;
+
         if (folder.name) {
           // Folder with items
           const folderItem: NavTreeViewItem = {
             labelText: folder.name,
             labelIcon: FolderOpenIcon,
             linkTo: `/folder/${folder.id}`,
+            inboxCount: folderInboxCount,
             childItems: folder.connectorItems.map(item => ({
               labelText: item.name || '',
               labelIcon: RssFeedIcon,
@@ -218,6 +220,15 @@ const PrimaryNavigation: React.FC = () => {
         }
       }
     });
+
+    // Add "All Feeds" at the beginning with total count
+    items.unshift({
+      labelText: navLabels.allFeeds.labelText,
+      labelIcon: navLabels.allFeeds.labelIcon,
+      linkTo: '/feeds',
+      inboxCount: allInboxCount,
+    });
+
     return items;
   };
 

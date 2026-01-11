@@ -23,7 +23,9 @@ import {
   StarOutlineOutlined,
   ThumbUpOutlined,
   TravelExploreOutlined,
-  WatchLaterOutlined
+  WatchLaterOutlined,
+  MarkEmailUnreadOutlined,
+  DraftsOutlined
 } from "@mui/icons-material";
 import moment from "moment";
 import ClearIcon from '@mui/icons-material/Clear';
@@ -61,7 +63,7 @@ export type PageFilterProps = {
 
 export default function PageFilters(props: PageFilterProps) {
   const {options, onChange} = props;
-  const {sortFields, defaultSortValue, asc, hideContentTypeFilter, contentFilterType, startDate, endDate} = options;
+  const {sortFields, defaultSortValue, asc, hideContentTypeFilter, contentFilterType, startDate, endDate, showAllArticles, showAllArticlesOption} = options;
   const [pickerAnchorEl, setPickerAnchorEl] = React.useState(null);
   const [tempStartDate, setTempStartDate] = React.useState(startDate);
   const [tempEndDate, setTempEndDate] = React.useState(endDate);
@@ -71,7 +73,6 @@ export default function PageFilters(props: PageFilterProps) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [contentAnchorEl, setContentAnchorEl] = React.useState<HTMLElement | null>(null);
   const [sortAnchorEl, setSortAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [orderAnchorEl, setOrderAnchorEl] = React.useState<HTMLElement | null>(null);
   const contentLabelMap = {
     0: 'All',
     1: 'Article',
@@ -84,17 +85,6 @@ export default function PageFilters(props: PageFilterProps) {
   const showSort = sortFields.length > 1 || isPhone;
   const showOrder = defaultSortValue !== 'VOTE_SCORE';
   const hasFilterChanges = !isDeepEqual(initialOptionsRef.current, options);
-
-  function handleSortingChange(event, value) {
-    onChange({
-      ...options,
-      asc: value === 'true'
-    });
-    // Close mobile filters after selection
-    if (isPhone) {
-      setMobileOpen(false);
-    }
-  }
 
   function handleSortByChange(event, value) {
     onChange({
@@ -159,6 +149,20 @@ export default function PageFilters(props: PageFilterProps) {
     });
   }
 
+  function handleShowAllArticlesToggle() {
+    onChange({
+      ...options,
+      showAllArticles: !showAllArticles
+    });
+  }
+
+  function handleOrderToggle() {
+    onChange({
+      ...options,
+      asc: !asc
+    });
+  }
+
   const contentIconMap = {
     0: <GridViewOutlinedIcon fontSize="small" />,
     1: <ArticleOutlinedIcon fontSize="small" />,
@@ -213,6 +217,17 @@ export default function PageFilters(props: PageFilterProps) {
             </Button>
           )}
 
+          {showAllArticlesOption && (
+            <Button
+              size="small"
+              className={`page-filters-pill ${showAllArticles ? 'is-active' : ''}`}
+              startIcon={showAllArticles ? <DraftsOutlined fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
+              onClick={handleShowAllArticlesToggle}
+            >
+              {showAllArticles ? 'All' : 'Unread'}
+            </Button>
+          )}
+
           {showSort && (
             <Button
               size="small"
@@ -229,7 +244,7 @@ export default function PageFilters(props: PageFilterProps) {
               size="small"
               className={'page-filters-pill'}
               startIcon={activeOrderIcon}
-              onClick={(event) => setOrderAnchorEl(event.currentTarget)}
+              onClick={handleOrderToggle}
             >
               {orderLabel}
             </Button>
@@ -248,6 +263,17 @@ export default function PageFilters(props: PageFilterProps) {
             onClick={(event) => setContentAnchorEl(event.currentTarget)}
           >
             {contentLabel}
+          </Button>
+        )}
+
+        {showAllArticlesOption && (
+          <Button
+            size="small"
+            className={`page-filters-pill ${showAllArticles ? 'is-active' : ''}`}
+            startIcon={showAllArticles ? <DraftsOutlined fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
+            onClick={handleShowAllArticlesToggle}
+          >
+            {showAllArticles ? 'All' : 'Unread'}
           </Button>
         )}
 
@@ -298,7 +324,7 @@ export default function PageFilters(props: PageFilterProps) {
             size="small"
             className={'page-filters-pill'}
             startIcon={activeOrderIcon}
-            onClick={(event) => setOrderAnchorEl(event.currentTarget)}
+            onClick={handleOrderToggle}
           >
             {orderLabel}
           </Button>
@@ -370,32 +396,6 @@ export default function PageFilters(props: PageFilterProps) {
         ))}
       </Menu>
     )}
-
-    <Menu
-      anchorEl={orderAnchorEl}
-      open={Boolean(orderAnchorEl)}
-      onClose={() => setOrderAnchorEl(null)}
-      PaperProps={{
-        className: 'page-filters-menu'
-      }}
-    >
-      <MenuItem
-        selected={!asc}
-        onClick={() => { handleSortingChange(null, 'false'); setOrderAnchorEl(null); }}
-      >
-        <ListItemIcon><ArrowDownwardOutlinedIcon fontSize="small" /></ListItemIcon>
-        Newest first
-        {!asc && <CheckIcon fontSize="small" className="page-filters-check" />}
-      </MenuItem>
-      <MenuItem
-        selected={asc}
-        onClick={() => { handleSortingChange(null, 'true'); setOrderAnchorEl(null); }}
-      >
-        <ListItemIcon><ArrowUpwardOutlinedIcon fontSize="small" /></ListItemIcon>
-        Oldest first
-        {asc && <CheckIcon fontSize="small" className="page-filters-check" />}
-      </MenuItem>
-    </Menu>
 
     {!isPhone && (
       <Popover

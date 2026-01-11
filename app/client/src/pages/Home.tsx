@@ -49,7 +49,7 @@ const Home = () => {
       undefined, // hasHighlights
       undefined, // lastRecordAt
       undefined, // lastVoteScore
-      undefined, // markRead
+      false, // markRead - only get unread items
       undefined, // readLater
       undefined, // saveStatus
       "CONNECTED_AT", // sort
@@ -343,7 +343,7 @@ const Home = () => {
                 )}
                 {!isLoadingLatestFeed &&
                   !latestFeedError &&
-                  renderPageList(latestFeed || [], "No feed items yet.")}
+                  renderPageList(latestFeed || [], "No unread feed items.")}
               </Box>
 
               <Box sx={moduleSx}>

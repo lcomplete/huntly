@@ -13,7 +13,13 @@ const LayoutContent = () => {
   useEffect(() => {
     const rootEl = document.getElementById('root');
     rootEl?.classList.remove('toggle-sidebar');
-  },[location]);
+
+    // Reset scroll position of main-content container when navigating
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      mainContent.scrollTop = 0;
+    }
+  },[location.pathname]);
 
   // Check if current nav has secondary sidebar
   const hasSecondarySidebar = activeNav === 'saved' || activeNav === 'feeds' || activeNav === 'settings';
