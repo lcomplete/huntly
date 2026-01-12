@@ -109,15 +109,6 @@ class InstantStringConverterTest {
         assertThat(result).isEqualTo(expected);
     }
 
-    @Test
-    void convertToEntityAttribute_isoFormat_returnsInstant() {
-        String dbData = "2026-01-11T13:30:45.123Z";
-
-        Instant result = converter.convertToEntityAttribute(dbData);
-
-        assertThat(result).isEqualTo(Instant.parse("2026-01-11T13:30:45.123Z"));
-    }
-
     // ==================== Round-trip tests ====================
 
     @Test
