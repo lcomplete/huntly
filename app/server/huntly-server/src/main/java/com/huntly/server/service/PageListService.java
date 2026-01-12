@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -125,7 +125,8 @@ public class PageListService {
             return parseDateTimeInstant(strDate);
         }
         try {
-            return LocalDate.parse(strDate).atStartOfDay(ZoneOffset.UTC).toInstant().plus(plusDay, ChronoUnit.DAYS);
+            // Use system default timezone to be consistent with InstantStringConverter
+            return LocalDate.parse(strDate).atStartOfDay(ZoneId.systemDefault()).toInstant().plus(plusDay, ChronoUnit.DAYS);
         } catch (DateTimeParseException e) {
             try {
                 return new SimpleDateFormat("yyyy-MM-dd").parse(strDate).toInstant().plus(plusDay, ChronoUnit.DAYS);
@@ -143,7 +144,8 @@ public class PageListService {
                 return OffsetDateTime.parse(strDateTime).toInstant();
             } catch (DateTimeParseException offsetException) {
                 try {
-                    return LocalDateTime.parse(strDateTime).toInstant(ZoneOffset.UTC);
+                    // Use system default timezone to be consistent with InstantStringConverter
+                    return LocalDateTime.parse(strDateTime).atZone(ZoneId.systemDefault()).toInstant();
                 } catch (DateTimeParseException localException) {
                     throw new RuntimeException(localException);
                 }
