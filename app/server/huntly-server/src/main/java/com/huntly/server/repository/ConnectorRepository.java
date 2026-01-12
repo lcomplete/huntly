@@ -4,6 +4,8 @@ import com.huntly.server.domain.entity.Connector;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,4 +23,7 @@ public interface ConnectorRepository extends JpaRepository<Connector, Integer>, 
     List<Connector> findByFolderIdAndType(Integer folderId,Integer type, Sort ascending);
 
     List<Connector> findByType(Integer type);
+
+    @Query("SELECT COALESCE(SUM(c.inboxCount), 0) FROM Connector c WHERE c.type = :connectorType AND c.enabled = true")
+    long sumInboxCountByType(@Param("connectorType") Integer connectorType);
 }
