@@ -113,17 +113,12 @@ public class ConnectorService {
             connectors = connectorRepository.findAll();
         }
         FolderConnectorView view = new FolderConnectorView();
-        view.setFolderConnectors(getFolderConnectors(folders, connectors, false));
-        view.setFolderFeedConnectors(getFolderConnectors(folders, connectors, true));
+        view.setFolderFeedConnectors(getFolderFeedConnectors(folders, connectors));
         return view;
     }
 
-    private List<FolderConnectors> getFolderConnectors(List<Folder> folders, List<Connector> connectors, boolean isRss) {
-        if (isRss) {
-            connectors = connectors.stream().filter(t -> ConnectorType.RSS.getCode().equals(t.getType())).collect(Collectors.toList());
-        } else {
-            connectors = connectors.stream().filter(t -> !ConnectorType.RSS.getCode().equals(t.getType())).collect(Collectors.toList());
-        }
+    private List<FolderConnectors> getFolderFeedConnectors(List<Folder> folders, List<Connector> connectors) {
+        connectors = connectors.stream().filter(t -> ConnectorType.RSS.getCode().equals(t.getType())).collect(Collectors.toList());
         List<FolderConnectors> folderConnectorsList = new ArrayList<>();
 
         // add connectors without folder first
@@ -175,6 +170,14 @@ public class ConnectorService {
 
     private int getUnreadCount(Integer connectorId) {
         return pageRepository.countByConnectorIdAndMarkRead(connectorId, false);
+    }
+
+    public long getUnreadFeedCount() {
+        return connectorRepository.sumInboxCountByType(ConnectorType.RSS.getCode());
+    }
+
+    public long getGitHubInboxCount() {
+        return connectorRepository.sumInboxCountByType(ConnectorType.GITHUB.getCode());
     }
 
     public void saveGithubPersonalToken(String token) {
@@ -233,6 +236,14 @@ public class ConnectorService {
     private Connector getGitHubConnector() {
         var connectors = connectorRepository.findByType(ConnectorType.GITHUB.getCode());
         return connectors.isEmpty() ? null : connectors.get(0);
+    }
+
+    public ConnectorItem getGitHubConnectorItem() {
+        var connector = getGitHubConnector();
+        if (connector == null || !connector.getEnabled()) {
+            return null;
+        }
+        return ConnectorItemMapper.INSTANCE.fromConnector(connector);
     }
 
     public GitHubSetting getGitHubSetting() {

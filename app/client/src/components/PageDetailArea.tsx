@@ -123,7 +123,27 @@ const PageDetailArea = ({
   const hasToc = tocItems.length > 2;
 
   useEffect(() => {
-    PageControllerApiFactory().recordReadPageUsingPOST(id);
+    PageControllerApiFactory().recordReadPageUsingPOST(id).then(() => {
+      // 更新详情页缓存为已读状态
+      queryClient.setQueryData<PageDetail>(queryKey, (data) => {
+        if (!data) return data;
+        return {
+          ...data,
+          page: {
+            ...data.page,
+            markRead: true
+          }
+        };
+      });
+
+      // 通知父组件更新列表页缓存
+      if (onOperateSuccess) {
+        onOperateSuccess({
+          operation: PageOperation.markRead,
+          rawPageStatus: { id, markRead: true }
+        });
+      }
+    });
 
     // 重置处理结果状态
     setShowProcessedSection(false);
@@ -133,6 +153,7 @@ const PageDetailArea = ({
 
     // 重置自动滚动状态
     setHasAutoScrolled(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // 监听页面详情和高亮列表加载完成，如果URL中有h参数且尚未自动滚动过则滚动到指定高亮
@@ -151,7 +172,16 @@ const PageDetailArea = ({
   }, [detail, highlights, location.search, hasAutoScrolled]);
 
   function operateSuccess(event: PageOperateEvent) {
-    if (event.operation !== PageOperation.delete) {
+    if (event.operation === PageOperation.markRead || event.operation === PageOperation.unMarkRead) {
+      // Update markRead status in cache
+      queryClient.setQueryData<PageDetail>(queryKey, (data) => ({
+        ...data,
+        page: {
+          ...data.page,
+          markRead: event.operation === PageOperation.markRead
+        }
+      }));
+    } else if (event.operation !== PageOperation.delete) {
       queryClient.setQueryData<PageDetail>(queryKey, (data) => ({
         ...data,
         page: {
@@ -278,7 +308,7 @@ const PageDetailArea = ({
       setIsFullContent(false);
     }
   }
-  
+
   // AI操作菜单处理函数
   const handleAIMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -545,7 +575,9 @@ const PageDetailArea = ({
                   id: detail.page.id,
                   starred: detail.page.starred,
                   readLater: detail.page.readLater,
-                  librarySaveStatus: detail.page.librarySaveStatus
+                  librarySaveStatus: detail.page.librarySaveStatus,
+                  markRead: detail.page.markRead,
+                  connectorType: detail.page.connectorType
                 }} onOperateSuccess={operateSuccess}/>
               </Box>
           </div>

@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -69,7 +69,9 @@ public class PageListService {
         // For other content types, use CREATED_AT (system creation time)
         var sortFilterField = sortField;
         if (listSort.equals(PageListSort.VOTE_SCORE)) {
-            boolean isTweetQuery = listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2;
+            boolean isTweetQuery = (listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2)
+                    || listQuery.getContentType() == ContentType.TWEET
+                    || listQuery.getContentType() == ContentType.QUOTED_TWEET;
             sortFilterField = isTweetQuery ? PageListSort.CONNECTED_AT.getSortField() : PageListSort.CREATED_AT.getSortField();
         }
         var specs = Specifications.<Page>and()
@@ -125,7 +127,8 @@ public class PageListService {
             return parseDateTimeInstant(strDate);
         }
         try {
-            return LocalDate.parse(strDate).atStartOfDay(ZoneOffset.UTC).toInstant().plus(plusDay, ChronoUnit.DAYS);
+            // Use system default timezone to be consistent with InstantStringConverter
+            return LocalDate.parse(strDate).atStartOfDay(ZoneId.systemDefault()).toInstant().plus(plusDay, ChronoUnit.DAYS);
         } catch (DateTimeParseException e) {
             try {
                 return new SimpleDateFormat("yyyy-MM-dd").parse(strDate).toInstant().plus(plusDay, ChronoUnit.DAYS);
@@ -143,7 +146,8 @@ public class PageListService {
                 return OffsetDateTime.parse(strDateTime).toInstant();
             } catch (DateTimeParseException offsetException) {
                 try {
-                    return LocalDateTime.parse(strDateTime).toInstant(ZoneOffset.UTC);
+                    // Use system default timezone to be consistent with InstantStringConverter
+                    return LocalDateTime.parse(strDateTime).atZone(ZoneId.systemDefault()).toInstant();
                 } catch (DateTimeParseException localException) {
                     throw new RuntimeException(localException);
                 }

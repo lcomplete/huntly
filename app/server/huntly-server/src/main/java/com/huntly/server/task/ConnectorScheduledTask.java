@@ -2,6 +2,7 @@ package com.huntly.server.task;
 
 import com.huntly.server.service.ConnectorFetchService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
+@ConditionalOnProperty(name = "huntly.connector-task.enabled", havingValue = "true", matchIfMissing = true)
 public class ConnectorScheduledTask {
     private final ConnectorFetchService connectorFetchService;
     

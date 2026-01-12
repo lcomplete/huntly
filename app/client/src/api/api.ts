@@ -733,12 +733,6 @@ export interface FolderConnectorView {
      * @type {Array<FolderConnectors>}
      * @memberof FolderConnectorView
      */
-    'folderConnectors'?: Array<FolderConnectors>;
-    /**
-     * 
-     * @type {Array<FolderConnectors>}
-     * @memberof FolderConnectorView
-     */
     'folderFeedConnectors'?: Array<FolderConnectors>;
 }
 /**
@@ -3926,6 +3920,96 @@ export const ConnectorControllerApiAxiosParamCreator = function (configuration?:
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * 
+         * @summary getGitHubConnector
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getGitHubConnectorUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/connector/github`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getGitHubInboxCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getGitHubInboxCountUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/connector/github/inboxCount`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary getUnreadFeedCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getUnreadFeedCountUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/connector/feeds/unreadCount`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -3957,6 +4041,36 @@ export const ConnectorControllerApiFp = function(configuration?: Configuration) 
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFolderConnectorViewUsingGET(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
+        /**
+         * 
+         * @summary getGitHubConnector
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getGitHubConnectorUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ConnectorItem>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getGitHubConnectorUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getGitHubInboxCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getGitHubInboxCountUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOflong>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getGitHubInboxCountUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary getUnreadFeedCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getUnreadFeedCountUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOflong>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getUnreadFeedCountUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
     }
 };
 
@@ -3985,6 +4099,33 @@ export const ConnectorControllerApiFactory = function (configuration?: Configura
          */
         getFolderConnectorViewUsingGET(options?: any): AxiosPromise<FolderConnectorView> {
             return localVarFp.getFolderConnectorViewUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getGitHubConnector
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getGitHubConnectorUsingGET(options?: any): AxiosPromise<ConnectorItem> {
+            return localVarFp.getGitHubConnectorUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getGitHubInboxCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getGitHubInboxCountUsingGET(options?: any): AxiosPromise<ApiResultOflong> {
+            return localVarFp.getGitHubInboxCountUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary getUnreadFeedCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getUnreadFeedCountUsingGET(options?: any): AxiosPromise<ApiResultOflong> {
+            return localVarFp.getUnreadFeedCountUsingGET(options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -4017,6 +4158,39 @@ export class ConnectorControllerApi extends BaseAPI {
      */
     public getFolderConnectorViewUsingGET(options?: AxiosRequestConfig) {
         return ConnectorControllerApiFp(this.configuration).getFolderConnectorViewUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getGitHubConnector
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ConnectorControllerApi
+     */
+    public getGitHubConnectorUsingGET(options?: AxiosRequestConfig) {
+        return ConnectorControllerApiFp(this.configuration).getGitHubConnectorUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getGitHubInboxCount
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ConnectorControllerApi
+     */
+    public getGitHubInboxCountUsingGET(options?: AxiosRequestConfig) {
+        return ConnectorControllerApiFp(this.configuration).getGitHubInboxCountUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary getUnreadFeedCount
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ConnectorControllerApi
+     */
+    public getUnreadFeedCountUsingGET(options?: AxiosRequestConfig) {
+        return ConnectorControllerApiFp(this.configuration).getUnreadFeedCountUsingGET(options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -4704,6 +4878,36 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
         },
         /**
          * 
+         * @summary getReadLaterCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getReadLaterCountUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page/readLaterCount`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary listPageItems
          * @param {boolean} [asc] 
          * @param {number} [connectorId] 
@@ -5121,37 +5325,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
             };
         },
         /**
-         *
-         * @summary getReadLaterCount
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        getReadLaterCountUsingGET: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/page/readLaterCount`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         *
+         * 
          * @summary recordReadPage
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -5524,6 +5698,16 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary getReadLaterCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getReadLaterCountUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOflong>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getReadLaterCountUsingGET(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
          * @summary listPageItems
          * @param {boolean} [asc] 
          * @param {number} [connectorId] 
@@ -5643,17 +5827,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         *
-         * @summary getReadLaterCount
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async getReadLaterCountUsingGET(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOflong>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getReadLaterCountUsingGET(options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
-        /**
-         *
+         * 
          * @summary recordReadPage
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -5814,6 +5988,15 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
         },
         /**
          * 
+         * @summary getReadLaterCount
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getReadLaterCountUsingGET(options?: any): AxiosPromise<ApiResultOflong> {
+            return localVarFp.getReadLaterCountUsingGET(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
          * @summary listPageItems
          * @param {boolean} [asc] 
          * @param {number} [connectorId] 
@@ -5924,16 +6107,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
             return localVarFp.readLaterPageUsingPOST(id, options).then((request) => request(axios, basePath));
         },
         /**
-         *
-         * @summary getReadLaterCount
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        getReadLaterCountUsingGET(options?: any): AxiosPromise<ApiResultOflong> {
-            return localVarFp.getReadLaterCountUsingGET(options).then((request) => request(axios, basePath));
-        },
-        /**
-         *
+         * 
          * @summary recordReadPage
          * @param {number} id id
          * @param {*} [options] Override http request option.
@@ -6095,6 +6269,17 @@ export class PageControllerApi extends BaseAPI {
 
     /**
      * 
+     * @summary getReadLaterCount
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PageControllerApi
+     */
+    public getReadLaterCountUsingGET(options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).getReadLaterCountUsingGET(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
      * @summary listPageItems
      * @param {boolean} [asc] 
      * @param {number} [connectorId] 
@@ -6223,18 +6408,7 @@ export class PageControllerApi extends BaseAPI {
     }
 
     /**
-     *
-     * @summary getReadLaterCount
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof PageControllerApi
-     */
-    public getReadLaterCountUsingGET(options?: AxiosRequestConfig) {
-        return PageControllerApiFp(this.configuration).getReadLaterCountUsingGET(options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     *
+     * 
      * @summary recordReadPage
      * @param {number} id id
      * @param {*} [options] Override http request option.

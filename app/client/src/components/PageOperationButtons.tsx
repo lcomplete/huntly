@@ -13,12 +13,15 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import StarIcon from '@mui/icons-material/Star';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import * as React from "react";
 import {PageControllerApiFactory, PageOperateResult} from "../api";
 import {useMutation} from "@tanstack/react-query";
 import {LibrarySaveStatus} from "../interfaces/librarySaveStatus";
 import {useEffect, useState} from "react";
 import {isDeepEqual} from "../common/objectUtils";
+import {ConnectorType} from "../interfaces/connectorType";
 
 export enum PageOperation {
   readLater,
@@ -28,7 +31,9 @@ export enum PageOperation {
   save,
   remove,
   archive,
-  delete
+  delete,
+  markRead,
+  unMarkRead
 }
 
 export type PageStatus = {
@@ -36,6 +41,8 @@ export type PageStatus = {
   readLater?: boolean,
   starred?: boolean,
   librarySaveStatus?: number;
+  markRead?: boolean;
+  connectorType?: number;
 }
 
 export type PageOperateEvent = {
@@ -97,6 +104,32 @@ const PageOperationButtons = ({
     }
   })
 
+  const markReadMutation = useMutation(({page, operation}: { page: PageStatus, operation: PageOperation }) => {
+    if (operation === PageOperation.markRead) {
+      return PageControllerApiFactory().markReadPageUsingPOST(page.id);
+    } else {
+      return PageControllerApiFactory().unMarkReadPageUsingPOST(page.id);
+    }
+  }, {
+    onMutate: variables => {
+      return variables;
+    },
+    onSuccess: (data, variables, context) => {
+      const {operation, page} = variables;
+      setPageState({
+        ...pageState,
+        markRead: operation === PageOperation.markRead
+      });
+      if (onOperateSuccess) {
+        onOperateSuccess({operation, rawPageStatus: page});
+      }
+    },
+    onError: (error, variables, context) => {
+    },
+    onSettled: () => {
+    }
+  })
+
   const deleteMutation = useMutation(({page}: { page: PageStatus }) => {
     return PageControllerApiFactory().deletePageUsingDELETE(page.id);
   }, {
@@ -117,7 +150,11 @@ const PageOperationButtons = ({
   })
 
   function operate(page: PageStatus, operation: PageOperation) {
-    mutation.mutate({page, operation});
+    if (operation === PageOperation.markRead || operation === PageOperation.unMarkRead) {
+      markReadMutation.mutate({page, operation});
+    } else {
+      mutation.mutate({page, operation});
+    }
   }
 
   function readLater() {
@@ -146,6 +183,14 @@ const PageOperationButtons = ({
 
   function archive() {
     operate(pageStatus, PageOperation.archive);
+  }
+
+  function markRead() {
+    operate(pageStatus, PageOperation.markRead);
+  }
+
+  function unMarkRead() {
+    operate(pageStatus, PageOperation.unMarkRead);
   }
 
   function deletePage() {
@@ -199,9 +244,26 @@ const PageOperationButtons = ({
     </div>;
   }
 
+  const isFromFeeds = pageState.connectorType === ConnectorType.RSS;
+
   return (
     <div className={'shrink-0'}>
       <Box sx={{}}>
+        {isFromFeeds && (
+          pageState.markRead ? (
+            <Tooltip title={"Mark as unread"}>
+              <IconButton onClick={unMarkRead}>
+                <CheckCircleOutlineIcon fontSize={"small"}/>
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <Tooltip title={"Mark as read"}>
+              <IconButton onClick={markRead}>
+                <RadioButtonUncheckedIcon fontSize={"small"}/>
+              </IconButton>
+            </Tooltip>
+          )
+        )}
         {
           pageState.readLater ? (
             <Tooltip title={"Remove from read later"}>
