@@ -190,21 +190,27 @@ const SecondarySidebar: React.FC = () => {
     case 'saved':
       return (
         <div className="secondary-sidebar">
-          <SavedContent />
+          <div className="secondary-sidebar-content">
+            <SavedContent />
+          </div>
         </div>
       );
 
     case 'feeds':
       return (
         <div className="secondary-sidebar">
-          <FeedsContent />
+          <div className="secondary-sidebar-content">
+            <FeedsContent />
+          </div>
         </div>
       );
 
     case 'settings':
       return (
         <div className="secondary-sidebar">
-          <SettingsContent />
+          <div className="secondary-sidebar-content">
+            <SettingsContent />
+          </div>
         </div>
       );
 
