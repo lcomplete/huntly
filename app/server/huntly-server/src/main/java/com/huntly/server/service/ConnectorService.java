@@ -238,6 +238,14 @@ public class ConnectorService {
         return connectors.isEmpty() ? null : connectors.get(0);
     }
 
+    public ConnectorItem getGitHubConnectorItem() {
+        var connector = getGitHubConnector();
+        if (connector == null || !connector.getEnabled()) {
+            return null;
+        }
+        return ConnectorItemMapper.INSTANCE.fromConnector(connector);
+    }
+
     public GitHubSetting getGitHubSetting() {
         var connector = getGitHubConnector();
         int fetchIntervalMinutes = huntlyProperties.getDefaultFeedFetchIntervalSeconds() / 60;

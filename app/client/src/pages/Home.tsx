@@ -22,13 +22,37 @@ import moment from "moment";
 import { ConnectorType } from "../interfaces/connectorType";
 import SmartMoment from "../components/SmartMoment";
 
+const HOT_TWEETS_HOURS_KEY = "huntly_hot_tweets_hours";
+const DEFAULT_HOT_TWEETS_HOURS = 4;
+
+const hotTweetsHoursOptions = [
+  { value: 2, label: "2h" },
+  { value: 4, label: "4h" },
+  { value: 8, label: "8h" },
+  { value: 12, label: "12h" },
+  { value: 24, label: "24h" },
+  { value: 48, label: "48h" },
+  { value: 72, label: "72h" },
+];
+
 const Home = () => {
   const navigate = useNavigate();
+
+  const [hotTweetsHours, setHotTweetsHours] = React.useState<number>(() => {
+    const saved = localStorage.getItem(HOT_TWEETS_HOURS_KEY);
+    return saved ? Number.parseFloat(saved) : DEFAULT_HOT_TWEETS_HOURS;
+  });
+
+  const handleHotTweetsHoursChange = (value: number) => {
+    setHotTweetsHours(value);
+    localStorage.setItem(HOT_TWEETS_HOURS_KEY, String(value));
+  };
+
   const hotTweetsDateRange = React.useMemo(() => {
-    const endDate = moment().toISOString();
-    const startDate = moment().subtract(1, "day").toISOString();
+    const endDate = moment().format("YYYY-MM-DDTHH:mm:ss");
+    const startDate = moment().subtract(hotTweetsHours, "hours").format("YYYY-MM-DDTHH:mm:ss");
     return { startDate, endDate };
-  }, []);
+  }, [hotTweetsHours]);
 
   const {
     isLoading: isLoadingLatestFeed,
@@ -144,9 +168,9 @@ const Home = () => {
       false, // asc
       undefined, // connectorId
       undefined, // connectorType
-      2, // contentFilterType (2 = Tweet, includes both TWEET and QUOTED_TWEET)
-      undefined, // contentType
-      8, // count
+      undefined, // contentFilterType
+      "TWEET", // contentType
+      20, // count
       hotTweetsDateRange.endDate, // endDate
       undefined, // firstRecordAt
       undefined, // firstVoteScore
@@ -631,25 +655,67 @@ const Home = () => {
                     mb: { xs: 2, md: 2.5 },
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                    24h Hot Tweets
-                  </Typography>
-                  <Button
-                    endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
-                    onClick={handleViewAll("/twitter")}
-                    size="small"
-                    sx={{
-                      textTransform: "none",
-                      fontSize: { xs: "0.75rem", md: "0.875rem" },
-                      minWidth: { xs: "auto", md: "64px" },
-                      px: { xs: 0.5, md: 1 },
-                      "& .MuiButton-endIcon": {
-                        ml: { xs: 0, md: 0.5 }
-                      }
-                    }}
-                  >
-                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
-                  </Button>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
+                      Hot Tweets
+                    </Typography>
+                    <Button
+                      endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
+                      onClick={handleViewAll(`/twitter?sort=VOTE_SCORE&startDate=${encodeURIComponent(hotTweetsDateRange.startDate)}&endDate=${encodeURIComponent(hotTweetsDateRange.endDate)}`)}
+                      size="small"
+                      sx={{
+                        textTransform: "none",
+                        fontSize: { xs: "0.75rem", md: "0.875rem" },
+                        minWidth: { xs: "auto", md: "64px" },
+                        px: { xs: 0.5, md: 1 },
+                        "& .MuiButton-endIcon": {
+                          ml: { xs: 0, md: 0.5 }
+                        }
+                      }}
+                    >
+                      <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
+                    </Button>
+                  </Box>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: 1,
+                    rowGap: 1,
+                    mb: 2,
+                  }}
+                >
+                  {hotTweetsHoursOptions.map((option) => {
+                    const isSelected = hotTweetsHours === option.value;
+                    return (
+                      <Box
+                        key={option.value}
+                        onClick={() => handleHotTweetsHoursChange(option.value)}
+                        sx={{
+                          px: 2,
+                          py: 0.75,
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: isSelected ? "primary.main" : "text.secondary",
+                          backgroundColor: isSelected ? "rgba(25, 118, 210, 0.1)" : "transparent",
+                          border: isSelected ? "1.5px solid" : "1px solid",
+                          borderColor: isSelected ? "primary.main" : "rgba(0,0,0,0.12)",
+                          borderRadius: "18px",
+                          cursor: "pointer",
+                          transition: "background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                          userSelect: "none",
+                          "&:hover": {
+                            backgroundColor: isSelected ? "rgba(25, 118, 210, 0.15)" : "rgba(0,0,0,0.05)",
+                            borderColor: isSelected ? "primary.main" : "rgba(0,0,0,0.25)",
+                          },
+                        }}
+                      >
+                        {option.label}
+                      </Box>
+                    );
+                  })}
                 </Box>
                 <Box
                   sx={{
@@ -664,7 +730,7 @@ const Home = () => {
                   )}
                   {!isLoadingHotTweets &&
                     !hotTweetsError &&
-                    renderPageList(hotTweets || [], "No hot tweets in the last 24h.", true)}
+                    renderPageList(hotTweets || [], `No hot tweets in the last ${hotTweetsHours}h.`, true)}
                 </Box>
               </Box>
             </Box>

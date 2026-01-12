@@ -13,7 +13,7 @@ import SvgIcon from '@mui/material/SvgIcon';
 import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import { useNavigation, PrimaryNavItem } from '../../contexts/NavigationContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ConnectorControllerApiFactory, FolderConnectorView, PageControllerApiFactory } from '../../api';
+import { ConnectorControllerApiFactory, FolderConnectorView, PageControllerApiFactory, ConnectorItem } from '../../api';
 import { ConnectorType } from '../../interfaces/connectorType';
 import LibraryNavTree from '../Sidebar/LibraryNavTree';
 import NavTreeView, { NavTreeViewItem } from '../Sidebar/NavTreeView';
@@ -137,20 +137,11 @@ const MobileSettingsContent: React.FC<{ selectedNodeId: string }> = ({ selectedN
   );
 };
 
-// Helper to find GitHub connector from cached view data
-const findGithubConnector = (view: FolderConnectorView | undefined) => {
-  if (!view?.folderConnectors) return null;
-  for (const folder of view.folderConnectors) {
-    const githubItem = folder.connectorItems?.find(item => item.type === ConnectorType.GITHUB);
-    if (githubItem) return githubItem;
-  }
-  return null;
-};
-
 // Helper to determine active nav from path and view data
 const getActiveNavFromPath = (
   path: string,
-  view: FolderConnectorView | undefined
+  view: FolderConnectorView | undefined,
+  githubConnector: ConnectorItem | null | undefined
 ): PrimaryNavItem | null => {
   if (path === '/search') return null;
   if (path.startsWith('/page/')) return null;
@@ -167,12 +158,10 @@ const getActiveNavFromPath = (
     );
     if (isRssFeed) return 'feeds';
 
-    const isGithub = view?.folderConnectors?.some(folder =>
-      folder.connectorItems?.some(item =>
-        item.type === ConnectorType.GITHUB && path.includes(`/connector/${item.id}`)
-      )
-    );
-    if (isGithub) return 'github';
+    // Check if this is the GitHub connector path
+    if (githubConnector && path.includes(`/connector/${githubConnector.id}`)) {
+      return 'github';
+    }
   }
 
   return null;
@@ -190,12 +179,17 @@ const PrimaryNavigation: React.FC = () => {
     setMobileMenuOpen(null);
   }, []);
 
-  // Get cached view data without triggering a fetch
-  // This is used for determining GitHub connector and active nav
-  const cachedView = queryClient.getQueryData<FolderConnectorView>(['folder-connector-view']);
+  // Fetch folder-connector view data for feed connectors
+  const { data: view } = useQuery(
+    ['folder-connector-view'],
+    async () => (await ConnectorControllerApiFactory().getFolderConnectorViewUsingGET()).data,
+  );
 
-  // Find first GitHub connector from cache
-  const firstGithubConnector = findGithubConnector(cachedView);
+  // Fetch GitHub connector information
+  const { data: firstGithubConnector } = useQuery(
+    ['github-connector'],
+    async () => (await ConnectorControllerApiFactory().getGitHubConnectorUsingGET()).data,
+  );
 
   const navItems: NavItemConfig[] = [
     {
@@ -235,13 +229,13 @@ const PrimaryNavigation: React.FC = () => {
 
   // Update active nav based on current path
   useEffect(() => {
-    const newActiveNav = getActiveNavFromPath(location.pathname, cachedView);
+    const newActiveNav = getActiveNavFromPath(location.pathname, view, firstGithubConnector);
     if (newActiveNav !== null) {
       setActiveNav(newActiveNav);
     } else if (location.pathname === '/search' || location.pathname.startsWith('/page/')) {
       setActiveNav(null);
     }
-  }, [location.pathname, setActiveNav, cachedView]);
+  }, [location.pathname, setActiveNav, view, firstGithubConnector]);
 
   const isSearchActive = location.pathname === '/search';
   const isSettingsActive = location.pathname.startsWith('/settings');

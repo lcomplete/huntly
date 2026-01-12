@@ -1,6 +1,7 @@
 package com.huntly.server.controller;
 
 import com.huntly.common.api.ApiResult;
+import com.huntly.interfaces.external.dto.ConnectorItem;
 import com.huntly.interfaces.external.dto.FolderConnectorView;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.service.ConnectorService;
@@ -40,6 +41,11 @@ public class ConnectorController {
     @GetMapping("feeds/unreadCount")
     public ApiResult<Long> getUnreadFeedCount() {
         return ApiResult.ok(connectorService.getUnreadFeedCount());
+    }
+
+    @GetMapping("github")
+    public ConnectorItem getGitHubConnector() {
+        return connectorService.getGitHubConnectorItem();
     }
 
 }

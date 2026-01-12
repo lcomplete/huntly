@@ -69,7 +69,9 @@ public class PageListService {
         // For other content types, use CREATED_AT (system creation time)
         var sortFilterField = sortField;
         if (listSort.equals(PageListSort.VOTE_SCORE)) {
-            boolean isTweetQuery = listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2;
+            boolean isTweetQuery = (listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2)
+                    || listQuery.getContentType() == ContentType.TWEET
+                    || listQuery.getContentType() == ContentType.QUOTED_TWEET;
             sortFilterField = isTweetQuery ? PageListSort.CONNECTED_AT.getSortField() : PageListSort.CREATED_AT.getSortField();
         }
         var specs = Specifications.<Page>and()
