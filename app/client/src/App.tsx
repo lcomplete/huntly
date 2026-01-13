@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, { useEffect } from "react";
 import {
   createBrowserRouter,
   createRoutesFromElements, createSearchParams,
@@ -19,11 +19,12 @@ import AllFeeds from "./pages/AllFeeds";
 import Search from "./pages/Search";
 import Twitter from "./pages/Twitter";
 import Highlights from "./pages/Highlights";
-import {AuthControllerApiFactory} from "./api";
+import { AuthControllerApiFactory } from "./api";
 import SignIn from "./pages/SignIn";
 import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
 import Settings from "./pages/settings";
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
+import SettingsMcp from "./pages/settings/SettingsMcp";
 import SettingsAIShortcuts from "./pages/settings/SettingsAIShortcuts";
 import SettingsConnect from "./pages/settings/SettingsConnect";
 import SettingsFeeds from "./pages/settings/SettingsFeeds";
@@ -35,29 +36,30 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route>
-        <Route path="/signin" element={<SignIn/>}/>
-        <Route element={<Layout/>}>
-          <Route index element={<Home/>}/>
-          <Route path={"/recently-read"} element={<RecentlyRead/>}/>
-          <Route path={"/list"} element={<MyList/>}/>
-          <Route path={"/starred"} element={<Starred/>}/>
-          <Route path={"/later"} element={<ReadLater/>}/>
-          <Route path={"/archive"} element={<Archive/>}/>
-          <Route path="/page/:id" element={<Page/>}/>
-          <Route path="/connector/:id" element={<ConnectorList/>}/>
-          <Route path="/folder/:id" element={<FolderList/>}/>
-          <Route path="/feeds" element={<AllFeeds/>}/>
-          <Route path="/search" element={<Search/>}/>
-          <Route path="/twitter" element={<Twitter/>}/>
-          <Route path="/highlights" element={<Highlights/>}/>
-          <Route path="/settings" element={<Settings/>}/>
-          <Route path="/settings/general" element={<SettingsGeneral/>}/>
-          <Route path="/settings/ai-shortcuts" element={<SettingsAIShortcuts/>}/>
-          <Route path="/settings/connect" element={<SettingsConnect/>}/>
-          <Route path="/settings/feeds" element={<SettingsFeeds/>}/>
-          <Route path="/settings/folders" element={<SettingsFolders/>}/>
-          <Route path="/settings/library" element={<SettingsLibrary/>}/>
-          <Route path="/settings/account" element={<SettingsAccount/>}/>
+        <Route path="/signin" element={<SignIn />} />
+        <Route element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path={"/recently-read"} element={<RecentlyRead />} />
+          <Route path={"/list"} element={<MyList />} />
+          <Route path={"/starred"} element={<Starred />} />
+          <Route path={"/later"} element={<ReadLater />} />
+          <Route path={"/archive"} element={<Archive />} />
+          <Route path="/page/:id" element={<Page />} />
+          <Route path="/connector/:id" element={<ConnectorList />} />
+          <Route path="/folder/:id" element={<FolderList />} />
+          <Route path="/feeds" element={<AllFeeds />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/twitter" element={<Twitter />} />
+          <Route path="/highlights" element={<Highlights />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/general" element={<SettingsGeneral />} />
+          <Route path="/settings/mcp" element={<SettingsMcp />} />
+          <Route path="/settings/ai-shortcuts" element={<SettingsAIShortcuts />} />
+          <Route path="/settings/connect" element={<SettingsConnect />} />
+          <Route path="/settings/feeds" element={<SettingsFeeds />} />
+          <Route path="/settings/folders" element={<SettingsFolders />} />
+          <Route path="/settings/library" element={<SettingsLibrary />} />
+          <Route path="/settings/account" element={<SettingsAccount />} />
         </Route>
       </Route>
     )
@@ -77,10 +79,10 @@ function App() {
       });
     }
   }, []);
-  
+
   return (
     <GlobalSettingsProvider>
-      <RouterProvider router={router}/>
+      <RouterProvider router={router} />
     </GlobalSettingsProvider>
     // <Routes>
     //   <Route path="/signin" element={<SignIn/>}/>
