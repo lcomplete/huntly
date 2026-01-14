@@ -21,7 +21,7 @@ type SettingsNavItem = {
 const settingsItems: SettingsNavItem[] = [
   { labelText: 'General', labelIcon: SettingsApplicationsIcon, linkTo: '/settings/general' },
   { labelText: 'AI Shortcuts', labelIcon: AutoAwesomeIcon, linkTo: '/settings/ai-shortcuts', useGradient: true },
-  { labelText: 'MCP Service', labelIcon: TerminalIcon, linkTo: '/settings/mcp' },
+  { labelText: 'MCP Server', labelIcon: TerminalIcon, linkTo: '/settings/mcp' },
   { labelText: 'Connect', labelIcon: HubIcon, linkTo: '/settings/connect' },
   { labelText: 'Feeds', labelIcon: RssFeedIcon, linkTo: '/settings/feeds' },
   { labelText: 'Folders', labelIcon: FolderOpenIcon, linkTo: '/settings/folders' },

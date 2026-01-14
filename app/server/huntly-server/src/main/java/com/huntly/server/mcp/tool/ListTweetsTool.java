@@ -7,7 +7,7 @@ import com.huntly.server.mcp.McpUtils;
 import com.huntly.server.service.PageListService;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,10 +38,10 @@ public class ListTweetsTool implements McpTool {
 
     @Override
     public Map<String, Object> getInputSchema() {
-        Map<String, Object> schema = new HashMap<>();
+        Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("mode", Map.of(
                 "type", "string",
                 "enum", List.of("recent_read", "popular", "recent_published", "recent_fetched"),
@@ -61,11 +61,6 @@ public class ListTweetsTool implements McpTool {
                 "maximum", 500,
                 "description", "Number of results to return, max 500"
         ));
-        properties.put("max_description_length", Map.of(
-                "type", "integer",
-                "default", 200,
-                "description", "Maximum tweet content length, 0 for unlimited"
-        ));
 
         schema.put("properties", properties);
         return schema;
@@ -80,7 +75,6 @@ public class ListTweetsTool implements McpTool {
         String startDate = mcpUtils.getStringArg(arguments, "start_date");
         String endDate = mcpUtils.getStringArg(arguments, "end_date");
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
-        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         PageListQuery query = new PageListQuery();
         query.setContentFilterType(2); // TWEET
@@ -116,7 +110,7 @@ public class ListTweetsTool implements McpTool {
                 "count", items.size(),
                 "mode", mode,
                 "items", items.stream()
-                        .map(item -> mcpUtils.toMcpTweetItem(item, maxDescLen))
+                        .map(mcpUtils::toMcpTweetItem)
                         .collect(Collectors.toList())
         );
     }

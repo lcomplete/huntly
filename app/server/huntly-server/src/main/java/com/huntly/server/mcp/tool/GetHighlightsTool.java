@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,10 +44,10 @@ public class GetHighlightsTool implements McpTool {
 
     @Override
     public Map<String, Object> getInputSchema() {
-        Map<String, Object> schema = new HashMap<>();
+        Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("page_id", Map.of(
                 "type", "integer",
                 "description", "Filter by specific article ID, omit to get all highlights"

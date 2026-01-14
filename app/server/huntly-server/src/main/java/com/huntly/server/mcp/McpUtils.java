@@ -1,11 +1,17 @@
 package com.huntly.server.mcp;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.huntly.interfaces.external.dto.PageItem;
 import com.huntly.interfaces.external.model.LibrarySaveStatus;
 import com.huntly.server.connector.ConnectorType;
 import com.huntly.server.mcp.dto.McpPageItem;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -86,19 +92,15 @@ public class McpUtils {
         return contentType != null && contentType == 2;
     }
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * Convert PageItem to McpPageItem
      */
     public McpPageItem toMcpPageItem(PageItem pageItem, boolean titleOnly) {
-        return toMcpPageItem(pageItem, titleOnly, 200);
-    }
-
-    /**
-     * Convert PageItem to McpPageItem with description length control
-     */
-    public McpPageItem toMcpPageItem(PageItem pageItem, boolean titleOnly, int maxDescLen) {
         String contentType = getContentType(pageItem.getContentType());
         boolean isTweet = isTweet(pageItem.getContentType());
+        boolean isGithub = isGithub(pageItem.getConnectorType());
 
         McpPageItem.McpPageItemBuilder builder = McpPageItem.builder()
                 .id(pageItem.getId())
@@ -108,63 +110,177 @@ public class McpUtils {
 
         // For tweets, use content field instead of title; for articles, use title
         if (isTweet) {
-            // Tweets don't have titles, use description as content
-            builder.content(truncateText(pageItem.getDescription(), maxDescLen));
+            // Parse tweet text using the same logic as frontend Tweet.tsx
+            String tweetText = TweetTextParser.extractPlainText(pageItem.getPageJsonProperties());
+            if (StringUtils.isBlank(tweetText)) {
+                // Fallback to description if parsing fails
+                tweetText = pageItem.getDescription();
+            }
+            builder.content(tweetText);
             builder.author(pageItem.getAuthor());
+            // Parse tweet-specific fields from pageJsonProperties
+            parseTweetProperties(pageItem.getPageJsonProperties(), builder);
+        } else if (isGithub) {
+            builder.title(pageItem.getTitle());
+            // Parse GitHub-specific fields from pageJsonProperties
+            parseGithubProperties(pageItem.getPageJsonProperties(), builder);
         } else {
             builder.title(pageItem.getTitle());
         }
 
         if (!titleOnly) {
             builder.author(pageItem.getAuthor())
-                    .description(truncateText(pageItem.getDescription(), maxDescLen))
+                    .description(pageItem.getDescription())
                     .sourceType(getSourceType(pageItem.getConnectorType(), pageItem.getContentType()))
                     .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))
                     .starred(pageItem.getStarred())
                     .readLater(pageItem.getReadLater())
                     .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
+                    .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null)
                     .voteScore(pageItem.getVoteScore())
                     .connectorId(pageItem.getConnectorId());
+
+            if (isGithub) {
+                builder.language(pageItem.getLanguage());
+            }
         }
 
         return builder.build();
     }
 
     /**
-     * Truncate text to max length, adding ellipsis if truncated
-     */
-    public String truncateText(String text, int maxLen) {
-        if (text == null || maxLen <= 0 || text.length() <= maxLen) {
-            return text;
-        }
-        return text.substring(0, maxLen) + "...";
-    }
-
-    /**
-     * Convert PageItem to McpPageItem for tweets (always includes content)
+     * Convert PageItem to McpPageItem for tweets (always includes full content)
      */
     public McpPageItem toMcpTweetItem(PageItem pageItem) {
-        return toMcpTweetItem(pageItem, 200);
-    }
+        // Parse tweet text using the same logic as frontend Tweet.tsx
+        String tweetText = TweetTextParser.extractPlainText(pageItem.getPageJsonProperties());
+        if (StringUtils.isBlank(tweetText)) {
+            // Fallback to description if parsing fails
+            tweetText = pageItem.getDescription();
+        }
 
-    /**
-     * Convert PageItem to McpPageItem for tweets with content length control
-     */
-    public McpPageItem toMcpTweetItem(PageItem pageItem, int maxDescLen) {
-        return McpPageItem.builder()
+        McpPageItem.McpPageItemBuilder builder = McpPageItem.builder()
                 .id(pageItem.getId())
                 .url(pageItem.getUrl())
                 .huntlyUrl(buildHuntlyUrl(pageItem.getId()))
                 .contentType("tweet")
-                .content(truncateText(pageItem.getDescription(), maxDescLen))
+                .content(tweetText)
                 .author(pageItem.getAuthor())
                 .sourceType("tweet")
                 .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))
                 .starred(pageItem.getStarred())
                 .readLater(pageItem.getReadLater())
                 .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
-                .voteScore(pageItem.getVoteScore())
-                .build();
+                .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null)
+                .voteScore(pageItem.getVoteScore());
+
+        // Parse tweet-specific fields
+        parseTweetProperties(pageItem.getPageJsonProperties(), builder);
+
+        return builder.build();
+    }
+
+    /**
+     * Convert PageItem to McpPageItem for GitHub repos
+     */
+    public McpPageItem toMcpGithubItem(PageItem pageItem, boolean titleOnly) {
+        McpPageItem.McpPageItemBuilder builder = McpPageItem.builder()
+                .id(pageItem.getId())
+                .url(pageItem.getUrl())
+                .huntlyUrl(buildHuntlyUrl(pageItem.getId()))
+                .contentType("github")
+                .title(pageItem.getTitle())
+                .sourceType("github")
+                .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))
+                .starred(pageItem.getStarred())
+                .readLater(pageItem.getReadLater())
+                .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
+                .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null);
+
+        if (!titleOnly) {
+            builder.author(pageItem.getAuthor())
+                    .description(pageItem.getDescription())
+                    .language(pageItem.getLanguage())
+                    .connectorId(pageItem.getConnectorId());
+        }
+
+        // Parse GitHub-specific fields
+        parseGithubProperties(pageItem.getPageJsonProperties(), builder);
+
+        return builder.build();
+    }
+
+    /**
+     * Check if connector type is GitHub
+     */
+    public boolean isGithub(Integer connectorType) {
+        return connectorType != null && connectorType.equals(ConnectorType.GITHUB.getCode());
+    }
+
+    /**
+     * Parse tweet properties from JSON and add to builder
+     */
+    private void parseTweetProperties(String pageJsonProperties, McpPageItem.McpPageItemBuilder builder) {
+        if (StringUtils.isBlank(pageJsonProperties)) {
+            return;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(pageJsonProperties);
+            // Handle retweet case - get stats from the retweeted tweet
+            JsonNode tweetNode = node.has("retweetedTweet") ? node.get("retweetedTweet") : node;
+
+            if (tweetNode.has("favoriteCount")) {
+                builder.favoriteCount(tweetNode.get("favoriteCount").asLong());
+            }
+            if (tweetNode.has("retweetCount")) {
+                builder.retweetCount(tweetNode.get("retweetCount").asLong());
+            }
+            if (tweetNode.has("replyCount")) {
+                builder.replyCount(tweetNode.get("replyCount").asLong());
+            }
+            if (tweetNode.has("viewCount")) {
+                builder.viewCount(tweetNode.get("viewCount").asLong());
+            }
+            if (tweetNode.has("userName")) {
+                builder.tweetUserName(tweetNode.get("userName").asText());
+            }
+            if (tweetNode.has("userScreeName")) {
+                builder.tweetUserScreenName(tweetNode.get("userScreeName").asText());
+            }
+        } catch (Exception e) {
+            // Ignore parsing errors
+        }
+    }
+
+    /**
+     * Parse GitHub repo properties from JSON and add to builder
+     */
+    private void parseGithubProperties(String pageJsonProperties, McpPageItem.McpPageItemBuilder builder) {
+        if (StringUtils.isBlank(pageJsonProperties)) {
+            return;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(pageJsonProperties);
+
+            if (node.has("stargazersCount")) {
+                builder.stargazersCount(node.get("stargazersCount").asLong());
+            }
+            if (node.has("forksCount")) {
+                builder.forksCount(node.get("forksCount").asLong());
+            }
+            if (node.has("watchersCount")) {
+                builder.watchersCount(node.get("watchersCount").asLong());
+            }
+            if (node.has("topics") && node.get("topics").isArray()) {
+                List<String> topics = new ArrayList<>();
+                for (JsonNode topic : node.get("topics")) {
+                    topics.add(topic.asText());
+                }
+                builder.topics(topics);
+            }
+        } catch (Exception e) {
+            // Ignore parsing errors
+        }
     }
 
     /**

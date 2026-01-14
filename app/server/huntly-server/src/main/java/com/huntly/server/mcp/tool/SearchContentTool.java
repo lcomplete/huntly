@@ -4,9 +4,11 @@ import com.huntly.interfaces.external.dto.PageSearchResult;
 import com.huntly.interfaces.external.query.SearchQuery;
 import com.huntly.server.mcp.McpUtils;
 import com.huntly.server.service.LuceneService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,24 +34,38 @@ public class SearchContentTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Full-text search across all saved content in Huntly. Supports Chinese/English tokenization and advanced syntax: title:xxx, author:xxx, site:xxx. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
+        return "Full-text search across all saved content in Huntly. Supports Chinese/English tokenization. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
     public Map<String, Object> getInputSchema() {
-        Map<String, Object> schema = new HashMap<>();
+        Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("query", Map.of(
                 "type", "string",
-                "description", "Search keywords, supports advanced syntax: title:xxx, author:xxx, site:xxx"
+                "description", "Search keywords. Supports advanced syntax in the query string: 'author:{name}' to filter by author, 'url:{domain}' to filter by URL/domain. Example: 'machine learning author:openai' or 'typescript url:github.com'"
         ));
-        properties.put("source_type", Map.of(
+        properties.put("content_type", Map.of(
                 "type", "string",
-                "enum", List.of("all", "rss", "github", "tweet", "webpage"),
-                "default", "all",
-                "description", "Content source type"
+                "enum", List.of("tweet", "github", "browser", "feeds"),
+                "description", "Filter by content type. tweet: Twitter/X posts, github: GitHub starred repos, browser: browser history, feeds: RSS feed articles. If not specified, searches all types."
+        ));
+        properties.put("library_filter", Map.of(
+                "type", "string",
+                "enum", List.of("list", "starred", "archive", "later", "highlights"),
+                "description", "Filter by library status. list: saved to My List, starred: starred items, archive: archived items, later: read later items, highlights: items with highlights. If not specified, searches all content."
+        ));
+        properties.put("search_title_only", Map.of(
+                "type", "boolean",
+                "default", false,
+                "description", "If true, only search in titles (not content). Useful for faster, more precise title matching."
+        ));
+        properties.put("already_read", Map.of(
+                "type", "boolean",
+                "default", false,
+                "description", "If true, only return items that have been read."
         ));
         properties.put("limit", Map.of(
                 "type", "integer",
@@ -59,12 +75,7 @@ public class SearchContentTool implements McpTool {
         properties.put("title_only", Map.of(
                 "type", "boolean",
                 "default", false,
-                "description", "Return only title and URL to reduce token usage"
-        ));
-        properties.put("max_description_length", Map.of(
-                "type", "integer",
-                "default", 200,
-                "description", "Maximum description length, 0 for unlimited"
+                "description", "Return only title and URL in response to reduce token usage"
         ));
 
         schema.put("properties", properties);
@@ -75,18 +86,20 @@ public class SearchContentTool implements McpTool {
     @Override
     public Object execute(Map<String, Object> arguments) {
         String query = mcpUtils.getStringArg(arguments, "query");
-        String sourceType = mcpUtils.getStringArg(arguments, "source_type");
+        String contentType = mcpUtils.getStringArg(arguments, "content_type");
+        String libraryFilter = mcpUtils.getStringArg(arguments, "library_filter");
+        boolean searchTitleOnly = mcpUtils.getBoolArg(arguments, "search_title_only", false);
+        boolean alreadyRead = mcpUtils.getBoolArg(arguments, "already_read", false);
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
-        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         SearchQuery searchQuery = new SearchQuery();
         searchQuery.setQ(query);
         searchQuery.setSize(Math.min(limit, 500));
 
-        // Add source type filter to query options if needed
-        if (sourceType != null && !"all".equals(sourceType)) {
-            String queryOptions = buildQueryOptions(sourceType);
+        // Build query options from filter parameters
+        String queryOptions = buildQueryOptions(contentType, libraryFilter, searchTitleOnly, alreadyRead);
+        if (StringUtils.isNotBlank(queryOptions)) {
             searchQuery.setQueryOptions(queryOptions);
         }
 
@@ -94,24 +107,38 @@ public class SearchContentTool implements McpTool {
 
         return Map.of(
                 "total_hits", result.getTotalHits(),
+                "query_options", queryOptions != null ? queryOptions : "",
                 "items", result.getItems().stream()
-                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly, maxDescLen))
+                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly))
                         .collect(Collectors.toList())
         );
     }
 
-    private String buildQueryOptions(String sourceType) {
-        switch (sourceType) {
-            case "rss":
-                return "source:rss";
-            case "github":
-                return "source:github";
-            case "tweet":
-                return "source:tweet";
-            case "webpage":
-                return "source:webpage";
-            default:
-                return null;
+    /**
+     * Build comma-separated query options string from filter parameters
+     */
+    private String buildQueryOptions(String contentType, String libraryFilter,
+                                     boolean searchTitleOnly, boolean alreadyRead) {
+        List<String> options = new ArrayList<>();
+
+        // Content type filter
+        if (StringUtils.isNotBlank(contentType)) {
+            options.add(contentType);
         }
+
+        // Library filter
+        if (StringUtils.isNotBlank(libraryFilter)) {
+            options.add(libraryFilter);
+        }
+
+        // Search options
+        if (searchTitleOnly) {
+            options.add("title");
+        }
+        if (alreadyRead) {
+            options.add("read");
+        }
+
+        return options.isEmpty() ? null : String.join(",", options);
     }
 }

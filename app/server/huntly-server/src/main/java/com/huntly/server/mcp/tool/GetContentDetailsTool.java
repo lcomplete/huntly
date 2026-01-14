@@ -10,45 +10,40 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * MCP Tool: get_content_summaries - Batch get content summaries
+ * MCP Tool: get_content_details - Batch get content details by IDs
  */
 @Component
-public class GetContentSummariesTool implements McpTool {
+public class GetContentDetailsTool implements McpTool {
 
     private final PageRepository pageRepository;
     private final McpUtils mcpUtils;
 
-    public GetContentSummariesTool(PageRepository pageRepository, McpUtils mcpUtils) {
+    public GetContentDetailsTool(PageRepository pageRepository, McpUtils mcpUtils) {
         this.pageRepository = pageRepository;
         this.mcpUtils = mcpUtils;
     }
 
     @Override
     public String getName() {
-        return "get_content_summaries";
+        return "get_content_details";
     }
 
     @Override
     public String getDescription() {
-        return "Batch retrieve content summaries for multiple items by their IDs (up to 50). IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
+        return "Batch retrieve content details for multiple items by their IDs (up to 50). Returns full content including description and metadata. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
     public Map<String, Object> getInputSchema() {
-        Map<String, Object> schema = new HashMap<>();
+        Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("ids", Map.of(
                 "type", "array",
                 "items", Map.of("type", "integer"),
                 "maxItems", 50,
                 "description", "List of content IDs"
-        ));
-        properties.put("max_description_length", Map.of(
-                "type", "integer",
-                "default", 200,
-                "description", "Maximum description length, 0 for unlimited"
         ));
 
         schema.put("properties", properties);
@@ -57,13 +52,11 @@ public class GetContentSummariesTool implements McpTool {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Object execute(Map<String, Object> arguments) {
         Object idsObj = arguments.get("ids");
         if (idsObj == null) {
             return Map.of("error", "ids is required");
         }
-        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         List<Long> ids;
         if (idsObj instanceof List) {
@@ -88,7 +81,7 @@ public class GetContentSummariesTool implements McpTool {
                 .url(page.getUrl())
                 .huntlyUrl(mcpUtils.buildHuntlyUrl(page.getId()))
                 .author(page.getAuthor())
-                .description(mcpUtils.truncateText(page.getDescription(), maxDescLen))
+                .description(page.getDescription())
                 .sourceType(mcpUtils.getSourceType(page.getConnectorType(), page.getContentType()))
                 .libraryStatus(mcpUtils.getLibraryStatus(page.getLibrarySaveStatus()))
                 .starred(page.getStarred())

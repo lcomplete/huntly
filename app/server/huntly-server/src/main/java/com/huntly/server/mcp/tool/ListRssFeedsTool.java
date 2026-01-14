@@ -8,7 +8,7 @@ import com.huntly.server.repository.ConnectorRepository;
 import com.huntly.server.repository.FolderRepository;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,10 +39,10 @@ public class ListRssFeedsTool implements McpTool {
 
     @Override
     public Map<String, Object> getInputSchema() {
-        Map<String, Object> schema = new HashMap<>();
+        Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
         // No arguments needed strictly, but keep structure
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new LinkedHashMap<>();
         schema.put("properties", properties);
         return schema;
     }

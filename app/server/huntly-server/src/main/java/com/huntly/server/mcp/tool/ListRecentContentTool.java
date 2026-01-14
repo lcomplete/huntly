@@ -8,7 +8,7 @@ import com.huntly.server.mcp.McpUtils;
 import com.huntly.server.service.PageListService;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,10 +39,10 @@ public class ListRecentContentTool implements McpTool {
 
     @Override
     public Map<String, Object> getInputSchema() {
-        Map<String, Object> schema = new HashMap<>();
+        Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("source_type", Map.of(
                 "type", "string",
                 "enum", List.of("all", "rss", "github", "tweet", "webpage"),
@@ -72,11 +72,6 @@ public class ListRecentContentTool implements McpTool {
                 "default", false,
                 "description", "Return only title and URL to reduce token usage"
         ));
-        properties.put("max_description_length", Map.of(
-                "type", "integer",
-                "default", 200,
-                "description", "Maximum description length, 0 for unlimited"
-        ));
 
         schema.put("properties", properties);
         return schema;
@@ -90,7 +85,6 @@ public class ListRecentContentTool implements McpTool {
         boolean unreadOnly = mcpUtils.getBoolArg(arguments, "unread_only", false);
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
-        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         PageListQuery query = new PageListQuery();
         query.setCount(Math.min(limit, 500));
@@ -131,7 +125,7 @@ public class ListRecentContentTool implements McpTool {
         return Map.of(
                 "count", items.size(),
                 "items", items.stream()
-                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly, maxDescLen))
+                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly))
                         .collect(Collectors.toList())
         );
     }

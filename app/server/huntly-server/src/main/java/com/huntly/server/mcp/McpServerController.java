@@ -54,6 +54,38 @@ public class McpServerController {
     }
 
     /**
+     * Test endpoint to directly call an MCP tool (for settings UI testing)
+     * This endpoint is accessible without MCP token (uses session auth)
+     */
+    @PostMapping(value = "/tools/test", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> testTool(@RequestBody Map<String, Object> request) {
+        String toolName = (String) request.get("name");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> arguments = (Map<String, Object>) request.get("arguments");
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (toolName == null || !toolRegistry.hasTool(toolName)) {
+            response.put("success", false);
+            response.put("error", "Unknown tool: " + toolName);
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            McpTool tool = toolRegistry.getTool(toolName);
+            Object result = tool.execute(arguments != null ? arguments : new HashMap<>());
+            response.put("success", true);
+            response.put("result", result);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error testing MCP tool: {}", toolName, e);
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
      * SSE endpoint for MCP communication
      */
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

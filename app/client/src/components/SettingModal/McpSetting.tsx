@@ -119,7 +119,7 @@ export default function McpSetting() {
     return (
         <div>
             <Typography variant={'h6'} className={''}>
-                MCP Service
+                MCP Server
             </Typography>
             <Divider />
 

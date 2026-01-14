@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * MCP PageItem DTO for list responses
  */
@@ -32,7 +34,26 @@ public class McpPageItem {
     private Boolean starred;
     private Boolean readLater;
     private String recordAt;
+    /**
+     * Original publish time (connectedAt for tweets/RSS, pubDate for articles)
+     */
+    private String publishedAt;
     private Long voteScore;
     private Integer connectorId;
     private String connectorName;
+
+    // Tweet-specific fields
+    private Long favoriteCount;
+    private Long retweetCount;
+    private Long replyCount;
+    private Long viewCount;
+    private String tweetUserName;
+    private String tweetUserScreenName;
+
+    // GitHub-specific fields
+    private Long stargazersCount;
+    private Long forksCount;
+    private Long watchersCount;
+    private List<String> topics;
+    private String language;
 }

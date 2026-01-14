@@ -9,10 +9,15 @@ import {
     Box,
     CircularProgress,
     Alert,
+    Button,
+    TextField,
+    Collapse,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import BuildIcon from "@mui/icons-material/Build";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { styled } from "@mui/material/styles";
+import { useSnackbar } from "notistack";
 
 const StyledAccordion = styled(Accordion)(({ theme }) => ({
     border: `1px solid ${theme.palette.divider}`,
@@ -87,6 +92,12 @@ interface McpTool {
     inputSchema: McpToolInputSchema;
 }
 
+interface ToolTestResult {
+    success: boolean;
+    result?: unknown;
+    error?: string;
+}
+
 const fetchMcpTools = async (): Promise<McpTool[]> => {
     const response = await fetch("/api/mcp/tools");
     if (!response.ok) {
@@ -95,7 +106,28 @@ const fetchMcpTools = async (): Promise<McpTool[]> => {
     return response.json();
 };
 
-const getToolExample = (tool: McpTool): { request: object; description: string } => {
+const testMcpTool = async (name: string, args: Record<string, unknown>): Promise<ToolTestResult> => {
+    const response = await fetch("/api/mcp/tools/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, arguments: args }),
+    });
+    return response.json();
+};
+
+interface ToolExampleRequest {
+    name: string;
+    arguments: Record<string, unknown>;
+}
+
+// Helper to generate date strings
+const getDateString = (daysOffset: number): string => {
+    const date = new Date();
+    date.setDate(date.getDate() + daysOffset);
+    return date.toISOString().split("T")[0]; // YYYY-MM-DD format
+};
+
+const getToolExample = (tool: McpTool): { request: ToolExampleRequest; description: string } => {
     const args: Record<string, unknown> = {};
     const properties = tool.inputSchema.properties || {};
 
@@ -105,7 +137,16 @@ const getToolExample = (tool: McpTool): { request: object; description: string }
         } else if (prop.enum && prop.enum.length > 0) {
             args[key] = prop.enum[0];
         } else if (prop.type === "string") {
-            args[key] = key === "query" ? "example search" : "example";
+            // Handle date fields specially
+            if (key === "start_date") {
+                args[key] = getDateString(-30); // One month ago
+            } else if (key === "end_date") {
+                args[key] = getDateString(0); // Today
+            } else if (key === "query") {
+                args[key] = "example search";
+            } else {
+                args[key] = "example";
+            }
         } else if (prop.type === "integer") {
             args[key] = prop.maximum ? Math.min(10, prop.maximum) : 10;
         } else if (prop.type === "boolean") {
@@ -124,8 +165,18 @@ const getToolExample = (tool: McpTool): { request: object; description: string }
     };
 };
 
+// Tool test state for each tool
+interface ToolTestState {
+    inputJson: string;
+    result: ToolTestResult | null;
+    loading: boolean;
+    showTest: boolean;
+}
+
 export default function McpToolsSection() {
+    const { enqueueSnackbar } = useSnackbar();
     const [expanded, setExpanded] = useState<string | false>(false);
+    const [testStates, setTestStates] = useState<Record<string, ToolTestState>>({});
 
     const {
         data: tools,
@@ -135,6 +186,66 @@ export default function McpToolsSection() {
 
     const handleChange = (panel: string) => (_: unknown, isExpanded: boolean) => {
         setExpanded(isExpanded ? panel : false);
+    };
+
+    const getTestState = (toolName: string, tool: McpTool): ToolTestState => {
+        if (!testStates[toolName]) {
+            const example = getToolExample(tool);
+            return {
+                inputJson: JSON.stringify(example.request.arguments, null, 2),
+                result: null,
+                loading: false,
+                showTest: false,
+            };
+        }
+        return testStates[toolName];
+    };
+
+    const updateTestState = (toolName: string, updates: Partial<ToolTestState>) => {
+        setTestStates((prev) => ({
+            ...prev,
+            [toolName]: { ...prev[toolName], ...updates },
+        }));
+    };
+
+    const toggleTest = (toolName: string, tool: McpTool) => {
+        const current = getTestState(toolName, tool);
+        if (testStates[toolName]) {
+            updateTestState(toolName, { showTest: !current.showTest });
+        } else {
+            const example = getToolExample(tool);
+            updateTestState(toolName, {
+                inputJson: JSON.stringify(example.request.arguments, null, 2),
+                result: null,
+                loading: false,
+                showTest: true,
+            });
+        }
+    };
+
+    const runTest = async (toolName: string) => {
+        const state = testStates[toolName];
+        if (!state) return;
+
+        updateTestState(toolName, { loading: true, result: null });
+
+        try {
+            const args = JSON.parse(state.inputJson);
+            const result = await testMcpTool(toolName, args);
+            updateTestState(toolName, { result, loading: false });
+            if (result.success) {
+                enqueueSnackbar("Tool executed successfully", { variant: "success" });
+            } else {
+                enqueueSnackbar(`Tool error: ${result.error}`, { variant: "error" });
+            }
+        } catch (e) {
+            const errorMsg = e instanceof Error ? e.message : "Invalid JSON";
+            updateTestState(toolName, {
+                result: { success: false, error: errorMsg },
+                loading: false,
+            });
+            enqueueSnackbar(`Parse error: ${errorMsg}`, { variant: "error" });
+        }
     };
 
     if (isLoading) {
@@ -173,9 +284,9 @@ export default function McpToolsSection() {
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {tools.map((tool) => {
-                    const example = getToolExample(tool);
                     const properties = tool.inputSchema.properties || {};
                     const requiredParams = tool.inputSchema.required || [];
+                    const testState = getTestState(tool.name, tool);
 
                     return (
                         <StyledAccordion
@@ -254,14 +365,83 @@ export default function McpToolsSection() {
                                         </Box>
                                     )}
 
-                                    {/* Example */}
+                                    {/* Test Tool Button */}
                                     <Box>
-                                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                                            Example Request
-                                        </Typography>
-                                        <CodeBlock>
-                                            {JSON.stringify(example.request, null, 2)}
-                                        </CodeBlock>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            startIcon={<PlayArrowIcon />}
+                                            onClick={() => toggleTest(tool.name, tool)}
+                                            sx={{ mb: 1 }}
+                                        >
+                                            {testState.showTest ? "Hide Test" : "Test Tool"}
+                                        </Button>
+
+                                        <Collapse in={testState.showTest}>
+                                            <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                    Arguments (JSON)
+                                                </Typography>
+                                                <TextField
+                                                    multiline
+                                                    rows={6}
+                                                    fullWidth
+                                                    size="small"
+                                                    value={testState.inputJson}
+                                                    onChange={(e) =>
+                                                        updateTestState(tool.name, { inputJson: e.target.value })
+                                                    }
+                                                    sx={{
+                                                        "& .MuiInputBase-input": {
+                                                            fontFamily: "monospace",
+                                                            fontSize: "0.8rem",
+                                                        },
+                                                    }}
+                                                />
+                                                <Button
+                                                    variant="contained"
+                                                    size="small"
+                                                    onClick={() => runTest(tool.name)}
+                                                    disabled={testState.loading}
+                                                    startIcon={
+                                                        testState.loading ? (
+                                                            <CircularProgress size={16} />
+                                                        ) : (
+                                                            <PlayArrowIcon />
+                                                        )
+                                                    }
+                                                    sx={{ alignSelf: "flex-start" }}
+                                                >
+                                                    {testState.loading ? "Running..." : "Run"}
+                                                </Button>
+
+                                                {testState.result && (
+                                                    <Box sx={{ mt: 1 }}>
+                                                        <Typography
+                                                            variant="subtitle2"
+                                                            sx={{
+                                                                fontWeight: 600,
+                                                                color: testState.result.success
+                                                                    ? "success.main"
+                                                                    : "error.main",
+                                                            }}
+                                                        >
+                                                            {testState.result.success ? "✓ Result" : "✗ Error"}
+                                                        </Typography>
+                                                        <CodeBlock
+                                                            style={{
+                                                                maxHeight: 300,
+                                                                overflowY: "auto",
+                                                            }}
+                                                        >
+                                                            {testState.result.success
+                                                                ? JSON.stringify(testState.result.result, null, 2)
+                                                                : testState.result.error}
+                                                        </CodeBlock>
+                                                    </Box>
+                                                )}
+                                            </Box>
+                                        </Collapse>
                                     </Box>
                                 </Box>
                             </AccordionDetails>

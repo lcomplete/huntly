@@ -8,7 +8,7 @@ import com.huntly.server.mcp.McpUtils;
 import com.huntly.server.service.PageListService;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,10 +39,10 @@ public class ListGithubStarsTool implements McpTool {
 
     @Override
     public Map<String, Object> getInputSchema() {
-        Map<String, Object> schema = new HashMap<>();
+        Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("start_date", Map.of(
                 "type", "string",
                 "description", "Start date"
@@ -61,11 +61,6 @@ public class ListGithubStarsTool implements McpTool {
                 "default", false,
                 "description", "Return only title and URL to reduce token usage"
         ));
-        properties.put("max_description_length", Map.of(
-                "type", "integer",
-                "default", 200,
-                "description", "Maximum description length, 0 for unlimited"
-        ));
 
         schema.put("properties", properties);
         return schema;
@@ -77,7 +72,6 @@ public class ListGithubStarsTool implements McpTool {
         String endDate = mcpUtils.getStringArg(arguments, "end_date");
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
-        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         PageListQuery query = new PageListQuery();
         query.setConnectorType(ConnectorType.GITHUB.getCode());
@@ -96,7 +90,7 @@ public class ListGithubStarsTool implements McpTool {
         return Map.of(
                 "count", items.size(),
                 "items", items.stream()
-                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly, maxDescLen))
+                        .map(item -> mcpUtils.toMcpGithubItem(item, titleOnly))
                         .collect(Collectors.toList())
         );
     }
