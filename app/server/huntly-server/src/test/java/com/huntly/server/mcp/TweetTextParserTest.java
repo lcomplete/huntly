@@ -7,29 +7,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TweetTextParserTest {
 
     @Test
-    void extractPlainText_withRealTweetData() {
-        // Real tweet data from database
-        String json = "{\"tweetIdStr\":\"2011041502173249904\",\"url\":\"https://twitter.com/null/status/2011041502173249904\"," +
-                "\"userIdStr\":\"3016619443\",\"userName\":\"Jason\",\"userScreeName\":\"EvanWritesX\"," +
-                "\"userProfileImageUrl\":\"https://pbs.twimg.com/profile_images/1993562015932334082/50xwYK4V_normal.jpg\"," +
-                "\"quoteCount\":5,\"replyCount\":48,\"retweetCount\":65,\"favoriteCount\":475,\"viewCount\":null," +
-                "\"medias\":[{\"mediaUrl\":\"https://pbs.twimg.com/media/G-inlZzaUAAsf_a.jpg\"," +
-                "\"smallMediaUrl\":\"https://pbs.twimg.com/media/G-inlZzaUAAsf_a?format=jpg&name=small\"," +
-                "\"type\":\"photo\",\"rawSize\":{\"width\":942,\"height\":2048}," +
-                "\"smallSize\":{\"width\":313,\"height\":680},\"videoInfo\":null,\"indices\":[96,119]}]," +
-                "\"createdAt\":\"2026-01-13T11:43:52Z\"," +
-                "\"fullText\":\"N26注册成功了\\n先简单分享一下\\n\\n不需要德国IP\\n我全程挂着美区IP\\n申请成功\\n\\n护照用照片也能通过\\n\\n虽然网上有很多教程\\n但是可能流程更新\\n有些吃不准的地方\\n全程借助Gemini完成注册 https://t.co/KjcdMb3mC9\"," +
-                "\"noteTweet\":null,\"displayTextRange\":[0,95],\"quotedTweet\":null,\"retweetedTweet\":null," +
+    void extractPlainText_withTweetDataContainingMedia() {
+        // Mock tweet data with media
+        // fullText: "这是测试内容 https://t.co/xyz" (17 chars total)
+        // "这是测试内容 " = 7 chars (index 0-6)
+        // "https://t.co/xyz" = 16 chars (index 7-22)
+        // Media indices [7, 23] to remove the t.co URL
+        // displayTextRange [0, 7] to show only the text part (excluding media URL)
+        String json = "{\"tweetIdStr\":\"1234567890123456789\",\"url\":\"https://twitter.com/testuser/status/1234567890123456789\"," +
+                "\"userIdStr\":\"1234567890\",\"userName\":\"Test User\",\"userScreeName\":\"testuser\"," +
+                "\"userProfileImageUrl\":\"https://example.com/profile.jpg\"," +
+                "\"quoteCount\":5,\"replyCount\":10,\"retweetCount\":20,\"favoriteCount\":100,\"viewCount\":null," +
+                "\"medias\":[{\"mediaUrl\":\"https://example.com/media.jpg\"," +
+                "\"smallMediaUrl\":\"https://example.com/media_small.jpg\"," +
+                "\"type\":\"photo\",\"rawSize\":{\"width\":800,\"height\":600}," +
+                "\"smallSize\":{\"width\":400,\"height\":300},\"videoInfo\":null,\"indices\":[7,23]}]," +
+                "\"createdAt\":\"2026-01-01T12:00:00Z\"," +
+                "\"fullText\":\"这是测试内容 https://t.co/xyz\"," +
+                "\"noteTweet\":null,\"displayTextRange\":[0,23],\"quotedTweet\":null,\"retweetedTweet\":null," +
                 "\"card\":null,\"urls\":[],\"userMentions\":[],\"hashtags\":[]}";
 
         String result = TweetTextParser.extractPlainText(json);
 
         System.out.println("Extracted text: " + result);
 
-        // Should extract the full text without the t.co URL (media URL should be removed)
+        // Should extract the text without the t.co URL (media URL should be removed)
         assertThat(result).isNotNull();
-        assertThat(result).contains("N26注册成功了");
-        assertThat(result).contains("全程借助Gemini完成注册");
+        assertThat(result).isEqualTo("这是测试内容");
         // Media URL should be removed
         assertThat(result).doesNotContain("https://t.co/");
     }
@@ -49,16 +53,18 @@ class TweetTextParserTest {
 
     @Test
     void extractPlainText_withUrls() {
-        // "Check this https://t.co/abc123 out" - indices for t.co URL: [11, 34] (23 chars)
-        String json = "{\"fullText\":\"Check this https://t.co/abc123 out\"," +
-                "\"displayTextRange\":[0,38]," +
-                "\"urls\":[{\"url\":\"https://t.co/abc123\",\"displayUrl\":\"example.com\",\"expandedUrl\":\"https://example.com\",\"indices\":[11,34]}]," +
+        // Test URL replacement with display URL
+        // Simple test: "Visit example.com today"
+        // Where the original URL is replaced with display URL
+        String json = "{\"fullText\":\"Visit https://t.co/xyz today\"," +
+                "\"displayTextRange\":[0,28]," +
+                "\"urls\":[{\"url\":\"https://t.co/xyz\",\"displayUrl\":\"example.com\",\"expandedUrl\":\"https://example.com\",\"indices\":[6,22]}]," +
                 "\"hashtags\":[],\"userMentions\":[],\"medias\":[]}";
 
         String result = TweetTextParser.extractPlainText(json);
 
         System.out.println("URL result: " + result);
-        assertThat(result).isEqualTo("Check this example.com out");
+        assertThat(result).isEqualTo("Visit example.com today");
     }
 
     @Test
