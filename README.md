@@ -58,9 +58,11 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 
 ## Screenshot
 
-![intro1](static/images/intro1.png)
+![screenshot-home](static/images/screenshot-home.png)
 
-![intro2](static/images/intro2.png)
+![screenshot-feeds](static/images/screenshot-feeds.png)
+
+![screenshot-library](static/images/screenshot-library.png)
 
 ![extension_shortcuts](static/images/extension_shortcuts.png)
 
