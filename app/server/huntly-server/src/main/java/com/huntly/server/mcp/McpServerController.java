@@ -45,6 +45,15 @@ public class McpServerController {
     }
 
     /**
+     * Get available MCP tools for settings UI display
+     * This endpoint is accessible without MCP token (uses session auth)
+     */
+    @GetMapping(value = "/tools", produces = MediaType.APPLICATION_JSON_VALUE)
+    public java.util.List<Map<String, Object>> getTools() {
+        return toolRegistry.getToolDefinitions();
+    }
+
+    /**
      * SSE endpoint for MCP communication
      */
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

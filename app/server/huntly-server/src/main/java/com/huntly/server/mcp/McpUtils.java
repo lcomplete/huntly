@@ -90,6 +90,13 @@ public class McpUtils {
      * Convert PageItem to McpPageItem
      */
     public McpPageItem toMcpPageItem(PageItem pageItem, boolean titleOnly) {
+        return toMcpPageItem(pageItem, titleOnly, 200);
+    }
+
+    /**
+     * Convert PageItem to McpPageItem with description length control
+     */
+    public McpPageItem toMcpPageItem(PageItem pageItem, boolean titleOnly, int maxDescLen) {
         String contentType = getContentType(pageItem.getContentType());
         boolean isTweet = isTweet(pageItem.getContentType());
 
@@ -102,7 +109,7 @@ public class McpUtils {
         // For tweets, use content field instead of title; for articles, use title
         if (isTweet) {
             // Tweets don't have titles, use description as content
-            builder.content(pageItem.getDescription());
+            builder.content(truncateText(pageItem.getDescription(), maxDescLen));
             builder.author(pageItem.getAuthor());
         } else {
             builder.title(pageItem.getTitle());
@@ -110,7 +117,7 @@ public class McpUtils {
 
         if (!titleOnly) {
             builder.author(pageItem.getAuthor())
-                    .description(pageItem.getDescription())
+                    .description(truncateText(pageItem.getDescription(), maxDescLen))
                     .sourceType(getSourceType(pageItem.getConnectorType(), pageItem.getContentType()))
                     .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))
                     .starred(pageItem.getStarred())
@@ -124,15 +131,32 @@ public class McpUtils {
     }
 
     /**
+     * Truncate text to max length, adding ellipsis if truncated
+     */
+    public String truncateText(String text, int maxLen) {
+        if (text == null || maxLen <= 0 || text.length() <= maxLen) {
+            return text;
+        }
+        return text.substring(0, maxLen) + "...";
+    }
+
+    /**
      * Convert PageItem to McpPageItem for tweets (always includes content)
      */
     public McpPageItem toMcpTweetItem(PageItem pageItem) {
+        return toMcpTweetItem(pageItem, 200);
+    }
+
+    /**
+     * Convert PageItem to McpPageItem for tweets with content length control
+     */
+    public McpPageItem toMcpTweetItem(PageItem pageItem, int maxDescLen) {
         return McpPageItem.builder()
                 .id(pageItem.getId())
                 .url(pageItem.getUrl())
                 .huntlyUrl(buildHuntlyUrl(pageItem.getId()))
                 .contentType("tweet")
-                .content(pageItem.getDescription())
+                .content(truncateText(pageItem.getDescription(), maxDescLen))
                 .author(pageItem.getAuthor())
                 .sourceType("tweet")
                 .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))

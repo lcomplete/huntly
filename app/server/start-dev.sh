@@ -65,13 +65,17 @@ fi
 maven_args=()
 jvm_args=()
 
-# Default: disable connector task (notask mode)
+# Default: disable connector task (notask mode), hide sql
 enable_task=false
+show_sql=false
 
 for arg in "$@"; do
   case "$arg" in
     --task)
       enable_task=true
+      ;;
+    --sql)
+      show_sql=true
       ;;
     *)
       maven_args+=("$arg")
@@ -82,6 +86,10 @@ done
 # Only enable connector task if --task is explicitly passed
 if [ "$enable_task" = false ]; then
   jvm_args+=("-Dhuntly.connector-task.enabled=false")
+fi
+
+if [ "$show_sql" = true ]; then
+  jvm_args+=("-Dspring.jpa.show-sql=true")
 fi
 
 if [ ${#jvm_args[@]} -gt 0 ]; then

@@ -34,7 +34,7 @@ public class ListRecentContentTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Get recently saved content across all sources (RSS, GitHub, tweets, webpages). Supports precise date/time filtering, source type filtering, and unread-only mode. Use this to browse recent items or find content from a specific time period.";
+        return "Get recently saved content across all sources. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -47,31 +47,35 @@ public class ListRecentContentTool implements McpTool {
                 "type", "string",
                 "enum", List.of("all", "rss", "github", "tweet", "webpage"),
                 "default", "all",
-                "description", "内容来源类型"
+                "description", "Content source type"
         ));
         properties.put("start_date", Map.of(
                 "type", "string",
-                "description", "起始时间 (YYYY-MM-DD 或 YYYY-MM-DDTHH:mm:ss)"
+                "description", "Start time (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)"
         ));
         properties.put("end_date", Map.of(
                 "type", "string",
-                "description", "结束时间 (YYYY-MM-DD 或 YYYY-MM-DDTHH:mm:ss)"
+                "description", "End time (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)"
         ));
         properties.put("unread_only", Map.of(
                 "type", "boolean",
                 "default", false,
-                "description", "仅返回未读内容"
+                "description", "Return unread items only"
         ));
         properties.put("limit", Map.of(
                 "type", "integer",
-                "default", 30,
-                "maximum", 100,
-                "description", "返回结果数量限制"
+                "maximum", 500,
+                "description", "Number of results to return, max 500"
         ));
         properties.put("title_only", Map.of(
                 "type", "boolean",
                 "default", false,
-                "description", "仅返回标题和URL"
+                "description", "Return only title and URL to reduce token usage"
+        ));
+        properties.put("max_description_length", Map.of(
+                "type", "integer",
+                "default", 200,
+                "description", "Maximum description length, 0 for unlimited"
         ));
 
         schema.put("properties", properties);
@@ -84,11 +88,12 @@ public class ListRecentContentTool implements McpTool {
         String startDate = mcpUtils.getStringArg(arguments, "start_date");
         String endDate = mcpUtils.getStringArg(arguments, "end_date");
         boolean unreadOnly = mcpUtils.getBoolArg(arguments, "unread_only", false);
-        int limit = mcpUtils.getIntArg(arguments, "limit", 30);
+        int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
+        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         PageListQuery query = new PageListQuery();
-        query.setCount(Math.min(limit, 100));
+        query.setCount(Math.min(limit, 500));
         query.setSort(PageListSort.CONNECTED_AT);
 
         // Apply source type filter
@@ -105,6 +110,8 @@ public class ListRecentContentTool implements McpTool {
                     break;
                 case "webpage":
                     query.setContentFilterType(1);
+                    break;
+                default:
                     break;
             }
         }
@@ -124,7 +131,7 @@ public class ListRecentContentTool implements McpTool {
         return Map.of(
                 "count", items.size(),
                 "items", items.stream()
-                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly))
+                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly, maxDescLen))
                         .collect(Collectors.toList())
         );
     }

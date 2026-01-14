@@ -33,7 +33,7 @@ public class ListTweetsTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Retrieve saved Twitter/X tweets with multiple sort options: recent_read (recently viewed), popular (by vote score), recent_published (by publish date), recent_fetched (by system fetch time). Includes tweet content, author, and engagement metrics.";
+        return "Retrieve saved Twitter/X tweets with multiple sort options. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original tweet). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -58,9 +58,13 @@ public class ListTweetsTool implements McpTool {
         ));
         properties.put("limit", Map.of(
                 "type", "integer",
-                "default", 30,
-                "maximum", 100,
-                "description", "Maximum number of results to return"
+                "maximum", 500,
+                "description", "Number of results to return, max 500"
+        ));
+        properties.put("max_description_length", Map.of(
+                "type", "integer",
+                "default", 200,
+                "description", "Maximum tweet content length, 0 for unlimited"
         ));
 
         schema.put("properties", properties);
@@ -75,11 +79,12 @@ public class ListTweetsTool implements McpTool {
         }
         String startDate = mcpUtils.getStringArg(arguments, "start_date");
         String endDate = mcpUtils.getStringArg(arguments, "end_date");
-        int limit = mcpUtils.getIntArg(arguments, "limit", 30);
+        int limit = mcpUtils.getIntArg(arguments, "limit", 50);
+        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         PageListQuery query = new PageListQuery();
         query.setContentFilterType(2); // TWEET
-        query.setCount(Math.min(limit, 100));
+        query.setCount(Math.min(limit, 500));
 
         // Set sort based on mode
         switch (mode) {
@@ -111,7 +116,7 @@ public class ListTweetsTool implements McpTool {
                 "count", items.size(),
                 "mode", mode,
                 "items", items.stream()
-                        .map(item -> mcpUtils.toMcpTweetItem(item))
+                        .map(item -> mcpUtils.toMcpTweetItem(item, maxDescLen))
                         .collect(Collectors.toList())
         );
     }

@@ -17,6 +17,10 @@ public class McpHighlight {
     private Long pageId;
     private String pageTitle;
     private String pageUrl;
+    /**
+     * Huntly reading page URL - prefer this over pageUrl when referencing content
+     */
+    private String huntlyUrl;
     private String highlightedText;
     private String createdAt;
 }

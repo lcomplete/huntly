@@ -35,7 +35,7 @@ public class GetLibraryContentTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Get user's personal library content by category: my_list (saved items), archive (archived items), starred (favorite items), read_later (bookmarked for later reading). Supports filtering by source type and date range.";
+        return "Get user's personal library content by category: my_list (saved items), archive (archived items), starred (favorite items), read_later (bookmarked for later reading). IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -47,32 +47,36 @@ public class GetLibraryContentTool implements McpTool {
         properties.put("type", Map.of(
                 "type", "string",
                 "enum", List.of("my_list", "archive", "starred", "read_later"),
-                "description", "内容类型"
+                "description", "Content category"
         ));
         properties.put("source_type", Map.of(
                 "type", "string",
                 "enum", List.of("all", "rss", "github", "tweet", "webpage"),
                 "default", "all",
-                "description", "内容来源类型"
+                "description", "Content source type"
         ));
         properties.put("start_date", Map.of(
                 "type", "string",
-                "description", "起始日期 (YYYY-MM-DD 或 ISO 8601)"
+                "description", "Start date (YYYY-MM-DD or ISO 8601)"
         ));
         properties.put("end_date", Map.of(
                 "type", "string",
-                "description", "结束日期 (YYYY-MM-DD 或 ISO 8601)"
+                "description", "End date (YYYY-MM-DD or ISO 8601)"
         ));
         properties.put("limit", Map.of(
                 "type", "integer",
-                "default", 30,
-                "maximum", 100,
-                "description", "返回结果数量限制"
+                "maximum", 500,
+                "description", "Number of results to return, max 500"
         ));
         properties.put("title_only", Map.of(
                 "type", "boolean",
                 "default", false,
-                "description", "仅返回标题和URL"
+                "description", "Return only title and URL to reduce token usage"
+        ));
+        properties.put("max_description_length", Map.of(
+                "type", "integer",
+                "default", 200,
+                "description", "Maximum description length, 0 for unlimited"
         ));
 
         schema.put("properties", properties);
@@ -86,11 +90,12 @@ public class GetLibraryContentTool implements McpTool {
         String sourceType = mcpUtils.getStringArg(arguments, "source_type");
         String startDate = mcpUtils.getStringArg(arguments, "start_date");
         String endDate = mcpUtils.getStringArg(arguments, "end_date");
-        int limit = mcpUtils.getIntArg(arguments, "limit", 30);
+        int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
+        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         PageListQuery query = new PageListQuery();
-        query.setCount(Math.min(limit, 100));
+        query.setCount(Math.min(limit, 500));
 
         // Set library type filter
         switch (type) {
@@ -110,6 +115,8 @@ public class GetLibraryContentTool implements McpTool {
                 query.setReadLater(true);
                 query.setSort(PageListSort.READ_LATER_AT);
                 break;
+            default:
+                break;
         }
 
         // Set source type filter
@@ -128,7 +135,7 @@ public class GetLibraryContentTool implements McpTool {
         return Map.of(
                 "count", items.size(),
                 "items", items.stream()
-                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly))
+                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly, maxDescLen))
                         .collect(Collectors.toList())
         );
     }
@@ -149,6 +156,8 @@ public class GetLibraryContentTool implements McpTool {
                 break;
             case "webpage":
                 query.setContentFilterType(1); // ARTICLE (non-tweet)
+                break;
+            default:
                 break;
         }
     }

@@ -34,7 +34,7 @@ public class GetUnreadRssTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Get all unread articles from RSS feed subscriptions. Returns unread items sorted by fetch time (newest first). Use this to quickly check what new RSS content is available to read.";
+        return "Get all unread articles from RSS feeds (sorted by fetch time, newest first). IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -45,14 +45,18 @@ public class GetUnreadRssTool implements McpTool {
         Map<String, Object> properties = new HashMap<>();
         properties.put("limit", Map.of(
                 "type", "integer",
-                "default", 50,
-                "maximum", 200,
-                "description", "返回结果数量限制"
+                "maximum", 500,
+                "description", "Number of results to return, max 500"
         ));
         properties.put("title_only", Map.of(
                 "type", "boolean",
                 "default", true,
-                "description", "仅返回标题和URL（默认true减少token消耗）"
+                "description", "Return only title and URL (default true to reduce token usage)"
+        ));
+        properties.put("max_description_length", Map.of(
+                "type", "integer",
+                "default", 200,
+                "description", "Maximum description length, 0 for unlimited"
         ));
 
         schema.put("properties", properties);
@@ -63,11 +67,12 @@ public class GetUnreadRssTool implements McpTool {
     public Object execute(Map<String, Object> arguments) {
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", true);
+        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         PageListQuery query = new PageListQuery();
         query.setConnectorType(ConnectorType.RSS.getCode());
         query.setMarkRead(false);
-        query.setCount(Math.min(limit, 200));
+        query.setCount(Math.min(limit, 500));
         query.setSort(PageListSort.CONNECTED_AT);
 
         List<PageItem> items = pageListService.getPageItems(query);
@@ -75,7 +80,7 @@ public class GetUnreadRssTool implements McpTool {
         return Map.of(
                 "count", items.size(),
                 "items", items.stream()
-                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly))
+                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly, maxDescLen))
                         .collect(Collectors.toList())
         );
     }

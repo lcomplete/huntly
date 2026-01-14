@@ -1,5 +1,5 @@
 import { useSnackbar } from "notistack";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { SettingControllerApiFactory } from "../../api";
 import Typography from "@mui/material/Typography";
 import {
@@ -14,14 +14,14 @@ import {
     DialogContentText,
     DialogActions
 } from "@mui/material";
-import React, { useState } from "react";
+import { useState } from "react";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import McpToolsSection from "./McpToolsSection";
 
 export default function McpSetting() {
     const { enqueueSnackbar } = useSnackbar();
     const api = SettingControllerApiFactory();
-    const queryClient = useQueryClient();
     const [showToken, setShowToken] = useState(false);
 
     // Confirmation Dialog State
@@ -206,24 +206,16 @@ export default function McpSetting() {
                         </div>
 
                         <div>
-                            <p className="font-semibold mb-1">Codex (~/.codex/config.toml):</p>
-                            <pre className="bg-white p-3 rounded border border-gray-200 overflow-x-auto text-xs font-mono">
-{`[mcp_servers.huntly]
-url = "${window.location.origin}/api/mcp/sse"
-
-[mcp_servers.huntly.http_headers]
-Authorization = "Bearer YOUR_TOKEN"`}
-                            </pre>
-                        </div>
-
-                        <div>
-                            <p className="font-semibold mb-1">Claude Desktop / Cursor / Windsurf (JSON Config):</p>
+                            <p className="font-semibold mb-1">Cursor / Windsurf (JSON Config):</p>
                             <pre className="bg-white p-3 rounded border border-gray-200 overflow-x-auto text-xs font-mono">
                                 {JSON.stringify({
                                     "mcpServers": {
                                         "huntly": {
-                                            "command": "npx",
-                                            "args": ["-y", "mcp-remote", `${window.location.origin}/api/mcp/sse`, "--header", "Authorization: Bearer YOUR_TOKEN"]
+                                            "type": "sse",
+                                            "url": `${window.location.origin}/api/mcp/sse`,
+                                            "headers": {
+                                                "Authorization": "Bearer YOUR_TOKEN"
+                                            }
                                         }
                                     }
                                 }, null, 2)}
@@ -231,6 +223,9 @@ Authorization = "Bearer YOUR_TOKEN"`}
                         </div>
                     </div>
                 </div>
+
+                {/* MCP Tools Section */}
+                <McpToolsSection />
             </div>
 
             {/* Confirmation Dialog */}

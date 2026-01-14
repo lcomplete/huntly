@@ -32,7 +32,7 @@ public class SearchContentTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Full-text search across all saved content in Huntly (articles, tweets, GitHub repos, webpages). Supports Chinese/English tokenization. Advanced syntax: title:xxx, author:xxx, site:xxx. Use this to find specific content by keywords.";
+        return "Full-text search across all saved content in Huntly. Supports Chinese/English tokenization and advanced syntax: title:xxx, author:xxx, site:xxx. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -43,24 +43,28 @@ public class SearchContentTool implements McpTool {
         Map<String, Object> properties = new HashMap<>();
         properties.put("query", Map.of(
                 "type", "string",
-                "description", "搜索关键词，支持高级语法: title:xxx, author:xxx, site:xxx"
+                "description", "Search keywords, supports advanced syntax: title:xxx, author:xxx, site:xxx"
         ));
         properties.put("source_type", Map.of(
                 "type", "string",
                 "enum", List.of("all", "rss", "github", "tweet", "webpage"),
                 "default", "all",
-                "description", "内容来源类型"
+                "description", "Content source type"
         ));
         properties.put("limit", Map.of(
                 "type", "integer",
-                "default", 20,
-                "maximum", 50,
-                "description", "返回结果数量限制"
+                "maximum", 500,
+                "description", "Number of results to return, max 500"
         ));
         properties.put("title_only", Map.of(
                 "type", "boolean",
                 "default", false,
-                "description", "仅返回标题和URL，减少token消耗"
+                "description", "Return only title and URL to reduce token usage"
+        ));
+        properties.put("max_description_length", Map.of(
+                "type", "integer",
+                "default", 200,
+                "description", "Maximum description length, 0 for unlimited"
         ));
 
         schema.put("properties", properties);
@@ -72,12 +76,13 @@ public class SearchContentTool implements McpTool {
     public Object execute(Map<String, Object> arguments) {
         String query = mcpUtils.getStringArg(arguments, "query");
         String sourceType = mcpUtils.getStringArg(arguments, "source_type");
-        int limit = mcpUtils.getIntArg(arguments, "limit", 20);
+        int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
+        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         SearchQuery searchQuery = new SearchQuery();
         searchQuery.setQ(query);
-        searchQuery.setSize(Math.min(limit, 50));
+        searchQuery.setSize(Math.min(limit, 500));
 
         // Add source type filter to query options if needed
         if (sourceType != null && !"all".equals(sourceType)) {
@@ -90,7 +95,7 @@ public class SearchContentTool implements McpTool {
         return Map.of(
                 "total_hits", result.getTotalHits(),
                 "items", result.getItems().stream()
-                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly))
+                        .map(item -> mcpUtils.toMcpPageItem(item, titleOnly, maxDescLen))
                         .collect(Collectors.toList())
         );
     }

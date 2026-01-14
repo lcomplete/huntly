@@ -30,7 +30,7 @@ public class GetContentSummariesTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Batch retrieve content summaries for multiple items by their IDs (up to 50). Returns metadata without full content - use get_content_detail for full text. Useful for getting details of multiple items at once.";
+        return "Batch retrieve content summaries for multiple items by their IDs (up to 50). IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page) and 'url' (original source). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -43,7 +43,12 @@ public class GetContentSummariesTool implements McpTool {
                 "type", "array",
                 "items", Map.of("type", "integer"),
                 "maxItems", 50,
-                "description", "内容ID列表"
+                "description", "List of content IDs"
+        ));
+        properties.put("max_description_length", Map.of(
+                "type", "integer",
+                "default", 200,
+                "description", "Maximum description length, 0 for unlimited"
         ));
 
         schema.put("properties", properties);
@@ -58,6 +63,7 @@ public class GetContentSummariesTool implements McpTool {
         if (idsObj == null) {
             return Map.of("error", "ids is required");
         }
+        int maxDescLen = mcpUtils.getIntArg(arguments, "max_description_length", 200);
 
         List<Long> ids;
         if (idsObj instanceof List) {
@@ -82,7 +88,7 @@ public class GetContentSummariesTool implements McpTool {
                 .url(page.getUrl())
                 .huntlyUrl(mcpUtils.buildHuntlyUrl(page.getId()))
                 .author(page.getAuthor())
-                .description(page.getDescription())
+                .description(mcpUtils.truncateText(page.getDescription(), maxDescLen))
                 .sourceType(mcpUtils.getSourceType(page.getConnectorType(), page.getContentType()))
                 .libraryStatus(mcpUtils.getLibraryStatus(page.getLibrarySaveStatus()))
                 .starred(page.getStarred())

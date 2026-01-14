@@ -39,7 +39,7 @@ public class GetHighlightsTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Get user-highlighted text passages from articles. Returns highlighted text along with source article info (title, URL). Can filter by specific page_id or get all highlights across all content.";
+        return "Get user-highlighted text passages from articles. Returns highlighted text along with source article info. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page for the source article). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -50,13 +50,12 @@ public class GetHighlightsTool implements McpTool {
         Map<String, Object> properties = new HashMap<>();
         properties.put("page_id", Map.of(
                 "type", "integer",
-                "description", "限定某篇文章的ID，不填则获取所有高亮"
+                "description", "Filter by specific article ID, omit to get all highlights"
         ));
         properties.put("limit", Map.of(
                 "type", "integer",
-                "default", 50,
-                "maximum", 200,
-                "description", "返回结果数量限制"
+                "maximum", 500,
+                "description", "Number of results to return, max 500"
         ));
 
         schema.put("properties", properties);
@@ -69,7 +68,7 @@ public class GetHighlightsTool implements McpTool {
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
 
         List<PageHighlight> highlights;
-        Pageable pageable = PageRequest.of(0, Math.min(limit, 200), Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(0, Math.min(limit, 500), Sort.by(Sort.Direction.DESC, "createdAt"));
 
         if (pageId > 0) {
             highlights = highlightRepository.findByPageId((long) pageId, pageable);
@@ -85,6 +84,7 @@ public class GetHighlightsTool implements McpTool {
                     .pageId(h.getPageId())
                     .pageTitle(page != null ? page.getTitle() : null)
                     .pageUrl(page != null ? page.getUrl() : null)
+                    .huntlyUrl(mcpUtils.buildHuntlyUrl(h.getPageId()))
                     .highlightedText(h.getHighlightedText())
                     .createdAt(h.getCreatedAt() != null ? h.getCreatedAt().toString() : null)
                     .build();
