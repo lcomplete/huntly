@@ -1,7 +1,8 @@
-import {useSnackbar} from "notistack";
-import {useQuery} from "@tanstack/react-query";
-import {SettingControllerApiFactory} from "../../api";
-import {useFormik} from "formik";
+
+import { useSnackbar } from "notistack";
+import { useQuery } from "@tanstack/react-query";
+import { SettingControllerApiFactory } from "../../api";
+import { useFormik } from "formik";
 import * as yup from "yup";
 import Typography from "@mui/material/Typography";
 import {
@@ -18,9 +19,9 @@ import React from "react";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 export default function GeneralSetting() {
-  const {enqueueSnackbar} = useSnackbar();
+  const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
-  const [needChangeOpenApiKey,setNeedChangeOpenApiKey] = React.useState(false);
+  const [needChangeOpenApiKey, setNeedChangeOpenApiKey] = React.useState(false);
 
   const {
     data: globalSetting
@@ -50,12 +51,12 @@ export default function GeneralSetting() {
       api.saveGlobalSettingUsingPOST(values).then((res) => {
         enqueueSnackbar('General setting save success.', {
           variant: "success",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       }).catch((err) => {
         enqueueSnackbar('General setting save failed. Error: ' + err, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       })
     }
@@ -66,7 +67,7 @@ export default function GeneralSetting() {
       <Typography variant={'h6'} className={''}>
         AI Service Provider
       </Typography>
-      <Divider/>
+      <Divider />
 
       <div className={'mt-2 flex items-center'}>
         <TextField
@@ -87,7 +88,7 @@ export default function GeneralSetting() {
         {
           formikGeneral.initialValues.openApiKey && formikGeneral.initialValues.openApiKey.length > 0 &&
           <div>
-            <Button onClick={()=>{setNeedChangeOpenApiKey(true)}}>Change</Button>
+            <Button onClick={() => { setNeedChangeOpenApiKey(true) }}>Change</Button>
           </div>
         }
       </div>
@@ -121,7 +122,7 @@ export default function GeneralSetting() {
         />
         <Tooltip title="Optional settings for custom OpenAI-compatible APIs" placement="right">
           <IconButton size="small" className={'ml-2'}>
-            <HelpOutlineIcon className={'text-gray-400'}/>
+            <HelpOutlineIcon className={'text-gray-400'} />
           </IconButton>
         </Tooltip>
       </div>
@@ -129,7 +130,7 @@ export default function GeneralSetting() {
       <Typography variant={'h6'} className={'mt-4'}>
         Http Proxy
       </Typography>
-      <Divider/>
+      <Divider />
       <div className={'mt-3 flex items-center'}>
         <TextField
           margin="dense"
@@ -158,16 +159,18 @@ export default function GeneralSetting() {
           size={"small"}
         />
         <FormControlLabel className={'ml-2'}
-                          control={<Checkbox value={true} name={'enableProxy'} onChange={formikGeneral.handleChange}
-                                             checked={!!formikGeneral.values.enableProxy}/>
-                          }
-                          label="Enable"/>
+          control={<Checkbox value={true} name={'enableProxy'} onChange={formikGeneral.handleChange}
+            checked={!!formikGeneral.values.enableProxy} />
+          }
+          label="Enable" />
       </div>
+
+
 
       <Typography variant={'h6'} className={'mt-4'}>
         Automation
       </Typography>
-      <Divider/>
+      <Divider />
       <div className={'mt-2 flex items-center'}>
         <TextField
           margin="dense"
@@ -184,7 +187,7 @@ export default function GeneralSetting() {
         />
         <Tooltip title="Cold data: Unsaved browser history articles." placement="right">
           <IconButton size="small" className={'ml-2'}>
-            <HelpOutlineIcon className={'text-gray-400'}/>
+            <HelpOutlineIcon className={'text-gray-400'} />
           </IconButton>
         </Tooltip>
       </div>
@@ -192,7 +195,7 @@ export default function GeneralSetting() {
       <Typography variant={'h6'} className={'mt-4'}>
         Website Blacklist
       </Typography>
-      <Divider/>
+      <Divider />
 
       <div className={'mt-2 flex items-center'}>
         <TextField
@@ -222,6 +225,6 @@ export default function GeneralSetting() {
           Save
         </Button>
       </div>
-    </form>
-  </div>
+    </form >
+  </div >
 }

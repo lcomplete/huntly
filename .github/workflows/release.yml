@@ -76,6 +76,7 @@ jobs:
           yarn build
         env:
           CI: false
+          REACT_APP_VERSION: ${{ steps.get_version.outputs.version }}
 
       - name: Install extension dependencies
         #if: steps.yarn-cache.outputs.cache-hit != 'true'

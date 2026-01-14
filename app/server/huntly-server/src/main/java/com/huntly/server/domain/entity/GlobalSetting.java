@@ -33,31 +33,34 @@ public class GlobalSetting implements Serializable {
 
     @Column(name = "cold_data_keep_days")
     private Integer coldDataKeepDays;
-    
+
     @Column(name = "open_api_key")
     private String openApiKey;
-    
+
     @Column(name = "open_api_base_url")
     private String openApiBaseUrl;
-    
+
     @Column(name = "open_api_model")
     private String openApiModel;
-    
+
     @Column(name = "article_summary_prompt", columnDefinition = "TEXT")
     private String articleSummaryPrompt;
-    
+
     @Column(name = "auto_save_site_blacklists")
     private String autoSaveSiteBlacklists;
 
     @Column(name = "mark_read_on_scroll")
     private Boolean markReadOnScroll;
 
+    @Column(name = "mcp_token")
+    private String mcpToken;
+
     @Column(name = "created_at")
     private Instant createdAt;
 
     @Column(name = "updated_at")
     private Instant updatedAt;
-    
+
     @Transient
     private Boolean changedOpenApiKey;
 }

@@ -35,18 +35,19 @@ public class GlobalSettingService {
         }
         return setting;
     }
-    
+
     private String getDefaultArticleSummaryPrompt() {
         return "你是一个专业的文章摘要生成助手，能够生成高质量的中文摘要。请按照以下要求生成摘要：\n"
-            + "1. 包含文章的主要观点和关键信息\n"
-            + "2. 保持客观，不添加个人观点\n"
-            + "3. 结构清晰，语言简洁\n"
-            + "4. 长度尽量短，但不能太短以至于丢失重点内容，不能超过原文的一半长";
+                + "1. 包含文章的主要观点和关键信息\n"
+                + "2. 保持客观，不添加个人观点\n"
+                + "3. 结构清晰，语言简洁\n"
+                + "4. 长度尽量短，但不能太短以至于丢失重点内容，不能超过原文的一半长";
     }
 
     public ProxySetting getProxySetting() {
         GlobalSetting setting = getGlobalSetting();
-        if (setting != null && Boolean.TRUE.equals(setting.getEnableProxy()) && StringUtils.isNotBlank(setting.getProxyHost()) && setting.getProxyPort() != null) {
+        if (setting != null && Boolean.TRUE.equals(setting.getEnableProxy())
+                && StringUtils.isNotBlank(setting.getProxyHost()) && setting.getProxyPort() != null) {
             ProxySetting proxySetting = new ProxySetting();
             proxySetting.setHost(setting.getProxyHost());
             proxySetting.setPort(setting.getProxyPort());
@@ -60,8 +61,9 @@ public class GlobalSettingService {
             return null;
         }
 
-        GlobalSetting dbSetting = globalSetting.getId() != null && globalSetting.getId() > 0 ?
-                settingRepository.findById(globalSetting.getId()).orElse(null) : null;
+        GlobalSetting dbSetting = globalSetting.getId() != null && globalSetting.getId() > 0
+                ? settingRepository.findById(globalSetting.getId()).orElse(null)
+                : null;
         if (dbSetting == null) {
             dbSetting = new GlobalSetting();
             dbSetting.setCreatedAt(globalSetting.getCreatedAt());
@@ -69,7 +71,8 @@ public class GlobalSettingService {
         dbSetting.setProxyHost(globalSetting.getProxyHost());
         dbSetting.setProxyPort(globalSetting.getProxyPort());
         dbSetting.setEnableProxy(globalSetting.getEnableProxy());
-        dbSetting.setColdDataKeepDays(Optional.of(globalSetting.getColdDataKeepDays()).orElse(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS));
+        dbSetting.setColdDataKeepDays(
+                Optional.of(globalSetting.getColdDataKeepDays()).orElse(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS));
         dbSetting.setAutoSaveSiteBlacklists(globalSetting.getAutoSaveSiteBlacklists());
         dbSetting.setOpenApiBaseUrl(globalSetting.getOpenApiBaseUrl());
         dbSetting.setOpenApiModel(globalSetting.getOpenApiModel());
@@ -78,6 +81,7 @@ public class GlobalSettingService {
         if (Boolean.TRUE.equals(globalSetting.getChangedOpenApiKey())) {
             dbSetting.setOpenApiKey(globalSetting.getOpenApiKey());
         }
+        dbSetting.setMcpToken(globalSetting.getMcpToken());
         dbSetting.setUpdatedAt(globalSetting.getUpdatedAt());
         return settingRepository.save(dbSetting);
     }

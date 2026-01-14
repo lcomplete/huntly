@@ -4,7 +4,7 @@
 `app/server/` contains the Spring Boot parent with `huntly-server`, `huntly-jpa`, `huntly-common`, and `huntly-interfaces`. `app/client/` serves the React SPA, `app/extension/` holds the Chrome/Firefox browser extension, and `app/tauri/` ships the desktop app built with Tauri + Vite. Shared static assets live in `static/`; container manifests sit in `Dockerfile*` and `docker-compose.yml`.
 
 ## Build, Test, and Development Commands
-- Server: `cd app/server && ./mvnw clean verify` builds everything; `./mvnw spring-boot:run -pl huntly-server -am` serves `localhost:8080`.
+- Server: `cd app/server` and use `./start-dev.sh` (primary dev mode, supports `--task` to enable connectors and `--sql` to show SQL); `./mvnw clean verify` builds everything; direct maven run: `./mvnw spring-boot:run -pl huntly-server -am` serves `localhost:8080`.
 - Web client: `cd app/client && yarn install && yarn start`; use `yarn build` for production assets and `yarn test` for the Jest suite.
 - Browser extension: `cd app/extension && yarn install && yarn dev`; guard releases with `yarn build` and `yarn test`. Use `yarn build:firefox` for Firefox-specific builds.
 - Desktop app (Tauri): `cd app/tauri && yarn install && yarn tauri dev`; `yarn build` compiles frontend and `yarn tauri build` bundles the desktop app.

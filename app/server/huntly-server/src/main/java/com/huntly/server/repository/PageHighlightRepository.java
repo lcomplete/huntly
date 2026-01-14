@@ -28,4 +28,6 @@ public interface PageHighlightRepository extends BaseRepository<PageHighlight, L
     @Query("SELECT DISTINCT h.pageId FROM PageHighlight h")
     List<Long> findDistinctPageIds();
 
+    List<PageHighlight> findByPageId(Long pageId, org.springframework.data.domain.Pageable pageable);
+
 }

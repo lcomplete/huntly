@@ -19,10 +19,17 @@ The project consists of:
 # Navigate to server directory
 cd app/server
 
+# Run server in dev mode (Primary Development Mode)
+# Checks dependencies and rebuilds if necessary, then runs the server
+# Options:
+#   --task  : Enable connector tasks (default: disabled)
+#   --sql   : Show SQL logs (default: disabled)
+./start-dev.sh
+
 # Build with Maven wrapper
 ./mvnw clean install
 
-# Run server in dev mode (default port 8080)
+# Run server via Maven directly
 ./mvnw spring-boot:run -pl huntly-server -am
 
 # Or run the built JAR

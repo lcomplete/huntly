@@ -21,6 +21,7 @@ import navLabels from "../components/Sidebar/NavLabels";
 import moment from "moment";
 import { ConnectorType } from "../interfaces/connectorType";
 import SmartMoment from "../components/SmartMoment";
+import { APP_VERSION } from "../env";
 
 const HOT_TWEETS_HOURS_KEY = "huntly_hot_tweets_hours";
 const DEFAULT_HOT_TWEETS_HOURS = 4;
@@ -549,7 +550,7 @@ const Home = () => {
                         },
                       }}
                     >
-                      v0.5.1
+                      {APP_VERSION.startsWith("v") ? APP_VERSION : `v${APP_VERSION}`}
                     </Button>
                   </Box>
 

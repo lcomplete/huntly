@@ -7,6 +7,7 @@ import RssFeedIcon from '@mui/icons-material/RssFeed';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import LocalLibraryOutlinedIcon from '@mui/icons-material/LocalLibraryOutlined';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
+import TerminalIcon from '@mui/icons-material/Terminal';
 import { SvgIconProps } from "@mui/material/SvgIcon";
 import * as React from "react";
 
@@ -20,6 +21,7 @@ type SettingsNavItem = {
 const settingsItems: SettingsNavItem[] = [
   { labelText: 'General', labelIcon: SettingsApplicationsIcon, linkTo: '/settings/general' },
   { labelText: 'AI Shortcuts', labelIcon: AutoAwesomeIcon, linkTo: '/settings/ai-shortcuts', useGradient: true },
+  { labelText: 'MCP Server', labelIcon: TerminalIcon, linkTo: '/settings/mcp' },
   { labelText: 'Connect', labelIcon: HubIcon, linkTo: '/settings/connect' },
   { labelText: 'Feeds', labelIcon: RssFeedIcon, linkTo: '/settings/feeds' },
   { labelText: 'Folders', labelIcon: FolderOpenIcon, linkTo: '/settings/folders' },
