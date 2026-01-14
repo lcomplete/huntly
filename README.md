@@ -41,7 +41,8 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 | Feature | Description |
 |---------|-------------|
 | 🤖 **AI Content Processing** | Leverage AI for summarization, translation, and intelligent content analysis with custom shortcuts |
-| 📚 **Smart Web Archiving** | Automatically save and archive web pages with AI-powered content extraction using Mozilla Readability |
+| 🔌 **MCP Server Integration** | Built-in Model Context Protocol (MCP) server enabling AI assistants (Claude, Cursor, etc.) to access your knowledge base, search content, and retrieve RSS feeds, tweets, GitHub stars, and highlights |
+| 📚 **Web Archiving** | Automatically save and archive web pages with content extraction using Mozilla Readability |
 | 📡 **RSS Feed Management** | Centralize all your RSS feeds with intelligent categorization, OPML import/export, and full-text search |
 | 🔍 **Powerful Full-Text Search** | Apache Lucene with IK Analyzer for Chinese text tokenization, boolean operators, and fuzzy search |
 | 🐦 **Social Media Integration** | Special handling for Twitter/X with automatic tweet thread reconstruction and media preservation |
