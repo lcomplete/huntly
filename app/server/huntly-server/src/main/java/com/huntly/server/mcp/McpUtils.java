@@ -39,7 +39,7 @@ public class McpUtils {
      * Convert connector type to source type string
      */
     public String getSourceType(Integer connectorType, Integer contentType) {
-        if (contentType != null && contentType == 2) { // TWEET content type
+        if (isTweet(contentType)) {
             return "tweet";
         }
         if (connectorType == null) {
@@ -71,25 +71,30 @@ public class McpUtils {
     }
 
     /**
-     * Get content type string from integer content type
+     * Get content type string from integer content type.
+     * Based on ContentType enum: BROWSER_HISTORY(0), TWEET(1), MARKDOWN(2), QUOTED_TWEET(3), SNIPPET(4)
      */
     public String getContentType(Integer contentType) {
         if (contentType == null) {
             return "article";
         }
         switch (contentType) {
-            case 2:
+            case 1: // TWEET
+            case 3: // QUOTED_TWEET
                 return "tweet";
+            case 4: // SNIPPET
+                return "snippet";
             default:
                 return "article";
         }
     }
 
     /**
-     * Check if content type is tweet
+     * Check if content type is tweet.
+     * ContentType.TWEET(1) or ContentType.QUOTED_TWEET(3)
      */
     public boolean isTweet(Integer contentType) {
-        return contentType != null && contentType == 2;
+        return contentType != null && (contentType == 1 || contentType == 3);
     }
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -135,6 +140,7 @@ public class McpUtils {
                     .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))
                     .starred(pageItem.getStarred())
                     .readLater(pageItem.getReadLater())
+                    .markRead(pageItem.getMarkRead())
                     .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
                     .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null)
                     .voteScore(pageItem.getVoteScore())
@@ -170,6 +176,7 @@ public class McpUtils {
                 .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))
                 .starred(pageItem.getStarred())
                 .readLater(pageItem.getReadLater())
+                .markRead(pageItem.getMarkRead())
                 .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
                 .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null)
                 .voteScore(pageItem.getVoteScore());
@@ -194,6 +201,7 @@ public class McpUtils {
                 .libraryStatus(getLibraryStatus(pageItem.getLibrarySaveStatus()))
                 .starred(pageItem.getStarred())
                 .readLater(pageItem.getReadLater())
+                .markRead(pageItem.getMarkRead())
                 .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
                 .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null);
 
@@ -218,6 +226,60 @@ public class McpUtils {
     }
 
     /**
+     * Convert Page entity to McpPageItem (for detailed content retrieval)
+     */
+    public McpPageItem toMcpPageItemFromEntity(com.huntly.server.domain.entity.Page page) {
+        String contentTypeStr = getContentType(page.getContentType());
+        boolean isTweet = isTweet(page.getContentType());
+        boolean isGithub = isGithub(page.getConnectorType());
+
+        McpPageItem.McpPageItemBuilder builder = McpPageItem.builder()
+                .id(page.getId())
+                .url(page.getUrl())
+                .huntlyUrl(buildHuntlyUrl(page.getId()))
+                .contentType(contentTypeStr)
+                .sourceType(getSourceType(page.getConnectorType(), page.getContentType()))
+                .libraryStatus(getLibraryStatus(page.getLibrarySaveStatus()))
+                .starred(page.getStarred())
+                .readLater(page.getReadLater())
+                .markRead(page.getMarkRead())
+                .recordAt(page.getConnectedAt() != null ? page.getConnectedAt().toString() : null)
+                .publishedAt(page.getConnectedAt() != null ? page.getConnectedAt().toString() : null)
+                .voteScore(page.getVoteScore())
+                .connectorId(page.getConnectorId());
+
+        if (isTweet) {
+            // Parse tweet text using the same logic as frontend Tweet.tsx
+            String tweetText = TweetTextParser.extractPlainText(page.getPageJsonProperties());
+            if (StringUtils.isBlank(tweetText)) {
+                tweetText = page.getDescription();
+            }
+            if (StringUtils.isBlank(tweetText)) {
+                tweetText = page.getContent();
+            }
+            builder.content(tweetText);
+            builder.author(page.getAuthor());
+            // Parse tweet-specific fields
+            parseTweetProperties(page.getPageJsonProperties(), builder);
+        } else if (isGithub) {
+            builder.title(page.getTitle());
+            builder.author(page.getAuthor());
+            builder.description(page.getDescription());
+            builder.content(page.getContent());  // README content
+            builder.language(page.getLanguage());
+            // Parse GitHub-specific fields
+            parseGithubProperties(page.getPageJsonProperties(), builder);
+        } else {
+            builder.title(page.getTitle());
+            builder.author(page.getAuthor());
+            builder.description(page.getDescription());
+            builder.content(page.getContent());
+        }
+
+        return builder.build();
+    }
+
+    /**
      * Parse tweet properties from JSON and add to builder
      */
     private void parseTweetProperties(String pageJsonProperties, McpPageItem.McpPageItemBuilder builder) {
@@ -227,7 +289,9 @@ public class McpUtils {
         try {
             JsonNode node = objectMapper.readTree(pageJsonProperties);
             // Handle retweet case - get stats from the retweeted tweet
-            JsonNode tweetNode = node.has("retweetedTweet") ? node.get("retweetedTweet") : node;
+            // Must check isNull() because JSON may have "retweetedTweet": null
+            JsonNode tweetNode = node.has("retweetedTweet") && !node.get("retweetedTweet").isNull()
+                    ? node.get("retweetedTweet") : node;
 
             if (tweetNode.has("favoriteCount")) {
                 builder.favoriteCount(tweetNode.get("favoriteCount").asLong());

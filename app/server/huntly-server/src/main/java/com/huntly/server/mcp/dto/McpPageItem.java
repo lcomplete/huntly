@@ -33,6 +33,7 @@ public class McpPageItem {
     private String libraryStatus;
     private Boolean starred;
     private Boolean readLater;
+    private Boolean markRead;
     private String recordAt;
     /**
      * Original publish time (connectedAt for tweets/RSS, pubDate for articles)

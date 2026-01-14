@@ -1,14 +1,11 @@
 package com.huntly.server.mcp.tool;
 
-import com.huntly.server.domain.entity.Page;
-import com.huntly.server.domain.entity.PageHighlight;
+import com.huntly.interfaces.external.dto.HighlightListItem;
+import com.huntly.interfaces.external.query.HighlightListQuery;
 import com.huntly.server.mcp.McpUtils;
 import com.huntly.server.mcp.dto.McpHighlight;
-import com.huntly.server.repository.PageHighlightRepository;
-import com.huntly.server.repository.PageRepository;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import com.huntly.server.service.PageHighlightService;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -22,13 +19,11 @@ import java.util.stream.Collectors;
 @Component
 public class GetHighlightsTool implements McpTool {
 
-    private final PageHighlightRepository highlightRepository;
-    private final PageRepository pageRepository;
+    private final PageHighlightService pageHighlightService;
     private final McpUtils mcpUtils;
 
-    public GetHighlightsTool(PageHighlightRepository highlightRepository, PageRepository pageRepository, McpUtils mcpUtils) {
-        this.highlightRepository = highlightRepository;
-        this.pageRepository = pageRepository;
+    public GetHighlightsTool(PageHighlightService pageHighlightService, McpUtils mcpUtils) {
+        this.pageHighlightService = pageHighlightService;
         this.mcpUtils = mcpUtils;
     }
 
@@ -39,7 +34,7 @@ public class GetHighlightsTool implements McpTool {
 
     @Override
     public String getDescription() {
-        return "Get user-highlighted text passages from articles. Returns highlighted text along with source article info. IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page for the source article). When referencing content, prefer using huntlyUrl as the primary link.";
+        return "Get user-highlighted text passages from articles. Returns highlighted text along with source article info, sorted by creation time (newest first). IMPORTANT: Each result includes 'huntlyUrl' (Huntly's reading page for the source article). When referencing content, prefer using huntlyUrl as the primary link.";
     }
 
     @Override
@@ -48,10 +43,6 @@ public class GetHighlightsTool implements McpTool {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("page_id", Map.of(
-                "type", "integer",
-                "description", "Filter by specific article ID, omit to get all highlights"
-        ));
         properties.put("limit", Map.of(
                 "type", "integer",
                 "maximum", 500,
@@ -64,34 +55,32 @@ public class GetHighlightsTool implements McpTool {
 
     @Override
     public Object execute(Map<String, Object> arguments) {
-        int pageId = mcpUtils.getIntArg(arguments, "page_id", 0);
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
 
-        List<PageHighlight> highlights;
-        Pageable pageable = PageRequest.of(0, Math.min(limit, 500), Sort.by(Sort.Direction.DESC, "createdAt"));
+        // Use the same service method as the frontend highlights page
+        HighlightListQuery query = new HighlightListQuery();
+        query.setPage(0);
+        query.setSize(Math.min(limit, 500));
+        query.setSort("created_at");
+        query.setDirection("desc");
 
-        if (pageId > 0) {
-            highlights = highlightRepository.findByPageId((long) pageId, pageable);
-        } else {
-            highlights = highlightRepository.findAll(pageable).getContent();
-        }
+        Page<HighlightListItem> highlightPage = pageHighlightService.getHighlightList(query);
 
-        List<McpHighlight> result = highlights.stream().map(h -> {
-            // Get page info for context
-            Page page = pageRepository.findById(h.getPageId()).orElse(null);
-            return McpHighlight.builder()
+        List<McpHighlight> result = highlightPage.getContent().stream().map(h ->
+            McpHighlight.builder()
                     .id(h.getId())
                     .pageId(h.getPageId())
-                    .pageTitle(page != null ? page.getTitle() : null)
-                    .pageUrl(page != null ? page.getUrl() : null)
+                    .pageTitle(h.getPageTitle())
+                    .pageUrl(h.getPageUrl())
                     .huntlyUrl(mcpUtils.buildHuntlyUrl(h.getPageId()))
                     .highlightedText(h.getHighlightedText())
                     .createdAt(h.getCreatedAt() != null ? h.getCreatedAt().toString() : null)
-                    .build();
-        }).collect(Collectors.toList());
+                    .build()
+        ).collect(Collectors.toList());
 
         return Map.of(
                 "count", result.size(),
+                "total", highlightPage.getTotalElements(),
                 "highlights", result
         );
     }

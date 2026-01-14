@@ -45,7 +45,7 @@ public class SearchContentTool implements McpTool {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("query", Map.of(
                 "type", "string",
-                "description", "Search keywords. Supports advanced syntax in the query string: 'author:{name}' to filter by author, 'url:{domain}' to filter by URL/domain. Example: 'machine learning author:openai' or 'typescript url:github.com'"
+                "description", "Search keywords (required, cannot be empty). Supports advanced syntax combined with keywords: 'machine learning author:openai' or 'typescript url:github.com'. Note: Must include at least one search keyword; cannot use only advanced filters like 'author:xxx' alone."
         ));
         properties.put("content_type", Map.of(
                 "type", "string",
@@ -93,6 +93,10 @@ public class SearchContentTool implements McpTool {
         int limit = mcpUtils.getIntArg(arguments, "limit", 50);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
 
+        if (StringUtils.isBlank(query)) {
+            return Map.of("error", "query is required and cannot be empty");
+        }
+
         SearchQuery searchQuery = new SearchQuery();
         searchQuery.setQ(query);
         searchQuery.setSize(Math.min(limit, 500));
@@ -107,6 +111,7 @@ public class SearchContentTool implements McpTool {
 
         return Map.of(
                 "total_hits", result.getTotalHits(),
+                "query", query,
                 "query_options", queryOptions != null ? queryOptions : "",
                 "items", result.getItems().stream()
                         .map(item -> mcpUtils.toMcpPageItem(item, titleOnly))

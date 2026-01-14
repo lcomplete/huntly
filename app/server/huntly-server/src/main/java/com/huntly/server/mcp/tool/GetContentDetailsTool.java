@@ -75,22 +75,9 @@ public class GetContentDetailsTool implements McpTool {
 
         List<Page> pages = pageRepository.findAllById(ids);
 
-        List<McpPageItem> items = pages.stream().map(page -> McpPageItem.builder()
-                .id(page.getId())
-                .title(page.getTitle())
-                .url(page.getUrl())
-                .huntlyUrl(mcpUtils.buildHuntlyUrl(page.getId()))
-                .author(page.getAuthor())
-                .description(page.getDescription())
-                .sourceType(mcpUtils.getSourceType(page.getConnectorType(), page.getContentType()))
-                .libraryStatus(mcpUtils.getLibraryStatus(page.getLibrarySaveStatus()))
-                .starred(page.getStarred())
-                .readLater(page.getReadLater())
-                .recordAt(page.getConnectedAt() != null ? page.getConnectedAt().toString() : null)
-                .voteScore(page.getVoteScore())
-                .connectorId(page.getConnectorId())
-                .build()
-        ).collect(Collectors.toList());
+        List<McpPageItem> items = pages.stream()
+                .map(mcpUtils::toMcpPageItemFromEntity)
+                .collect(Collectors.toList());
 
         return Map.of(
                 "count", items.size(),

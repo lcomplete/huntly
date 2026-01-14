@@ -112,7 +112,12 @@ const testMcpTool = async (name: string, args: Record<string, unknown>): Promise
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, arguments: args }),
     });
-    return response.json();
+    const data = await response.json();
+    // Normalize error to string if it's an object
+    if (data.error && typeof data.error === 'object') {
+        data.error = data.error.message || JSON.stringify(data.error);
+    }
+    return data;
 };
 
 interface ToolExampleRequest {
@@ -436,7 +441,9 @@ export default function McpToolsSection() {
                                                         >
                                                             {testState.result.success
                                                                 ? JSON.stringify(testState.result.result, null, 2)
-                                                                : testState.result.error}
+                                                                : (typeof testState.result.error === 'string'
+                                                                    ? testState.result.error
+                                                                    : JSON.stringify(testState.result.error, null, 2))}
                                                         </CodeBlock>
                                                     </Box>
                                                 )}

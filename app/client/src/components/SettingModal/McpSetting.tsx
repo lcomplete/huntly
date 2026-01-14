@@ -206,7 +206,7 @@ export default function McpSetting() {
                         </div>
 
                         <div>
-                            <p className="font-semibold mb-1">Cursor / Windsurf (JSON Config):</p>
+                            <p className="font-semibold mb-1">Cursor / Windsurf / Trae (JSON Config):</p>
                             <pre className="bg-white p-3 rounded border border-gray-200 overflow-x-auto text-xs font-mono">
                                 {JSON.stringify({
                                     "mcpServers": {
