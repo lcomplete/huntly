@@ -229,6 +229,9 @@ public class McpServerController {
         McpTool tool = toolRegistry.getTool(toolName);
         Object result = tool.execute(arguments != null ? arguments : new HashMap<>());
 
+        // Detect error-shaped payloads (Map with "error" key)
+        boolean isError = result instanceof Map && ((Map<?, ?>) result).containsKey("error");
+
         Map<String, Object> response = new HashMap<>();
         try {
             String content = objectMapper.writeValueAsString(result);
@@ -240,7 +243,7 @@ public class McpServerController {
                     "type", "text",
                     "text", result.toString())));
         }
-        response.put("isError", false);
+        response.put("isError", isError);
 
         return response;
     }
@@ -256,9 +259,10 @@ public class McpServerController {
         GlobalSetting setting = globalSettingService.getGlobalSetting();
         String configuredToken = setting.getMcpToken();
 
-        // If no token configured, allow access (for development)
+        // If no token configured, deny access for security (MCP is disabled)
         if (StringUtils.isBlank(configuredToken)) {
-            return true;
+            log.debug("MCP access denied: no token configured");
+            return false;
         }
 
         if (StringUtils.isBlank(authorization)) {

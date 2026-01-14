@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.security.SecureRandom;
 import java.util.List;
 
 /**
@@ -214,5 +215,23 @@ public class SettingController {
     @PostMapping("general/saveGlobalSetting")
     public GlobalSetting saveGlobalSetting(@RequestBody GlobalSetting globalSetting) {
         return globalSettingService.saveGlobalSetting(globalSetting);
+    }
+
+    @PostMapping("general/generateMcpToken")
+    public ApiResult<String> generateMcpToken() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] tokenBytes = new byte[24];
+        secureRandom.nextBytes(tokenBytes);
+        StringBuilder sb = new StringBuilder("sk-huntly-");
+        for (byte b : tokenBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        String token = sb.toString();
+
+        GlobalSetting setting = globalSettingService.getGlobalSetting();
+        setting.setMcpToken(token);
+        globalSettingService.saveGlobalSetting(setting);
+
+        return ApiResult.ok(token);
     }
 }

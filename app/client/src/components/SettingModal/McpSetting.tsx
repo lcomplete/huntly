@@ -40,18 +40,21 @@ export default function McpSetting() {
     } = useQuery(["global-setting"], async () => (await api.getGlobalSettingUsingGET()).data);
 
     const executeGenerateToken = async () => {
-        const token = 'sk-huntly-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         try {
-            if (globalSetting) {
-                await api.saveGlobalSettingUsingPOST({
-                    ...globalSetting,
-                    mcpToken: token
-                });
-                await refetch();
-                enqueueSnackbar('New token generated and saved.', { variant: "success" });
+            // Generate token server-side using cryptographically secure random
+            const response = await fetch('/api/setting/general/generateMcpToken', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Failed to generate token');
             }
+            await refetch();
+            enqueueSnackbar('New token generated and saved.', { variant: "success" });
         } catch (err) {
-            enqueueSnackbar('Failed to save token.', { variant: "error" });
+            enqueueSnackbar('Failed to generate token.', { variant: "error" });
         }
     };
 
