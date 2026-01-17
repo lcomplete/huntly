@@ -1,21 +1,21 @@
 import MainContainer from "../../components/MainContainer";
-import AccountSetting from "../../components/SettingModal/AccountSetting";
+import HuntlyAISetting from "../../components/SettingModal/HuntlyAISetting";
 import SubHeader from "../../components/SubHeader";
-import AccountBoxIcon from '@mui/icons-material/AccountBox';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
-const SettingsAccount = () => {
+const SettingsHuntlyAI = () => {
   return (
     <MainContainer>
       <SubHeader
-        navLabel={{labelText: 'Account', labelIcon: AccountBoxIcon}}
+        navLabel={{labelText: 'Huntly AI', labelIcon: AutoAwesomeIcon}}
         buttonOptions={{markRead: false}}
       />
       <div className="settings-page-content p-6 max-w-4xl">
-        <AccountSetting />
+        <HuntlyAISetting />
       </div>
     </MainContainer>
   );
 };
 
-export default SettingsAccount;
+export default SettingsHuntlyAI;
 

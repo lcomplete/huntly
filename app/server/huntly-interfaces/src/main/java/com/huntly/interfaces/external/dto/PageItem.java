@@ -60,17 +60,22 @@ public class PageItem {
     private String pageJsonProperties;
     
     private Integer highlightCount;
-    
+
+    /**
+     * Collection ID the page belongs to. Null means Unsorted.
+     */
+    private Long collectionId;
+
     //region source
 
     private String siteName;
-    
+
     private String domain;
-    
+
     private String faviconUrl;
-    
+
     private Long voteScore;
-    
+
     //endregion
-    
+
 }

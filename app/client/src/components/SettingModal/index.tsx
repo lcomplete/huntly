@@ -9,17 +9,17 @@ import {
   Modal
 } from "@mui/material";
 import RssFeedIcon from "@mui/icons-material/RssFeed";
-import HubIcon from '@mui/icons-material/Hub';
-import {ConnectorSetting} from "./ConnectorSetting";
+import GitHubIcon from '@mui/icons-material/GitHub';
 import {FeedsSetting} from "./FeedsSetting";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import FoldersSetting from "./FoldersSetting";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
+import LibrarySetting from "./LibrarySetting";
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import AccountSetting from "./AccountSetting";
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import GeneralSetting from "./GeneralSetting";
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import ArticleShortcutSetting from "./ArticleShortcutSetting";
+import HuntlyAISetting from "./HuntlyAISetting";
+import {GithubSetting} from "./GithubSetting";
 
 type SettingModalProps = {
   open: boolean,
@@ -73,16 +73,16 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <AutoAwesomeIcon sx={{ fill: "url(#geminiGradientSettings)" }} />
               </ListItemIcon>
-              <ListItemText primary="AI Shortcuts"/>
+              <ListItemText primary="Huntly AI"/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 2}
               onClick={(event) => handleListItemClick(event, 2)}
             >
               <ListItemIcon>
-                <HubIcon/>
+                <LibraryBooksIcon/>
               </ListItemIcon>
-              <ListItemText primary="Connect"/>
+              <ListItemText primary="Library"/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 3}
@@ -98,9 +98,9 @@ export default function SettingModal(props: SettingModalProps) {
               onClick={(event) => handleListItemClick(event, 4)}
             >
               <ListItemIcon>
-                <FolderOpenIcon/>
+                <GitHubIcon/>
               </ListItemIcon>
-              <ListItemText primary="Folders"/>
+              <ListItemText primary="GitHub"/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 5}
@@ -120,16 +120,16 @@ export default function SettingModal(props: SettingModalProps) {
               selectedIndex === 0 && <GeneralSetting/>
             }
             {
-              selectedIndex === 1 && <ArticleShortcutSetting/>
+              selectedIndex === 1 && <HuntlyAISetting/>
             }
             {
-              selectedIndex === 2 && <ConnectorSetting/>
+              selectedIndex === 2 && <LibrarySetting/>
             }
             {
               selectedIndex === 3 && <FeedsSetting/>
             }
             {
-              selectedIndex === 4 && <FoldersSetting/>
+              selectedIndex === 4 && <GithubSetting/>
             }
             {
               selectedIndex === 5 && <AccountSetting/>

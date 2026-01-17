@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Alert, Button, Divider, Link, Typography} from "@mui/material";
+import {Alert, Box, Button, Divider, Link, Tab, Tabs, Typography} from "@mui/material";
 import {useSnackbar} from "notistack";
 import {
   fetchLatestLibraryExport,
@@ -9,6 +9,7 @@ import {
   LibraryExportStatus,
   startLibraryExport
 } from "../../api/libraryExport";
+import {TwitterSaveRulesSetting} from "./TwitterSaveRulesSetting";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -26,7 +27,40 @@ function formatBytes(bytes?: number): string {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-export default function LibrarySetting() {
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`library-tabpanel-${index}`}
+      aria-labelledby={`library-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ pt: 2 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `library-tab-${index}`,
+    'aria-controls': `library-tabpanel-${index}`,
+  };
+}
+
+function ExportSetting() {
   const {enqueueSnackbar} = useSnackbar();
   const [exportInfo, setExportInfo] = useState<LibraryExportInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -188,6 +222,31 @@ export default function LibrarySetting() {
           </Alert>
         )}
       </div>
+    </div>
+  );
+}
+
+export default function LibrarySetting() {
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  return (
+    <div>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="library settings tabs">
+          <Tab label="Save rules" {...a11yProps(0)} />
+          <Tab label="Export" {...a11yProps(1)} />
+        </Tabs>
+      </Box>
+      <TabPanel value={tabValue} index={0}>
+        <TwitterSaveRulesSetting />
+      </TabPanel>
+      <TabPanel value={tabValue} index={1}>
+        <ExportSetting />
+      </TabPanel>
     </div>
   );
 }

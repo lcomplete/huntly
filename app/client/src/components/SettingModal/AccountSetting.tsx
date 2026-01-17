@@ -1,5 +1,5 @@
 import Typography from "@mui/material/Typography";
-import {Button, Divider, TextField} from "@mui/material";
+import {Button, TextField} from "@mui/material";
 import React from "react";
 import {useFormik} from "formik";
 import * as yup from "yup";
@@ -58,14 +58,16 @@ export default function AccountSetting() {
   }
 
   return <div>
-    <Typography variant={'h6'} className={'flex justify-between items-center pb-2'}>Account
+    <div className={'flex justify-between items-center mb-4'}>
+      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700'}>
+        Account Settings
+      </Typography>
       <Button variant={'outlined'} startIcon={<LogoutIcon/>} onClick={signOut} size={"small"}>
         Sign out
       </Button>
-    </Typography>
-    <Divider/>
+    </div>
     <form onSubmit={formikUpdateLogin.handleSubmit} className={''}>
-      <div className={'mt-4'}>
+      <div>
         <TextField
           autoFocus
           margin="dense"

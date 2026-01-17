@@ -450,6 +450,7 @@ public class PageService extends BasePageService {
 
     /**
      * Update the collection assignment for a page.
+     * If the page is not saved yet (librarySaveStatus is NOT_SAVED), it will be automatically saved.
      *
      * @param id           the page ID
      * @param collectionId the collection ID to assign, or null for Unsorted
@@ -460,6 +461,11 @@ public class PageService extends BasePageService {
         if (!Objects.equals(page.getCollectionId(), collectionId)) {
             page.setCollectionId(collectionId);
             page.setCollectedAt(Instant.now());
+        }
+        // Auto-save if not already saved or archived
+        if (page.getLibrarySaveStatus() == null ||
+            page.getLibrarySaveStatus() == LibrarySaveStatus.NOT_SAVED.getCode()) {
+            setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
         }
         save(page);
     }

@@ -15,6 +15,7 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import StarIcon from '@mui/icons-material/Star';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import * as React from "react";
 import {PageControllerApiFactory, PageOperateResult} from "../api";
 import {useMutation} from "@tanstack/react-query";
@@ -22,6 +23,8 @@ import {LibrarySaveStatus} from "../interfaces/librarySaveStatus";
 import {useEffect, useState} from "react";
 import {isDeepEqual} from "../common/objectUtils";
 import {ConnectorType} from "../interfaces/connectorType";
+import CollectionPickerDialog from "./Dialogs/CollectionPickerDialog";
+import {CollectionApi} from "../api/collectionApi";
 
 export enum PageOperation {
   readLater,
@@ -33,7 +36,8 @@ export enum PageOperation {
   archive,
   delete,
   markRead,
-  unMarkRead
+  unMarkRead,
+  moveToCollection
 }
 
 export type PageStatus = {
@@ -43,6 +47,7 @@ export type PageStatus = {
   librarySaveStatus?: number;
   markRead?: boolean;
   connectorType?: number;
+  collectionId?: number | null;
 }
 
 export type PageOperateEvent = {
@@ -56,6 +61,7 @@ const PageOperationButtons = ({
                                 onOperateSuccess
                               }: { pageStatus: PageStatus, onOperateSuccess?: (event: PageOperateEvent) => void }) => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openCollectionPicker, setOpenCollectionPicker] = useState(false);
   const [pageState, setPageState] = useState(pageStatus);
 
   useEffect(() => {
@@ -205,6 +211,32 @@ const PageOperationButtons = ({
     setOpenDeleteDialog(true);
   }
 
+  function showCollectionPicker() {
+    setOpenCollectionPicker(true);
+  }
+
+  function handleCloseCollectionPicker() {
+    setOpenCollectionPicker(false);
+  }
+
+  async function handleSelectCollection(collectionId: number | null) {
+    try {
+      await CollectionApi.updatePageCollection(pageStatus.id, collectionId);
+      setPageState({
+        ...pageState,
+        collectionId
+      });
+      if (onOperateSuccess) {
+        onOperateSuccess({
+          operation: PageOperation.moveToCollection,
+          rawPageStatus: pageStatus
+        });
+      }
+    } catch (error) {
+      console.error('Failed to move to collection:', error);
+    }
+  }
+
   function groupSaveAction(mainIcon, mainAction, mainTooltip, secondaryIcon, secondaryAction, secondaryTooltip) {
     return <div className={"float-right group relative"}>
       <Tooltip title={mainTooltip} placement={"right"}>
@@ -213,6 +245,11 @@ const PageOperationButtons = ({
         </IconButton>
       </Tooltip>
       <div className={"group-hover:flex hidden absolute flex-col z-40"}>
+        <Tooltip title={"Move to collection"} placement={"right"}>
+          <IconButton onClick={showCollectionPicker} className={"mt-2 bg-white shadow-heavy hover:bg-white"}>
+            <FolderOutlinedIcon fontSize={"small"}/>
+          </IconButton>
+        </Tooltip>
         <Tooltip title={secondaryTooltip} placement={"right"}>
           <IconButton onClick={secondaryAction} className={"mt-2 bg-white shadow-heavy hover:bg-white"}>
             {secondaryIcon}
@@ -240,6 +277,12 @@ const PageOperationButtons = ({
             </Button>
           </DialogActions>
         </Dialog>
+        <CollectionPickerDialog
+          open={openCollectionPicker}
+          currentCollectionId={pageState.collectionId}
+          onClose={handleCloseCollectionPicker}
+          onSelect={handleSelectCollection}
+        />
       </div>
     </div>;
   }

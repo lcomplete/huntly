@@ -25,13 +25,11 @@ import SignIn from "./pages/SignIn";
 import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
 import Settings from "./pages/settings";
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
-import SettingsMcp from "./pages/settings/SettingsMcp";
-import SettingsAIShortcuts from "./pages/settings/SettingsAIShortcuts";
-import SettingsConnect from "./pages/settings/SettingsConnect";
+import SettingsHuntlyAI from "./pages/settings/SettingsHuntlyAI";
 import SettingsFeeds from "./pages/settings/SettingsFeeds";
-import SettingsFolders from "./pages/settings/SettingsFolders";
 import SettingsLibrary from "./pages/settings/SettingsLibrary";
 import SettingsAccount from "./pages/settings/SettingsAccount";
+import SettingsGithub from "./pages/settings/SettingsGithub";
 
 function App() {
   const router = createBrowserRouter(
@@ -55,12 +53,10 @@ function App() {
           <Route path="/collection/:id" element={<CollectionList />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/general" element={<SettingsGeneral />} />
-          <Route path="/settings/mcp" element={<SettingsMcp />} />
-          <Route path="/settings/ai-shortcuts" element={<SettingsAIShortcuts />} />
-          <Route path="/settings/connect" element={<SettingsConnect />} />
-          <Route path="/settings/feeds" element={<SettingsFeeds />} />
-          <Route path="/settings/folders" element={<SettingsFolders />} />
+          <Route path="/settings/huntly-ai" element={<SettingsHuntlyAI />} />
           <Route path="/settings/library" element={<SettingsLibrary />} />
+          <Route path="/settings/feeds" element={<SettingsFeeds />} />
+          <Route path="/settings/github" element={<SettingsGithub />} />
           <Route path="/settings/account" element={<SettingsAccount />} />
         </Route>
       </Route>

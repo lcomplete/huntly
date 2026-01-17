@@ -6,10 +6,8 @@ import { useFormik } from "formik";
 import * as yup from "yup";
 import Typography from "@mui/material/Typography";
 import {
-  Alert,
   Button,
   Checkbox,
-  Divider,
   FormControlLabel,
   IconButton,
   TextField,
@@ -64,10 +62,9 @@ export default function GeneralSetting() {
 
   return <div>
     <form onSubmit={formikGeneral.handleSubmit} className={''}>
-      <Typography variant={'h6'} className={''}>
+      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mb-2'}>
         AI Service Provider
       </Typography>
-      <Divider />
 
       <div className={'mt-2 flex items-center'}>
         <TextField
@@ -127,10 +124,9 @@ export default function GeneralSetting() {
         </Tooltip>
       </div>
 
-      <Typography variant={'h6'} className={'mt-4'}>
+      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mt-6 mb-2'}>
         Http Proxy
       </Typography>
-      <Divider />
       <div className={'mt-3 flex items-center'}>
         <TextField
           margin="dense"
@@ -167,10 +163,9 @@ export default function GeneralSetting() {
 
 
 
-      <Typography variant={'h6'} className={'mt-4'}>
+      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mt-6 mb-2'}>
         Automation
       </Typography>
-      <Divider />
       <div className={'mt-2 flex items-center'}>
         <TextField
           margin="dense"
@@ -192,10 +187,9 @@ export default function GeneralSetting() {
         </Tooltip>
       </div>
 
-      <Typography variant={'h6'} className={'mt-4'}>
+      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mt-6 mb-2'}>
         Website Blacklist
       </Typography>
-      <Divider />
 
       <div className={'mt-2 flex items-center'}>
         <TextField

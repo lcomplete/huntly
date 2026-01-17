@@ -1,21 +1,21 @@
 import MainContainer from "../../components/MainContainer";
-import AccountSetting from "../../components/SettingModal/AccountSetting";
+import {GithubSetting} from "../../components/SettingModal/GithubSetting";
 import SubHeader from "../../components/SubHeader";
-import AccountBoxIcon from '@mui/icons-material/AccountBox';
+import GitHubIcon from '@mui/icons-material/GitHub';
 
-const SettingsAccount = () => {
+const SettingsGithub = () => {
   return (
     <MainContainer>
       <SubHeader
-        navLabel={{labelText: 'Account', labelIcon: AccountBoxIcon}}
+        navLabel={{labelText: 'GitHub', labelIcon: GitHubIcon}}
         buttonOptions={{markRead: false}}
       />
       <div className="settings-page-content p-6 max-w-4xl">
-        <AccountSetting />
+        <GithubSetting />
       </div>
     </MainContainer>
   );
 };
 
-export default SettingsAccount;
+export default SettingsGithub;
 

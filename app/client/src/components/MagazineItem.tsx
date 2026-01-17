@@ -213,7 +213,8 @@ export default function MagazineItem({
               id: page.id,
               starred: page.starred,
               readLater: page.readLater,
-              librarySaveStatus: page.librarySaveStatus
+              librarySaveStatus: page.librarySaveStatus,
+              collectionId: page.collectionId
             }} onOperateSuccess={onOperateSuccess}/>
           </Box>
         </Box>

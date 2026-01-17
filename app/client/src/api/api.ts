@@ -1466,6 +1466,12 @@ export interface Page {
     'category'?: string;
     /**
      * 
+     * @type {string}
+     * @memberof Page
+     */
+    'collectedAt'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof Page
      */
@@ -1798,6 +1804,12 @@ export interface PageItem {
      * @memberof PageItem
      */
     'category'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PageItem
+     */
+    'collectionId'?: number;
     /**
      * 
      * @type {string}
@@ -6337,7 +6349,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {boolean} [markRead] 
          * @param {boolean} [readLater] 
          * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
+         * @param {'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
          * @param {number} [sourceId] 
          * @param {boolean} [starred] 
          * @param {string} [startDate] 
@@ -7185,7 +7197,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {boolean} [markRead] 
          * @param {boolean} [readLater] 
          * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
+         * @param {'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
          * @param {number} [sourceId] 
          * @param {boolean} [starred] 
          * @param {string} [startDate] 
@@ -7488,7 +7500,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {boolean} [markRead] 
          * @param {boolean} [readLater] 
          * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-         * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
+         * @param {'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
          * @param {number} [sourceId] 
          * @param {boolean} [starred] 
          * @param {string} [startDate] 
@@ -7784,7 +7796,7 @@ export class PageControllerApi extends BaseAPI {
      * @param {boolean} [markRead] 
      * @param {boolean} [readLater] 
      * @param {'ARCHIVED' | 'NOT_SAVED' | 'SAVED'} [saveStatus] 
-     * @param {'ARCHIVED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
+     * @param {'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE'} [sort] 
      * @param {number} [sourceId] 
      * @param {boolean} [starred] 
      * @param {string} [startDate] 
