@@ -103,6 +103,7 @@ type CollectionTreeProps = Readonly<{
   treeData: CollectionTreeVO | null;
   onCollectionContextMenu?: (event: React.MouseEvent, collection: CollectionVO) => void;
   onGroupContextMenu?: (event: React.MouseEvent, group: CollectionGroupVO) => void;
+  onAddGroup?: () => void;
 }>;
 
 // Arrow placeholder width to align icons across all items
@@ -492,6 +493,7 @@ export default function CollectionTree({
   treeData,
   onCollectionContextMenu,
   onGroupContextMenu,
+  onAddGroup,
 }: CollectionTreeProps) {
   const queryClient = useQueryClient();
 
@@ -680,6 +682,24 @@ export default function CollectionTree({
         <Droppable droppableId="groups" type="GROUP">
           {(provided) => (
             <Box ref={provided.innerRef} {...provided.droppableProps}>
+              {treeData.groups.length === 0 && onAddGroup && (
+                <Typography
+                  onClick={onAddGroup}
+                  sx={{
+                    fontSize: '13px',
+                    color: 'rgba(156, 163, 175, 0.8)',
+                    fontStyle: 'italic',
+                    pl: totalLeftPadding,
+                    py: 0.75,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      color: colors.primary,
+                    },
+                  }}
+                >
+                  + Add Group
+                </Typography>
+              )}
               {treeData.groups.map((group, groupIndex) => {
                 // Default to expanded if not in state
                 const isGroupExpanded = groupExpandedState[group.id] !== false;

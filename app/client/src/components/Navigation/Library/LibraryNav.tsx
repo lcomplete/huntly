@@ -78,6 +78,7 @@ const LibraryNav: React.FC = () => {
         treeData={treeData || null}
         onCollectionContextMenu={dialogs.openCollectionMenu}
         onGroupContextMenu={dialogs.openGroupMenu}
+        onAddGroup={dialogs.openAddGroup}
       />
 
       {/* Dialogs */}
