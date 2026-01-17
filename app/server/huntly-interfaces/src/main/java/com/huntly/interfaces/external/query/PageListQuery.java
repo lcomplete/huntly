@@ -13,33 +13,33 @@ import java.time.Instant;
 public class PageListQuery {
 
     private int sourceId;
-    
+
     private int connectorId;
-    
+
     private Instant firstRecordAt;
 
     private Instant lastRecordAt;
-    
+
     private Long firstVoteScore;
-    
+
     private Long lastVoteScore;
-    
+
     private int count;
-    
+
     private Boolean starred;
-    
+
     private Boolean readLater;
-    
+
     private Boolean markRead;
-    
+
     private LibrarySaveStatus saveStatus;
-    
+
     private PageListSort sort;
-    
+
     private boolean isAsc;
 
     private Integer connectorType;
-    
+
     private ContentType contentType;
 
     /**
@@ -48,9 +48,9 @@ public class PageListQuery {
      * 2: tweet
      */
     private Integer contentFilterType;
-    
+
     private int folderId;
-    
+
     private String startDate;
 
     private String endDate;
@@ -59,5 +59,15 @@ public class PageListQuery {
      * 是否只显示有高亮的页面
      */
     private Boolean hasHighlights;
+
+    /**
+     * Filter by collection ID. Null to filter unsorted pages, empty to include all.
+     */
+    private Long collectionId;
+
+    /**
+     * Whether to filter for unsorted pages (collectionId = null).
+     */
+    private Boolean filterUnsorted;
 
 }

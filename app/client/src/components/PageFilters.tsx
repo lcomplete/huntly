@@ -30,6 +30,7 @@ import {
   ArchiveOutlined,
   BookmarkBorderOutlined,
   CalendarMonth,
+  FolderOpenOutlined,
   HistoryOutlined,
   StarOutlineOutlined,
   TravelExploreOutlined,
@@ -303,6 +304,7 @@ export default function PageFilters(props: PageFilterProps) {
   };
   const sortIconMap: Record<SORT_VALUE, React.ReactElement> = {
     ARCHIVED_AT: <ArchiveOutlined fontSize="small" />,
+    COLLECTED_AT: <FolderOpenOutlined fontSize="small" />,
     CONNECTED_AT: <TwitterIcon fontSize="small" />,
     CREATED_AT: <TravelExploreOutlined fontSize="small" />,
     LAST_READ_AT: <HistoryOutlined fontSize="small" />,

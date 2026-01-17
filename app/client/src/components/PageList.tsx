@@ -6,7 +6,7 @@ import {useInView} from "react-intersection-observer";
 import React, {ReactElement, useEffect, useState, useRef, useCallback, useMemo} from "react";
 import {Button} from "@mui/material";
 import Loading from "./Loading";
-import {NavLabel} from "./Sidebar/NavLabels";
+import {NavLabel} from "./Navigation/shared/NavLabels";
 import SubHeader, {ButtonOptions} from "./SubHeader";
 import {PageOperateEvent, PageOperation} from "./PageOperationButtons";
 import {PageQueryKey} from "../domain/pageQueryKey";
@@ -42,6 +42,8 @@ export type PageListFilter = {
   startDate?: string,
   endDate?: string,
   hasHighlights?: boolean,
+  collectionId?: number,
+  filterUnsorted?: boolean,
 }
 
 interface PageListProps {
@@ -236,12 +238,14 @@ const PageList = (props: PageListProps) => {
            }) => {
       const res = await PageControllerApiFactory().listPageItemsUsingGET(
         filters.asc,
+        filters.collectionId,
         filters.connectorId,
         filters.connectorType,
         filters.contentFilterType,
         filters.contentType,
         pageSize,
         filters.endDate,
+        filters.filterUnsorted,
         pageParam.firstRecordAt || undefined,
         pageParam.firstVoteScore || undefined,
         filters.folderId,

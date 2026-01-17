@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-
 import javax.validation.Valid;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -47,7 +46,8 @@ public class PageController {
     private final PageService pageService;
     private final PageArticleContentService pageArticleContentService;
 
-    public PageController(CapturePageService capturePageService, PageListService pageListService, PageService pageService, PageArticleContentService pageArticleContentService) {
+    public PageController(CapturePageService capturePageService, PageListService pageListService,
+            PageService pageService, PageArticleContentService pageArticleContentService) {
         this.capturePageService = capturePageService;
         this.pageListService = pageListService;
         this.pageService = pageService;
@@ -56,12 +56,12 @@ public class PageController {
 
     @PostMapping("save")
     public ApiResult<Long> savePage(@Valid @RequestBody CapturePage capturePage) {
-        var page =  capturePageService.save(capturePage);
+        var page = capturePageService.save(capturePage);
         return ApiResult.ok(page.getId());
     }
 
     @GetMapping("pageOperateResult")
-    public PageOperateResult getPageOperateResult(PageQuery query){
+    public PageOperateResult getPageOperateResult(PageQuery query) {
         return pageService.getPageOperateResult(query);
     }
 
@@ -158,28 +158,36 @@ public class PageController {
     public PageDetail getPageDetailById(@Valid @NotNull @PathVariable("id") Long id) {
         return pageService.getPageDetail(id);
     }
-    
+
     @PostMapping("/fullContent/{id}")
     public ArticleContent fetchFullContentById(@Valid @NotNull @PathVariable("id") Long id) {
-        Page page= pageService.fetchFullContent(id);
+        Page page = pageService.fetchFullContent(id);
         return new ArticleContent(page.getId(), page.getContent());
     }
 
     @PostMapping("/rawContent/{id}")
     public ArticleContent switchRawContentById(@Valid @NotNull @PathVariable("id") Long id) {
-        Page page= pageService.switchRawContent(id);
+        Page page = pageService.switchRawContent(id);
         return new ArticleContent(page.getId(), page.getContent());
     }
 
-        /**
+    @PatchMapping("/{id}/collection")
+    public void updatePageCollection(@Valid @NotNull @PathVariable("id") Long id,
+            @RequestBody java.util.Map<String, Long> body) {
+        Long collectionId = body.get("collectionId"); // null means Unsorted
+        pageService.updatePageCollection(id, collectionId);
+    }
+
+    /**
      * Create and configure SSE emitter with error handling
      * 
-     * @param processor the processor function that takes an emitter and processes the request
+     * @param processor the processor function that takes an emitter and processes
+     *                  the request
      * @return configured SSE emitter
      */
     private SseEmitter createSseEmitterAndProcess(Consumer<SseEmitter> processor) {
         SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
-        
+
         // Set up error and timeout handlers
         emitter.onError(throwable -> {
             try {
@@ -189,7 +197,7 @@ public class PageController {
             }
             emitter.completeWithError(throwable);
         });
-        
+
         emitter.onTimeout(() -> {
             try {
                 emitter.send(SseEmitter.event().name("error").data("Request timeout"));
@@ -198,7 +206,7 @@ public class PageController {
                 emitter.completeWithError(new RuntimeException("SSE timeout"));
             }
         });
-        
+
         // Call service directly - it handles async processing internally
         try {
             processor.accept(emitter);
@@ -210,14 +218,14 @@ public class PageController {
                 emitter.completeWithError(sendException);
             }
         }
-        
+
         return emitter;
     }
 
     /**
      * Process article content with a specific shortcut using SSE streaming
      * 
-     * @param id the page ID
+     * @param id         the page ID
      * @param shortcutId the ID of the shortcut to use
      * @return SSE emitter for streaming response
      */
@@ -227,11 +235,13 @@ public class PageController {
             @Valid @NotNull @RequestParam("shortcutId") Integer shortcutId,
             @RequestParam(value = "mode", defaultValue = "standard") String mode) {
         boolean isFastMode = "fast".equalsIgnoreCase(mode);
-        return createSseEmitterAndProcess(emitter -> pageService.processWithShortcutStream(id, shortcutId, isFastMode, emitter));
+        return createSseEmitterAndProcess(
+                emitter -> pageService.processWithShortcutStream(id, shortcutId, isFastMode, emitter));
     }
 
     /**
-     * Process raw content with a specific shortcut without saving to database using SSE streaming
+     * Process raw content with a specific shortcut without saving to database using
+     * SSE streaming
      * 
      * @param request the request containing content and shortcut ID
      * @return SSE emitter for streaming response
@@ -240,18 +250,15 @@ public class PageController {
     public SseEmitter processContentWithShortcut(@RequestBody ProcessContentRequest request) {
         boolean isFastMode = "fast".equalsIgnoreCase(request.getMode());
         return createSseEmitterAndProcess(emitter -> pageService.processContentWithShortcutStream(
-            request.getContent(), 
-            request.getShortcutId(),
-            request.getBaseUri(),
-            false,
-            request.getTitle(),
-            isFastMode,
-            emitter
-        ));
+                request.getContent(),
+                request.getShortcutId(),
+                request.getBaseUri(),
+                false,
+                request.getTitle(),
+                isFastMode,
+                emitter));
     }
-    
 
-    
     /**
      * Request model for processing content with a shortcut
      */

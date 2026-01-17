@@ -51,7 +51,10 @@ public class PageService extends BasePageService {
 
     private final OpenAIService openAIService;
 
-    public PageService(PageRepository pageRepository, LuceneService luceneService, ConnectorRepository connectorRepository, SourceRepository sourceRepository, GlobalSettingService globalSettingService, PageArticleContentService pageArticleContentService, EventPublisher eventPublisher, OpenAIService openAIService) {
+    public PageService(PageRepository pageRepository, LuceneService luceneService,
+            ConnectorRepository connectorRepository, SourceRepository sourceRepository,
+            GlobalSettingService globalSettingService, PageArticleContentService pageArticleContentService,
+            EventPublisher eventPublisher, OpenAIService openAIService) {
         super(pageRepository, luceneService);
         this.connectorRepository = connectorRepository;
         this.sourceRepository = sourceRepository;
@@ -113,6 +116,10 @@ public class PageService extends BasePageService {
         page.setLibrarySaveStatus(librarySaveStatus.getCode());
         if (librarySaveStatus.getCode() == LibrarySaveStatus.SAVED.getCode()) {
             page.setSavedAt(Instant.now());
+            // Set collectedAt when first saved (page goes to Unsorted collection)
+            if (page.getCollectedAt() == null) {
+                page.setCollectedAt(Instant.now());
+            }
         } else if (librarySaveStatus.getCode() == LibrarySaveStatus.ARCHIVED.getCode()) {
             page.setArchivedAt(Instant.now());
         } else if (librarySaveStatus.getCode() == LibrarySaveStatus.NOT_SAVED.getCode()) {
@@ -136,7 +143,8 @@ public class PageService extends BasePageService {
     }
 
     private void ensureSaveFirst(Page page) {
-        if (page.getLibrarySaveStatus() == null || Objects.equals(page.getLibrarySaveStatus(), LibrarySaveStatus.NOT_SAVED.getCode())) {
+        if (page.getLibrarySaveStatus() == null
+                || Objects.equals(page.getLibrarySaveStatus(), LibrarySaveStatus.NOT_SAVED.getCode())) {
             setPageLibrarySaveStatus(page, LibrarySaveStatus.SAVED);
         }
     }
@@ -217,7 +225,8 @@ public class PageService extends BasePageService {
         pageDetail.setPage(page);
         if (page.getConnectorId() != null) {
             var connector = connectorRepository.findById(page.getConnectorId()).orElse(null);
-            ConnectorItem connectorItem = connector != null ? ConnectorItemMapper.INSTANCE.fromConnector(connector) : null;
+            ConnectorItem connectorItem = connector != null ? ConnectorItemMapper.INSTANCE.fromConnector(connector)
+                    : null;
             pageDetail.setConnector(connectorItem);
         }
         if (page.getSourceId() != null) {
@@ -321,13 +330,15 @@ public class PageService extends BasePageService {
     /**
      * Process HTML content with a specific shortcut
      *
-     * @param htmlContent the HTML content to process
-     * @param shortcutId the shortcut ID
-     * @param baseUri the base URI for HTML cleaning (can be empty for already cleaned content)
+     * @param htmlContent      the HTML content to process
+     * @param shortcutId       the shortcut ID
+     * @param baseUri          the base URI for HTML cleaning (can be empty for
+     *                         already cleaned content)
      * @param isAlreadyCleaned whether the HTML content is already cleaned
      * @return the processed content as a string
      */
-    public String processContentWithShortcut(String htmlContent, Integer shortcutId, String baseUri, boolean isAlreadyCleaned) {
+    public String processContentWithShortcut(String htmlContent, Integer shortcutId, String baseUri,
+            boolean isAlreadyCleaned) {
         if (StringUtils.isBlank(htmlContent)) {
             return "";
         }
@@ -341,7 +352,7 @@ public class PageService extends BasePageService {
     /**
      * Process article content with a shortcut
      *
-     * @param id the page ID
+     * @param id         the page ID
      * @param shortcutId the shortcut ID
      * @return the processed content as a string
      */
@@ -355,15 +366,17 @@ public class PageService extends BasePageService {
     /**
      * Process HTML content with a specific shortcut using streaming response
      *
-     * @param htmlContent the HTML content to process
-     * @param shortcutId the shortcut ID
-     * @param baseUri the base URI for HTML cleaning (can be empty for already cleaned content)
+     * @param htmlContent      the HTML content to process
+     * @param shortcutId       the shortcut ID
+     * @param baseUri          the base URI for HTML cleaning (can be empty for
+     *                         already cleaned content)
      * @param isAlreadyCleaned whether the HTML content is already cleaned
-     * @param title the article title (optional)
-     * @param isFastMode whether to use fast mode (only send text content)
-     * @param emitter the SSE emitter for streaming response
+     * @param title            the article title (optional)
+     * @param isFastMode       whether to use fast mode (only send text content)
+     * @param emitter          the SSE emitter for streaming response
      */
-    public void processContentWithShortcutStream(String htmlContent, Integer shortcutId, String baseUri, boolean isAlreadyCleaned, String title, boolean isFastMode, SseEmitter emitter) {
+    public void processContentWithShortcutStream(String htmlContent, Integer shortcutId, String baseUri,
+            boolean isAlreadyCleaned, String title, boolean isFastMode, SseEmitter emitter) {
         if (StringUtils.isBlank(htmlContent)) {
             try {
                 emitter.send(SseEmitter.event().name("error").data("Content is empty"));
@@ -381,22 +394,22 @@ public class PageService extends BasePageService {
     /**
      * Prepare markdown content from HTML by cleaning and converting
      * 
-     * @param htmlContent the HTML content to process
-     * @param baseUri the base URI for HTML cleaning
+     * @param htmlContent      the HTML content to process
+     * @param baseUri          the base URI for HTML cleaning
      * @param isAlreadyCleaned whether the HTML content is already cleaned
      * @return the markdown content
      */
     private String prepareMarkdownContent(String htmlContent, String baseUri, boolean isAlreadyCleaned) {
         return prepareMarkdownContent(htmlContent, baseUri, isAlreadyCleaned, null);
     }
-    
+
     /**
      * Prepare markdown content from HTML by cleaning and converting
      * 
-     * @param htmlContent the HTML content to process
-     * @param baseUri the base URI for HTML cleaning
+     * @param htmlContent      the HTML content to process
+     * @param baseUri          the base URI for HTML cleaning
      * @param isAlreadyCleaned whether the HTML content is already cleaned
-     * @param title the article title (optional)
+     * @param title            the article title (optional)
      * @return the markdown content
      */
     private String prepareMarkdownContent(String htmlContent, String baseUri, boolean isAlreadyCleaned, String title) {
@@ -408,24 +421,24 @@ public class PageService extends BasePageService {
             // 需要清理的 HTML 内容
             cleanHtml = HtmlUtils.clean(htmlContent, baseUri).getHtml();
         }
-        
+
         String markdown = MarkdownUtils.htmlToMarkdown(cleanHtml);
-        
+
         // 如果有标题，将其添加到内容开头
         if (StringUtils.isNotBlank(title)) {
             markdown = "# " + title + "\n\n" + markdown;
         }
-        
+
         return markdown;
     }
 
     /**
      * Process article content with a shortcut using streaming response
      *
-     * @param id the page ID
+     * @param id         the page ID
      * @param shortcutId the shortcut ID
      * @param isFastMode whether to use fast mode (only send text content)
-     * @param emitter the SSE emitter for streaming response
+     * @param emitter    the SSE emitter for streaming response
      */
     public void processWithShortcutStream(Long id, Integer shortcutId, boolean isFastMode, SseEmitter emitter) {
         var page = requireOne(id);
@@ -433,6 +446,22 @@ public class PageService extends BasePageService {
         String title = page.getTitle(); // 获取页面标题
         // 页面内容已经是安全 HTML
         processContentWithShortcutStream(content, shortcutId, page.getUrl(), true, title, isFastMode, emitter);
+    }
+
+    /**
+     * Update the collection assignment for a page.
+     *
+     * @param id           the page ID
+     * @param collectionId the collection ID to assign, or null for Unsorted
+     */
+    public void updatePageCollection(Long id, Long collectionId) {
+        var page = requireOne(id);
+        // Update collectedAt timestamp when collection changes
+        if (!Objects.equals(page.getCollectionId(), collectionId)) {
+            page.setCollectionId(collectionId);
+            page.setCollectedAt(Instant.now());
+        }
+        save(page);
     }
 
 }

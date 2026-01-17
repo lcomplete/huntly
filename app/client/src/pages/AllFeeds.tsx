@@ -1,6 +1,6 @@
 import PageList from "../components/PageList";
 import MainContainer from "../components/MainContainer";
-import navLabels from "../components/Sidebar/NavLabels";
+import navLabels from "../components/Navigation/shared/NavLabels";
 import {PageControllerApiFactory} from "../api";
 import {ConnectorType} from "../interfaces/connectorType";
 import {useState} from "react";

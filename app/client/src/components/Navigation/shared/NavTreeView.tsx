@@ -8,7 +8,7 @@ import {styled} from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TreeView from "@mui/lab/TreeView";
-import ConditionalWrapper from "../common/ConditionalWrapper";
+import ConditionalWrapper from "../../common/ConditionalWrapper";
 import {NavLabel} from "./NavLabels";
 
 declare module 'react' {

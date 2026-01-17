@@ -15,11 +15,11 @@ import { useNavigation, PrimaryNavItem } from '../../contexts/NavigationContext'
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ConnectorControllerApiFactory, FolderConnectorView, PageControllerApiFactory, ConnectorItem } from '../../api';
 import { ConnectorType } from '../../interfaces/connectorType';
-import LibraryNavTree from '../Sidebar/LibraryNavTree';
-import NavTreeView, { NavTreeViewItem } from '../Sidebar/NavTreeView';
+import { LibraryNavTree } from './Library';
+import NavTreeView, { NavTreeViewItem } from './shared/NavTreeView';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import navLabels from '../Sidebar/NavLabels';
-import SettingsNavTree from '../Sidebar/SettingsNavTree';
+import navLabels from './shared/NavLabels';
+import { SettingsNav } from './Settings';
 
 // X (Twitter) Icon Component
 const XIcon: React.FC<{ className?: string }> = (props) => (
@@ -132,7 +132,7 @@ const MobileSettingsContent: React.FC<{ selectedNodeId: string }> = ({ selectedN
   return (
     <>
       <div className="mobile-menu-header">Settings</div>
-      <SettingsNavTree selectedNodeId={selectedNodeId} />
+      <SettingsNav selectedNodeId={selectedNodeId} />
     </>
   );
 };
@@ -147,6 +147,7 @@ const getActiveNavFromPath = (
   if (path.startsWith('/page/')) return null;
   if (path === '/' || path === '/recently-read') return 'home';
   if (['/list', '/starred', '/later', '/archive', '/highlights'].includes(path)) return 'saved';
+  if (path.startsWith('/collection/')) return 'saved';
   if (path === '/feeds') return 'feeds';
   if (path === '/twitter') return 'x';
   if (path.startsWith('/settings')) return 'settings';
@@ -316,7 +317,7 @@ const PrimaryNavigation: React.FC = () => {
         anchor="bottom"
         open={mobileMenuOpen !== null}
         onClose={closeMobileMenu}
-        onOpen={() => {}}
+        onOpen={() => { }}
         disableSwipeToOpen={true}
         swipeAreaWidth={0}
         PaperProps={{

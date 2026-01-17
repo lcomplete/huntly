@@ -19,6 +19,7 @@ import AllFeeds from "./pages/AllFeeds";
 import Search from "./pages/Search";
 import Twitter from "./pages/Twitter";
 import Highlights from "./pages/Highlights";
+import CollectionList from "./pages/CollectionList";
 import { AuthControllerApiFactory } from "./api";
 import SignIn from "./pages/SignIn";
 import { GlobalSettingsProvider } from "./contexts/GlobalSettingsContext";
@@ -51,6 +52,7 @@ function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/twitter" element={<Twitter />} />
           <Route path="/highlights" element={<Highlights />} />
+          <Route path="/collection/:id" element={<CollectionList />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/general" element={<SettingsGeneral />} />
           <Route path="/settings/mcp" element={<SettingsMcp />} />

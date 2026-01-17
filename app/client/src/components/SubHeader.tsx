@@ -2,7 +2,7 @@ import {Box, IconButton, SvgIcon, Tooltip} from "@mui/material";
 import "./SubHeader.css";
 import * as React from "react";
 import {ReactElement} from "react";
-import {NavLabel} from "./Sidebar/NavLabels";
+import {NavLabel} from "./Navigation/shared/NavLabels";
 import SearchBox from "./SearchBox";
 import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';

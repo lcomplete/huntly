@@ -17,19 +17,22 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificationExecutor<Page>, JpaSpecificationExecutorWithProjection<Page>, JpaRepositoryWithLimit<Page, Long> {
+public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificationExecutor<Page>,
+        JpaSpecificationExecutorWithProjection<Page>, JpaRepositoryWithLimit<Page, Long> {
 
     Optional<Page> findTop1ByUrl(String url);
 
     @Query("select p from Page p where p.url = :url and (p.contentType is null or p.contentType <> :excludedContentType)")
-    List<Page> findByUrlExcludingContentType(@Param("url") String url, @Param("excludedContentType") Integer excludedContentType, Pageable pageable);
+    List<Page> findByUrlExcludingContentType(@Param("url") String url,
+            @Param("excludedContentType") Integer excludedContentType, Pageable pageable);
 
     Optional<Page> findTop1ByPageUniqueId(String pageUniqueId);
-    
+
     Optional<Page> findTop1ByUrlWithoutHash(String urlWithoutHash);
 
     @Query("select p from Page p where p.urlWithoutHash = :urlWithoutHash and (p.contentType is null or p.contentType <> :excludedContentType)")
-    List<Page> findByUrlWithoutHashExcludingContentType(@Param("urlWithoutHash") String urlWithoutHash, @Param("excludedContentType") Integer excludedContentType, Pageable pageable);
+    List<Page> findByUrlWithoutHashExcludingContentType(@Param("urlWithoutHash") String urlWithoutHash,
+            @Param("excludedContentType") Integer excludedContentType, Pageable pageable);
 
     int countByConnectorIdAndMarkRead(Integer connectorId, Boolean markRead);
 
@@ -40,7 +43,7 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
 
     @Query("SELECT distinct p.connectorId from Page p WHERE p.id in :ids")
     List<Integer> getConnectorIdsByPageIds(List<Long> ids);
-    
+
     @Query("SELECT p.id from Page p WHERE p.updatedAt<:updateBefore and (p.connectorId = 0 or p.connectorId is null) and (p.librarySaveStatus = 0 or p.librarySaveStatus is null) order by p.id")
     List<Long> getColdDataPageIds(Instant updateBefore, Pageable pageable);
 
@@ -71,4 +74,43 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
 
     @Query("SELECT COUNT(p) FROM Page p WHERE p.readLater = true AND p.librarySaveStatus = :librarySaveStatus")
     long countReadLaterByLibrarySaveStatus(@Param("librarySaveStatus") Integer librarySaveStatus);
+
+    /**
+     * Set collectionId to null for all pages in a collection (move to Unsorted).
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Page p SET p.collectionId = null WHERE p.collectionId = :collectionId")
+    int setCollectionIdToNull(@Param("collectionId") Long collectionId);
+
+    /**
+     * Delete all pages in a collection.
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM Page p WHERE p.collectionId = :collectionId")
+    int deleteByCollectionId(@Param("collectionId") Long collectionId);
+
+    /**
+     * Count pages in a specific collection.
+     */
+    @Query("SELECT COUNT(p) FROM Page p WHERE p.collectionId = :collectionId")
+    long countByCollectionId(@Param("collectionId") Long collectionId);
+
+    /**
+     * Find pages by collection ID.
+     */
+    List<Page> findByCollectionId(Long collectionId);
+
+    /**
+     * Find pages by collection ID with pagination, ordered by savedAt desc.
+     */
+    List<Page> findByCollectionIdAndLibrarySaveStatusGreaterThanOrderBySavedAtDesc(Long collectionId,
+            Integer librarySaveStatus, Pageable pageable);
+
+    /**
+     * Find unsorted pages (collectionId is null) in library with pagination.
+     */
+    @Query("SELECT p FROM Page p WHERE p.collectionId IS NULL AND p.librarySaveStatus > 0 ORDER BY p.savedAt DESC")
+    List<Page> findUnsortedLibraryPages(Pageable pageable);
 }

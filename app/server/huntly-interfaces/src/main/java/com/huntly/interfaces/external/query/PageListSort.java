@@ -15,10 +15,12 @@ public enum PageListSort {
     SAVED_AT("savedAt"),
 
     STARRED_AT("starredAt"),
-    
+
     CONNECTED_AT("connectedAt"),
-    
-    VOTE_SCORE("voteScore");
+
+    VOTE_SCORE("voteScore"),
+
+    COLLECTED_AT("collectedAt");
 
     //ID("id");
 

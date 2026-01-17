@@ -16,7 +16,7 @@ import {useSnackbar} from "notistack";
 import {safeInt} from "../common/typeUtils";
 import SearchBox from "../components/SearchBox";
 import SubHeader from "../components/SubHeader";
-import navLabels from "../components/Sidebar/NavLabels";
+import navLabels from "../components/Navigation/shared/NavLabels";
 import SearchIcon from "@mui/icons-material/Search";
 
 export default function Search() {

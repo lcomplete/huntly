@@ -4,7 +4,7 @@ import {useParams} from "react-router-dom";
 import {safeInt} from "../common/typeUtils";
 import {useQuery} from "@tanstack/react-query";
 import {Connector, ConnectorControllerApiFactory, PageControllerApiFactory} from "../api";
-import navLabels, {NavLabel} from "../components/Sidebar/NavLabels";
+import navLabels, {NavLabel} from "../components/Navigation/shared/NavLabels";
 import RssFeedIcon from "@mui/icons-material/RssFeed";
 import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
 import {ConnectorType} from "../interfaces/connectorType";
