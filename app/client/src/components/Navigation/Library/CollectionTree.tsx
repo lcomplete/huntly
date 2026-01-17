@@ -486,6 +486,11 @@ export default function CollectionTree({
     });
   }, []);
 
+  // Helper to deep clone tree data for optimistic updates
+  const cloneTreeData = useCallback((data: CollectionTreeVO): CollectionTreeVO => {
+    return structuredClone(data);
+  }, []);
+
   // Handle drag end for reordering
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, type } = result;
@@ -502,75 +507,105 @@ export default function CollectionTree({
     const currentTreeData = queryClient.getQueryData<CollectionTreeVO>(['collections-tree']);
     if (!currentTreeData) return;
 
-    // Helper to find children of a parent collection recursively
-    const findChildrenByParentId = (parentId: number): CollectionVO[] | null => {
-      const findInCollections = (collections: CollectionVO[]): CollectionVO[] | null => {
+    // Clone the tree data for optimistic update
+    const newTreeData = cloneTreeData(currentTreeData);
+
+    // Helper to find and update children of a parent collection recursively
+    const findAndUpdateChildren = (
+      parentId: number,
+      updateFn: (children: CollectionVO[]) => CollectionVO[]
+    ): boolean => {
+      const updateInCollections = (collections: CollectionVO[]): boolean => {
         for (const c of collections) {
           if (c.id === parentId) {
-            return c.children;
+            c.children = updateFn(c.children);
+            return true;
           }
           if (c.children && c.children.length > 0) {
-            const found = findInCollections(c.children);
+            if (updateInCollections(c.children)) return true;
+          }
+        }
+        return false;
+      };
+
+      for (const group of newTreeData.groups) {
+        if (updateInCollections(group.collections)) return true;
+      }
+      return false;
+    };
+
+    let apiCall: (() => Promise<unknown>) | null = null;
+
+    if (type === 'GROUP') {
+      // Reordering groups - optimistic update
+      const [movedGroup] = newTreeData.groups.splice(source.index, 1);
+      newTreeData.groups.splice(destination.index, 0, movedGroup);
+
+      const groupIds = newTreeData.groups.map(g => g.id);
+      apiCall = () => CollectionApi.reorderGroups(groupIds);
+    } else if (type === 'COLLECTION') {
+      // Root-level collections in a group
+      const droppableId = source.droppableId;
+      const groupId = Number.parseInt(droppableId.replace('group-', ''), 10);
+      const group = newTreeData.groups.find(g => g.id === groupId);
+
+      if (!group) return;
+
+      const [movedCollection] = group.collections.splice(source.index, 1);
+      group.collections.splice(destination.index, 0, movedCollection);
+
+      const collectionIds = group.collections.map(c => c.id);
+      apiCall = () => CollectionApi.reorderCollections(collectionIds, null, groupId);
+    } else if (type.startsWith('CHILDREN-')) {
+      // Child collections under a parent
+      const parentId = Number.parseInt(type.replace('CHILDREN-', ''), 10);
+
+      const updated = findAndUpdateChildren(parentId, (children) => {
+        const newChildren = Array.from(children);
+        const [movedChild] = newChildren.splice(source.index, 1);
+        newChildren.splice(destination.index, 0, movedChild);
+        return newChildren;
+      });
+
+      if (!updated) return;
+
+      // Find children again for API call
+      let childIds: number[] = [];
+      const findChildren = (collections: CollectionVO[]): CollectionVO[] | null => {
+        for (const c of collections) {
+          if (c.id === parentId) return c.children;
+          if (c.children?.length) {
+            const found = findChildren(c.children);
             if (found) return found;
           }
         }
         return null;
       };
-
-      for (const group of currentTreeData.groups) {
-        const found = findInCollections(group.collections);
-        if (found) return found;
+      for (const group of newTreeData.groups) {
+        const children = findChildren(group.collections);
+        if (children) {
+          childIds = children.map(c => c.id);
+          break;
+        }
       }
-      return null;
-    };
 
+      apiCall = () => CollectionApi.reorderCollections(childIds, parentId, null);
+    }
+
+    if (!apiCall) return;
+
+    // Apply optimistic update immediately
+    queryClient.setQueryData(['collections-tree'], newTreeData);
+
+    // Call API in background
     try {
-      if (type === 'GROUP') {
-        // Reordering groups
-        const newGroups = Array.from(currentTreeData.groups);
-        const [movedGroup] = newGroups.splice(source.index, 1);
-        newGroups.splice(destination.index, 0, movedGroup);
-
-        // Call API to reorder groups
-        const groupIds = newGroups.map(g => g.id);
-        await CollectionApi.reorderGroups(groupIds);
-      } else if (type === 'COLLECTION') {
-        // Root-level collections in a group
-        const droppableId = source.droppableId;
-        const groupId = Number.parseInt(droppableId.replace('group-', ''), 10);
-        const group = currentTreeData.groups.find(g => g.id === groupId);
-
-        if (!group) return;
-
-        const newCollections = Array.from(group.collections);
-        const [movedCollection] = newCollections.splice(source.index, 1);
-        newCollections.splice(destination.index, 0, movedCollection);
-
-        const collectionIds = newCollections.map(c => c.id);
-        await CollectionApi.reorderCollections(collectionIds, null, groupId);
-      } else if (type.startsWith('CHILDREN-')) {
-        // Child collections under a parent
-        const parentId = Number.parseInt(type.replace('CHILDREN-', ''), 10);
-        const children = findChildrenByParentId(parentId);
-
-        if (!children) return;
-
-        const newChildren = Array.from(children);
-        const [movedChild] = newChildren.splice(source.index, 1);
-        newChildren.splice(destination.index, 0, movedChild);
-
-        const childIds = newChildren.map(c => c.id);
-        await CollectionApi.reorderCollections(childIds, parentId, null);
-      }
-
-      // Refetch tree data
-      queryClient.invalidateQueries(['collections-tree']);
+      await apiCall();
     } catch (error) {
       console.error('Failed to reorder:', error);
-      // Refetch to restore original state
-      queryClient.invalidateQueries(['collections-tree']);
+      // Revert to original state on error
+      queryClient.setQueryData(['collections-tree'], currentTreeData);
     }
-  }, [queryClient]);
+  }, [queryClient, cloneTreeData]);
 
   if (!treeData) {
     return null;
