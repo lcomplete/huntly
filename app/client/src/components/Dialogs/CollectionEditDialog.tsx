@@ -9,7 +9,7 @@ import {
     Box,
     Typography,
 } from '@mui/material';
-import FolderIcon from '@mui/icons-material/Folder';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { CollectionVO } from '../../api/collectionApi';
 import IconPicker, { IconValue } from '../IconPicker';
 
@@ -109,7 +109,7 @@ const CollectionEditDialog: React.FC<CollectionEditDialogProps> = ({
                     <IconPicker
                         value={icon}
                         onChange={setIcon}
-                        defaultIcon={<FolderIcon sx={{ fontSize: 20 }} />}
+                        defaultIcon={<FolderOutlinedIcon sx={{ fontSize: 20 }} />}
                         size="large"
                     />
                 </Box>

@@ -15,7 +15,7 @@ import { Box, SvgIconProps } from "@mui/material";
 const CollectionIconComponent = React.forwardRef<SVGSVGElement, SvgIconProps & { collectionIcon?: string | null }>(
     ({ collectionIcon, ...props }, ref) => {
         if (!collectionIcon) {
-            return <FolderOutlinedIcon ref={ref} {...props} sx={{ color: '#f59e0b', ...props.sx }} />;
+            return <FolderOutlinedIcon ref={ref} {...props} />;
         }
         // Iconify icon (contains colon)
         if (collectionIcon.includes(':')) {
@@ -88,7 +88,6 @@ const CollectionList = () => {
         labelText: collection?.name || "Collection",
         labelIcon: IconComponent,
         linkTo: isUnsorted ? "/collection/unsorted" : `/collection/${id}`,
-        iconColor: '#64748b', // Slate 500 - matching CollectionTree muted color
     };
 
     // Build filters including collectionId

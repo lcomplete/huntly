@@ -6,7 +6,9 @@ import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Icon } from '@iconify/react';
-import { CollectionTreeVO, CollectionVO, CollectionGroupVO } from '../../../api/collectionApi';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { useQueryClient } from '@tanstack/react-query';
+import { CollectionTreeVO, CollectionVO, CollectionGroupVO, CollectionApi } from '../../../api/collectionApi';
 
 // Storage keys for persisting expanded state
 const STORAGE_KEY_GROUPS = 'huntly-collection-groups-expanded';
@@ -158,8 +160,8 @@ const UnsortedItem: React.FC<{
   );
 };
 
-// Collection item - matching NavListItem style
-const CollectionItem: React.FC<{
+// Collection item content - the visual part without drag wrapper
+const CollectionItemContent: React.FC<{
   collection: CollectionVO;
   selectedNodeId: string;
   level: number;
@@ -300,20 +302,53 @@ const CollectionItem: React.FC<{
         </Box>
       </NavLink>
 
-      {/* Children */}
+      {/* Children - with their own Droppable for nested drag and drop */}
       {hasChildren && (
         <Collapse in={expanded} timeout={200}>
-          {collection.children.map((child) => (
-            <CollectionItem
-              key={child.id}
-              collection={child}
-              selectedNodeId={selectedNodeId}
-              level={level + 1}
-              onContextMenu={onContextMenu}
-              collectionExpandedState={collectionExpandedState}
-              onToggleCollection={onToggleCollection}
-            />
-          ))}
+          <Droppable droppableId={`parent-${collection.id}`} type={`CHILDREN-${collection.id}`}>
+            {(childProvided) => (
+              <Box
+                ref={childProvided.innerRef}
+                {...childProvided.droppableProps}
+                sx={{ minHeight: 4 }}
+              >
+                {collection.children.map((child, childIndex) => (
+                  <Draggable
+                    key={child.id}
+                    draggableId={`collection-${child.id}`}
+                    index={childIndex}
+                  >
+                    {(childDragProvided, childSnapshot) => (
+                      <Box
+                        ref={childDragProvided.innerRef}
+                        {...childDragProvided.draggableProps}
+                        {...childDragProvided.dragHandleProps}
+                        sx={{
+                          bgcolor: childSnapshot.isDragging
+                            ? 'rgba(59, 130, 246, 0.08)'
+                            : 'transparent',
+                          borderRadius: '8px',
+                          transition: childSnapshot.isDragging
+                            ? 'none'
+                            : 'background-color 0.15s ease',
+                        }}
+                      >
+                        <CollectionItemContent
+                          collection={child}
+                          selectedNodeId={selectedNodeId}
+                          level={level + 1}
+                          onContextMenu={onContextMenu}
+                          collectionExpandedState={collectionExpandedState}
+                          onToggleCollection={onToggleCollection}
+                        />
+                      </Box>
+                    )}
+                  </Draggable>
+                ))}
+                {childProvided.placeholder}
+              </Box>
+            )}
+          </Droppable>
         </Collapse>
       )}
     </>
@@ -421,6 +456,8 @@ export default function CollectionTree({
   onCollectionContextMenu,
   onGroupContextMenu,
 }: CollectionTreeProps) {
+  const queryClient = useQueryClient();
+
   // State for expanded groups - persisted to localStorage
   const [groupExpandedState, setGroupExpandedState] = useState<Record<string, boolean>>(() =>
     loadExpandedState(STORAGE_KEY_GROUPS)
@@ -449,80 +486,223 @@ export default function CollectionTree({
     });
   }, []);
 
+  // Handle drag end for reordering
+  const handleDragEnd = useCallback(async (result: DropResult) => {
+    const { source, destination, type } = result;
+
+    // Dropped outside a valid droppable
+    if (!destination) return;
+
+    // No movement
+    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+      return;
+    }
+
+    // Get fresh data from query client to avoid stale closure issues
+    const currentTreeData = queryClient.getQueryData<CollectionTreeVO>(['collections-tree']);
+    if (!currentTreeData) return;
+
+    // Helper to find children of a parent collection recursively
+    const findChildrenByParentId = (parentId: number): CollectionVO[] | null => {
+      const findInCollections = (collections: CollectionVO[]): CollectionVO[] | null => {
+        for (const c of collections) {
+          if (c.id === parentId) {
+            return c.children;
+          }
+          if (c.children && c.children.length > 0) {
+            const found = findInCollections(c.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      for (const group of currentTreeData.groups) {
+        const found = findInCollections(group.collections);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    try {
+      if (type === 'GROUP') {
+        // Reordering groups
+        const newGroups = Array.from(currentTreeData.groups);
+        const [movedGroup] = newGroups.splice(source.index, 1);
+        newGroups.splice(destination.index, 0, movedGroup);
+
+        // Call API to reorder groups
+        const groupIds = newGroups.map(g => g.id);
+        await CollectionApi.reorderGroups(groupIds);
+      } else if (type === 'COLLECTION') {
+        // Root-level collections in a group
+        const droppableId = source.droppableId;
+        const groupId = Number.parseInt(droppableId.replace('group-', ''), 10);
+        const group = currentTreeData.groups.find(g => g.id === groupId);
+
+        if (!group) return;
+
+        const newCollections = Array.from(group.collections);
+        const [movedCollection] = newCollections.splice(source.index, 1);
+        newCollections.splice(destination.index, 0, movedCollection);
+
+        const collectionIds = newCollections.map(c => c.id);
+        await CollectionApi.reorderCollections(collectionIds, null, groupId);
+      } else if (type.startsWith('CHILDREN-')) {
+        // Child collections under a parent
+        const parentId = Number.parseInt(type.replace('CHILDREN-', ''), 10);
+        const children = findChildrenByParentId(parentId);
+
+        if (!children) return;
+
+        const newChildren = Array.from(children);
+        const [movedChild] = newChildren.splice(source.index, 1);
+        newChildren.splice(destination.index, 0, movedChild);
+
+        const childIds = newChildren.map(c => c.id);
+        await CollectionApi.reorderCollections(childIds, parentId, null);
+      }
+
+      // Refetch tree data
+      queryClient.invalidateQueries(['collections-tree']);
+    } catch (error) {
+      console.error('Failed to reorder:', error);
+      // Refetch to restore original state
+      queryClient.invalidateQueries(['collections-tree']);
+    }
+  }, [queryClient]);
+
   if (!treeData) {
     return null;
   }
 
   return (
-    <Box
-      sx={{
-        mt: 1.5,
-        pt: 1.5,
-        borderTop: `1px solid rgba(0, 0, 0, 0.08)`,
-      }}
-    >
-      {/* Collections section title */}
-      <Typography
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <Box
         sx={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: '#334155', // Same as SidebarHeader
-          letterSpacing: '0.01em',
-          px: 1.25,
-          pb: 1, // Increased spacing below title
+          mt: 2,
+          pt: 2,
+          borderTop: `1px solid rgba(0, 0, 0, 0.08)`,
         }}
       >
-        Collections
-      </Typography>
+        {/* Collections section title */}
+        <Typography
+          sx={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: '#334155', // Same as SidebarHeader
+            letterSpacing: '0.01em',
+            px: 1.25,
+            pb: 1, // Increased spacing below title
+          }}
+        >
+          Collections
+        </Typography>
 
-      {/* Unsorted item with spacing below */}
-      <Box sx={{ mb: 0.5 }}>
-        <UnsortedItem selectedNodeId={selectedNodeId} count={treeData.unsortedCount} />
+        {/* Unsorted item with spacing */}
+        <Box sx={{ mt: 0.5, mb: 0.5 }}>
+          <UnsortedItem selectedNodeId={selectedNodeId} count={treeData.unsortedCount} />
+        </Box>
+
+        {/* Groups - Droppable container for reordering groups */}
+        <Droppable droppableId="groups" type="GROUP">
+          {(provided) => (
+            <Box ref={provided.innerRef} {...provided.droppableProps}>
+              {treeData.groups.map((group, groupIndex) => {
+                // Default to expanded if not in state
+                const isGroupExpanded = groupExpandedState[group.id] !== false;
+
+                return (
+                  <Draggable key={group.id} draggableId={`group-${group.id}`} index={groupIndex}>
+                    {(dragProvided, snapshot) => (
+                      <Box
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        sx={{
+                          bgcolor: snapshot.isDragging ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
+                          borderRadius: '8px',
+                          transition: snapshot.isDragging ? 'none' : 'background-color 0.15s ease',
+                        }}
+                      >
+                        <Box {...dragProvided.dragHandleProps}>
+                          <GroupHeader
+                            group={group}
+                            expanded={isGroupExpanded}
+                            onToggle={() => handleToggleGroup(group.id)}
+                            onContextMenu={onGroupContextMenu}
+                          />
+                        </Box>
+                        <Collapse in={isGroupExpanded && !snapshot.isDragging} timeout={200}>
+                          {/* Collections - Droppable container for each group */}
+                          <Droppable droppableId={`group-${group.id}`} type="COLLECTION">
+                            {(collProvided) => (
+                              <Box
+                                ref={collProvided.innerRef}
+                                {...collProvided.droppableProps}
+                                sx={{ minHeight: 4 }}
+                              >
+                                {group.collections.length === 0 ? (
+                                  <Typography
+                                    sx={{
+                                      fontSize: '13px',
+                                      color: colors.text.muted,
+                                      fontStyle: 'italic',
+                                      px: 1.25,
+                                      py: 0.5,
+                                    }}
+                                  >
+                                    No collections yet
+                                  </Typography>
+                                ) : (
+                                  group.collections.map((collection, collIndex) => (
+                                    <Draggable
+                                      key={collection.id}
+                                      draggableId={`collection-${collection.id}`}
+                                      index={collIndex}
+                                    >
+                                      {(collDragProvided, collSnapshot) => (
+                                        <Box
+                                          ref={collDragProvided.innerRef}
+                                          {...collDragProvided.draggableProps}
+                                          {...collDragProvided.dragHandleProps}
+                                          sx={{
+                                            bgcolor: collSnapshot.isDragging
+                                              ? 'rgba(59, 130, 246, 0.08)'
+                                              : 'transparent',
+                                            borderRadius: '8px',
+                                            transition: collSnapshot.isDragging
+                                              ? 'none'
+                                              : 'background-color 0.15s ease',
+                                          }}
+                                        >
+                                          <CollectionItemContent
+                                            collection={collection}
+                                            selectedNodeId={selectedNodeId}
+                                            level={0}
+                                            onContextMenu={onCollectionContextMenu}
+                                            collectionExpandedState={collectionExpandedState}
+                                            onToggleCollection={handleToggleCollection}
+                                          />
+                                        </Box>
+                                      )}
+                                    </Draggable>
+                                  ))
+                                )}
+                                {collProvided.placeholder}
+                              </Box>
+                            )}
+                          </Droppable>
+                        </Collapse>
+                      </Box>
+                    )}
+                  </Draggable>
+                );
+              })}
+              {provided.placeholder}
+            </Box>
+          )}
+        </Droppable>
       </Box>
-
-      {/* Groups and Collections */}
-      {treeData.groups.map((group) => {
-        // Default to expanded if not in state
-        const isGroupExpanded = groupExpandedState[group.id] !== false;
-
-        return (
-          <Box key={group.id}>
-            <GroupHeader
-              group={group}
-              expanded={isGroupExpanded}
-              onToggle={() => handleToggleGroup(group.id)}
-              onContextMenu={onGroupContextMenu}
-            />
-            <Collapse in={isGroupExpanded} timeout={200}>
-              {group.collections.length === 0 ? (
-                <Typography
-                  sx={{
-                    fontSize: '13px',
-                    color: colors.text.muted,
-                    fontStyle: 'italic',
-                    px: 1.25,
-                    py: 0.5,
-                  }}
-                >
-                  No collections yet
-                </Typography>
-              ) : (
-                group.collections.map((collection) => (
-                  <CollectionItem
-                    key={collection.id}
-                    collection={collection}
-                    selectedNodeId={selectedNodeId}
-                    level={0}
-                    onContextMenu={onCollectionContextMenu}
-                    collectionExpandedState={collectionExpandedState}
-                    onToggleCollection={handleToggleCollection}
-                  />
-                ))
-              )}
-            </Collapse>
-          </Box>
-        );
-      })}
-    </Box>
+    </DragDropContext>
   );
 }

@@ -96,7 +96,7 @@ const ICON_SECTIONS: Record<string, Array<{ icon: string; name: string }>> = {
         { icon: 'flat-color-icons:image-file', name: 'Image' },
         { icon: 'flat-color-icons:audio-file', name: 'Audio' },
         { icon: 'flat-color-icons:video-file', name: 'Video' },
-        { icon: 'flat-color-icons:edit-file', name: 'Edit File' },
+        { icon: 'flat-color-icons:edit-image', name: 'Edit Image' },
         { icon: 'flat-color-icons:database', name: 'Database' },
         { icon: 'flat-color-icons:data-backup', name: 'Backup' },
         { icon: 'flat-color-icons:data-protection', name: 'Data Protection' },
@@ -364,7 +364,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
     // Render icon preview
     const renderIconPreview = () => {
         if (!normalizedValue) {
-            return <Box sx={{ color: '#3b82f6' }}>{defaultIcon}</Box>;
+            return <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{defaultIcon}</Box>;
         }
 
         if (normalizedValue.type === 'emoji') {
@@ -375,7 +375,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
             return <Icon icon={normalizedValue.value} width={iconSize} height={iconSize} />;
         }
 
-        return <Box sx={{ color: '#3b82f6' }}>{defaultIcon}</Box>;
+        return <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{defaultIcon}</Box>;
     };
 
     return (
