@@ -12,12 +12,20 @@ export interface NavListItemProps {
   useGradient?: boolean;
 }
 
+// Arrow placeholder width to align with CollectionTree items
+const arrowPlaceholderWidth = 1; // ~8px for arrow space
+
+// Base padding for symmetry
+const basePadding = 1.25;
+const totalLeftPadding = basePadding + arrowPlaceholderWidth; // 2.25
+
 // Shared styles for nav items
 const navItemStyles = {
   container: (isSelected: boolean) => ({
     display: 'flex',
     alignItems: 'center',
-    px: 1.25,
+    pl: totalLeftPadding,
+    pr: totalLeftPadding, // Symmetric padding
     py: 0.875,
     borderRadius: '8px',
     cursor: 'pointer',

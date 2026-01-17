@@ -45,8 +45,20 @@ const CollectionIcon: React.FC<{ icon?: string | null }> = ({ icon }) => {
     return <Icon icon={icon} width={20} height={20} />;
   }
 
-  // It's an emoji
-  return <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>;
+  // It's an emoji - fixed size container to prevent layout shift
+  return (
+    <span style={{
+      fontSize: 16,
+      lineHeight: 1,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 20,
+      height: 20,
+    }}>
+      {icon}
+    </span>
+  );
 };
 
 // Color system matching NavListItem style
@@ -75,14 +87,14 @@ const ExpandArrow: React.FC<{ expanded: boolean }> = ({ expanded }) => (
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: 18,
-      height: 18,
+      width: 16,
+      height: 16,
       transition: 'transform 0.2s ease',
       transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
       color: colors.text.muted,
     }}
   >
-    <ChevronRightIcon sx={{ fontSize: 18 }} />
+    <ChevronRightIcon sx={{ fontSize: 16 }} />
   </Box>
 );
 
@@ -92,6 +104,12 @@ type CollectionTreeProps = Readonly<{
   onCollectionContextMenu?: (event: React.MouseEvent, collection: CollectionVO) => void;
   onGroupContextMenu?: (event: React.MouseEvent, group: CollectionGroupVO) => void;
 }>;
+
+// Arrow placeholder width to align icons across all items
+const arrowPlaceholderWidth = 1; // ~8px for arrow space
+// Base padding for symmetry
+const basePaddingNav = 1.25;
+const totalLeftPadding = basePaddingNav + arrowPlaceholderWidth; // 2.25
 
 // Unsorted navigation item - matching NavListItem style
 const UnsortedItem: React.FC<{
@@ -107,7 +125,8 @@ const UnsortedItem: React.FC<{
         sx={{
           display: 'flex',
           alignItems: 'center',
-          px: 1.25,
+          pl: totalLeftPadding,
+          pr: totalLeftPadding, // Symmetric padding
           py: 0.875,
           borderRadius: '8px',
           cursor: 'pointer',
@@ -187,9 +206,12 @@ const CollectionItemContent: React.FC<{
     onContextMenu?.(e, collection);
   };
 
-  // Indentation matching NavListItem base padding
-  const basePadding = 1.25;
-  const levelIndent = 1.5;
+  // Indentation: align child arrow with parent icon center
+  // Arrow: ml -2.5 (20px left) + width 16px + mr 0.25 (2px) = icon starts at -2px
+  // Icon width 20px, center at 8px from content start
+  // Arrow center at -12px from content start
+  // To align child arrow center with parent icon center: 8 - (-12) = 20px = 2.5 units
+  const levelIndent = 2.5;
 
   return (
     <>
@@ -202,8 +224,10 @@ const CollectionItemContent: React.FC<{
           sx={{
             display: 'flex',
             alignItems: 'center',
-            pl: basePadding + level * levelIndent,
-            pr: 1.25,
+            // All levels: use totalLeftPadding so icon aligns with group/unsorted
+            // Level > 0: add level indentation
+            pl: totalLeftPadding + level * levelIndent,
+            pr: totalLeftPadding, // Symmetric padding
             py: 0.875,
             borderRadius: '8px',
             cursor: 'pointer',
@@ -216,26 +240,39 @@ const CollectionItemContent: React.FC<{
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          {/* Icon - shows arrow when hovered and has children, otherwise shows collection icon */}
+          {/* Arrow - positioned left of icon with small gap */}
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              width: 16,
+              mr: 0.25, // Small gap between arrow and icon
+              ml: -2.5, // Move arrow into the left padding area
+              cursor: hasChildren ? 'pointer' : 'default',
+              visibility: hasChildren ? 'visible' : 'hidden',
+            }}
+            onClick={hasChildren ? handleExpand : undefined}
+          >
+            <ExpandArrow expanded={expanded} />
+          </Box>
+
+          {/* Icon - always shows collection icon with fixed width */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
               mr: 1,
               flexShrink: 0,
               fontSize: '16px',
               color: isSelected ? colors.primary : colors.text.muted,
               transition: 'color 0.15s ease',
-              cursor: hasChildren && hovered ? 'pointer' : 'default',
             }}
-            onClick={hasChildren ? handleExpand : undefined}
           >
-            {hovered && hasChildren ? (
-              <ExpandArrow expanded={expanded} />
-            ) : (
-              <CollectionIcon icon={collection.icon} />
-            )}
+            <CollectionIcon icon={collection.icon} />
           </Box>
 
           {/* Collection Name */}
@@ -261,7 +298,6 @@ const CollectionItemContent: React.FC<{
               display: 'flex',
               alignItems: 'center',
               ml: 1,
-              minWidth: 24,
               justifyContent: 'flex-end',
             }}
           >
@@ -376,7 +412,8 @@ const GroupHeader: React.FC<{
       sx={{
         display: 'flex',
         alignItems: 'center',
-        px: 1.25,
+        pl: totalLeftPadding,
+        pr: totalLeftPadding, // Symmetric padding
         py: 0.875,
         mb: 0.5, // Small spacing below group header
         borderRadius: '8px',
@@ -680,13 +717,13 @@ export default function CollectionTree({
                                   <Typography
                                     sx={{
                                       fontSize: '13px',
-                                      color: colors.text.muted,
+                                      color: 'rgba(156, 163, 175, 0.6)',
                                       fontStyle: 'italic',
-                                      px: 1.25,
-                                      py: 0.5,
+                                      pl: totalLeftPadding,
+                                      py: 0.75,
                                     }}
                                   >
-                                    No collections yet
+                                    Empty
                                   </Typography>
                                 ) : (
                                   group.collections.map((collection, collIndex) => (
