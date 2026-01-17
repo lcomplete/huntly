@@ -22,6 +22,7 @@ export function useCollectionDialogs() {
   // Group states
   const [groupEditDialogOpen, setGroupEditDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<CollectionGroupVO | null>(null);
+  const [groupError, setGroupError] = useState<string | null>(null);
 
   // Context menu states
   const [collectionMenu, setCollectionMenu] = useState<ContextMenuState<CollectionVO> | null>(null);
@@ -110,6 +111,7 @@ export function useCollectionDialogs() {
   // Group handlers
   const openAddGroup = useCallback(() => {
     setEditingGroup(null);
+    setGroupError(null); // Clear error when opening dialog
     setGroupEditDialogOpen(true);
   }, []);
 
@@ -122,6 +124,7 @@ export function useCollectionDialogs() {
 
   const openEditGroup = useCallback((group: CollectionGroupVO) => {
     setEditingGroup(group);
+    setGroupError(null); // Clear error when opening dialog
     setGroupEditDialogOpen(true);
     closeGroupMenu();
   }, [closeGroupMenu]);
@@ -144,20 +147,30 @@ export function useCollectionDialogs() {
   const closeGroupEditDialog = useCallback(() => {
     setGroupEditDialogOpen(false);
     setEditingGroup(null);
+    setGroupError(null); // Clear error when closing
   }, []);
 
   const saveGroup = useCallback(async (name: string) => {
     try {
+      setGroupError(null); // Clear previous error
       if (editingGroup) {
         await CollectionApi.updateGroup(editingGroup.id, { name });
       } else {
         await CollectionApi.createGroup({ name });
       }
       invalidateTree();
-    } catch (error) {
+      closeGroupEditDialog();
+    } catch (error: any) {
+      // Check if it's a duplicate name error
+      // Backend returns error in format: { error: { message: "...", code: ..., type: "..." } }
+      const errorMessage = error?.response?.data?.error?.message || error?.message || 'Failed to save group';
+      if (errorMessage.includes('already exists')) {
+        setGroupError('A group with this name already exists');
+      } else {
+        setGroupError(errorMessage);
+      }
       console.error('Failed to save group:', error);
     }
-    closeGroupEditDialog();
   }, [editingGroup, invalidateTree, closeGroupEditDialog]);
 
   return {
@@ -189,6 +202,7 @@ export function useCollectionDialogs() {
     // Group dialog states
     groupEditDialogOpen,
     editingGroup,
+    groupError,
     groupContextMenu: groupMenu ? {
       mouseX: groupMenu.mouseX,
       mouseY: groupMenu.mouseY,

@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Box, Typography, IconButton, Collapse } from '@mui/material';
-import FolderIcon from '@mui/icons-material/Folder';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Icon } from '@iconify/react';
 import { CollectionTreeVO, CollectionVO, CollectionGroupVO } from '../../../api/collectionApi';
+
+// Storage keys for persisting expanded state
+const STORAGE_KEY_GROUPS = 'huntly-collection-groups-expanded';
+const STORAGE_KEY_COLLECTIONS = 'huntly-collections-expanded';
+
+// Helper to load expanded state from localStorage
+function loadExpandedState(key: string): Record<string, boolean> {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
+
+// Helper to save expanded state to localStorage
+function saveExpandedState(key: string, state: Record<string, boolean>) {
+  try {
+    localStorage.setItem(key, JSON.stringify(state));
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 // Helper to render collection icon (emoji or iconify)
 const CollectionIcon: React.FC<{ icon?: string | null }> = ({ icon }) => {
   if (!icon) {
-    // Default: MUI solid folder icon without color (inherits theme)
-    return <FolderIcon sx={{ fontSize: 20 }} />;
+    // Default: MUI outlined folder icon without color (inherits theme)
+    return <FolderOutlinedIcon sx={{ fontSize: 20 }} />;
   }
 
   // Check if it's an iconify icon (contains colon like 'flat-color-icons:folder')
@@ -41,7 +65,7 @@ const colors = {
   },
 };
 
-// Simplified expand/collapse arrow
+// Expand/collapse arrow using MUI ChevronRightIcon
 const ExpandArrow: React.FC<{ expanded: boolean }> = ({ expanded }) => (
   <Box
     component="span"
@@ -49,17 +73,14 @@ const ExpandArrow: React.FC<{ expanded: boolean }> = ({ expanded }) => (
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: 16,
-      height: 16,
-      transition: 'transform 0.15s ease',
+      width: 18,
+      height: 18,
+      transition: 'transform 0.2s ease',
       transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
       color: colors.text.muted,
-      fontSize: '12px',
     }}
   >
-    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-      <path d="M1.5 1L6 4L1.5 7V1Z" />
-    </svg>
+    <ChevronRightIcon sx={{ fontSize: 18 }} />
   </Box>
 );
 
@@ -143,17 +164,20 @@ const CollectionItem: React.FC<{
   selectedNodeId: string;
   level: number;
   onContextMenu?: (event: React.MouseEvent, collection: CollectionVO) => void;
-}> = ({ collection, selectedNodeId, level, onContextMenu }) => {
-  const [expanded, setExpanded] = useState(true);
+  collectionExpandedState: Record<string, boolean>;
+  onToggleCollection: (id: number) => void;
+}> = ({ collection, selectedNodeId, level, onContextMenu, collectionExpandedState, onToggleCollection }) => {
   const [hovered, setHovered] = useState(false);
   const hasChildren = collection.children && collection.children.length > 0;
   const linkTo = `/collection/${collection.id}`;
   const isSelected = selectedNodeId === linkTo;
+  // Default to expanded if not in state
+  const expanded = collectionExpandedState[collection.id] !== false;
 
   const handleExpand = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setExpanded(!expanded);
+    onToggleCollection(collection.id);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -190,25 +214,7 @@ const CollectionItem: React.FC<{
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          {/* Expand/Collapse arrow */}
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mr: 0.5,
-              flexShrink: 0,
-              visibility: hasChildren ? 'visible' : 'hidden',
-              cursor: hasChildren ? 'pointer' : 'default',
-            }}
-            onClick={handleExpand}
-          >
-            {hasChildren && <ExpandArrow expanded={expanded} />}
-          </Box>
-
-          {/* Icon - emoji, iconify icon, or default folder */}
+          {/* Icon - shows arrow when hovered and has children, otherwise shows collection icon */}
           <Box
             sx={{
               display: 'flex',
@@ -219,9 +225,15 @@ const CollectionItem: React.FC<{
               fontSize: '16px',
               color: isSelected ? colors.primary : colors.text.muted,
               transition: 'color 0.15s ease',
+              cursor: hasChildren && hovered ? 'pointer' : 'default',
             }}
+            onClick={hasChildren ? handleExpand : undefined}
           >
-            <CollectionIcon icon={collection.icon} />
+            {hovered && hasChildren ? (
+              <ExpandArrow expanded={expanded} />
+            ) : (
+              <CollectionIcon icon={collection.icon} />
+            )}
           </Box>
 
           {/* Collection Name */}
@@ -298,6 +310,8 @@ const CollectionItem: React.FC<{
               selectedNodeId={selectedNodeId}
               level={level + 1}
               onContextMenu={onContextMenu}
+              collectionExpandedState={collectionExpandedState}
+              onToggleCollection={onToggleCollection}
             />
           ))}
         </Collapse>
@@ -306,13 +320,21 @@ const CollectionItem: React.FC<{
   );
 };
 
-// Enhanced Group header - more visible
+// Group header - clickable to expand/collapse with hover effects
 const GroupHeader: React.FC<{
   group: CollectionGroupVO;
+  expanded: boolean;
+  onToggle: () => void;
   onContextMenu?: (event: React.MouseEvent, group: CollectionGroupVO) => void;
-  isFirst?: boolean;
-}> = ({ group, onContextMenu, isFirst = false }) => {
+}> = ({ group, expanded, onToggle, onContextMenu }) => {
   const [hovered, setHovered] = useState(false);
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Only toggle if not clicking on the menu button
+    if (!(e.target as HTMLElement).closest('button')) {
+      onToggle();
+    }
+  };
 
   return (
     <Box
@@ -320,10 +342,18 @@ const GroupHeader: React.FC<{
         display: 'flex',
         alignItems: 'center',
         px: 1.25,
-        pt: isFirst ? 0.75 : 2,
-        pb: 0.75,
-        cursor: onContextMenu ? 'pointer' : 'default',
+        py: 0.875,
+        mb: 0.5, // Small spacing below group header
+        borderRadius: '8px',
+        cursor: 'pointer',
+        userSelect: 'none',
+        minHeight: 36,
+        transition: 'all 0.15s ease',
+        '&:hover': {
+          bgcolor: colors.hover.light,
+        },
       }}
+      onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onContextMenu={(e) => {
@@ -331,17 +361,33 @@ const GroupHeader: React.FC<{
         onContextMenu?.(e, group);
       }}
     >
-      {/* Group name - more visible with darker color and medium weight */}
+      {/* Group name with arrow on hover - secondary color, bold */}
       <Typography
+        component="div"
         sx={{
           fontSize: '14px',
-          fontWeight: 600,
-          color: colors.text.groupTitle,
+          fontWeight: 600, // Bold
+          color: colors.text.muted, // Secondary color (slate 500)
+          lineHeight: 1.4,
           flexGrow: 1,
           userSelect: 'none',
+          display: 'flex',
+          alignItems: 'center',
         }}
       >
         {group.name}
+        {/* Arrow right next to text */}
+        {hovered && (
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              ml: 0.5,
+            }}
+          >
+            <ExpandArrow expanded={expanded} />
+          </Box>
+        )}
       </Typography>
 
       {/* Menu button on hover */}
@@ -375,6 +421,34 @@ export default function CollectionTree({
   onCollectionContextMenu,
   onGroupContextMenu,
 }: CollectionTreeProps) {
+  // State for expanded groups - persisted to localStorage
+  const [groupExpandedState, setGroupExpandedState] = useState<Record<string, boolean>>(() =>
+    loadExpandedState(STORAGE_KEY_GROUPS)
+  );
+
+  // State for expanded collections - persisted to localStorage
+  const [collectionExpandedState, setCollectionExpandedState] = useState<Record<string, boolean>>(() =>
+    loadExpandedState(STORAGE_KEY_COLLECTIONS)
+  );
+
+  // Toggle group expanded state
+  const handleToggleGroup = useCallback((groupId: number) => {
+    setGroupExpandedState((prev) => {
+      const newState = { ...prev, [groupId]: prev[groupId] === false };
+      saveExpandedState(STORAGE_KEY_GROUPS, newState);
+      return newState;
+    });
+  }, []);
+
+  // Toggle collection expanded state
+  const handleToggleCollection = useCallback((collectionId: number) => {
+    setCollectionExpandedState((prev) => {
+      const newState = { ...prev, [collectionId]: prev[collectionId] === false };
+      saveExpandedState(STORAGE_KEY_COLLECTIONS, newState);
+      return newState;
+    });
+  }, []);
+
   if (!treeData) {
     return null;
   }
@@ -387,42 +461,68 @@ export default function CollectionTree({
         borderTop: `1px solid rgba(0, 0, 0, 0.08)`,
       }}
     >
-      {/* Unsorted item */}
-      <UnsortedItem selectedNodeId={selectedNodeId} count={treeData.unsortedCount} />
+      {/* Collections section title */}
+      <Typography
+        sx={{
+          fontSize: '14px',
+          fontWeight: 600,
+          color: '#334155', // Same as SidebarHeader
+          letterSpacing: '0.01em',
+          px: 1.25,
+          pb: 1, // Increased spacing below title
+        }}
+      >
+        Collections
+      </Typography>
+
+      {/* Unsorted item with spacing below */}
+      <Box sx={{ mb: 0.5 }}>
+        <UnsortedItem selectedNodeId={selectedNodeId} count={treeData.unsortedCount} />
+      </Box>
 
       {/* Groups and Collections */}
-      {treeData.groups.map((group, index) => (
-        <Box key={group.id}>
-          <GroupHeader
-            group={group}
-            onContextMenu={onGroupContextMenu}
-            isFirst={index === 0}
-          />
-          {group.collections.length === 0 ? (
-            <Typography
-              sx={{
-                fontSize: '13px',
-                color: colors.text.muted,
-                fontStyle: 'italic',
-                px: 1.25,
-                py: 0.5,
-              }}
-            >
-              No collections yet
-            </Typography>
-          ) : (
-            group.collections.map((collection) => (
-              <CollectionItem
-                key={collection.id}
-                collection={collection}
-                selectedNodeId={selectedNodeId}
-                level={0}
-                onContextMenu={onCollectionContextMenu}
-              />
-            ))
-          )}
-        </Box>
-      ))}
+      {treeData.groups.map((group) => {
+        // Default to expanded if not in state
+        const isGroupExpanded = groupExpandedState[group.id] !== false;
+
+        return (
+          <Box key={group.id}>
+            <GroupHeader
+              group={group}
+              expanded={isGroupExpanded}
+              onToggle={() => handleToggleGroup(group.id)}
+              onContextMenu={onGroupContextMenu}
+            />
+            <Collapse in={isGroupExpanded} timeout={200}>
+              {group.collections.length === 0 ? (
+                <Typography
+                  sx={{
+                    fontSize: '13px',
+                    color: colors.text.muted,
+                    fontStyle: 'italic',
+                    px: 1.25,
+                    py: 0.5,
+                  }}
+                >
+                  No collections yet
+                </Typography>
+              ) : (
+                group.collections.map((collection) => (
+                  <CollectionItem
+                    key={collection.id}
+                    collection={collection}
+                    selectedNodeId={selectedNodeId}
+                    level={0}
+                    onContextMenu={onCollectionContextMenu}
+                    collectionExpandedState={collectionExpandedState}
+                    onToggleCollection={handleToggleCollection}
+                  />
+                ))
+              )}
+            </Collapse>
+          </Box>
+        );
+      })}
     </Box>
   );
 }

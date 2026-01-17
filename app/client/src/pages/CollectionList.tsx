@@ -6,8 +6,8 @@ import PageFilters, { PageFilterOptions } from "../components/PageFilters";
 import { getPageListFilter } from "../domain/utils";
 import { CollectionApi, Collection } from "../api/collectionApi";
 import { NavLabel } from "../components/Navigation/shared/NavLabels";
-import FolderIcon from "@mui/icons-material/Folder";
-import InboxIcon from "@mui/icons-material/Inbox";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import { Icon } from "@iconify/react";
 import { Box, SvgIconProps } from "@mui/material";
 
@@ -15,7 +15,7 @@ import { Box, SvgIconProps } from "@mui/material";
 const CollectionIconComponent = React.forwardRef<SVGSVGElement, SvgIconProps & { collectionIcon?: string | null }>(
     ({ collectionIcon, ...props }, ref) => {
         if (!collectionIcon) {
-            return <FolderIcon ref={ref} {...props} sx={{ color: '#f59e0b', ...props.sx }} />;
+            return <FolderOutlinedIcon ref={ref} {...props} sx={{ color: '#f59e0b', ...props.sx }} />;
         }
         // Iconify icon (contains colon)
         if (collectionIcon.includes(':')) {
@@ -76,7 +76,7 @@ const CollectionList = () => {
 
     // Build icon component based on collection's icon or default
     const IconComponent = useMemo(() => {
-        if (isUnsorted) return InboxIcon;
+        if (isUnsorted) return InboxOutlinedIcon;
         // Create a wrapper component that passes the collection icon
         const icon = collection?.icon;
         return React.forwardRef<SVGSVGElement, SvgIconProps>((props, ref) => (
@@ -88,6 +88,7 @@ const CollectionList = () => {
         labelText: collection?.name || "Collection",
         labelIcon: IconComponent,
         linkTo: isUnsorted ? "/collection/unsorted" : `/collection/${id}`,
+        iconColor: '#64748b', // Slate 500 - matching CollectionTree muted color
     };
 
     // Build filters including collectionId

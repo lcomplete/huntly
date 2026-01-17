@@ -13,6 +13,7 @@ import { CollectionGroupVO } from '../../api/collectionApi';
 interface GroupEditDialogProps {
     open: boolean;
     group: CollectionGroupVO | null; // null for creating new
+    error?: string | null; // Error message to display
     onClose: () => void;
     onSave: (name: string) => void;
 }
@@ -20,16 +21,24 @@ interface GroupEditDialogProps {
 const GroupEditDialog: React.FC<GroupEditDialogProps> = ({
     open,
     group,
+    error,
     onClose,
     onSave,
 }) => {
     const [name, setName] = useState('');
+    const [localError, setLocalError] = useState<string | null>(null);
 
     useEffect(() => {
         if (open) {
             setName(group?.name || '');
+            setLocalError(null); // Reset error when dialog opens
         }
     }, [group, open]);
+
+    // Sync external error to local state
+    useEffect(() => {
+        setLocalError(error || null);
+    }, [error]);
 
     const handleSave = () => {
         if (name.trim()) {
@@ -75,7 +84,12 @@ const GroupEditDialog: React.FC<GroupEditDialogProps> = ({
                     fullWidth
                     variant="outlined"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    error={!!localError}
+                    helperText={localError}
+                    onChange={(e) => {
+                        setName(e.target.value);
+                        setLocalError(null); // Clear error when user types
+                    }}
                     onKeyDown={handleKeyDown}
                     InputProps={{
                         sx: {
@@ -91,6 +105,16 @@ const GroupEditDialog: React.FC<GroupEditDialogProps> = ({
                                 borderColor: '#3b82f6 !important',
                                 borderWidth: '1px !important',
                             },
+                            '&.Mui-error fieldset': {
+                                borderColor: '#ef4444 !important',
+                            },
+                        },
+                    }}
+                    FormHelperTextProps={{
+                        sx: {
+                            fontSize: '12px',
+                            mt: 0.5,
+                            mx: 0,
                         },
                     }}
                 />

@@ -99,6 +99,7 @@ const LibraryNav: React.FC = () => {
       <GroupEditDialog
         open={dialogs.groupEditDialogOpen}
         group={dialogs.editingGroup}
+        error={dialogs.groupError}
         onClose={dialogs.closeGroupEditDialog}
         onSave={dialogs.saveGroup}
       />
