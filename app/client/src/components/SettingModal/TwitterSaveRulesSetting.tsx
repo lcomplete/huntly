@@ -1,7 +1,7 @@
-import Typography from "@mui/material/Typography";
 import {
   Button, Checkbox,
-  Divider, FormControl,
+  Divider,
+  FormControl,
   FormControlLabel,
   InputAdornment, InputLabel, MenuItem,
   Select,
@@ -14,6 +14,7 @@ import {Formik, Form, FieldArray, getIn} from 'formik';
 import * as yup from 'yup';
 import {useQuery} from "@tanstack/react-query";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SettingSectionTitle from "./SettingSectionTitle";
 
 export const TwitterSaveRulesSetting = () => {
   const {enqueueSnackbar} = useSnackbar();
@@ -37,8 +38,7 @@ export const TwitterSaveRulesSetting = () => {
 
   return (
     <div>
-      <Typography variant={'h6'}>Twitter Save Rules</Typography>
-      <Divider/>
+      <SettingSectionTitle first>Twitter Save Rules</SettingSectionTitle>
 
       {
         twitterSettings && <Formik

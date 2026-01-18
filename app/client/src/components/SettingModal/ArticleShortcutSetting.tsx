@@ -1,6 +1,6 @@
 import {useSnackbar} from "notistack";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {Button, Switch, Divider, FormControlLabel, IconButton, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, ListItemIcon, Chip, Checkbox} from "@mui/material";
+import {Button, Switch, FormControlLabel, IconButton, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, ListItemIcon, Chip, Checkbox} from "@mui/material";
 import React, {useState} from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -10,6 +10,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import Typography from "@mui/material/Typography";
 import {DragDropContext, Droppable, Draggable} from "react-beautiful-dnd";
 import {ArticleShortcut, ArticleShortcutControllerApiFactory} from "../../api";
+import SettingSectionTitle from "./SettingSectionTitle";
 
 const ArticleShortcutSetting = () => {
   const {enqueueSnackbar} = useSnackbar();
@@ -300,15 +301,13 @@ const ArticleShortcutSetting = () => {
   
   return (
     <div>
-      <div className="flex justify-between items-center mb-2">
-        <Typography variant={'h6'} className={''}>
-          Article AI Shortcuts
-        </Typography>
-        <div>
+      <div className="flex justify-between items-center">
+        <SettingSectionTitle first>Article AI Shortcuts</SettingSectionTitle>
+        <div className="flex gap-2">
           <Button
             startIcon={<DownloadIcon />}
             variant="outlined"
-            className="mr-2"
+            size="small"
             onClick={handleOpenImportModal}
           >
             Import Presets
@@ -316,13 +315,13 @@ const ArticleShortcutSetting = () => {
           <Button
             startIcon={<AddIcon />}
             variant="outlined"
+            size="small"
             onClick={handleAddShortcut}
           >
             Add Shortcut
           </Button>
         </div>
       </div>
-      <Divider />
       
       {/* Shortcut List */}
       <DragDropContext onDragEnd={handleDragEnd}>

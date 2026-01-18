@@ -16,6 +16,7 @@ import {
   Tabs,
   TextField
 } from "@mui/material";
+import SettingSectionTitle from "./SettingSectionTitle";
 import React, {useState} from "react";
 import {PreviewFeedsInfo, SettingControllerApiFactory} from "../../api";
 import {useSnackbar} from "notistack";
@@ -220,7 +221,7 @@ function FeedsTabContent() {
   return (
     <div>
       <div>
-        <Typography variant={'subtitle1'} className={'mb-2'}>Subscribe to RSS</Typography>
+        <SettingSectionTitle first>Subscribe to RSS</SettingSectionTitle>
         <form onSubmit={formikFeeds.handleSubmit}>
           <TextField fullWidth={true} size={'small'} margin={'normal'}
                      label={'RSS link'}
@@ -288,25 +289,25 @@ function FeedsTabContent() {
           </Card>}
         </div>
       </div>
-      <div className={'mt-6'}>
-        <Typography variant={'subtitle1'}>OPML Import</Typography>
-        <div className={'pt-2'}>
+      <div>
+        <SettingSectionTitle>OPML Import</SettingSectionTitle>
+        <div>
           <label htmlFor={'opmlFile'}>Choose file: </label>
           <input type={'file'} name={'opmlFile'} onChange={handleFileChange}/>
           <Button type={'button'} color={'primary'} size={'small'} variant={'contained'} disabled={importing}
             onClick={uploadOpml}>{importing ? 'importing' : 'import'}</Button>
         </div>
       </div>
-      <div className={'mt-6'}>
-        <Typography variant={'subtitle1'}>OPML Export</Typography>
-        <div className={'pt-2'}>
+      <div>
+        <SettingSectionTitle>OPML Export</SettingSectionTitle>
+        <div>
           <Button type={'button'} color={'primary'} size={'small'} variant={'contained'} disabled={exporting}
             onClick={downloadOpml}>{exporting ? 'exporting' : 'export'}</Button>
         </div>
       </div>
-      <div className={'mt-6'}>
-        <Typography variant={'subtitle1'}>Options</Typography>
-        <div className={'pt-2'}>
+      <div>
+        <SettingSectionTitle>Options</SettingSectionTitle>
+        <div>
           <FormControlLabel
             control={
               <Switch
@@ -384,16 +385,15 @@ function FoldersTabContent() {
     <div className={'pb-4'}>
       <div className={'flex'}>
         <div className={'w-1/2'}>
-          <div>
-            <Typography sx={{mt: 0, mb: 2, pl: 1}} variant="subtitle1" component="div"
-                        className={'flex justify-between items-center'}>
+          <div className={'flex justify-between items-center mb-3 pb-2 border-b border-gray-200'}>
+            <Typography variant="subtitle1" component="h4" className={'font-semibold text-gray-700'}>
               Folders
-              <Button variant={'outlined'} startIcon={<CreateNewFolderIcon/>} onClick={() => {
-                setEditFolderId(0);
-              }} size={"small"}>
-                New Folder
-              </Button>
             </Typography>
+            <Button variant={'outlined'} startIcon={<CreateNewFolderIcon/>} onClick={() => {
+              setEditFolderId(0);
+            }} size={"small"}>
+              New Folder
+            </Button>
           </div>
         {
           folders && <ListWrapper>
@@ -450,9 +450,11 @@ function FoldersTabContent() {
         }
       </div>
       <div className={'grow ml-2'}>
-        <Typography sx={{mt: 0, mb: 2, pl: 1}} variant="subtitle1" component="div">
-          Feeds
-        </Typography>
+        <div className={'mb-3 pb-2 border-b border-gray-200'}>
+          <Typography variant="subtitle1" component="h4" className={'font-semibold text-gray-700'}>
+            Feeds
+          </Typography>
+        </div>
         {
           connectors && connectors.length > 0 && <ListWrapper>
                 <List>

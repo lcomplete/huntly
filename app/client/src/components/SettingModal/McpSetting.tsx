@@ -14,6 +14,7 @@ import {
     DialogContentText,
     DialogActions
 } from "@mui/material";
+import SettingSectionTitle from "./SettingSectionTitle";
 import { useState } from "react";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -121,12 +122,9 @@ export default function McpSetting() {
 
     return (
         <div>
-            <Typography variant={'h6'} className={''}>
-                MCP Server
-            </Typography>
-            <Divider />
+            <SettingSectionTitle first>MCP Server</SettingSectionTitle>
 
-            <div className={'mt-4'}>
+            <div>
                 <div className={'flex items-start gap-4 flex-col'}>
                     <div className="w-full flex items-center gap-2">
                         <TextField

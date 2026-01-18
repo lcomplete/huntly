@@ -47,3 +47,4 @@ db.sqlite*
 .playwright-mcp/
 .antigravity/
 .agent/
+.shared/

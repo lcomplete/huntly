@@ -1,4 +1,3 @@
-import Typography from "@mui/material/Typography";
 import {
   Button, Checkbox,
   Dialog,
@@ -14,6 +13,7 @@ import {useFormik} from 'formik';
 import * as yup from 'yup';
 import {useQuery} from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
+import SettingSectionTitle from "./SettingSectionTitle";
 
 export const GithubSetting = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -89,9 +89,7 @@ export const GithubSetting = () => {
 
   return (
     <div>
-      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mb-3'}>
-        GitHub Integration
-      </Typography>
+      <SettingSectionTitle first>GitHub Integration</SettingSectionTitle>
       <form onSubmit={formikGithub.handleSubmit}>
         {
           githubSetting && githubSetting.tokenSet && <div className={'mt-4'}>

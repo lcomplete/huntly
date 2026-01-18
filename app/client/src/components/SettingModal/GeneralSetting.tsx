@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { SettingControllerApiFactory } from "../../api";
 import { useFormik } from "formik";
 import * as yup from "yup";
-import Typography from "@mui/material/Typography";
 import {
   Button,
   Checkbox,
@@ -15,6 +14,7 @@ import {
 } from "@mui/material";
 import React from "react";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import SettingSectionTitle from "./SettingSectionTitle";
 
 export default function GeneralSetting() {
   const { enqueueSnackbar } = useSnackbar();
@@ -62,9 +62,7 @@ export default function GeneralSetting() {
 
   return <div>
     <form onSubmit={formikGeneral.handleSubmit} className={''}>
-      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mb-2'}>
-        AI Service Provider
-      </Typography>
+      <SettingSectionTitle first>AI Service Provider</SettingSectionTitle>
 
       <div className={'mt-2 flex items-center'}>
         <TextField
@@ -124,9 +122,7 @@ export default function GeneralSetting() {
         </Tooltip>
       </div>
 
-      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mt-6 mb-2'}>
-        Http Proxy
-      </Typography>
+      <SettingSectionTitle>Http Proxy</SettingSectionTitle>
       <div className={'mt-3 flex items-center'}>
         <TextField
           margin="dense"
@@ -163,9 +159,7 @@ export default function GeneralSetting() {
 
 
 
-      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mt-6 mb-2'}>
-        Automation
-      </Typography>
+      <SettingSectionTitle>Automation</SettingSectionTitle>
       <div className={'mt-2 flex items-center'}>
         <TextField
           margin="dense"
@@ -187,9 +181,7 @@ export default function GeneralSetting() {
         </Tooltip>
       </div>
 
-      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700 mt-6 mb-2'}>
-        Website Blacklist
-      </Typography>
+      <SettingSectionTitle>Website Blacklist</SettingSectionTitle>
 
       <div className={'mt-2 flex items-center'}>
         <TextField

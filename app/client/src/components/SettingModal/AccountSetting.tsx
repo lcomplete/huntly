@@ -1,4 +1,3 @@
-import Typography from "@mui/material/Typography";
 import {Button, TextField} from "@mui/material";
 import React from "react";
 import {useFormik} from "formik";
@@ -7,6 +6,7 @@ import {useSnackbar} from "notistack";
 import {useQuery} from "@tanstack/react-query";
 import {AuthControllerApiFactory, SettingControllerApiFactory} from "../../api";
 import LogoutIcon from '@mui/icons-material/Logout';
+import SettingSectionTitle from "./SettingSectionTitle";
 
 export default function AccountSetting() {
   const {enqueueSnackbar} = useSnackbar();
@@ -58,10 +58,8 @@ export default function AccountSetting() {
   }
 
   return <div>
-    <div className={'flex justify-between items-center mb-4'}>
-      <Typography variant={'subtitle1'} className={'font-semibold text-gray-700'}>
-        Account Settings
-      </Typography>
+    <div className={'flex justify-between items-center'}>
+      <SettingSectionTitle first>Account Settings</SettingSectionTitle>
       <Button variant={'outlined'} startIcon={<LogoutIcon/>} onClick={signOut} size={"small"}>
         Sign out
       </Button>

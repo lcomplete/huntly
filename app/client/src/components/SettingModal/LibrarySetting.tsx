@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Alert, Box, Button, Divider, Link, Tab, Tabs, Typography} from "@mui/material";
+import {Alert, Box, Button, Link, Tab, Tabs, Typography} from "@mui/material";
 import {useSnackbar} from "notistack";
+import SettingSectionTitle from "./SettingSectionTitle";
 import {
   fetchLatestLibraryExport,
   fetchLibraryExportStatus,
@@ -158,13 +159,12 @@ function ExportSetting() {
 
   return (
     <div>
-      <Typography variant={'h6'}>
+      <SettingSectionTitle
+        first
+        description="Export your Library entries as Markdown files packaged in a ZIP archive."
+      >
         Library Export
-      </Typography>
-      <Divider />
-      <Typography variant="body2" className="mt-2 text-gray-600">
-        Export your Library entries as Markdown files packaged in a ZIP archive.
-      </Typography>
+      </SettingSectionTitle>
 
       <div className="mt-4 flex items-center gap-3">
         <Button
