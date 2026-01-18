@@ -1,6 +1,6 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Alert, Box, Button, Link, Tab, Tabs, Typography} from "@mui/material";
-import {useSnackbar} from "notistack";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Box, Button, Link, Tab, Tabs, Typography } from "@mui/material";
+import { useSnackbar } from "notistack";
 import SettingSectionTitle from "./SettingSectionTitle";
 import {
   fetchLatestLibraryExport,
@@ -10,7 +10,9 @@ import {
   LibraryExportStatus,
   startLibraryExport
 } from "../../api/libraryExport";
-import {TwitterSaveRulesSetting} from "./TwitterSaveRulesSetting";
+import { TwitterSaveRulesSetting } from "./TwitterSaveRulesSetting";
+import DownloadIcon from '@mui/icons-material/Download';
+import RuleIcon from '@mui/icons-material/Rule';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -62,7 +64,7 @@ function a11yProps(index: number) {
 }
 
 function ExportSetting() {
-  const {enqueueSnackbar} = useSnackbar();
+  const { enqueueSnackbar } = useSnackbar();
   const [exportInfo, setExportInfo] = useState<LibraryExportInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const lastStatusRef = useRef<LibraryExportStatus | undefined>(undefined);
@@ -76,7 +78,7 @@ function ExportSetting() {
     } catch (error) {
       enqueueSnackbar("Failed to load export status. Please try again.", {
         variant: "error",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     } finally {
       setIsLoading(false);
@@ -107,20 +109,20 @@ function ExportSetting() {
         if (previousStatus === "IN_PROGRESS" && info?.status === "READY") {
           enqueueSnackbar("Export ready. Download it below.", {
             variant: "success",
-            anchorOrigin: {vertical: "bottom", horizontal: "center"}
+            anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
         if (previousStatus === "IN_PROGRESS" && info?.status === "FAILED") {
           enqueueSnackbar("Export failed. Please try again.", {
             variant: "error",
-            anchorOrigin: {vertical: "bottom", horizontal: "center"}
+            anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
       } catch (error) {
         if (isMounted) {
           enqueueSnackbar("Failed to refresh export status.", {
             variant: "warning",
-            anchorOrigin: {vertical: "bottom", horizontal: "center"}
+            anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
       }
@@ -140,12 +142,12 @@ function ExportSetting() {
       lastStatusRef.current = info?.status;
       enqueueSnackbar("Export started. We will notify you when it is ready.", {
         variant: "info",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     } catch (error) {
       enqueueSnackbar("Failed to start export. Please try again.", {
         variant: "error",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     }
   }, [enqueueSnackbar]);
@@ -161,7 +163,8 @@ function ExportSetting() {
     <div>
       <SettingSectionTitle
         first
-        description="Export your Library entries as Markdown files packaged in a ZIP archive."
+        icon={DownloadIcon}
+        description="Export your Library entries as Markdown files packaged in a ZIP archive. Files will be organized according to your Collection folder structure."
       >
         Library Export
       </SettingSectionTitle>
@@ -237,8 +240,8 @@ export default function LibrarySetting() {
     <div>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="library settings tabs">
-          <Tab label="Save rules" {...a11yProps(0)} />
-          <Tab label="Export" {...a11yProps(1)} />
+          <Tab icon={<RuleIcon />} iconPosition="start" label="Save rules" {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<DownloadIcon />} iconPosition="start" label="Export" {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>

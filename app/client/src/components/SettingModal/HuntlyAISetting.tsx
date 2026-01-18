@@ -1,7 +1,9 @@
-import React, {useState} from "react";
-import {Box, Tab, Tabs} from "@mui/material";
+import React, { useState } from "react";
+import { Box, Tab, Tabs } from "@mui/material";
 import ArticleShortcutSetting from "./ArticleShortcutSetting";
 import McpSetting from "./McpSetting";
+import BoltIcon from '@mui/icons-material/Bolt';
+import HubIcon from '@mui/icons-material/Hub';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -10,7 +12,7 @@ interface TabPanelProps {
 }
 
 function TabPanel(props: TabPanelProps) {
-  const {children, value, index, ...other} = props;
+  const { children, value, index, ...other } = props;
 
   return (
     <div
@@ -21,7 +23,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{pt: 2}}>
+        <Box sx={{ pt: 2 }}>
           {children}
         </Box>
       )}
@@ -45,10 +47,10 @@ export default function HuntlyAISetting() {
 
   return (
     <div>
-      <Box sx={{borderBottom: 1, borderColor: 'divider', mb: 2}}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="huntly ai settings tabs">
-          <Tab label="AI Shortcuts" {...a11yProps(0)} />
-          <Tab label="MCP Server" {...a11yProps(1)} />
+          <Tab icon={<BoltIcon />} iconPosition="start" label="AI Shortcuts" {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<HubIcon />} iconPosition="start" label="MCP Server" {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>
@@ -60,4 +62,3 @@ export default function HuntlyAISetting() {
     </div>
   );
 }
-

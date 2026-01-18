@@ -8,16 +8,17 @@ import {
   TextField
 } from "@mui/material";
 import React from "react";
-import {SettingControllerApiFactory} from "../../api";
-import {useSnackbar} from "notistack";
-import {Formik, Form, FieldArray, getIn} from 'formik';
+import { SettingControllerApiFactory } from "../../api";
+import { useSnackbar } from "notistack";
+import { Formik, Form, FieldArray, getIn } from 'formik';
 import * as yup from 'yup';
-import {useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RuleIcon from "@mui/icons-material/Rule";
 import SettingSectionTitle from "./SettingSectionTitle";
 
 export const TwitterSaveRulesSetting = () => {
-  const {enqueueSnackbar} = useSnackbar();
+  const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
 
   const {
@@ -38,7 +39,7 @@ export const TwitterSaveRulesSetting = () => {
 
   return (
     <div>
-      <SettingSectionTitle first>Twitter Save Rules</SettingSectionTitle>
+      <SettingSectionTitle first icon={RuleIcon}>Twitter Save Rules</SettingSectionTitle>
 
       {
         twitterSettings && <Formik
@@ -54,21 +55,21 @@ export const TwitterSaveRulesSetting = () => {
             api.saveTwitterUserSettingsUsingPOST(values.settings).then(() => {
               enqueueSnackbar(`Twitter settings save success.`, {
                 variant: "success",
-                anchorOrigin: {vertical: "bottom", horizontal: "center"}
+                anchorOrigin: { vertical: "bottom", horizontal: "center" }
               });
             }).catch((err) => {
               enqueueSnackbar('Twitter settings save failed. Error: ' + err, {
                 variant: "error",
-                anchorOrigin: {vertical: "bottom", horizontal: "center"}
+                anchorOrigin: { vertical: "bottom", horizontal: "center" }
               });
             }).finally(() => {
               refetchTwitterSettings();
             });
           }}>
-          {({values, touched, errors, handleChange, handleBlur, isValid}) => (
+          {({ values, touched, errors, handleChange, handleBlur, isValid }) => (
             <Form noValidate autoComplete="off">
               <FieldArray name="settings">
-                {({push, remove}) => (
+                {({ push, remove }) => (
                   <div>
                     {values.settings.map((setting, index) => {
                       const name = `settings[${index}].name`;
@@ -121,13 +122,13 @@ export const TwitterSaveRulesSetting = () => {
                             <div className={'flex items-center gap-2 mt-2 sm:mt-4'}>
                               <FormControlLabel
                                 control={<Checkbox value={true} name={myself} onChange={handleChange}
-                                                   checked={!!(setting.myself)}/>} label="Me"/>
+                                  checked={!!(setting.myself)} />} label="Me" />
                               <Button
                                 type="button"
                                 color="secondary"
                                 variant="outlined"
                                 size="small"
-                                startIcon={<DeleteIcon/>}
+                                startIcon={<DeleteIcon />}
                                 onClick={() => remove(index)}
                               >
                                 DELETE
@@ -184,7 +185,7 @@ export const TwitterSaveRulesSetting = () => {
                               </Select>
                             </FormControl>
                           </div>
-                          <Divider className={'mt-3'}/>
+                          <Divider className={'mt-3'} />
                         </div>
                       );
                     })}
@@ -193,7 +194,7 @@ export const TwitterSaveRulesSetting = () => {
                       type="button"
                       variant="outlined"
                       onClick={() =>
-                        push({id: null, name: "", screenName: ""})
+                        push({ id: null, name: "", screenName: "" })
                       }
                     >
                       Add
@@ -201,7 +202,7 @@ export const TwitterSaveRulesSetting = () => {
                   </div>
                 )}
               </FieldArray>
-              <Divider style={{marginTop: 20, marginBottom: 20}}/>
+              <Divider style={{ marginTop: 20, marginBottom: 20 }} />
               <Button
                 type="submit"
                 color="primary"

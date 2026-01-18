@@ -70,4 +70,10 @@ public class PageListQuery {
      */
     private Boolean filterUnsorted;
 
+    /**
+     * Whether to include archived pages in results.
+     * Default is false (exclude archived pages).
+     */
+    private Boolean includeArchived;
+
 }

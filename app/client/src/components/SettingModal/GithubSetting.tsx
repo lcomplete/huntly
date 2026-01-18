@@ -6,18 +6,19 @@ import {
   FormControlLabel,
   TextField
 } from "@mui/material";
-import {useState} from "react";
-import {SettingControllerApiFactory} from "../../api";
-import {useSnackbar} from "notistack";
-import {useFormik} from 'formik';
+import { useState } from "react";
+import { SettingControllerApiFactory } from "../../api";
+import { useSnackbar } from "notistack";
+import { useFormik } from 'formik';
 import * as yup from 'yup';
-import {useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
+import GitHubIcon from '@mui/icons-material/GitHub';
 import SettingSectionTitle from "./SettingSectionTitle";
 
 export const GithubSetting = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const {enqueueSnackbar} = useSnackbar();
+  const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
 
   const {
@@ -50,12 +51,12 @@ export const GithubSetting = () => {
     api.saveGitHubSettingUsingPOST(setting).then(() => {
       enqueueSnackbar(`GitHub connector setting save success.`, {
         variant: "success",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     }).catch((err) => {
       enqueueSnackbar('Github connector setting save failed. Error: ' + err, {
         variant: "error",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     }).finally(() => {
       refetchTokenResult();
@@ -66,12 +67,12 @@ export const GithubSetting = () => {
     api.saveGithubPersonalTokenUsingPOST(token).then(() => {
       enqueueSnackbar(`Github token ${token ? "save" : "delete"} success.`, {
         variant: "success",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     }).catch((err) => {
       enqueueSnackbar('Github token save failed. Error: ' + err, {
         variant: "error",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     }).finally(() => {
       handleCloseDeleteDialog();
@@ -89,7 +90,7 @@ export const GithubSetting = () => {
 
   return (
     <div>
-      <SettingSectionTitle first>GitHub Integration</SettingSectionTitle>
+      <SettingSectionTitle first icon={GitHubIcon}>GitHub Integration</SettingSectionTitle>
       <form onSubmit={formikGithub.handleSubmit}>
         {
           githubSetting && githubSetting.tokenSet && <div className={'mt-4'}>
@@ -97,22 +98,22 @@ export const GithubSetting = () => {
           </div>
         }
         <TextField fullWidth={true} size={'small'} margin={'dense'}
-                   label={'Fine-grained personal access tokens'}
-                   id={'apiToken'} name={'apiToken'}
-                   value={formikGithub.values.apiToken || ''}
-                   onChange={formikGithub.handleChange}
-                   error={formikGithub.touched.apiToken && Boolean(formikGithub.errors.apiToken)}
-                   helperText={formikGithub.touched.apiToken && formikGithub.errors.apiToken}
+          label={'Fine-grained personal access tokens'}
+          id={'apiToken'} name={'apiToken'}
+          value={formikGithub.values.apiToken || ''}
+          onChange={formikGithub.handleChange}
+          error={formikGithub.touched.apiToken && Boolean(formikGithub.errors.apiToken)}
+          helperText={formikGithub.touched.apiToken && formikGithub.errors.apiToken}
         />
         <div className={'flex flex-wrap items-center gap-2 mb-2 mt-1'}>
           <TextField size={'small'} margin={'dense'}
-                     className={'w-full sm:w-[200px]'}
-                     label={'Display name'}
-                     id={'name'} name={'name'}
-                     value={formikGithub.values.name || ''}
-                     onChange={formikGithub.handleChange}
-                     error={formikGithub.touched.name && Boolean(formikGithub.errors.name)}
-                     helperText={formikGithub.touched.name && formikGithub.errors.name}
+            className={'w-full sm:w-[200px]'}
+            label={'Display name'}
+            id={'name'} name={'name'}
+            value={formikGithub.values.name || ''}
+            onChange={formikGithub.handleChange}
+            error={formikGithub.touched.name && Boolean(formikGithub.errors.name)}
+            helperText={formikGithub.touched.name && formikGithub.errors.name}
           />
           <TextField
             margin="dense"
@@ -141,17 +142,17 @@ export const GithubSetting = () => {
             size={"small"}
           />
           <FormControlLabel
-                            control={<Checkbox value={true} name={'enabled'} onChange={formikGithub.handleChange}
-                                               checked={!!formikGithub.values.enabled}/>
-                            }
-                            label="Enable"/>
+            control={<Checkbox value={true} name={'enabled'} onChange={formikGithub.handleChange}
+              checked={!!formikGithub.values.enabled} />
+            }
+            label="Enable" />
         </div>
 
         <Button color={'primary'} variant={'contained'} size={'medium'} type={'submit'}>Save</Button>
         {
           githubSetting && githubSetting.tokenSet &&
-          <Button color={'warning'} variant={'contained'} size={'medium'} type={'button'} sx={{ml: 2}}
-                  onClick={showDeleteDialog}>Delete Token</Button>
+          <Button color={'warning'} variant={'contained'} size={'medium'} type={'button'} sx={{ ml: 2 }}
+            onClick={showDeleteDialog}>Delete Token</Button>
         }
         <Dialog
           open={openDeleteDialog}

@@ -6344,6 +6344,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
          * @param {boolean} [hasHighlights] 
+         * @param {boolean} [includeArchived] 
          * @param {string} [lastRecordAt] 
          * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
@@ -6356,7 +6357,7 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET: async (asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        listPageItemsUsingGET: async (asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, includeArchived?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/page/list`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -6421,6 +6422,10 @@ export const PageControllerApiAxiosParamCreator = function (configuration?: Conf
 
             if (hasHighlights !== undefined) {
                 localVarQueryParameter['hasHighlights'] = hasHighlights;
+            }
+
+            if (includeArchived !== undefined) {
+                localVarQueryParameter['includeArchived'] = includeArchived;
             }
 
             if (lastRecordAt !== undefined) {
@@ -7192,6 +7197,7 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
          * @param {boolean} [hasHighlights] 
+         * @param {boolean} [includeArchived] 
          * @param {string} [lastRecordAt] 
          * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
@@ -7204,8 +7210,8 @@ export const PageControllerApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listPageItemsUsingGET(asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.listPageItemsUsingGET(asc, collectionId, connectorId, connectorType, contentFilterType, contentType, count, endDate, filterUnsorted, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options);
+        async listPageItemsUsingGET(asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, includeArchived?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<PageItem>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listPageItemsUsingGET(asc, collectionId, connectorId, connectorType, contentFilterType, contentType, count, endDate, filterUnsorted, firstRecordAt, firstVoteScore, folderId, hasHighlights, includeArchived, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -7495,6 +7501,7 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {number} [firstVoteScore] 
          * @param {number} [folderId] 
          * @param {boolean} [hasHighlights] 
+         * @param {boolean} [includeArchived] 
          * @param {string} [lastRecordAt] 
          * @param {number} [lastVoteScore] 
          * @param {boolean} [markRead] 
@@ -7507,8 +7514,8 @@ export const PageControllerApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPageItemsUsingGET(asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: any): AxiosPromise<Array<PageItem>> {
-            return localVarFp.listPageItemsUsingGET(asc, collectionId, connectorId, connectorType, contentFilterType, contentType, count, endDate, filterUnsorted, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(axios, basePath));
+        listPageItemsUsingGET(asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, includeArchived?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: any): AxiosPromise<Array<PageItem>> {
+            return localVarFp.listPageItemsUsingGET(asc, collectionId, connectorId, connectorType, contentFilterType, contentType, count, endDate, filterUnsorted, firstRecordAt, firstVoteScore, folderId, hasHighlights, includeArchived, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -7791,6 +7798,7 @@ export class PageControllerApi extends BaseAPI {
      * @param {number} [firstVoteScore] 
      * @param {number} [folderId] 
      * @param {boolean} [hasHighlights] 
+     * @param {boolean} [includeArchived] 
      * @param {string} [lastRecordAt] 
      * @param {number} [lastVoteScore] 
      * @param {boolean} [markRead] 
@@ -7804,8 +7812,8 @@ export class PageControllerApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof PageControllerApi
      */
-    public listPageItemsUsingGET(asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig) {
-        return PageControllerApiFp(this.configuration).listPageItemsUsingGET(asc, collectionId, connectorId, connectorType, contentFilterType, contentType, count, endDate, filterUnsorted, firstRecordAt, firstVoteScore, folderId, hasHighlights, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(this.axios, this.basePath));
+    public listPageItemsUsingGET(asc?: boolean, collectionId?: number, connectorId?: number, connectorType?: number, contentFilterType?: number, contentType?: 'BROWSER_HISTORY' | 'MARKDOWN' | 'QUOTED_TWEET' | 'SNIPPET' | 'TWEET', count?: number, endDate?: string, filterUnsorted?: boolean, firstRecordAt?: string, firstVoteScore?: number, folderId?: number, hasHighlights?: boolean, includeArchived?: boolean, lastRecordAt?: string, lastVoteScore?: number, markRead?: boolean, readLater?: boolean, saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED', sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE', sourceId?: number, starred?: boolean, startDate?: string, options?: AxiosRequestConfig) {
+        return PageControllerApiFp(this.configuration).listPageItemsUsingGET(asc, collectionId, connectorId, connectorType, contentFilterType, contentType, count, endDate, filterUnsorted, firstRecordAt, firstVoteScore, folderId, hasHighlights, includeArchived, lastRecordAt, lastVoteScore, markRead, readLater, saveStatus, sort, sourceId, starred, startDate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

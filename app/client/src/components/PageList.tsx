@@ -2,6 +2,7 @@ import MagazineItem from "../components/MagazineItem";
 import "./PageList.css";
 import {ApiResultOfint, PageControllerApiFactory, PageItem} from "../api";
 import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tanstack/react-query";
+import {fetchPageItems} from "../apiFacade/pageListApi";
 import {useInView} from "react-intersection-observer";
 import React, {ReactElement, useEffect, useState, useRef, useCallback, useMemo} from "react";
 import {Button} from "@mui/material";
@@ -44,6 +45,7 @@ export type PageListFilter = {
   hasHighlights?: boolean,
   collectionId?: number,
   filterUnsorted?: boolean,
+  includeArchived?: boolean,
 }
 
 interface PageListProps {
@@ -236,31 +238,31 @@ const PageList = (props: PageListProps) => {
                lastVoteScore: undefined
              }
            }) => {
-      const res = await PageControllerApiFactory().listPageItemsUsingGET(
-        filters.asc,
-        filters.collectionId,
-        filters.connectorId,
-        filters.connectorType,
-        filters.contentFilterType,
-        filters.contentType,
-        pageSize,
-        filters.endDate,
-        filters.filterUnsorted,
-        pageParam.firstRecordAt || undefined,
-        pageParam.firstVoteScore || undefined,
-        filters.folderId,
-        filters.hasHighlights,
-        pageParam.lastRecordAt || undefined,
-        pageParam.lastVoteScore || undefined,
-        filters.markRead,
-        filters.readLater,
-        filters.saveStatus,
-        filters.sort,
-        filters.sourceId,
-        filters.starred,
-        filters.startDate
-      );
-      return res.data
+      return await fetchPageItems({
+        asc: filters.asc,
+        collectionId: filters.collectionId,
+        connectorId: filters.connectorId,
+        connectorType: filters.connectorType,
+        contentFilterType: filters.contentFilterType,
+        contentType: filters.contentType,
+        count: pageSize,
+        endDate: filters.endDate,
+        filterUnsorted: filters.filterUnsorted,
+        firstRecordAt: pageParam.firstRecordAt || undefined,
+        firstVoteScore: pageParam.firstVoteScore || undefined,
+        folderId: filters.folderId,
+        hasHighlights: filters.hasHighlights,
+        includeArchived: filters.includeArchived,
+        lastRecordAt: pageParam.lastRecordAt || undefined,
+        lastVoteScore: pageParam.lastVoteScore || undefined,
+        markRead: filters.markRead,
+        readLater: filters.readLater,
+        saveStatus: filters.saveStatus,
+        sort: filters.sort,
+        sourceId: filters.sourceId,
+        starred: filters.starred,
+        startDate: filters.startDate
+      });
     },
     {
       getPreviousPageParam: (firstPage) =>

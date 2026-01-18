@@ -13,6 +13,8 @@ const MyList = () => {
       label: 'Recently starred'
     }],
     asc: false,
+    includeArchived: false,
+    includeArchivedOption: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {
@@ -24,6 +26,7 @@ const MyList = () => {
       <PageList navLabel={navLabels.starred}
                 filters={{
                   ...getPageListFilter(pageFilterOptions),
+                  saveStatus: 'SAVED',
                   starred: true
                 }}
                 buttonOptions={{markRead: false}}

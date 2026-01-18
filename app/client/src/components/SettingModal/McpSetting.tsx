@@ -18,6 +18,7 @@ import SettingSectionTitle from "./SettingSectionTitle";
 import { useState } from "react";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import HubIcon from '@mui/icons-material/Hub';
 import McpToolsSection from "./McpToolsSection";
 
 export default function McpSetting() {
@@ -122,7 +123,7 @@ export default function McpSetting() {
 
     return (
         <div>
-            <SettingSectionTitle first>MCP Server</SettingSectionTitle>
+            <SettingSectionTitle first icon={HubIcon}>MCP Server</SettingSectionTitle>
 
             <div>
                 <div className={'flex items-start gap-4 flex-col'}>

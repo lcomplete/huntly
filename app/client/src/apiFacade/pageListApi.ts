@@ -18,6 +18,7 @@ export interface PageListOptions {
     firstVoteScore?: number;
     folderId?: number;
     hasHighlights?: boolean;
+    includeArchived?: boolean;
     lastRecordAt?: string;
     lastVoteScore?: number;
     markRead?: boolean;
@@ -48,6 +49,7 @@ export async function fetchPageItems(options: PageListOptions = {}): Promise<Pag
         options.firstVoteScore,
         options.folderId,
         options.hasHighlights,
+        options.includeArchived,
         options.lastRecordAt,
         options.lastVoteScore,
         options.markRead,

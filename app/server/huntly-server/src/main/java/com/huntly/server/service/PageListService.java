@@ -3,6 +3,7 @@ package com.huntly.server.service;
 import com.huntly.interfaces.external.dto.CursorPageResult;
 import com.huntly.interfaces.external.dto.PageItem;
 import com.huntly.interfaces.external.model.ContentType;
+import com.huntly.interfaces.external.model.LibrarySaveStatus;
 import com.huntly.interfaces.external.query.PageListQuery;
 import com.huntly.interfaces.external.query.PageListSort;
 import com.huntly.jpa.spec.Sorts;
@@ -95,7 +96,18 @@ public class PageListService {
                 .eq(listQuery.getStarred() != null, "starred", listQuery.getStarred())
                 .eq(listQuery.getReadLater() != null, "readLater", listQuery.getReadLater())
                 .eq(listQuery.getMarkRead() != null, "markRead", listQuery.getMarkRead())
-                .eq(listQuery.getSaveStatus() != null, "librarySaveStatus",
+                // When includeArchived=true and saveStatus=SAVED, include both SAVED and ARCHIVED
+                .predicate(Boolean.TRUE.equals(listQuery.getIncludeArchived())
+                        && listQuery.getSaveStatus() == LibrarySaveStatus.SAVED,
+                        Specifications.<Page>or()
+                                .eq("librarySaveStatus", LibrarySaveStatus.SAVED.getCode())
+                                .eq("librarySaveStatus", LibrarySaveStatus.ARCHIVED.getCode())
+                                .build())
+                // Normal saveStatus filter when not using includeArchived with SAVED
+                .eq(listQuery.getSaveStatus() != null
+                        && !(Boolean.TRUE.equals(listQuery.getIncludeArchived())
+                                && listQuery.getSaveStatus() == LibrarySaveStatus.SAVED),
+                        "librarySaveStatus",
                         listQuery.getSaveStatus() != null ? listQuery.getSaveStatus().getCode() : null)
                 .eq(listQuery.getContentType() != null, "contentType",
                         listQuery.getContentType() != null ? listQuery.getContentType().getCode() : null)

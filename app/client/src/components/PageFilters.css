@@ -118,6 +118,43 @@
     font-size: 16px !important;
 }
 
+.page-filters-archive-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(248, 250, 252, 0.6);
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.15s ease;
+    user-select: none;
+    min-height: 30px;
+}
+
+.page-filters-archive-toggle:hover {
+    border-color: rgba(148, 163, 184, 0.5);
+    color: #475569;
+}
+
+.page-filters-archive-toggle.is-active {
+    color: #0284c7;
+    border-color: rgba(2, 132, 199, 0.4);
+}
+
+.page-filters-archive-toggle.is-active:hover {
+    border-color: rgba(2, 132, 199, 0.6);
+}
+
+.page-filters-archive-toggle .toggle-icon {
+    font-size: 14px !important;
+}
+
+.page-filters-archive-toggle.is-active .toggle-icon {
+    color: #0284c7;
+}
+
 @media (max-width: 900px) {
     .page-filters-content {
         gap: 6px;

@@ -13,6 +13,8 @@ const MyList = () => {
       label: 'Recently saved'
     }],
     asc: false,
+    includeArchived: false,
+    includeArchivedOption: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {
@@ -24,6 +26,7 @@ const MyList = () => {
       <PageList navLabel={navLabels.readLater}
                 filters={{
                   ...getPageListFilter(pageFilterOptions),
+                  saveStatus: 'SAVED',
                   readLater: true
                 }}
                 buttonOptions={{markRead: false}}

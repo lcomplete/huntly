@@ -7,6 +7,7 @@ export function getPageListFilter(filterOptions:PageFilterOptions) : PageListFil
     asc: filterOptions.asc,
     contentFilterType: filterOptions.contentFilterType,
     startDate: filterOptions.startDate || undefined,
-    endDate: filterOptions.endDate || undefined
+    endDate: filterOptions.endDate || undefined,
+    includeArchived: filterOptions.includeArchived
   }
 }

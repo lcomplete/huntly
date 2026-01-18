@@ -48,6 +48,8 @@ const CollectionList = () => {
             label: isUnsorted ? 'Recently saved' : 'Recently collected'
         }],
         asc: false,
+        includeArchived: true,
+        includeArchivedOption: true,
     }));
 
     useEffect(() => {
@@ -57,6 +59,8 @@ const CollectionList = () => {
                 defaultSortValue: 'SAVED_AT',
                 sortFields: [{ value: 'SAVED_AT', label: 'Recently saved' }],
                 asc: false,
+                includeArchived: true,
+                includeArchivedOption: true,
             });
         } else if (id) {
             CollectionApi.getCollection(Number.parseInt(id))
@@ -66,6 +70,8 @@ const CollectionList = () => {
                 defaultSortValue: 'COLLECTED_AT',
                 sortFields: [{ value: 'COLLECTED_AT', label: 'Recently collected' }],
                 asc: false,
+                includeArchived: true,
+                includeArchivedOption: true,
             });
         }
     }, [id, isUnsorted]);

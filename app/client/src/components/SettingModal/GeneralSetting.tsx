@@ -14,12 +14,17 @@ import {
 } from "@mui/material";
 import React from "react";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import RouterIcon from '@mui/icons-material/Router';
+import AutoModeIcon from '@mui/icons-material/AutoMode';
+import BlockIcon from '@mui/icons-material/Block';
 import SettingSectionTitle from "./SettingSectionTitle";
 
 export default function GeneralSetting() {
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
   const [needChangeOpenApiKey, setNeedChangeOpenApiKey] = React.useState(false);
+  const apiKeyInputRef = React.useRef<HTMLInputElement>(null);
 
   const {
     data: globalSetting
@@ -60,16 +65,15 @@ export default function GeneralSetting() {
     }
   })
 
-  return <div>
-    <form onSubmit={formikGeneral.handleSubmit} className={''}>
-      <SettingSectionTitle first>AI Service Provider</SettingSectionTitle>
+  return <div className="settings-form-group">
+    <form onSubmit={formikGeneral.handleSubmit}>
+      <SettingSectionTitle first icon={SmartToyIcon}>AI Service Provider</SettingSectionTitle>
 
-      <div className={'mt-2 flex items-center'}>
+      <div className="flex items-center gap-2 mt-1">
         <TextField
           margin="dense"
-          size={"small"}
+          size="small"
           fullWidth={true}
-          className={''}
           id="openApiKey"
           label="API Key"
           value={formikGeneral.values.openApiKey || ""}
@@ -79,20 +83,29 @@ export default function GeneralSetting() {
           type="text"
           variant="outlined"
           disabled={(formikGeneral.initialValues.openApiKey && formikGeneral.initialValues.openApiKey.length > 0) && !needChangeOpenApiKey}
+          inputRef={apiKeyInputRef}
         />
         {
           formikGeneral.initialValues.openApiKey && formikGeneral.initialValues.openApiKey.length > 0 &&
-          <div>
-            <Button onClick={() => { setNeedChangeOpenApiKey(true) }}>Change</Button>
-          </div>
+          <Button
+            onClick={() => {
+              setNeedChangeOpenApiKey(true);
+              formikGeneral.setFieldValue('openApiKey', '');
+              setTimeout(() => {
+                apiKeyInputRef.current?.focus();
+              }, 0);
+            }}
+            size="small"
+            sx={{ whiteSpace: 'nowrap', minWidth: 'auto' }}
+          >Change</Button>
         }
       </div>
 
-      <div className={'mt-2 flex items-center'}>
+      <div className="flex flex-wrap items-center gap-3 mt-1">
         <TextField
           margin="dense"
-          size={"small"}
-          className={'w-[400px]'}
+          size="small"
+          className="w-full sm:w-[320px]"
           id="openApiBaseUrl"
           label="API URL"
           value={formikGeneral.values.openApiBaseUrl || ""}
@@ -104,8 +117,8 @@ export default function GeneralSetting() {
         />
         <TextField
           margin="dense"
-          size={"small"}
-          className={'w-[200px] ml-2'}
+          size="small"
+          className="w-full sm:w-[180px]"
           id="openApiModel"
           label="API Model"
           value={formikGeneral.values.openApiModel || ""}
@@ -116,14 +129,14 @@ export default function GeneralSetting() {
           variant="outlined"
         />
         <Tooltip title="Optional settings for custom OpenAI-compatible APIs" placement="right">
-          <IconButton size="small" className={'ml-2'}>
-            <HelpOutlineIcon className={'text-gray-400'} />
+          <IconButton size="small" sx={{ color: '#94a3b8' }}>
+            <HelpOutlineIcon />
           </IconButton>
         </Tooltip>
       </div>
 
-      <SettingSectionTitle>Http Proxy</SettingSectionTitle>
-      <div className={'mt-3 flex items-center'}>
+      <SettingSectionTitle icon={RouterIcon}>Http Proxy</SettingSectionTitle>
+      <div className="flex flex-wrap items-center gap-3 mt-1">
         <TextField
           margin="dense"
           size={"small"}
@@ -139,7 +152,7 @@ export default function GeneralSetting() {
         />
         <TextField
           margin="dense"
-          className={'w-[200px] ml-2'}
+          className={'w-[200px]'}
           id="proxyPort"
           label="Proxy port"
           value={formikGeneral.values.proxyPort || ''}
@@ -150,7 +163,7 @@ export default function GeneralSetting() {
           variant="outlined"
           size={"small"}
         />
-        <FormControlLabel className={'ml-2'}
+        <FormControlLabel
           control={<Checkbox value={true} name={'enableProxy'} onChange={formikGeneral.handleChange}
             checked={!!formikGeneral.values.enableProxy} />
           }
@@ -159,11 +172,12 @@ export default function GeneralSetting() {
 
 
 
-      <SettingSectionTitle>Automation</SettingSectionTitle>
-      <div className={'mt-2 flex items-center'}>
+      <SettingSectionTitle icon={AutoModeIcon}>Automation</SettingSectionTitle>
+      <div className="flex items-center gap-2 mt-1">
         <TextField
           margin="dense"
-          className={'w-[200px]'}
+          size="small"
+          className="w-full sm:w-[220px]"
           id="coldDataKeepDays"
           label="Cold data retention days"
           value={formikGeneral.values.coldDataKeepDays || 0}
@@ -172,43 +186,54 @@ export default function GeneralSetting() {
           helperText={formikGeneral.touched.coldDataKeepDays && formikGeneral.errors.coldDataKeepDays}
           type="number"
           variant="outlined"
-          size={"small"}
         />
         <Tooltip title="Cold data: Unsaved browser history articles." placement="right">
-          <IconButton size="small" className={'ml-2'}>
-            <HelpOutlineIcon className={'text-gray-400'} />
+          <IconButton size="small" sx={{ color: '#94a3b8' }}>
+            <HelpOutlineIcon />
           </IconButton>
         </Tooltip>
       </div>
 
-      <SettingSectionTitle>Website Blacklist</SettingSectionTitle>
+      <SettingSectionTitle icon={BlockIcon}>Website Blacklist</SettingSectionTitle>
 
-      <div className={'mt-2 flex items-center'}>
+      <div className="mt-1">
         <TextField
           margin="dense"
-          size={"small"}
+          size="small"
           fullWidth={true}
-          className={''}
           id="autoSaveSiteBlacklists"
-          label="Blacklist, Prevent automatic saving, One per line, supports regular expressions."
+          label="Blacklist (one per line, supports regex)"
           value={formikGeneral.values.autoSaveSiteBlacklists || ""}
           onChange={formikGeneral.handleChange}
           error={formikGeneral.touched.autoSaveSiteBlacklists && Boolean(formikGeneral.errors.autoSaveSiteBlacklists)}
           helperText={formikGeneral.touched.autoSaveSiteBlacklists && formikGeneral.errors.autoSaveSiteBlacklists}
           type="text"
           multiline={true}
-          rows={6}
+          rows={5}
           variant="outlined"
         />
       </div>
 
-      <div className={'mt-2'}>
+      <div className="mt-6 pt-4 border-t border-gray-100">
         <Button
           type="submit"
           color="primary"
           variant="contained"
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 4,
+            py: 1.25,
+            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)',
+            '&:hover': {
+              boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)',
+              transform: 'translateY(-1px)',
+            },
+            transition: 'all 0.2s ease',
+          }}
         >
-          Save
+          Save Changes
         </Button>
       </div>
     </form >
