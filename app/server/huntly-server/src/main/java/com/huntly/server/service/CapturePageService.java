@@ -1,6 +1,5 @@
 package com.huntly.server.service;
 
-import com.google.common.collect.Lists;
 import com.huntly.common.util.TextUtils;
 import com.huntly.common.util.UrlUtils;
 import com.huntly.interfaces.external.model.CapturePage;
@@ -140,58 +139,93 @@ public class CapturePageService extends BasePageService {
         var twitterUserSetting = twitterUserSettingRepository.findByScreenName(toUseScreenName);
         if (twitterUserSetting.isPresent()) {
             var setting = twitterUserSetting.get();
-            List<Integer> saveTypes = Lists.newArrayList();
-            if (Objects.equals(page.getCategory(), "bookmark")) {
-                saveTypes.add(setting.getBookmarkToLibraryType());
-            } else if (Objects.equals(page.getCategory(), "like")) {
-                saveTypes.add(setting.getLikeToLibraryType());
+            Integer libraryType = null;
+            Long collectionId = null;
+
+            // Priority: tweet (user's own) > bookmark > like
+            // Only use if the setting has libraryType or collectionId configured
+            boolean isOwnTweet = Objects.equals(page.getAuthorScreenName(), setting.getScreenName());
+            boolean isBookmark = Objects.equals(page.getCategory(), "bookmark");
+            boolean isLike = Objects.equals(page.getCategory(), "like");
+
+            // 1. First priority: user's own tweet settings
+            if (isOwnTweet && hasSetting(setting.getTweetToLibraryType(), setting.getTweetToCollectionId())) {
+                libraryType = setting.getTweetToLibraryType();
+                collectionId = setting.getTweetToCollectionId();
             }
-            if (Objects.equals(page.getAuthorScreenName(), setting.getScreenName())) {
-                saveTypes.add(setting.getTweetToLibraryType());
+            // 2. Second priority: bookmark settings
+            else if (isBookmark && hasSetting(setting.getBookmarkToLibraryType(), setting.getBookmarkToCollectionId())) {
+                libraryType = setting.getBookmarkToLibraryType();
+                collectionId = setting.getBookmarkToCollectionId();
             }
-            for (Integer saveType : saveTypes) {
-                LibrarySaveType librarySaveType = LibrarySaveType.fromCode(saveType);
-                if (librarySaveType != null) {
-                    switch (librarySaveType) {
-                        case STARRED:
-                            page.setStarred(true);
-                            page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                            if (page.getSavedAt() == null) {
-                                page.setSavedAt(Instant.now());
-                            }
-                            if (page.getStarredAt() == null) {
-                                page.setStarredAt(Instant.now());
-                            }
-                            break;
-                        case READ_LATER:
-                            page.setReadLater(true);
-                            page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                            if (page.getSavedAt() == null) {
-                                page.setSavedAt(Instant.now());
-                            }
-                            if (page.getReadLaterAt() == null) {
-                                page.setReadLaterAt(Instant.now());
-                            }
-                            break;
-                        case MY_LIST:
-                            page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                            if (page.getSavedAt() == null) {
-                                page.setSavedAt(Instant.now());
-                            }
-                            break;
-                        case ARCHIVE:
-                            page.setLibrarySaveStatus(LibrarySaveStatus.ARCHIVED.getCode());
-                            if (page.getArchivedAt() == null) {
-                                page.setArchivedAt(Instant.now());
-                            }
-                            break;
-                        default:
-                            break;
-                    }
+            // 3. Third priority: like settings
+            else if (isLike && hasSetting(setting.getLikeToLibraryType(), setting.getLikeToCollectionId())) {
+                libraryType = setting.getLikeToLibraryType();
+                collectionId = setting.getLikeToCollectionId();
+            }
+
+            // If only collectionId is set (no libraryType), default to MY_LIST (code = 1)
+            if (collectionId != null && (libraryType == null || libraryType == 0)) {
+                libraryType = 1; // MY_LIST
+            }
+
+            // Apply library type settings
+            LibrarySaveType librarySaveType = LibrarySaveType.fromCode(libraryType);
+            if (librarySaveType != null) {
+                switch (librarySaveType) {
+                    case STARRED:
+                        page.setStarred(true);
+                        page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                        if (page.getSavedAt() == null) {
+                            page.setSavedAt(Instant.now());
+                        }
+                        if (page.getStarredAt() == null) {
+                            page.setStarredAt(Instant.now());
+                        }
+                        break;
+                    case READ_LATER:
+                        page.setReadLater(true);
+                        page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                        if (page.getSavedAt() == null) {
+                            page.setSavedAt(Instant.now());
+                        }
+                        if (page.getReadLaterAt() == null) {
+                            page.setReadLaterAt(Instant.now());
+                        }
+                        break;
+                    case MY_LIST:
+                        page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                        if (page.getSavedAt() == null) {
+                            page.setSavedAt(Instant.now());
+                        }
+                        break;
+                    case ARCHIVE:
+                        page.setLibrarySaveStatus(LibrarySaveStatus.ARCHIVED.getCode());
+                        if (page.getArchivedAt() == null) {
+                            page.setArchivedAt(Instant.now());
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            // Set collection if configured
+            if (collectionId != null && page.getCollectionId() == null) {
+                page.setCollectionId(collectionId);
+                if (page.getCollectedAt() == null) {
+                    page.setCollectedAt(Instant.now());
                 }
             }
         }
         return save(page);
+    }
+
+    /**
+     * Check if a setting has either libraryType or collectionId configured
+     */
+    private boolean hasSetting(Integer libraryType, Long collectionId) {
+        return (libraryType != null && libraryType > 0) || collectionId != null;
     }
 
     private Optional<Page> handleSamePage(CapturePage capturePage) {

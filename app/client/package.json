@@ -16,6 +16,7 @@
   "dependencies": {
     "@emotion/react": "^11.9.0",
     "@emotion/styled": "^11.8.1",
+    "@iconify-json/flat-color-icons": "^1.2.3",
     "@iconify/react": "^6.0.2",
     "@mui/icons-material": "^5.8.3",
     "@mui/lab": "^5.0.0-alpha.94",

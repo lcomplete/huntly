@@ -4,6 +4,9 @@ import FolderIcon from '@mui/icons-material/Folder';
 import SearchIcon from '@mui/icons-material/Search';
 import { Icon } from '@iconify/react';
 
+// Register icons for offline use
+import './iconRegistry';
+
 // Emoji item with name for search and tooltip
 interface EmojiItem {
     emoji: string;
@@ -88,6 +91,33 @@ const EMOJI_SECTIONS: Record<string, EmojiItem[]> = {
 
 // Flat color icons - all from flat-color-icons set (fast loading, bundled locally)
 const ICON_SECTIONS: Record<string, Array<{ icon: string; name: string }>> = {
+    'Social': [
+        { icon: 'social:twitter', name: 'Twitter' },
+        { icon: 'social:x', name: 'X' },
+        { icon: 'social:github', name: 'GitHub' },
+        { icon: 'social:facebook', name: 'Facebook' },
+        { icon: 'social:instagram', name: 'Instagram' },
+        { icon: 'social:linkedin', name: 'LinkedIn' },
+        { icon: 'social:youtube', name: 'YouTube' },
+        { icon: 'social:discord', name: 'Discord' },
+        { icon: 'social:telegram', name: 'Telegram' },
+        { icon: 'social:whatsapp', name: 'WhatsApp' },
+        { icon: 'social:reddit', name: 'Reddit' },
+        { icon: 'social:slack', name: 'Slack' },
+        { icon: 'social:wechat', name: 'WeChat' },
+        { icon: 'social:weibo', name: 'Weibo' },
+        { icon: 'social:bilibili', name: 'Bilibili' },
+        { icon: 'social:tiktok', name: 'TikTok' },
+        { icon: 'social:mastodon', name: 'Mastodon' },
+        { icon: 'social:pinterest', name: 'Pinterest' },
+        { icon: 'social:spotify', name: 'Spotify' },
+        { icon: 'social:medium', name: 'Medium' },
+        { icon: 'social:google', name: 'Google' },
+        { icon: 'social:apple', name: 'Apple' },
+        { icon: 'social:microsoft', name: 'Microsoft' },
+        { icon: 'social:threads', name: 'Threads' },
+        { icon: 'social:rss', name: 'RSS' },
+    ],
     'Files': [
         { icon: 'flat-color-icons:folder', name: 'Folder' },
         { icon: 'flat-color-icons:opened-folder', name: 'Opened Folder' },
