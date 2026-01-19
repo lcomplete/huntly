@@ -29,4 +29,6 @@ public class DocFields {
     public static final String CONTENT_TYPE = "contentType";
     public static final String AUTHOR = "author_text";
     public static final String HIGHLIGHT_COUNT = "highlightCount";
+    public static final String COLLECTION_ID = "collectionId";
+    public static final String COLLECTED_AT = "collectedAt";
 }

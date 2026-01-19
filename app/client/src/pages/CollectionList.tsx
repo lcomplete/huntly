@@ -110,6 +110,23 @@ const CollectionList = () => {
         filters.collectionId = Number.parseInt(id);
     }
 
+    // Build search keywords based on collection
+    const searchKeywords = useMemo(() => {
+        if (isUnsorted) {
+            return ['unsorted'];
+        }
+        return [];
+    }, [isUnsorted]);
+
+    // Build search text for collection (advanced search)
+    // Add trailing space so users can directly type additional keywords
+    const searchText = useMemo(() => {
+        if (!isUnsorted && collection?.name) {
+            return `collection:${collection.name} `;
+        }
+        return undefined;
+    }, [isUnsorted, collection?.name]);
+
     return (
         <MainContainer>
             <PageList
@@ -117,6 +134,8 @@ const CollectionList = () => {
                 filters={filters}
                 buttonOptions={{ markRead: false }}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange} />}
+                defaultSearchKeywords={searchKeywords}
+                defaultSearchText={searchText}
             />
         </MainContainer>
     );

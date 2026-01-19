@@ -8,7 +8,7 @@ import navLabels, {NavLabel} from "../components/Navigation/shared/NavLabels";
 import RssFeedIcon from "@mui/icons-material/RssFeed";
 import EnergySavingsLeafIcon from "@mui/icons-material/EnergySavingsLeaf";
 import {ConnectorType} from "../interfaces/connectorType";
-import React, {useState} from "react";
+import React, {useState, useMemo} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {IconButton} from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
@@ -73,6 +73,16 @@ const ConnectorList = () => {
     return null;
   }
 
+  // Determine search keywords based on connector type
+  const searchKeywords = useMemo(() => {
+    if (connector?.type === ConnectorType.GITHUB) {
+      return ['github'];
+    } else if (connector?.type === ConnectorType.RSS) {
+      return ['feeds'];
+    }
+    return [];
+  }, [connector?.type]);
+
   return (
     <MainContainer>
       {
@@ -91,6 +101,7 @@ const ConnectorList = () => {
                 onMarkAllAsRead={markAllAsRead} showMarkReadOption={true}
                 hasMarkReadOnScrollFeature={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
+                defaultSearchKeywords={searchKeywords}
       />
     </MainContainer>
   )

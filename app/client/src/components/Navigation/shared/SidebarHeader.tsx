@@ -6,9 +6,10 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 interface SidebarHeaderProps {
   title: string;
   actionLink?: string;
+  extraActions?: React.ReactNode;
 }
 
-const SidebarHeader: React.FC<SidebarHeaderProps> = ({ title, actionLink }) => {
+const SidebarHeader: React.FC<SidebarHeaderProps> = ({ title, actionLink, extraActions }) => {
   return (
     <div className="secondary-sidebar-header flex items-center">
       <div
@@ -22,6 +23,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({ title, actionLink }) => {
       >
         {title}
       </div>
+      {extraActions}
       {actionLink && (
         <Link to={actionLink}>
           <IconButton

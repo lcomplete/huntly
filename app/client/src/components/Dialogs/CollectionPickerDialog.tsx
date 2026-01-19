@@ -35,9 +35,9 @@ const CollectionIcon: React.FC<{ icon?: string | null; selected?: boolean }> = (
         return <FolderOutlinedIcon sx={{ fontSize: 18, color }} />;
     }
     if (icon.includes(':')) {
-        return <Icon icon={icon} width={18} height={18} />;
+        return <Icon icon={icon} width={18} height={18} style={{ color }} />;
     }
-    return <span style={{ fontSize: 16 }}>{icon}</span>;
+    return <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>;
 };
 
 const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
@@ -80,49 +80,145 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
         setExpandedCollections(prev => ({ ...prev, [collId]: !prev[collId] }));
     };
 
-    const renderCollection = (collection: CollectionVO, level: number = 0) => {
+    const renderCollection = (collection: CollectionVO, level: number = 0, isLast: boolean = false) => {
         const isSelected = currentCollectionId === collection.id;
         const hasChildren = collection.children && collection.children.length > 0;
         const isExpanded = expandedCollections[collection.id];
 
         return (
             <React.Fragment key={collection.id}>
-                <ListItemButton
-                    onClick={() => handleSelectCollection(collection.id)}
-                    sx={{
-                        pl: 2 + level * 2,
-                        py: 0.75,
-                        borderRadius: '6px',
-                        mx: 0.5,
-                        mb: 0.25,
-                        bgcolor: isSelected ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
-                        '&:hover': { bgcolor: isSelected ? 'rgba(59, 130, 246, 0.12)' : 'rgba(0,0,0,0.04)' },
-                    }}
-                >
-                    {hasChildren && (
-                        <Box
-                            onClick={(e) => { e.stopPropagation(); toggleCollection(collection.id); }}
-                            sx={{ mr: 0.5, display: 'flex', cursor: 'pointer' }}
-                        >
-                            {isExpanded ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ChevronRightIcon sx={{ fontSize: 18 }} />}
-                        </Box>
+                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+                    {/* Tree lines */}
+                    {level > 0 && (
+                        <>
+                            {/* Vertical line from parent */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    left: `${12 + (level - 1) * 24}px`,
+                                    top: 0,
+                                    bottom: isLast ? '50%' : 0,
+                                    width: '1.5px',
+                                    bgcolor: '#e5e7eb',
+                                }}
+                            />
+                            {/* Horizontal line to item */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    left: `${12 + (level - 1) * 24}px`,
+                                    top: '50%',
+                                    width: '12px',
+                                    height: '1.5px',
+                                    bgcolor: '#e5e7eb',
+                                }}
+                            />
+                        </>
                     )}
-                    <ListItemIcon sx={{ minWidth: 28 }}>
-                        <CollectionIcon icon={collection.icon} selected={isSelected} />
-                    </ListItemIcon>
-                    <ListItemText
-                        primary={collection.name}
-                        primaryTypographyProps={{
-                            fontSize: '13px',
-                            fontWeight: isSelected ? 600 : 500,
-                            color: isSelected ? '#3b82f6' : '#374151',
+                    <ListItemButton
+                        onClick={() => handleSelectCollection(collection.id)}
+                        sx={{
+                            ml: `${level * 24}px`,
+                            pl: 1.5,
+                            pr: 1.5,
+                            py: 0.875,
+                            borderRadius: '10px',
+                            flex: 1,
+                            bgcolor: isSelected 
+                                ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)'
+                                : 'transparent',
+                            background: isSelected 
+                                ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)'
+                                : 'transparent',
+                            boxShadow: isSelected ? '0 1px 3px rgba(59, 130, 246, 0.1)' : 'none',
+                            '&:hover': { 
+                                bgcolor: isSelected 
+                                    ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%)'
+                                    : 'rgba(0, 0, 0, 0.04)',
+                                background: isSelected 
+                                    ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%)'
+                                    : 'rgba(0, 0, 0, 0.04)',
+                            },
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         }}
-                    />
-                    {isSelected && <CheckIcon sx={{ fontSize: 16, color: '#3b82f6' }} />}
-                </ListItemButton>
+                    >
+                        {hasChildren && (
+                            <Box
+                                onClick={(e) => { e.stopPropagation(); toggleCollection(collection.id); }}
+                                sx={{ 
+                                    mr: 0.5, 
+                                    display: 'flex', 
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    color: '#9ca3af',
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: '4px',
+                                    '&:hover': {
+                                        bgcolor: 'rgba(0, 0, 0, 0.06)',
+                                        color: '#6b7280',
+                                    },
+                                    transition: 'all 0.15s ease',
+                                }}
+                            >
+                                {isExpanded ? <ExpandMoreIcon sx={{ fontSize: 16 }} /> : <ChevronRightIcon sx={{ fontSize: 16 }} />}
+                            </Box>
+                        )}
+                        {!hasChildren && level > 0 && <Box sx={{ width: 20, mr: 0.5 }} />}
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                            <Box
+                                sx={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'rgba(0, 0, 0, 0.04)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >
+                                <CollectionIcon icon={collection.icon} selected={isSelected} />
+                            </Box>
+                        </ListItemIcon>
+                        <ListItemText
+                            primary={collection.name}
+                            primaryTypographyProps={{
+                                fontSize: '13.5px',
+                                fontWeight: isSelected ? 600 : 500,
+                                color: isSelected ? '#3b82f6' : '#374151',
+                                sx: { 
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }
+                            }}
+                        />
+                        {isSelected && (
+                            <Box
+                                sx={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: '50%',
+                                    bgcolor: '#3b82f6',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    ml: 1,
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <CheckIcon sx={{ fontSize: 12, color: '#fff' }} />
+                            </Box>
+                        )}
+                    </ListItemButton>
+                </Box>
                 {hasChildren && (
                     <Collapse in={isExpanded}>
-                        {collection.children!.map(child => renderCollection(child, level + 1))}
+                        {collection.children!.map((child, idx) => 
+                            renderCollection(child, level + 1, idx === collection.children!.length - 1)
+                        )}
                     </Collapse>
                 )}
             </React.Fragment>
@@ -137,69 +233,179 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
             fullWidth
             PaperProps={{
                 sx: {
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    borderRadius: '16px',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                    border: '1px solid rgba(0, 0, 0, 0.05)',
                     maxHeight: '70vh',
+                    overflow: 'hidden',
                 },
             }}
         >
-            <DialogTitle sx={{ pb: 1, pt: 2.5 }}>
-                <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>
+            <DialogTitle sx={{ pb: 1, pt: 2.5, px: 2.5 }}>
+                <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#111827', letterSpacing: '-0.01em' }}>
                     Move to Collection
                 </Typography>
             </DialogTitle>
-            <DialogContent sx={{ pt: 1, pb: 2, px: 1 }}>
+            <DialogContent sx={{ pt: 1, pb: 2.5, px: 1.5 }}>
                 {loading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                        <CircularProgress size={24} />
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                        <CircularProgress size={28} sx={{ color: '#3b82f6' }} />
                     </Box>
                 ) : (
-                    <List dense sx={{ py: 0 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         {/* Unsorted option */}
                         <ListItemButton
                             onClick={() => handleSelectCollection(null)}
                             sx={{
-                                py: 0.75,
-                                borderRadius: '6px',
+                                py: 0.875,
+                                px: 1.5,
                                 mx: 0.5,
-                                mb: 0.5,
-                                bgcolor: currentCollectionId === null ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
-                                '&:hover': { bgcolor: currentCollectionId === null ? 'rgba(59, 130, 246, 0.12)' : 'rgba(0,0,0,0.04)' },
+                                borderRadius: '10px',
+                                bgcolor: currentCollectionId === null 
+                                    ? 'rgba(59, 130, 246, 0.1)'
+                                    : 'transparent',
+                                '&:hover': { 
+                                    bgcolor: currentCollectionId === null 
+                                        ? 'rgba(59, 130, 246, 0.14)'
+                                        : 'rgba(0, 0, 0, 0.04)',
+                                },
+                                transition: 'all 0.15s ease',
                             }}
                         >
-                            <ListItemIcon sx={{ minWidth: 28 }}>
-                                <InboxOutlinedIcon sx={{ fontSize: 18, color: currentCollectionId === null ? '#3b82f6' : '#64748b' }} />
+                            <ListItemIcon sx={{ minWidth: 32 }}>
+                                <Box
+                                    sx={{
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        bgcolor: currentCollectionId === null 
+                                            ? 'rgba(59, 130, 246, 0.15)' 
+                                            : 'rgba(0, 0, 0, 0.05)',
+                                    }}
+                                >
+                                    <InboxOutlinedIcon sx={{ 
+                                        fontSize: 16, 
+                                        color: currentCollectionId === null ? '#3b82f6' : '#6b7280' 
+                                    }} />
+                                </Box>
                             </ListItemIcon>
                             <ListItemText
                                 primary="Unsorted"
                                 primaryTypographyProps={{
-                                    fontSize: '13px',
+                                    fontSize: '13.5px',
                                     fontWeight: currentCollectionId === null ? 600 : 500,
                                     color: currentCollectionId === null ? '#3b82f6' : '#374151',
                                 }}
                             />
-                            {currentCollectionId === null && <CheckIcon sx={{ fontSize: 16, color: '#3b82f6' }} />}
+                            {currentCollectionId === null && (
+                                <Box
+                                    sx={{
+                                        width: 18,
+                                        height: 18,
+                                        borderRadius: '50%',
+                                        bgcolor: '#3b82f6',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    <CheckIcon sx={{ fontSize: 11, color: '#fff' }} />
+                                </Box>
+                            )}
                         </ListItemButton>
 
                         {/* Groups and collections */}
-                        {treeData?.groups.map(group => (
-                            <React.Fragment key={group.id}>
-                                <ListItemButton
+                        {treeData?.groups.map((group) => (
+                            <Box key={group.id}>
+                                {/* Group header */}
+                                <Box
                                     onClick={() => toggleGroup(group.id)}
-                                    sx={{ py: 0.5, borderRadius: '6px', mx: 0.5, mt: 0.5 }}
+                                    sx={{ 
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        px: 2,
+                                        py: 1,
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        '&:hover': {
+                                            '& .group-toggle': {
+                                                bgcolor: 'rgba(0, 0, 0, 0.08)',
+                                            }
+                                        },
+                                    }}
                                 >
-                                    {expandedGroups[group.id] ? <ExpandMoreIcon sx={{ fontSize: 16, mr: 0.5 }} /> : <ChevronRightIcon sx={{ fontSize: 16, mr: 0.5 }} />}
-                                    <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                    <Box
+                                        className="group-toggle"
+                                        sx={{
+                                            width: 20,
+                                            height: 20,
+                                            borderRadius: '5px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            bgcolor: 'rgba(0, 0, 0, 0.04)',
+                                            mr: 1,
+                                            transition: 'background-color 0.15s ease',
+                                        }}
+                                    >
+                                        {expandedGroups[group.id] ? 
+                                            <ExpandMoreIcon sx={{ fontSize: 14, color: '#6b7280' }} /> : 
+                                            <ChevronRightIcon sx={{ fontSize: 14, color: '#6b7280' }} />
+                                        }
+                                    </Box>
+                                    <Typography sx={{ 
+                                        fontSize: '11.5px', 
+                                        fontWeight: 600, 
+                                        color: '#6b7280', 
+                                        textTransform: 'uppercase', 
+                                        letterSpacing: '0.06em',
+                                        flex: 1,
+                                    }}>
                                         {group.name}
                                     </Typography>
-                                </ListItemButton>
+                                    <Box
+                                        sx={{
+                                            px: 1,
+                                            py: 0.25,
+                                            borderRadius: '6px',
+                                            bgcolor: 'rgba(0, 0, 0, 0.04)',
+                                        }}
+                                    >
+                                        <Typography sx={{ 
+                                            fontSize: '11px', 
+                                            fontWeight: 600, 
+                                            color: '#9ca3af', 
+                                        }}>
+                                            {group.collections.length}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                {/* Collections list */}
                                 <Collapse in={expandedGroups[group.id]}>
-                                    {group.collections.map(c => renderCollection(c))}
+                                    <Box
+                                        sx={{
+                                            mx: 1,
+                                            mb: 0.5,
+                                            p: 1,
+                                            bgcolor: '#fafbfc',
+                                            borderRadius: '12px',
+                                            border: '1px solid #f0f1f3',
+                                        }}
+                                    >
+                                        <List dense disablePadding>
+                                            {group.collections.map((c, idx) => 
+                                                renderCollection(c, 0, idx === group.collections.length - 1)
+                                            )}
+                                        </List>
+                                    </Box>
                                 </Collapse>
-                            </React.Fragment>
+                            </Box>
                         ))}
-                    </List>
+                    </Box>
                 )}
             </DialogContent>
         </Dialog>
@@ -207,4 +413,3 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
 };
 
 export default CollectionPickerDialog;
-

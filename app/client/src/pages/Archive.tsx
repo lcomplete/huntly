@@ -29,6 +29,7 @@ const MyList = () => {
                 }}
                 buttonOptions={{markRead: false}}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
+                defaultSearchKeywords={['archive']}
       />
     </MainContainer>
   )

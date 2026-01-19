@@ -36,8 +36,9 @@ public interface CollectionRepository extends JpaRepository<Collection, Long> {
 
     /**
      * Get page counts per collection.
+     * Only count pages that are in library (librarySaveStatus > 0, i.e., SAVED or ARCHIVED).
      */
-    @Query("SELECT p.collectionId, COUNT(p) FROM Page p WHERE p.collectionId IS NOT NULL GROUP BY p.collectionId")
+    @Query("SELECT p.collectionId, COUNT(p) FROM Page p WHERE p.collectionId IS NOT NULL AND p.librarySaveStatus > 0 GROUP BY p.collectionId")
     List<Object[]> countPagesPerCollection();
 
     /**
@@ -45,4 +46,9 @@ public interface CollectionRepository extends JpaRepository<Collection, Long> {
      */
     @Query("SELECT COUNT(p) FROM Page p WHERE p.collectionId IS NULL AND p.librarySaveStatus > 0")
     Long countUnsortedPages();
+
+    /**
+     * Find collections by name (case-insensitive partial match).
+     */
+    List<Collection> findByNameContainingIgnoreCase(String name);
 }

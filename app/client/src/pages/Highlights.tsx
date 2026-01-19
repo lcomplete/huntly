@@ -375,6 +375,7 @@ const Highlights: React.FC = () => {
       <SubHeader
         navLabel={navLabels.highlights}
         buttonOptions={{ markRead: false, viewSwitch: false }}
+        defaultSearchKeywords={['highlights']}
         navLabelArea={
           totalCount > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontSize: '0.875rem' }}>

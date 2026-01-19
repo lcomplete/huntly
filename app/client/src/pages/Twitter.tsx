@@ -48,6 +48,7 @@ export default function Twitter() {
                 contentType: urlContentType || 'TWEET'
               }}
               buttonOptions={{markRead: false}}
-              filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}/>
+              filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
+              defaultSearchKeywords={['tweet']}/>
   </MainContainer>;
 }

@@ -40,6 +40,7 @@ const AllFeeds = () => {
                 onMarkAllAsRead={markAllAsRead}
                 hasMarkReadOnScrollFeature={true}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
+                defaultSearchKeywords={['feeds']}
       />
     </MainContainer>
   )

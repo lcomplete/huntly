@@ -27,6 +27,7 @@ type SearchBoxProps = {
   selectedKeywords?: string[];
   onSelectedKeywordsChange?: (keywords: string[]) => void;
   focusSignal?: number;
+  defaultSearchText?: string;
 }
 
 export default function SearchBox({
@@ -35,7 +36,8 @@ export default function SearchBox({
   onValueChange,
   selectedKeywords,
   onSelectedKeywordsChange,
-  focusSignal
+  focusSignal,
+  defaultSearchText
 }: SearchBoxProps) {
   const [focus, setFocus] = useState(false);
   const [params] = useSearchParams();
@@ -71,6 +73,15 @@ export default function SearchBox({
       setSearchOptions(defaultSearchOptions.filter(option => keywords.includes(option.keyword)));
     }
   }, [selectedKeywords, isOptionsControlled]);
+
+  // Set default search text for advanced search like collection:name
+  // Clear search text when defaultSearchText becomes undefined (e.g., navigating to unsorted page)
+  // Only apply when not on search page (no q param in URL)
+  useEffect(() => {
+    if (!isControlled && !params.get('q')) {
+      setSearchText(defaultSearchText || '');
+    }
+  }, [defaultSearchText, isControlled, params]);
 
   useEffect(() => {
     if (focusSignal && inputRef.current) {
@@ -354,6 +365,7 @@ type SearchOption = {
 const defaultSearchOptions: SearchOption[] = [
   {keyword: 'url:', label: 'url:{url}', type: 'Advanced'},
   {keyword: 'author:', label: 'author:{author}', type: 'Advanced'},
+  {keyword: 'collection:', label: 'collection:{name}', type: 'Advanced'},
   {keyword: 'tweet', label: 'Tweet', type: 'Type'},
   {keyword: 'github', label: 'Github Repository', type: 'Type'},
   {keyword: 'browser', label: 'Browser History', type: 'Type'},
@@ -363,6 +375,7 @@ const defaultSearchOptions: SearchOption[] = [
   {keyword: 'starred', label: 'Starred', type: 'Library'},
   {keyword: 'later', label: 'Read Later', type: 'Library'},
   {keyword: 'archive', label: 'Archive', type: 'Library'},
+  {keyword: 'unsorted', label: 'Unsorted', type: 'Library'},
   {keyword: 'read', label: 'Already Read', type: 'Options'},
   {keyword: 'title', label: 'Only Search Title', type: 'Options'},
 ];

@@ -66,6 +66,11 @@ public class PageItem {
      */
     private Long collectionId;
 
+    /**
+     * Timestamp when the page was added to a collection.
+     */
+    private Instant collectedAt;
+
     //region source
 
     private String siteName;

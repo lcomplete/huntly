@@ -56,7 +56,9 @@ interface PageListProps {
   buttonOptions?: ButtonOptions,
   showMarkReadOption?: boolean,
   hasMarkReadOnScrollFeature?: boolean,
-  filterComponent?: React.ReactElement
+  filterComponent?: React.ReactElement,
+  defaultSearchKeywords?: string[],
+  defaultSearchText?: string
 }
 
 const PageList = (props: PageListProps) => {
@@ -67,7 +69,9 @@ const PageList = (props: PageListProps) => {
     navLabelArea,
     onMarkAllAsRead,
     showMarkReadOption,
-    hasMarkReadOnScrollFeature
+    hasMarkReadOnScrollFeature,
+    defaultSearchKeywords,
+    defaultSearchText
   } = props;
   
   const {ref: inViewRef, inView} = useInView();
@@ -447,9 +451,11 @@ const PageList = (props: PageListProps) => {
     <>
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail}/>
        <SubHeader navLabel={navLabel} onMarkListAsRead={markListAsRead} onMarkAllAsRead={markAllAsRead}
-                 navLabelArea={navLabelArea}
-                 rightContent={props.filterComponent}
-                 buttonOptions={buttonOptions}/>
+                  navLabelArea={navLabelArea}
+                  rightContent={props.filterComponent}
+                  buttonOptions={buttonOptions}
+                  defaultSearchKeywords={defaultSearchKeywords}
+                  defaultSearchText={defaultSearchText}/>
        <div className={'flex flex-auto overflow-hidden'}>
         <div className="page-list-container p-2 flex flex-col grow items-center min-w-0">
           <div className={'page-list w-full max-w-[720px] flex flex-col items-center'} ref={pageListRef}>

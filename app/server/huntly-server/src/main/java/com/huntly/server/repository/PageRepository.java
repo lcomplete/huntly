@@ -93,8 +93,9 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
 
     /**
      * Count pages in a specific collection.
+     * Only count pages that are in library (librarySaveStatus > 0, i.e., SAVED or ARCHIVED).
      */
-    @Query("SELECT COUNT(p) FROM Page p WHERE p.collectionId = :collectionId")
+    @Query("SELECT COUNT(p) FROM Page p WHERE p.collectionId = :collectionId AND p.librarySaveStatus > 0")
     long countByCollectionId(@Param("collectionId") Long collectionId);
 
     /**
