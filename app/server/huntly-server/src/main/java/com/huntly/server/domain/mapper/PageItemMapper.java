@@ -36,12 +36,28 @@ public interface PageItemMapper {
             case CONNECTED_AT:
                 item.setRecordAt(page.getConnectedAt());
                 break;
+            case COLLECTED_AT:
+                item.setRecordAt(page.getCollectedAt());
+                break;
+            case UNSORTED_SAVED_AT:
+                // Fallback: collectedAt -> savedAt -> archivedAt
+                item.setRecordAt(coalesce(page.getCollectedAt(), page.getSavedAt(), page.getArchivedAt()));
+                break;
             case LAST_READ_AT:
             default:
                 item.setRecordAt(page.getLastReadAt());
                 break;
         }
         return item;
+    }
+
+    default java.time.Instant coalesce(java.time.Instant... values) {
+        for (java.time.Instant value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     default PageItem updateFromSource(@MappingTarget PageItem pageItem, Source source) {

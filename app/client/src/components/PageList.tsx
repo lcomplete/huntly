@@ -2,11 +2,12 @@ import MagazineItem from "../components/MagazineItem";
 import "./PageList.css";
 import {ApiResultOfint, PageControllerApiFactory, PageItem} from "../api";
 import {InfiniteData, QueryClient, useInfiniteQuery, useQueryClient} from "@tanstack/react-query";
+import {fetchPageItems} from "../apiFacade/pageListApi";
 import {useInView} from "react-intersection-observer";
 import React, {ReactElement, useEffect, useState, useRef, useCallback, useMemo} from "react";
 import {Button} from "@mui/material";
 import Loading from "./Loading";
-import {NavLabel} from "./Sidebar/NavLabels";
+import {NavLabel} from "./Navigation/shared/NavLabels";
 import SubHeader, {ButtonOptions} from "./SubHeader";
 import {PageOperateEvent, PageOperation} from "./PageOperationButtons";
 import {PageQueryKey} from "../domain/pageQueryKey";
@@ -42,6 +43,9 @@ export type PageListFilter = {
   startDate?: string,
   endDate?: string,
   hasHighlights?: boolean,
+  collectionId?: number,
+  filterUnsorted?: boolean,
+  includeArchived?: boolean,
 }
 
 interface PageListProps {
@@ -52,7 +56,9 @@ interface PageListProps {
   buttonOptions?: ButtonOptions,
   showMarkReadOption?: boolean,
   hasMarkReadOnScrollFeature?: boolean,
-  filterComponent?: React.ReactElement
+  filterComponent?: React.ReactElement,
+  defaultSearchKeywords?: string[],
+  defaultSearchText?: string
 }
 
 const PageList = (props: PageListProps) => {
@@ -63,7 +69,9 @@ const PageList = (props: PageListProps) => {
     navLabelArea,
     onMarkAllAsRead,
     showMarkReadOption,
-    hasMarkReadOnScrollFeature
+    hasMarkReadOnScrollFeature,
+    defaultSearchKeywords,
+    defaultSearchText
   } = props;
   
   const {ref: inViewRef, inView} = useInView();
@@ -234,29 +242,31 @@ const PageList = (props: PageListProps) => {
                lastVoteScore: undefined
              }
            }) => {
-      const res = await PageControllerApiFactory().listPageItemsUsingGET(
-        filters.asc,
-        filters.connectorId,
-        filters.connectorType,
-        filters.contentFilterType,
-        filters.contentType,
-        pageSize,
-        filters.endDate,
-        pageParam.firstRecordAt || undefined,
-        pageParam.firstVoteScore || undefined,
-        filters.folderId,
-        filters.hasHighlights,
-        pageParam.lastRecordAt || undefined,
-        pageParam.lastVoteScore || undefined,
-        filters.markRead,
-        filters.readLater,
-        filters.saveStatus,
-        filters.sort,
-        filters.sourceId,
-        filters.starred,
-        filters.startDate
-      );
-      return res.data
+      return await fetchPageItems({
+        asc: filters.asc,
+        collectionId: filters.collectionId,
+        connectorId: filters.connectorId,
+        connectorType: filters.connectorType,
+        contentFilterType: filters.contentFilterType,
+        contentType: filters.contentType,
+        count: pageSize,
+        endDate: filters.endDate,
+        filterUnsorted: filters.filterUnsorted,
+        firstRecordAt: pageParam.firstRecordAt || undefined,
+        firstVoteScore: pageParam.firstVoteScore || undefined,
+        folderId: filters.folderId,
+        hasHighlights: filters.hasHighlights,
+        includeArchived: filters.includeArchived,
+        lastRecordAt: pageParam.lastRecordAt || undefined,
+        lastVoteScore: pageParam.lastVoteScore || undefined,
+        markRead: filters.markRead,
+        readLater: filters.readLater,
+        saveStatus: filters.saveStatus,
+        sort: filters.sort,
+        sourceId: filters.sourceId,
+        starred: filters.starred,
+        startDate: filters.startDate
+      });
     },
     {
       getPreviousPageParam: (firstPage) =>
@@ -441,12 +451,14 @@ const PageList = (props: PageListProps) => {
     <>
       <PageDetailModal selectedPageId={selectedPageId} operateSuccess={operateSuccess} onClose={closePageDetail}/>
        <SubHeader navLabel={navLabel} onMarkListAsRead={markListAsRead} onMarkAllAsRead={markAllAsRead}
-                 navLabelArea={navLabelArea}
-                 rightContent={props.filterComponent}
-                 buttonOptions={buttonOptions}/>
+                  navLabelArea={navLabelArea}
+                  rightContent={props.filterComponent}
+                  buttonOptions={buttonOptions}
+                  defaultSearchKeywords={defaultSearchKeywords}
+                  defaultSearchText={defaultSearchText}/>
        <div className={'flex flex-auto overflow-hidden'}>
-        <div className="page-list-container p-2 flex flex-col grow items-center min-w-0">
-          <div className={'page-list w-full max-w-[720px] flex flex-col items-center'} ref={pageListRef}>
+        <div className="page-list-container p-2 flex flex-col grow items-center min-w-0 overflow-y-auto overflow-x-hidden">
+          <div className={'page-list w-full max-w-[720px] flex flex-col items-center min-h-[400px]'} ref={pageListRef}>
             {showDoneTip && <div className={'w-full'}>
                 <TransitionAlert severity="info">
                     You've read all articles in this section.

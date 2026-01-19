@@ -45,3 +45,6 @@ db.sqlite*
 .claude/
 .cursor/
 .playwright-mcp/
+.antigravity/
+.agent/
+.shared/

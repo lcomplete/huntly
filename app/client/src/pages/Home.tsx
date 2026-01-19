@@ -4,7 +4,6 @@ import { Box, Button, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import {
   HighlightListItem,
-  PageControllerApiFactory,
   PageHighlightControllerApiFactory,
   PageItem,
 } from "../api";
@@ -17,11 +16,12 @@ import ExtensionIcon from "@mui/icons-material/Extension";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import InfoIcon from "@mui/icons-material/Info";
 import SubHeader from "../components/SubHeader";
-import navLabels from "../components/Sidebar/NavLabels";
+import navLabels from "../components/Navigation/shared/NavLabels";
 import moment from "moment";
 import { ConnectorType } from "../interfaces/connectorType";
 import SmartMoment from "../components/SmartMoment";
 import { APP_VERSION } from "../env";
+import { fetchPageItems } from "../apiFacade/pageListApi";
 
 const HOT_TWEETS_HOURS_KEY = "huntly_hot_tweets_hours";
 const DEFAULT_HOT_TWEETS_HOURS = 4;
@@ -60,29 +60,13 @@ const Home = () => {
     error: latestFeedError,
     data: latestFeed,
   } = useQuery(["home-latest-feed"], async () => {
-    const response = await PageControllerApiFactory().listPageItemsUsingGET(
-      false, // asc
-      undefined, // connectorId
-      ConnectorType.RSS, // connectorType
-      undefined, // contentFilterType
-      undefined, // contentType
-      8, // count
-      undefined, // endDate
-      undefined, // firstRecordAt
-      undefined, // firstVoteScore
-      undefined, // folderId
-      undefined, // hasHighlights
-      undefined, // lastRecordAt
-      undefined, // lastVoteScore
-      false, // markRead - only get unread items
-      undefined, // readLater
-      undefined, // saveStatus
-      "CONNECTED_AT", // sort
-      undefined, // sourceId
-      undefined, // starred
-      undefined // startDate
-    );
-    return response.data || [];
+    return fetchPageItems({
+      asc: false,
+      connectorType: ConnectorType.RSS,
+      count: 8,
+      markRead: false,
+      sort: "CONNECTED_AT",
+    });
   });
 
   const {
@@ -90,29 +74,12 @@ const Home = () => {
     error: readLaterError,
     data: readLaterPages,
   } = useQuery(["home-read-later"], async () => {
-    const response = await PageControllerApiFactory().listPageItemsUsingGET(
-      false, // asc
-      undefined, // connectorId
-      undefined, // connectorType
-      undefined, // contentFilterType
-      undefined, // contentType
-      8, // count
-      undefined, // endDate
-      undefined, // firstRecordAt
-      undefined, // firstVoteScore
-      undefined, // folderId
-      undefined, // hasHighlights
-      undefined, // lastRecordAt
-      undefined, // lastVoteScore
-      undefined, // markRead
-      true, // readLater
-      undefined, // saveStatus
-      "READ_LATER_AT", // sort
-      undefined, // sourceId
-      undefined, // starred
-      undefined // startDate
-    );
-    return response.data || [];
+    return fetchPageItems({
+      asc: false,
+      count: 8,
+      readLater: true,
+      sort: "READ_LATER_AT",
+    });
   });
 
   const {
@@ -120,29 +87,11 @@ const Home = () => {
     error: recentlyReadError,
     data: recentlyReadPages,
   } = useQuery(["home-recently-read"], async () => {
-    const response = await PageControllerApiFactory().listPageItemsUsingGET(
-      false, // asc
-      undefined, // connectorId
-      undefined, // connectorType
-      undefined, // contentFilterType
-      undefined, // contentType
-      8, // count
-      undefined, // endDate
-      undefined, // firstRecordAt
-      undefined, // firstVoteScore
-      undefined, // folderId
-      undefined, // hasHighlights
-      undefined, // lastRecordAt
-      undefined, // lastVoteScore
-      undefined, // markRead
-      undefined, // readLater
-      undefined, // saveStatus
-      "LAST_READ_AT", // sort
-      undefined, // sourceId
-      undefined, // starred
-      undefined // startDate
-    );
-    return response.data || [];
+    return fetchPageItems({
+      asc: false,
+      count: 8,
+      sort: "LAST_READ_AT",
+    });
   });
 
   const {
@@ -165,29 +114,14 @@ const Home = () => {
     error: hotTweetsError,
     data: hotTweets,
   } = useQuery(["home-hot-tweets", hotTweetsDateRange], async () => {
-    const response = await PageControllerApiFactory().listPageItemsUsingGET(
-      false, // asc
-      undefined, // connectorId
-      undefined, // connectorType
-      undefined, // contentFilterType
-      "TWEET", // contentType
-      20, // count
-      hotTweetsDateRange.endDate, // endDate
-      undefined, // firstRecordAt
-      undefined, // firstVoteScore
-      undefined, // folderId
-      undefined, // hasHighlights
-      undefined, // lastRecordAt
-      undefined, // lastVoteScore
-      undefined, // markRead
-      undefined, // readLater
-      undefined, // saveStatus
-      "VOTE_SCORE", // sort
-      undefined, // sourceId
-      undefined, // starred
-      hotTweetsDateRange.startDate // startDate
-    );
-    return response.data || [];
+    return fetchPageItems({
+      asc: false,
+      contentType: "TWEET",
+      count: 20,
+      endDate: hotTweetsDateRange.endDate,
+      sort: "VOTE_SCORE",
+      startDate: hotTweetsDateRange.startDate,
+    });
   });
 
   const handleViewAll = (path: string) => () => {

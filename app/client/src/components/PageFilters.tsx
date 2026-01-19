@@ -5,7 +5,8 @@ import {
   MenuItem,
   Popover,
   useMediaQuery,
-  Portal
+  Portal,
+  Tooltip
 } from "@mui/material";
 import React from "react";
 import "./PageFilters.css";
@@ -30,6 +31,7 @@ import {
   ArchiveOutlined,
   BookmarkBorderOutlined,
   CalendarMonth,
+  FolderOpenOutlined,
   HistoryOutlined,
   StarOutlineOutlined,
   TravelExploreOutlined,
@@ -48,6 +50,8 @@ import TwitterIcon from '@mui/icons-material/Twitter';
 import ArrowUpwardOutlinedIcon from '@mui/icons-material/ArrowUpwardOutlined';
 import ArrowDownwardOutlinedIcon from '@mui/icons-material/ArrowDownwardOutlined';
 import CheckIcon from '@mui/icons-material/Check';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 
 export type SortField = {
   value: SORT_VALUE,
@@ -64,6 +68,8 @@ export type PageFilterOptions = {
   endDate?: string
   showAllArticles?: boolean
   showAllArticlesOption?: boolean
+  includeArchived?: boolean
+  includeArchivedOption?: boolean
 }
 
 export type PageFilterProps = {
@@ -180,7 +186,7 @@ const customStaticRanges = [
 
 export default function PageFilters(props: PageFilterProps) {
   const {options, onChange} = props;
-  const {sortFields, defaultSortValue, asc, hideContentTypeFilter, contentFilterType, startDate, endDate, showAllArticles, showAllArticlesOption} = options;
+  const {sortFields, defaultSortValue, asc, hideContentTypeFilter, contentFilterType, startDate, endDate, showAllArticles, showAllArticlesOption, includeArchived, includeArchivedOption} = options;
   const [pickerAnchorEl, setPickerAnchorEl] = React.useState(null);
   const parsedStart = parseDateTimeString(startDate);
   const parsedEnd = parseDateTimeString(endDate);
@@ -295,6 +301,13 @@ export default function PageFilters(props: PageFilterProps) {
     });
   }
 
+  function handleIncludeArchivedToggle() {
+    onChange({
+      ...options,
+      includeArchived: !includeArchived
+    });
+  }
+
   const contentIconMap = {
     0: <GridViewOutlinedIcon fontSize="small" />,
     1: <ArticleOutlinedIcon fontSize="small" />,
@@ -303,12 +316,14 @@ export default function PageFilters(props: PageFilterProps) {
   };
   const sortIconMap: Record<SORT_VALUE, React.ReactElement> = {
     ARCHIVED_AT: <ArchiveOutlined fontSize="small" />,
+    COLLECTED_AT: <FolderOpenOutlined fontSize="small" />,
     CONNECTED_AT: <TwitterIcon fontSize="small" />,
     CREATED_AT: <TravelExploreOutlined fontSize="small" />,
     LAST_READ_AT: <HistoryOutlined fontSize="small" />,
     READ_LATER_AT: <WatchLaterOutlined fontSize="small" />,
     SAVED_AT: <BookmarkBorderOutlined fontSize="small" />,
     STARRED_AT: <StarOutlineOutlined fontSize="small" />,
+    UNSORTED_SAVED_AT: <BookmarkBorderOutlined fontSize="small" />,
     VOTE_SCORE: <WhatshotOutlined fontSize="small" />
   };
   const activeContentIcon = contentIconMap[contentFilterType || 0];
@@ -358,6 +373,21 @@ export default function PageFilters(props: PageFilterProps) {
             >
               {showAllArticles ? 'All' : 'Unread'}
             </Button>
+          )}
+
+          {includeArchivedOption && (
+            <Tooltip title={includeArchived ? "Including archived items" : "Click to include archived items"} arrow>
+              <span
+                className={`page-filters-archive-toggle ${includeArchived ? 'is-active' : ''}`}
+                onClick={handleIncludeArchivedToggle}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleIncludeArchivedToggle()}
+              >
+                <ArchiveOutlined fontSize="small" />
+                {includeArchived ? <RadioButtonCheckedIcon className="toggle-icon" /> : <RadioButtonUncheckedIcon className="toggle-icon" />}
+              </span>
+            </Tooltip>
           )}
 
           {showSort && (
@@ -412,6 +442,7 @@ export default function PageFilters(props: PageFilterProps) {
               {orderLabel}
             </Button>
           )}
+
         </div>
       </Portal>
     )}
@@ -438,6 +469,21 @@ export default function PageFilters(props: PageFilterProps) {
           >
             {showAllArticles ? 'All' : 'Unread'}
           </Button>
+        )}
+
+        {includeArchivedOption && (
+          <Tooltip title={includeArchived ? "Including archived items" : "Click to include archived items"} arrow>
+            <span
+              className={`page-filters-archive-toggle ${includeArchived ? 'is-active' : ''}`}
+              onClick={handleIncludeArchivedToggle}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && handleIncludeArchivedToggle()}
+            >
+              <ArchiveOutlined fontSize="small" />
+              {includeArchived ? <RadioButtonCheckedIcon className="toggle-icon" /> : <RadioButtonUncheckedIcon className="toggle-icon" />}
+            </span>
+          </Tooltip>
         )}
 
         {showSort && (

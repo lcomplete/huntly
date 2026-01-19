@@ -15,21 +15,44 @@ public enum PageListSort {
     SAVED_AT("savedAt"),
 
     STARRED_AT("starredAt"),
-    
+
     CONNECTED_AT("connectedAt"),
-    
-    VOTE_SCORE("voteScore");
 
-    //ID("id");
+    VOTE_SCORE("voteScore"),
 
-    private String sortField;
+    COLLECTED_AT("collectedAt"),
 
-    PageListSort(String sortField) {
-        this.sortField = sortField;
+    /**
+     * For unsorted pages only: sorts by collectedAt, savedAt, archivedAt in order.
+     * Uses multiple sort fields for proper ordering.
+     */
+    UNSORTED_SAVED_AT("collectedAt", "savedAt", "archivedAt");
+
+    private final String[] sortFields;
+
+    PageListSort(String... sortFields) {
+        this.sortFields = sortFields;
     }
 
+    /**
+     * Returns the primary sort field.
+     */
     public String getSortField() {
-        return sortField;
+        return sortFields[0];
+    }
+
+    /**
+     * Returns all sort fields for multi-field sorting.
+     */
+    public String[] getSortFields() {
+        return sortFields;
+    }
+
+    /**
+     * Returns true if this sort uses multiple fields.
+     */
+    public boolean isMultiFieldSort() {
+        return sortFields.length > 1;
     }
 
     static PageListSort valueOfSort(String sort) {

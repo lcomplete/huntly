@@ -1,5 +1,5 @@
 import PageList from "../components/PageList";
-import navLabels from "../components/Sidebar/NavLabels";
+import navLabels from "../components/Navigation/shared/NavLabels";
 import MainContainer from "../components/MainContainer";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
@@ -48,6 +48,7 @@ export default function Twitter() {
                 contentType: urlContentType || 'TWEET'
               }}
               buttonOptions={{markRead: false}}
-              filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}/>
+              filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
+              defaultSearchKeywords={['tweet']}/>
   </MainContainer>;
 }

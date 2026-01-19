@@ -3,12 +3,15 @@ import {
   Button,
   Dialog,
   DialogActions,
+  DialogContent,
+  DialogContentText,
   DialogTitle
 } from '@mui/material';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
   title: string;
+  content?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -16,6 +19,7 @@ interface DeleteConfirmDialogProps {
 const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   open,
   title,
+  content,
   onConfirm,
   onCancel
 }) => {
@@ -28,6 +32,11 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
       <DialogTitle id="delete-confirm-dialog-title">
         {title}
       </DialogTitle>
+      {content && (
+        <DialogContent>
+          <DialogContentText>{content}</DialogContentText>
+        </DialogContent>
+      )}
       <DialogActions>
         <Button onClick={onCancel}>Cancel</Button>
         <Button onClick={onConfirm} autoFocus color="warning">

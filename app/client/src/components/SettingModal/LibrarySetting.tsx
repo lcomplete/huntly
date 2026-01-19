@@ -1,6 +1,7 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Alert, Button, Divider, Link, Typography} from "@mui/material";
-import {useSnackbar} from "notistack";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Box, Button, Link, Tab, Tabs, Typography } from "@mui/material";
+import { useSnackbar } from "notistack";
+import SettingSectionTitle from "./SettingSectionTitle";
 import {
   fetchLatestLibraryExport,
   fetchLibraryExportStatus,
@@ -9,6 +10,9 @@ import {
   LibraryExportStatus,
   startLibraryExport
 } from "../../api/libraryExport";
+import { TwitterSaveRulesSetting } from "./TwitterSaveRulesSetting";
+import DownloadIcon from '@mui/icons-material/Download';
+import RuleIcon from '@mui/icons-material/Rule';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -26,8 +30,41 @@ function formatBytes(bytes?: number): string {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-export default function LibrarySetting() {
-  const {enqueueSnackbar} = useSnackbar();
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`library-tabpanel-${index}`}
+      aria-labelledby={`library-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ pt: 2 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `library-tab-${index}`,
+    'aria-controls': `library-tabpanel-${index}`,
+  };
+}
+
+function ExportSetting() {
+  const { enqueueSnackbar } = useSnackbar();
   const [exportInfo, setExportInfo] = useState<LibraryExportInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const lastStatusRef = useRef<LibraryExportStatus | undefined>(undefined);
@@ -41,7 +78,7 @@ export default function LibrarySetting() {
     } catch (error) {
       enqueueSnackbar("Failed to load export status. Please try again.", {
         variant: "error",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     } finally {
       setIsLoading(false);
@@ -72,20 +109,20 @@ export default function LibrarySetting() {
         if (previousStatus === "IN_PROGRESS" && info?.status === "READY") {
           enqueueSnackbar("Export ready. Download it below.", {
             variant: "success",
-            anchorOrigin: {vertical: "bottom", horizontal: "center"}
+            anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
         if (previousStatus === "IN_PROGRESS" && info?.status === "FAILED") {
           enqueueSnackbar("Export failed. Please try again.", {
             variant: "error",
-            anchorOrigin: {vertical: "bottom", horizontal: "center"}
+            anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
       } catch (error) {
         if (isMounted) {
           enqueueSnackbar("Failed to refresh export status.", {
             variant: "warning",
-            anchorOrigin: {vertical: "bottom", horizontal: "center"}
+            anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
       }
@@ -105,12 +142,12 @@ export default function LibrarySetting() {
       lastStatusRef.current = info?.status;
       enqueueSnackbar("Export started. We will notify you when it is ready.", {
         variant: "info",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     } catch (error) {
       enqueueSnackbar("Failed to start export. Please try again.", {
         variant: "error",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     }
   }, [enqueueSnackbar]);
@@ -124,13 +161,13 @@ export default function LibrarySetting() {
 
   return (
     <div>
-      <Typography variant={'h6'}>
+      <SettingSectionTitle
+        first
+        icon={DownloadIcon}
+        description="Export your Library entries as Markdown files packaged in a ZIP archive. Files will be organized according to your Collection folder structure."
+      >
         Library Export
-      </Typography>
-      <Divider />
-      <Typography variant="body2" className="mt-2 text-gray-600">
-        Export your Library entries as Markdown files packaged in a ZIP archive.
-      </Typography>
+      </SettingSectionTitle>
 
       <div className="mt-4 flex items-center gap-3">
         <Button
@@ -188,6 +225,31 @@ export default function LibrarySetting() {
           </Alert>
         )}
       </div>
+    </div>
+  );
+}
+
+export default function LibrarySetting() {
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  return (
+    <div>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="library settings tabs">
+          <Tab icon={<RuleIcon />} iconPosition="start" label="Save rules" {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<DownloadIcon />} iconPosition="start" label="Export" {...a11yProps(1)} sx={{ minHeight: 48 }} />
+        </Tabs>
+      </Box>
+      <TabPanel value={tabValue} index={0}>
+        <TwitterSaveRulesSetting />
+      </TabPanel>
+      <TabPanel value={tabValue} index={1}>
+        <ExportSetting />
+      </TabPanel>
     </div>
   );
 }

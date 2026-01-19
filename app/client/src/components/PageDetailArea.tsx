@@ -577,7 +577,8 @@ const PageDetailArea = ({
                   readLater: detail.page.readLater,
                   librarySaveStatus: detail.page.librarySaveStatus,
                   markRead: detail.page.markRead,
-                  connectorType: detail.page.connectorType
+                  connectorType: detail.page.connectorType,
+                  collectionId: detail.page.collectionId
                 }} onOperateSuccess={operateSuccess}/>
               </Box>
           </div>

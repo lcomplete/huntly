@@ -18,7 +18,7 @@ import { useSnackbar } from 'notistack';
 import SmartMoment from '../components/SmartMoment';
 import Loading from '../components/Loading';
 import SubHeader from '../components/SubHeader';
-import navLabels from '../components/Sidebar/NavLabels';
+import navLabels from '../components/Navigation/shared/NavLabels';
 import PageDetailModal from '../components/PageDetailModal';
 import { setDocTitle } from '../common/docUtils';
 import { useSearchParams, Link } from 'react-router-dom';
@@ -375,6 +375,7 @@ const Highlights: React.FC = () => {
       <SubHeader
         navLabel={navLabels.highlights}
         buttonOptions={{ markRead: false, viewSwitch: false }}
+        defaultSearchKeywords={['highlights']}
         navLabelArea={
           totalCount > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontSize: '0.875rem' }}>

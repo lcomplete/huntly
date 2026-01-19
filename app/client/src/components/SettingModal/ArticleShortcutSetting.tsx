@@ -1,38 +1,40 @@
-import {useSnackbar} from "notistack";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {Button, Switch, Divider, FormControlLabel, IconButton, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, ListItemIcon, Chip, Checkbox} from "@mui/material";
-import React, {useState} from "react";
+import { useSnackbar } from "notistack";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Switch, FormControlLabel, IconButton, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, ListItemIcon, Chip, Checkbox } from "@mui/material";
+import React, { useState } from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DownloadIcon from '@mui/icons-material/Download';
 import Typography from "@mui/material/Typography";
-import {DragDropContext, Droppable, Draggable} from "react-beautiful-dnd";
-import {ArticleShortcut, ArticleShortcutControllerApiFactory} from "../../api";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { ArticleShortcut, ArticleShortcutControllerApiFactory } from "../../api";
+import BoltIcon from '@mui/icons-material/Bolt';
+import SettingSectionTitle from "./SettingSectionTitle";
 
 const ArticleShortcutSetting = () => {
-  const {enqueueSnackbar} = useSnackbar();
+  const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const [editShortcut, setEditShortcut] = useState<ArticleShortcut | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedShortcuts, setSelectedShortcuts] = useState<string[]>([]);
-  
+
   // API client
   const api = ArticleShortcutControllerApiFactory();
-  
+
   // Fetch all shortcuts
-  const {data: shortcuts = []} = useQuery<ArticleShortcut[]>(
+  const { data: shortcuts = [] } = useQuery<ArticleShortcut[]>(
     ["article-shortcuts"],
     async () => {
       const response = await api.getAllShortcutsUsingGET();
       return response.data;
     }
   );
-  
+
   // Fetch importable default shortcuts
-  const {data: importableShortcuts = []} = useQuery<ArticleShortcut[]>(
+  const { data: importableShortcuts = [] } = useQuery<ArticleShortcut[]>(
     ["importable-shortcuts"],
     async () => {
       const response = await api.getImportableDefaultShortcutsUsingGET();
@@ -43,7 +45,7 @@ const ArticleShortcutSetting = () => {
       enabled: isImportModalOpen
     }
   );
-  
+
   // Mutation for saving a shortcut
   const saveShortcutMutation = useMutation(
     async (shortcut: ArticleShortcut) => {
@@ -69,19 +71,19 @@ const ArticleShortcutSetting = () => {
         setIsEditModalOpen(false);
         enqueueSnackbar('Shortcut saved successfully', {
           variant: "success",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error: any) => {
         const errorMessage = error.message || "Failed to save shortcut";
         enqueueSnackbar(errorMessage, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       }
     }
   );
-  
+
   // Mutation for deleting a shortcut
   const deleteShortcutMutation = useMutation(
     async (id: number) => {
@@ -92,18 +94,18 @@ const ArticleShortcutSetting = () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
         enqueueSnackbar('Shortcut deleted successfully', {
           variant: "success",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
         enqueueSnackbar(`Failed to delete shortcut: ${error}`, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       }
     }
   );
-  
+
   // Mutation for importing default shortcuts
   const importShortcutsMutation = useMutation(
     async () => {
@@ -116,18 +118,18 @@ const ArticleShortcutSetting = () => {
         setIsImportModalOpen(false);
         enqueueSnackbar('Default shortcuts imported successfully', {
           variant: "success",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
         enqueueSnackbar(`Failed to import shortcuts: ${error}`, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       }
     }
   );
-  
+
   // Mutation for importing selected shortcuts
   const importSelectedShortcutsMutation = useMutation(
     async (shortcutNames: string[]) => {
@@ -142,18 +144,18 @@ const ArticleShortcutSetting = () => {
         setSelectedShortcuts([]);
         enqueueSnackbar('Selected shortcuts imported successfully', {
           variant: "success",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
         enqueueSnackbar(`Failed to import shortcuts: ${error}`, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       }
     }
   );
-  
+
   // Mutation for batch updating shortcuts (after drag and drop)
   const updateShortcutOrderMutation = useMutation(
     async (updatedShortcuts: ArticleShortcut[]) => {
@@ -176,18 +178,18 @@ const ArticleShortcutSetting = () => {
         const errorMessage = error.message || "Failed to update shortcut order";
         enqueueSnackbar(errorMessage, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
         // Refresh to restore original order
         queryClient.invalidateQueries(["article-shortcuts"]);
       }
     }
   );
-  
+
   // Mutation for toggling a shortcut's enabled status
   const toggleShortcutMutation = useMutation(
     async (shortcut: ArticleShortcut) => {
-      const updatedShortcut = {...shortcut, enabled: !shortcut.enabled};
+      const updatedShortcut = { ...shortcut, enabled: !shortcut.enabled };
       await api.updateShortcutUsingPUT(shortcut.id!, updatedShortcut);
       return updatedShortcut;
     },
@@ -197,18 +199,18 @@ const ArticleShortcutSetting = () => {
         const statusText = data.enabled ? "enabled" : "disabled";
         enqueueSnackbar(`Shortcut "${data.name}" ${statusText} successfully`, {
           variant: "success",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
         enqueueSnackbar(`Failed to update shortcut: ${error}`, {
           variant: "error",
-          anchorOrigin: {vertical: "bottom", horizontal: "center"}
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       }
     }
   );
-  
+
   const handleAddShortcut = () => {
     setEditShortcut({
       name: "",
@@ -219,34 +221,34 @@ const ArticleShortcutSetting = () => {
     } as ArticleShortcut);
     setIsEditModalOpen(true);
   };
-  
+
   const handleEditShortcut = (shortcut: ArticleShortcut) => {
-    setEditShortcut({...shortcut});
+    setEditShortcut({ ...shortcut });
     setIsEditModalOpen(true);
   };
-  
+
   const handleDeleteShortcut = (id: number) => {
     if (window.confirm("Are you sure you want to delete this shortcut?")) {
       deleteShortcutMutation.mutate(id);
     }
   };
-  
+
   const handleSaveShortcut = () => {
     if (!editShortcut || !editShortcut.name || !editShortcut.content) {
       enqueueSnackbar('Name and content are required', {
         variant: "error",
-        anchorOrigin: {vertical: "bottom", horizontal: "center"}
+        anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
       return;
     }
-    
+
     saveShortcutMutation.mutate(editShortcut);
   };
-  
+
   const handleToggleShortcut = (shortcut: ArticleShortcut) => {
     toggleShortcutMutation.mutate(shortcut);
   };
-  
+
   const handleImportDefaults = () => {
     if (selectedShortcuts.length > 0) {
       importSelectedShortcutsMutation.mutate(selectedShortcuts);
@@ -254,12 +256,12 @@ const ArticleShortcutSetting = () => {
       importShortcutsMutation.mutate();
     }
   };
-  
+
   const handleOpenImportModal = () => {
     setSelectedShortcuts([]);
     setIsImportModalOpen(true);
   };
-  
+
   const handleToggleShortcutSelection = (name: string) => {
     setSelectedShortcuts(prev => {
       if (prev.includes(name)) {
@@ -269,7 +271,7 @@ const ArticleShortcutSetting = () => {
       }
     });
   };
-  
+
   const handleSelectAllShortcuts = () => {
     if (selectedShortcuts.length === importableShortcuts.length) {
       setSelectedShortcuts([]);
@@ -277,38 +279,43 @@ const ArticleShortcutSetting = () => {
       setSelectedShortcuts(importableShortcuts.map(s => s.name!));
     }
   };
-  
+
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
-    
+
     const items = Array.from(shortcuts || []);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
-    
+
     // Update sort order
     const updatedItems = items.map((item, index) => ({
       ...item,
       sortOrder: index + 1
     }));
-    
+
     // Optimistically update UI
     queryClient.setQueryData(["article-shortcuts"], updatedItems);
-    
+
     // Send update to server
     updateShortcutOrderMutation.mutate(updatedItems);
   };
-  
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-2">
-        <Typography variant={'h6'} className={''}>
-          Article AI Shortcuts
-        </Typography>
-        <div>
+      <div className="flex justify-between items-center gap-4 pb-3 mb-4 border-b-2 border-transparent"
+        style={{ borderImage: 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, transparent 100%) 1' }}>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl"
+            style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)' }}>
+            <BoltIcon sx={{ fontSize: 20, color: '#fff' }} />
+          </div>
+          <span className="font-semibold text-[#1e293b] text-[1.0625rem]">Article AI Shortcuts</span>
+        </div>
+        <div className="flex gap-2">
           <Button
             startIcon={<DownloadIcon />}
             variant="outlined"
-            className="mr-2"
+            size="small"
             onClick={handleOpenImportModal}
           >
             Import Presets
@@ -316,14 +323,14 @@ const ArticleShortcutSetting = () => {
           <Button
             startIcon={<AddIcon />}
             variant="outlined"
+            size="small"
             onClick={handleAddShortcut}
           >
             Add Shortcut
           </Button>
         </div>
       </div>
-      <Divider />
-      
+
       {/* Shortcut List */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="shortcuts">
@@ -362,17 +369,17 @@ const ArticleShortcutSetting = () => {
                                 {shortcut.name}
                               </Typography>
                               {shortcut.enabled ? (
-                                <Chip 
-                                  size="small" 
-                                  label="Enabled" 
-                                  color="primary" 
+                                <Chip
+                                  size="small"
+                                  label="Enabled"
+                                  color="primary"
                                   variant="outlined"
                                 />
                               ) : (
-                                <Chip 
-                                  size="small" 
-                                  label="Disabled" 
-                                  color="default" 
+                                <Chip
+                                  size="small"
+                                  label="Disabled"
+                                  color="default"
                                   variant="outlined"
                                 />
                               )}
@@ -408,13 +415,13 @@ const ArticleShortcutSetting = () => {
           )}
         </Droppable>
       </DragDropContext>
-      
+
       {shortcuts?.length === 0 && (
         <div className="text-center p-4 text-gray-500">
           No shortcuts found. Add one or import presets.
         </div>
       )}
-      
+
       {/* Edit/Add Shortcut Dialog */}
       <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>
@@ -426,7 +433,7 @@ const ArticleShortcutSetting = () => {
               fullWidth
               label="Name"
               value={editShortcut?.name || ""}
-              onChange={(e) => setEditShortcut({...editShortcut!, name: e.target.value})}
+              onChange={(e) => setEditShortcut({ ...editShortcut!, name: e.target.value })}
               margin="normal"
               required
             />
@@ -436,7 +443,7 @@ const ArticleShortcutSetting = () => {
               fullWidth
               label="Description"
               value={editShortcut?.description || ""}
-              onChange={(e) => setEditShortcut({...editShortcut!, description: e.target.value})}
+              onChange={(e) => setEditShortcut({ ...editShortcut!, description: e.target.value })}
               margin="normal"
             />
           </div>
@@ -445,7 +452,7 @@ const ArticleShortcutSetting = () => {
               fullWidth
               label="Content (Prompt)"
               value={editShortcut?.content || ""}
-              onChange={(e) => setEditShortcut({...editShortcut!, content: e.target.value})}
+              onChange={(e) => setEditShortcut({ ...editShortcut!, content: e.target.value })}
               margin="normal"
               multiline
               rows={10}
@@ -456,7 +463,7 @@ const ArticleShortcutSetting = () => {
             control={
               <Switch
                 checked={editShortcut?.enabled || false}
-                onChange={(e) => setEditShortcut({...editShortcut!, enabled: e.target.checked})}
+                onChange={(e) => setEditShortcut({ ...editShortcut!, enabled: e.target.checked })}
                 color="primary"
               />
             }
@@ -471,7 +478,7 @@ const ArticleShortcutSetting = () => {
           </Button>
         </DialogActions>
       </Dialog>
-      
+
       {/* Import Presets Dialog */}
       <Dialog open={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>Import Preset Shortcuts</DialogTitle>
@@ -480,8 +487,8 @@ const ArticleShortcutSetting = () => {
             <>
               <div className="flex justify-between items-center p-2">
                 <Typography variant="subtitle1">Select shortcuts to import:</Typography>
-                <Button 
-                  size="small" 
+                <Button
+                  size="small"
                   onClick={handleSelectAllShortcuts}
                 >
                   {selectedShortcuts.length === importableShortcuts.length ? 'Deselect All' : 'Select All'}
@@ -489,13 +496,13 @@ const ArticleShortcutSetting = () => {
               </div>
               <List>
                 {importableShortcuts.map((shortcut) => (
-                  <ListItem 
+                  <ListItem
                     key={shortcut.name}
                     button
                     onClick={() => handleToggleShortcutSelection(shortcut.name!)}
                   >
                     <ListItemIcon>
-                      <Checkbox 
+                      <Checkbox
                         edge="start"
                         checked={selectedShortcuts.includes(shortcut.name!)}
                         tabIndex={-1}

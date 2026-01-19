@@ -11,6 +11,7 @@ import com.huntly.server.connector.ConnectorType;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.constant.DocFields;
 import com.huntly.server.domain.entity.Page;
+import com.huntly.server.repository.CollectionRepository;
 import com.huntly.server.repository.PageRepository;
 import com.huntly.server.util.HtmlUtils;
 import com.huntly.server.util.PageSizeUtils;
@@ -44,6 +45,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author lcomplete
@@ -57,12 +59,16 @@ public class LuceneService implements DisposableBean {
 
     private final PageListService pageListService;
 
+    private final CollectionRepository collectionRepository;
+
     private IndexWriter writer;
 
-    public LuceneService(PageRepository pageRepository, PageListService pageListService, HuntlyProperties huntlyProperties) {
+    public LuceneService(PageRepository pageRepository, PageListService pageListService, 
+                         HuntlyProperties huntlyProperties, CollectionRepository collectionRepository) {
         this.pageListService = pageListService;
         indexDirPath = ObjectUtils.defaultIfNull(huntlyProperties.getLuceneDir(), AppConstants.DEFAULT_LUCENE_DIR);
         this.pageRepository = pageRepository;
+        this.collectionRepository = collectionRepository;
     }
 
     @Override
@@ -206,6 +212,14 @@ public class LuceneService implements DisposableBean {
             doc.add(new IntPoint(DocFields.HIGHLIGHT_COUNT, page.getHighlightCount()));
             doc.add(new StoredField(DocFields.HIGHLIGHT_COUNT, page.getHighlightCount()));
         }
+        // Store collectionId: use -1 for unsorted (null collectionId)
+        long collectionIdValue = page.getCollectionId() != null ? page.getCollectionId() : -1L;
+        doc.add(new LongPoint(DocFields.COLLECTION_ID, collectionIdValue));
+        doc.add(new StoredField(DocFields.COLLECTION_ID, collectionIdValue));
+        if (page.getCollectedAt() != null) {
+            doc.add(new LongPoint(DocFields.COLLECTED_AT, page.getCollectedAt().getEpochSecond()));
+            doc.add(new StoredField(DocFields.COLLECTED_AT, page.getCollectedAt().getEpochSecond()));
+        }
         return doc;
     }
 
@@ -265,6 +279,16 @@ public class LuceneService implements DisposableBean {
         }
         if (doc.getField(DocFields.HIGHLIGHT_COUNT) != null) {
             item.setHighlightCount(doc.getField(DocFields.HIGHLIGHT_COUNT).numericValue().intValue());
+        }
+        if (doc.getField(DocFields.COLLECTION_ID) != null) {
+            long collectionIdValue = doc.getField(DocFields.COLLECTION_ID).numericValue().longValue();
+            // -1 represents unsorted (null collectionId)
+            if (collectionIdValue >= 0) {
+                item.setCollectionId(collectionIdValue);
+            }
+        }
+        if (doc.getField(DocFields.COLLECTED_AT) != null) {
+            item.setCollectedAt(Instant.ofEpochSecond(doc.getField(DocFields.COLLECTED_AT).numericValue().longValue()));
         }
         return pageListService.updatePageItemRelationData(item);
     }
@@ -335,6 +359,19 @@ public class LuceneService implements DisposableBean {
                         case HIGHLIGHTS:
                             query = IntPoint.newRangeQuery(DocFields.HIGHLIGHT_COUNT, 1, Integer.MAX_VALUE);
                             break;
+                        case UNSORTED:
+                            // Unsorted: must be in library (librarySaveStatus > 0) AND no collection assigned
+                            // For backward compatibility with old docs that don't have collection_id field:
+                            // Match docs that do NOT have a valid collectionId (>= 1)
+                            BooleanQuery.Builder unsortedBuilder = new BooleanQuery.Builder();
+                            unsortedBuilder.add(IntPoint.newRangeQuery(DocFields.LIBRARY_SAVE_STATUS, 1, Integer.MAX_VALUE), BooleanClause.Occur.MUST);
+                            
+                            // Exclude docs that have a valid collection (collectionId >= 1)
+                            // This covers: collectionId = -1, collectionId = 0, or field doesn't exist (old docs)
+                            unsortedBuilder.add(LongPoint.newRangeQuery(DocFields.COLLECTION_ID, 1L, Long.MAX_VALUE), BooleanClause.Occur.MUST_NOT);
+                            
+                            query = unsortedBuilder.build();
+                            break;
                         default:
                             break;
                     }
@@ -353,6 +390,16 @@ public class LuceneService implements DisposableBean {
                         advancedSearchQueryBuilder.add(query, BooleanClause.Occur.SHOULD);
                     }
                     boolQueryBuilder.add(advancedSearchQueryBuilder.build(), BooleanClause.Occur.MUST);
+                }
+
+                // Filter by collection IDs if specified
+                if (!CollectionUtils.isEmpty(completeSearch.getCollectionIds())) {
+                    var collectionQueryBuilder = new BooleanQuery.Builder();
+                    for (Long collectionId : completeSearch.getCollectionIds()) {
+                        Query collectionQuery = LongPoint.newExactQuery(DocFields.COLLECTION_ID, collectionId);
+                        collectionQueryBuilder.add(collectionQuery, BooleanClause.Occur.SHOULD);
+                    }
+                    boolQueryBuilder.add(collectionQueryBuilder.build(), BooleanClause.Occur.MUST);
                 }
 
                 for (String word : words) {
@@ -401,6 +448,7 @@ public class LuceneService implements DisposableBean {
     private CompleteSearch extractCompleteSearch(String keyword) {
         CompleteSearch completeSearch = new CompleteSearch();
         completeSearch.setAdvancedSearches(new ArrayList<>());
+        completeSearch.setCollectionIds(new ArrayList<>());
         String[] keywords = keyword.split(" ");
         List<String> simpleWords = new ArrayList<>();
         for (String key : keywords) {
@@ -411,6 +459,16 @@ public class LuceneService implements DisposableBean {
                 completeSearch.advancedSearches.add(extractAdvancedSearch(key, DocFields.URL_TEXT, ":"));
             } else if (key.startsWith("author:")) {
                 completeSearch.advancedSearches.add(extractAdvancedSearch(key, DocFields.AUTHOR, ":"));
+            } else if (key.startsWith("collection:")) {
+                String collectionName = key.substring("collection:".length());
+                if (StringUtils.isNotBlank(collectionName)) {
+                    var collections = collectionRepository.findByNameContainingIgnoreCase(collectionName);
+                    if (!collections.isEmpty()) {
+                        completeSearch.getCollectionIds().addAll(
+                            collections.stream().map(c -> c.getId()).collect(Collectors.toList())
+                        );
+                    }
+                }
             } else {
                 simpleWords.add(key);
             }
@@ -462,6 +520,9 @@ public class LuceneService implements DisposableBean {
                         break;
                     case "later":
                         option.setLibrary(SearchOption.Library.READ_LATER);
+                        break;
+                    case "unsorted":
+                        option.setLibrary(SearchOption.Library.UNSORTED);
                         break;
                     case "read":
                         option.setAlreadyRead(true);
@@ -519,6 +580,7 @@ public class LuceneService implements DisposableBean {
     static class CompleteSearch {
         private String keyword;
         private List<AdvancedSearch> advancedSearches;
+        private List<Long> collectionIds;
     }
 
     @Getter

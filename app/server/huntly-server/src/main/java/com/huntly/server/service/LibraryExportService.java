@@ -5,21 +5,23 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.huntly.interfaces.external.dto.HighlightListItem;
 import com.huntly.interfaces.external.dto.LibraryExportInfo;
-import com.huntly.interfaces.external.dto.PageItem;
 import com.huntly.interfaces.external.model.ContentType;
 import com.huntly.interfaces.external.model.LibraryExportStatus;
-import com.huntly.interfaces.external.model.LibrarySaveStatus;
 import com.huntly.interfaces.external.model.TweetProperties;
 import com.huntly.interfaces.external.query.HighlightListQuery;
-import com.huntly.interfaces.external.query.PageListQuery;
-import com.huntly.interfaces.external.query.PageListSort;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.Page;
+import com.huntly.server.domain.vo.CollectionGroupVO;
+import com.huntly.server.domain.vo.CollectionTreeVO;
+import com.huntly.server.domain.vo.CollectionVO;
+import com.huntly.server.mcp.TweetTextParser;
+import com.huntly.server.repository.PageRepository;
 import com.huntly.server.util.HtmlUtils;
 import com.huntly.server.util.MarkdownUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -60,20 +62,20 @@ public class LibraryExportService {
             .withZone(ZoneOffset.UTC);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
-    private final PageListService pageListService;
-    private final PageService pageService;
+    private final PageRepository pageRepository;
     private final PageHighlightService pageHighlightService;
+    private final CollectionService collectionService;
     private final Executor taskExecutor;
     private final ObjectMapper objectMapper;
     private final AtomicReference<LibraryExportJob> currentJob = new AtomicReference<>();
 
-    public LibraryExportService(PageListService pageListService,
-                                PageService pageService,
+    public LibraryExportService(PageRepository pageRepository,
                                 PageHighlightService pageHighlightService,
+                                CollectionService collectionService,
                                 @Qualifier("serviceTaskExecutor") Executor taskExecutor) {
-        this.pageListService = pageListService;
-        this.pageService = pageService;
+        this.pageRepository = pageRepository;
         this.pageHighlightService = pageHighlightService;
+        this.collectionService = collectionService;
         this.taskExecutor = taskExecutor;
         this.objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
@@ -197,41 +199,94 @@ public class LibraryExportService {
     }
 
     private void exportPages(Path exportDir) throws IOException {
-        exportPageCategory(exportDir.resolve("my_list"), buildPageQuery(LibrarySaveStatus.SAVED, null, null, PageListSort.SAVED_AT));
-        exportPageCategory(exportDir.resolve("starred"), buildPageQuery(null, true, null, PageListSort.STARRED_AT));
-        exportPageCategory(exportDir.resolve("read_later"), buildPageQuery(null, null, true, PageListSort.READ_LATER_AT));
-        exportPageCategory(exportDir.resolve("archive"), buildPageQuery(LibrarySaveStatus.ARCHIVED, null, null, PageListSort.ARCHIVED_AT));
-    }
+        CollectionTreeVO tree = collectionService.getTreeWithoutCounts();
 
-    private PageListQuery buildPageQuery(LibrarySaveStatus saveStatus, Boolean starred, Boolean readLater, PageListSort sort) {
-        PageListQuery query = new PageListQuery();
-        query.setCount(EXPORT_PAGE_SIZE);
-        query.setAsc(false);
-        query.setSaveStatus(saveStatus);
-        query.setStarred(starred);
-        query.setReadLater(readLater);
-        query.setSort(sort);
-        return query;
-    }
+        // Export unsorted pages
+        Path unsortedDir = exportDir.resolve("Unsorted");
+        exportUnsortedPages(unsortedDir);
 
-    private void exportPageCategory(Path categoryDir, PageListQuery query) throws IOException {
-        Files.createDirectories(categoryDir);
-        Instant lastRecordAt = null;
-        while (true) {
-            query.setLastRecordAt(lastRecordAt);
-            List<PageItem> items = pageListService.getPageItems(query);
-            if (items.isEmpty()) {
-                break;
-            }
-            for (PageItem item : items) {
-                Page page = pageService.requireOne(item.getId());
-                writePageMarkdown(categoryDir, page);
-            }
-            lastRecordAt = items.get(items.size() - 1).getRecordAt();
-            if (lastRecordAt == null) {
-                break;
+        // Export pages by collection tree structure
+        for (CollectionGroupVO group : tree.getGroups()) {
+            String groupDirName = sanitizeFolderName(group.getName());
+            Path groupDir = exportDir.resolve(groupDirName);
+
+            for (CollectionVO collection : group.getCollections()) {
+                exportCollectionRecursive(groupDir, collection);
             }
         }
+    }
+
+    private void exportUnsortedPages(Path unsortedDir) throws IOException {
+        int pageIndex = 0;
+        while (true) {
+            List<Page> pages = pageRepository.findUnsortedLibraryPages(PageRequest.of(pageIndex, EXPORT_PAGE_SIZE));
+            if (pages.isEmpty()) {
+                break;
+            }
+            // Create directory only if there are pages
+            if (pageIndex == 0) {
+                Files.createDirectories(unsortedDir);
+            }
+            for (Page page : pages) {
+                writePageMarkdown(unsortedDir, page);
+            }
+            if (pages.size() < EXPORT_PAGE_SIZE) {
+                break;
+            }
+            pageIndex++;
+        }
+    }
+
+    private void exportCollectionRecursive(Path parentDir, CollectionVO collection) throws IOException {
+        String collectionDirName = sanitizeFolderName(collection.getName());
+        Path collectionDir = parentDir.resolve(collectionDirName);
+
+        // Export pages in this collection
+        exportCollectionPages(collectionDir, collection.getId());
+
+        // Recursively export child collections
+        for (CollectionVO child : collection.getChildren()) {
+            exportCollectionRecursive(collectionDir, child);
+        }
+    }
+
+    private void exportCollectionPages(Path collectionDir, Long collectionId) throws IOException {
+        int pageIndex = 0;
+        while (true) {
+            List<Page> pages = pageRepository.findByCollectionIdAndLibrarySaveStatusGreaterThanOrderBySavedAtDesc(
+                    collectionId, 0, PageRequest.of(pageIndex, EXPORT_PAGE_SIZE));
+            if (pages.isEmpty()) {
+                break;
+            }
+            // Create directory only if there are pages
+            if (pageIndex == 0) {
+                Files.createDirectories(collectionDir);
+            }
+            for (Page page : pages) {
+                writePageMarkdown(collectionDir, page);
+            }
+            if (pages.size() < EXPORT_PAGE_SIZE) {
+                break;
+            }
+            pageIndex++;
+        }
+    }
+
+    private String sanitizeFolderName(String name) {
+        if (StringUtils.isBlank(name)) {
+            return "Unnamed";
+        }
+        // Remove or replace characters that are problematic for file systems
+        String sanitized = name.replaceAll("[\\\\/:*?\"<>|]", "_");
+        sanitized = sanitized.trim();
+        if (sanitized.isEmpty()) {
+            return "Unnamed";
+        }
+        // Limit length
+        if (sanitized.length() > 100) {
+            sanitized = sanitized.substring(0, 100).trim();
+        }
+        return sanitized;
     }
 
     private void exportHighlights(Path exportDir) throws IOException {
@@ -298,20 +353,43 @@ public class LibraryExportService {
 
     private Map<String, Object> buildPageFrontmatter(Page page, String title) {
         Map<String, Object> frontmatter = new LinkedHashMap<>();
+        boolean isTweet = isTweetType(page);
+
         frontmatter.put("id", page.getId());
-        frontmatter.put("title", title);
+        // Tweet doesn't need title field
+        if (!isTweet) {
+            frontmatter.put("title", title);
+        }
         frontmatter.put("url", page.getUrl());
-        frontmatter.put("author", page.getAuthor());
-        frontmatter.put("authorScreenName", page.getAuthorScreenName());
         frontmatter.put("contentType", resolveContentType(page.getContentType()));
+
+        // Status fields with corresponding time fields (only include time if status is set)
+        if (Boolean.TRUE.equals(page.getStarred())) {
+            frontmatter.put("starred", true);
+            frontmatter.put("starredAt", page.getStarredAt());
+        }
+        if (Boolean.TRUE.equals(page.getReadLater())) {
+            frontmatter.put("readLater", true);
+            frontmatter.put("readLaterAt", page.getReadLaterAt());
+        }
+        if (Boolean.TRUE.equals(page.getMarkRead())) {
+            frontmatter.put("markRead", true);
+        }
+        // Library save status: 1=saved, 2=archived
+        if (page.getLibrarySaveStatus() != null && page.getLibrarySaveStatus() > 0) {
+            frontmatter.put("savedAt", page.getSavedAt());
+            if (page.getLibrarySaveStatus() == 2) {
+                frontmatter.put("archived", true);
+                frontmatter.put("archivedAt", page.getArchivedAt());
+            }
+        }
+
+        // Common time fields
         frontmatter.put("createdAt", page.getCreatedAt());
-        frontmatter.put("savedAt", page.getSavedAt());
-        frontmatter.put("starredAt", page.getStarredAt());
-        frontmatter.put("readLaterAt", page.getReadLaterAt());
-        frontmatter.put("archivedAt", page.getArchivedAt());
         frontmatter.put("connectedAt", page.getConnectedAt());
 
-        if (isTweetType(page)) {
+        // Tweet-specific fields
+        if (isTweet) {
             TweetProperties tweetProps = parseTweetProperties(page.getPageJsonProperties());
             if (tweetProps != null) {
                 TweetProperties mainTweet = tweetProps.getRetweetedTweet() != null ? tweetProps.getRetweetedTweet() : tweetProps;
@@ -323,22 +401,35 @@ public class LibraryExportService {
                 frontmatter.put("retweets", mainTweet.getRetweetCount());
                 frontmatter.put("quotes", mainTweet.getQuoteCount());
                 frontmatter.put("tweetId", mainTweet.getTweetIdStr());
-                frontmatter.put("createdAt", mainTweet.getCreatedAt());
+                frontmatter.put("tweetCreatedAt", mainTweet.getCreatedAt());
                 frontmatter.put("url", mainTweet.getUrl());
             }
+        } else {
+            frontmatter.put("author", page.getAuthor());
         }
+
         return frontmatter;
     }
 
     private String buildPageMarkdown(Page page) {
-        if (page == null || StringUtils.isBlank(page.getContent())) {
+        if (page == null) {
             return "";
         }
 
         if (isTweetType(page)) {
+            // Use TweetTextParser to extract plain text content (same as MCP tools)
+            String tweetText = TweetTextParser.extractPlainText(page.getPageJsonProperties());
+            if (StringUtils.isNotBlank(tweetText)) {
+                return tweetText;
+            }
+            // Fallback: try to render from TweetProperties if extractPlainText fails
             TweetProperties tweetProps = parseTweetProperties(page.getPageJsonProperties());
             String tweetHtml = renderTweetHtml(tweetProps);
             return MarkdownUtils.htmlToMarkdown(tweetHtml);
+        }
+
+        if (StringUtils.isBlank(page.getContent())) {
+            return "";
         }
 
         if (Objects.equals(page.getContentType(), ContentType.MARKDOWN.getCode())) {

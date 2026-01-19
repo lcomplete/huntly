@@ -1,6 +1,6 @@
 import PageList from "../components/PageList";
 import MainContainer from "../components/MainContainer";
-import navLabels from "../components/Sidebar/NavLabels";
+import navLabels from "../components/Navigation/shared/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";
@@ -13,6 +13,8 @@ const MyList = () => {
       label: 'Recently saved'
     }],
     asc: false,
+    includeArchived: false,
+    includeArchivedOption: true
   })
 
   function handleFilterChange(options: PageFilterOptions) {
@@ -28,6 +30,7 @@ const MyList = () => {
                 }}
                 buttonOptions={{markRead: false}}
                 filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}
+                defaultSearchKeywords={['list']}
       />
     </MainContainer>
   )

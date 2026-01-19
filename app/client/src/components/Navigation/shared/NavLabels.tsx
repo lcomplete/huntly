@@ -12,6 +12,7 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import SearchIcon from '@mui/icons-material/Search';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 
 // X (Twitter) Icon Component
 function XIcon(props: SvgIconProps) {
@@ -43,7 +44,8 @@ export type NavLabels = {
   twitter: NavLabel,
   highlights: NavLabel,
   folder: NavLabel,
-  search: NavLabel
+  search: NavLabel,
+  unsorted: NavLabel
 }
 
 export function navLabel(labelText: string, labelIcon: React.ElementType<SvgIconProps>, linkTo?: string, iconColor?: string, showLabel: boolean = true): NavLabel {
@@ -68,7 +70,8 @@ const navLabels: NavLabels = {
   twitter: navLabel('X', XIcon, '/twitter', undefined, false),
   highlights: navLabel('Highlights', FormatQuoteIcon, '/highlights'),
   folder: navLabel('', FolderOpenIcon),
-  search: navLabel('Search', SearchIcon, '/search')
+  search: navLabel('Search', SearchIcon, '/search'),
+  unsorted: navLabel('Unsorted', InboxOutlinedIcon, '/collection/unsorted')
 }
 
 export default navLabels;

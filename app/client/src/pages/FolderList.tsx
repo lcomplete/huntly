@@ -4,7 +4,7 @@ import {useParams} from "react-router-dom";
 import {safeInt} from "../common/typeUtils";
 import {useQuery} from "@tanstack/react-query";
 import {FolderControllerApiFactory, PageControllerApiFactory} from "../api";
-import navLabels from "../components/Sidebar/NavLabels";
+import navLabels from "../components/Navigation/shared/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";

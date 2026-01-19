@@ -16,7 +16,7 @@ import java.time.Instant;
         @Index(name = "idx_page_connector_id", columnList = "connector_id"),
         @Index(name = "idx_page_url", columnList = "url"),
         @Index(name = "idx_page_connector_type", columnList = "connector_type"),
-        @Index(name = "idx_page_content_type", columnList = "content_type"),
+    @Index(name = "idx_page_content_type", columnList = "content_type"),
         @Index(name = "idx_page_folder_id", columnList = "folder_id"),
         @Index(name = "idx_page_library_saved_at", columnList = "library_save_status, saved_at DESC"),
         @Index(name = "idx_page_library_archived_at", columnList = "library_save_status, archived_at DESC"),
@@ -25,7 +25,9 @@ import java.time.Instant;
         @Index(name = "idx_page_last_read_at", columnList = "last_read_at DESC"),
         @Index(name = "idx_page_connected_at", columnList = "connected_at DESC"),
         @Index(name = "idx_page_created_at", columnList = "created_at DESC"),
-        @Index(name = "idx_page_unique_id", columnList = "page_unique_id")
+        @Index(name = "idx_page_unique_id", columnList = "page_unique_id"),
+        @Index(name = "idx_page_collection_id", columnList = "collection_id"),
+        @Index(name = "idx_page_collected_at", columnList = "collected_at DESC")
 })
 @DynamicUpdate
 public class Page implements Serializable {
@@ -69,7 +71,7 @@ public class Page implements Serializable {
 
     @Column(name = "author")
     private String author;
-    
+
     @Column(name = "author_screen_name")
     private String authorScreenName;
 
@@ -90,7 +92,7 @@ public class Page implements Serializable {
 
     @Column(name = "read_cost_seconds")
     private Long readCostSeconds;
-    
+
     @Column(name = "vote_score")
     private Long voteScore;
 
@@ -141,6 +143,20 @@ public class Page implements Serializable {
 
     @Column(name = "highlight_count")
     private Integer highlightCount;
+
+    /**
+     * FK to Collection.id. NULL means the page is "Unsorted" (not in any
+     * collection).
+     */
+    @Column(name = "collection_id")
+    private Long collectionId;
+
+    /**
+     * Timestamp when the page was added to a collection.
+     * Updated when collectionId changes.
+     */
+    @Column(name = "collected_at")
+    private Instant collectedAt;
 
     @Transient
     private String contentText;

@@ -29,6 +29,7 @@ public class SearchOption {
         STARRED,
         READ_LATER,
         ARCHIVE,
-        HIGHLIGHTS
+        HIGHLIGHTS,
+        UNSORTED
     }
 }

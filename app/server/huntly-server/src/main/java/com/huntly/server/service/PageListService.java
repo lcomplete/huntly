@@ -3,6 +3,7 @@ package com.huntly.server.service;
 import com.huntly.interfaces.external.dto.CursorPageResult;
 import com.huntly.interfaces.external.dto.PageItem;
 import com.huntly.interfaces.external.model.ContentType;
+import com.huntly.interfaces.external.model.LibrarySaveStatus;
 import com.huntly.interfaces.external.query.PageListQuery;
 import com.huntly.interfaces.external.query.PageListSort;
 import com.huntly.jpa.spec.Sorts;
@@ -47,7 +48,7 @@ public class PageListService {
     public CursorPageResult getCursorPageResult(PageListQuery listQuery) {
         List<PageItem> pageItems = getPageItems(listQuery);
 
-        //result
+        // result
         CursorPageResult cursorPageResult = new CursorPageResult();
         cursorPageResult.setPageItems(pageItems);
         if (!CollectionUtils.isEmpty(pageItems)) {
@@ -59,31 +60,36 @@ public class PageListService {
     }
 
     public List<PageItem> getPageItems(PageListQuery listQuery) {
-        //query
+        // query
         var listSort = PageListSort.LAST_READ_AT;
         if (listQuery.getSort() != null) {
             listSort = listQuery.getSort();
         }
         var sortField = listSort.getSortField();
-        // For tweets sorted by VOTE_SCORE, use CONNECTED_AT (tweet publish time) for date filtering
+        // For tweets sorted by VOTE_SCORE, use CONNECTED_AT (tweet publish time) for
+        // date filtering
         // For other content types, use CREATED_AT (system creation time)
         var sortFilterField = sortField;
         if (listSort.equals(PageListSort.VOTE_SCORE)) {
             boolean isTweetQuery = (listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2)
                     || listQuery.getContentType() == ContentType.TWEET
                     || listQuery.getContentType() == ContentType.QUOTED_TWEET;
-            sortFilterField = isTweetQuery ? PageListSort.CONNECTED_AT.getSortField() : PageListSort.CREATED_AT.getSortField();
+            sortFilterField = isTweetQuery ? PageListSort.CONNECTED_AT.getSortField()
+                    : PageListSort.CREATED_AT.getSortField();
         }
         var specs = Specifications.<Page>and()
-                .ne(StringUtils.isNotBlank(sortField), sortField, (Object) null)
+                // Skip this filter for multi-field sort (UNSORTED_SAVED_AT) since filterUnsorted handles it
+                .ne(StringUtils.isNotBlank(sortField) && !listSort.isMultiFieldSort(), sortField, (Object) null)
                 .gt(listQuery.getLastRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getLastRecordAt())
                 .lt(listQuery.getLastRecordAt() != null && !listQuery.isAsc(), sortField, listQuery.getLastRecordAt())
                 .lt(listQuery.getFirstRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getFirstRecordAt())
                 .gt(listQuery.getFirstRecordAt() != null && !listQuery.isAsc(), sortField, listQuery.getFirstRecordAt())
                 .gt(listQuery.getLastVoteScore() != null && listQuery.isAsc(), sortField, listQuery.getLastVoteScore())
                 .lt(listQuery.getLastVoteScore() != null && !listQuery.isAsc(), sortField, listQuery.getLastVoteScore())
-                .lt(listQuery.getFirstVoteScore() != null && listQuery.isAsc(), sortField, listQuery.getFirstVoteScore())
-                .gt(listQuery.getFirstVoteScore() != null && !listQuery.isAsc(), sortField, listQuery.getFirstVoteScore())
+                .lt(listQuery.getFirstVoteScore() != null && listQuery.isAsc(), sortField,
+                        listQuery.getFirstVoteScore())
+                .gt(listQuery.getFirstVoteScore() != null && !listQuery.isAsc(), sortField,
+                        listQuery.getFirstVoteScore())
                 .eq(listQuery.getSourceId() > 0, "sourceId", listQuery.getSourceId())
                 .eq(listQuery.getFolderId() > 0, "folderId", listQuery.getFolderId())
                 .eq(listQuery.getConnectorType() != null, "connectorType", listQuery.getConnectorType())
@@ -91,25 +97,60 @@ public class PageListService {
                 .eq(listQuery.getStarred() != null, "starred", listQuery.getStarred())
                 .eq(listQuery.getReadLater() != null, "readLater", listQuery.getReadLater())
                 .eq(listQuery.getMarkRead() != null, "markRead", listQuery.getMarkRead())
-                .eq(listQuery.getSaveStatus() != null, "librarySaveStatus", listQuery.getSaveStatus() != null ? listQuery.getSaveStatus().getCode() : null)
-                .eq(listQuery.getContentType() != null, "contentType", listQuery.getContentType() != null ? listQuery.getContentType().getCode() : null)
-                .in(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2, "contentType", Arrays.asList(ContentType.TWEET.getCode(), ContentType.QUOTED_TWEET.getCode()))
-                .eq(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 4, "contentType", ContentType.SNIPPET.getCode())
-                .predicate(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 1, Specifications.<Page>or()
-                        .eq("contentType", ContentType.BROWSER_HISTORY.getCode())
-                        .eq("contentType", (Object) null)
-                        .build()
-                )
-                .ge(StringUtils.isNotBlank(listQuery.getStartDate()), sortFilterField, convertDateToInstant(listQuery.getStartDate(), 0))
-                .lt(StringUtils.isNotBlank(listQuery.getEndDate()), sortFilterField, listQuery.getEndDate() != null ? convertDateToInstant(listQuery.getEndDate(), 1) : null)
+                // When includeArchived=true and saveStatus=SAVED, include both SAVED and ARCHIVED
+                .predicate(Boolean.TRUE.equals(listQuery.getIncludeArchived())
+                        && listQuery.getSaveStatus() == LibrarySaveStatus.SAVED,
+                        Specifications.<Page>or()
+                                .eq("librarySaveStatus", LibrarySaveStatus.SAVED.getCode())
+                                .eq("librarySaveStatus", LibrarySaveStatus.ARCHIVED.getCode())
+                                .build())
+                // Normal saveStatus filter when not using includeArchived with SAVED
+                .eq(listQuery.getSaveStatus() != null
+                        && !(Boolean.TRUE.equals(listQuery.getIncludeArchived())
+                                && listQuery.getSaveStatus() == LibrarySaveStatus.SAVED),
+                        "librarySaveStatus",
+                        listQuery.getSaveStatus() != null ? listQuery.getSaveStatus().getCode() : null)
+                .eq(listQuery.getContentType() != null, "contentType",
+                        listQuery.getContentType() != null ? listQuery.getContentType().getCode() : null)
+                .in(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 2, "contentType",
+                        Arrays.asList(ContentType.TWEET.getCode(), ContentType.QUOTED_TWEET.getCode()))
+                .eq(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 4, "contentType",
+                        ContentType.SNIPPET.getCode())
+                .predicate(listQuery.getContentFilterType() != null && listQuery.getContentFilterType() == 1,
+                        Specifications.<Page>or()
+                                .eq("contentType", ContentType.BROWSER_HISTORY.getCode())
+                                .eq("contentType", (Object) null)
+                                .build())
+                .ge(StringUtils.isNotBlank(listQuery.getStartDate()), sortFilterField,
+                        convertDateToInstant(listQuery.getStartDate(), 0))
+                .lt(StringUtils.isNotBlank(listQuery.getEndDate()), sortFilterField,
+                        listQuery.getEndDate() != null ? convertDateToInstant(listQuery.getEndDate(), 1) : null)
                 .gt(Boolean.TRUE.equals(listQuery.getHasHighlights()), "highlightCount", 0)
+                .eq(listQuery.getCollectionId() != null, "collectionId", listQuery.getCollectionId())
+                .predicate(Boolean.TRUE.equals(listQuery.getFilterUnsorted()), Specifications.<Page>and()
+                        .eq("collectionId", (Object) null)
+                        .build())
                 .build();
-        var sort = (listQuery.isAsc() ? Sorts.builder().asc(sortField) : Sorts.builder().desc(sortField)).build();
+        // Build sort - handle multi-field sorting for UNSORTED_SAVED_AT
+        org.springframework.data.domain.Sort sort;
+        if (listSort.isMultiFieldSort()) {
+            var sortBuilder = Sorts.builder();
+            for (String field : listSort.getSortFields()) {
+                if (listQuery.isAsc()) {
+                    sortBuilder.asc(field);
+                } else {
+                    sortBuilder.desc(field);
+                }
+            }
+            sort = sortBuilder.build();
+        } else {
+            sort = (listQuery.isAsc() ? Sorts.builder().asc(sortField) : Sorts.builder().desc(sortField)).build();
+        }
         var size = PageSizeUtils.getPageSize(listQuery.getCount());
         List<Page> pages = pageRepository.findAll(specs, size, sort);
-        //todo enhance query
+        // todo enhance query
 
-        //mapper
+        // mapper
         PageListSort finalListSort = listSort;
         List<PageItem> pageItems = pages.stream().map(page -> {
             PageItem item = PageItemMapper.INSTANCE.fromPage(page);
@@ -128,7 +169,8 @@ public class PageListService {
         }
         try {
             // Use system default timezone to be consistent with InstantStringConverter
-            return LocalDate.parse(strDate).atStartOfDay(ZoneId.systemDefault()).toInstant().plus(plusDay, ChronoUnit.DAYS);
+            return LocalDate.parse(strDate).atStartOfDay(ZoneId.systemDefault()).toInstant().plus(plusDay,
+                    ChronoUnit.DAYS);
         } catch (DateTimeParseException e) {
             try {
                 return new SimpleDateFormat("yyyy-MM-dd").parse(strDate).toInstant().plus(plusDay, ChronoUnit.DAYS);
@@ -166,6 +208,5 @@ public class PageListService {
         }
         return item;
     }
-
 
 }

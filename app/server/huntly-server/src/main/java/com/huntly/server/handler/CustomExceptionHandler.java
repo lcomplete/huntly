@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,19 +32,20 @@ public class CustomExceptionHandler {
 
     private ResponseEntity<ErrorResponse> serverErrorResponse(ApiCode apiCode, Exception exception) {
         String message = apiCode.getMessage();
-        //服务端异常需要记录日志
+        // 服务端异常需要记录日志
         log.error(message, exception);
-        //服务端异常使用api code中的message，避免敏感异常信息发送到客户端
-        return new ResponseEntity<>(errorResponse(apiCode, ErrorMessageType.API_CODE, exception), HttpStatus.INTERNAL_SERVER_ERROR);
+        // 服务端异常使用api code中的message，避免敏感异常信息发送到客户端
+        return new ResponseEntity<>(errorResponse(apiCode, ErrorMessageType.API_CODE, exception),
+                HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private ResponseEntity<ErrorResponse> requestErrorResponse(ApiCode apiCode, Exception exception) {
         String message = apiCode.getMessage();
         ErrorMessageType errorMessageType = ErrorMessageType.API_CODE;
-        //客户端请求错误只记录debug日志
+        // 客户端请求错误只记录debug日志
         if (log.isDebugEnabled()) {
             log.debug(message, exception);
-            //开启调试时，客户端异常使用异常中的message
+            // 开启调试时，客户端异常使用异常中的message
             errorMessageType = ErrorMessageType.EXCEPTION;
         }
         return new ResponseEntity<>(errorResponse(apiCode, errorMessageType, exception), HttpStatus.BAD_REQUEST);
@@ -94,6 +94,20 @@ public class CustomExceptionHandler {
     @ExceptionHandler(value = RequestVerifyException.class)
     public ResponseEntity<ErrorResponse> requestVerifyExceptionHandler(RequestVerifyException e) {
         return requestErrorResponse(ApiCode.PARAMETER_EXCEPTION, e);
+    }
+
+    @ExceptionHandler(value = DuplicateRecordException.class)
+    public ResponseEntity<ErrorResponse> duplicateRecordExceptionHandler(DuplicateRecordException e) {
+        ErrorDetail errorDetail = new ErrorDetail();
+        errorDetail.setCode(ApiCode.PARAMETER_EXCEPTION.getCode());
+        errorDetail.setMessage(e.getMessage());
+        errorDetail.setType(e.getClass().getSimpleName());
+
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setError(errorDetail);
+
+        // Return 409 Conflict for duplicate records
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     /**

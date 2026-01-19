@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import "./PrimaryNavigation.css";
 import { Link, useLocation } from 'react-router-dom';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
@@ -15,11 +15,46 @@ import { useNavigation, PrimaryNavItem } from '../../contexts/NavigationContext'
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ConnectorControllerApiFactory, FolderConnectorView, PageControllerApiFactory, ConnectorItem } from '../../api';
 import { ConnectorType } from '../../interfaces/connectorType';
-import LibraryNavTree from '../Sidebar/LibraryNavTree';
-import NavTreeView, { NavTreeViewItem } from '../Sidebar/NavTreeView';
+import { LibraryNavTree, CollectionTree, CollectionContextMenu, GroupContextMenu } from './Library';
+import { CollectionApi, CollectionTreeVO, CollectionVO } from '../../api/collectionApi';
+import { useCollectionDialogs } from './Library/hooks';
+import CollectionEditDialog from '../Dialogs/CollectionEditDialog';
+import DeleteCollectionDialog from '../Dialogs/DeleteCollectionDialog';
+import GroupEditDialog from '../Dialogs/GroupEditDialog';
+import NavTreeView, { NavTreeViewItem } from './shared/NavTreeView';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import navLabels from '../Sidebar/NavLabels';
-import SettingsNavTree from '../Sidebar/SettingsNavTree';
+import navLabels from './shared/NavLabels';
+import { SettingsNav } from './Settings';
+
+// Helper to find sibling collection names (duplicated from LibraryNav for mobile use)
+function findSiblingNames(
+  treeData: CollectionTreeVO | undefined,
+  groupId: number | undefined,
+  parentId: number | undefined
+): string[] {
+  if (!treeData || !groupId) return [];
+
+  const group = treeData.groups.find(g => g.id === groupId);
+  if (!group) return [];
+
+  if (parentId) {
+    // Find parent collection and get its children's names
+    const findInChildren = (collections: CollectionVO[]): string[] => {
+      for (const c of collections) {
+        if (c.id === parentId) {
+          return c.children.map(child => child.name);
+        }
+        const found = findInChildren(c.children);
+        if (found.length > 0) return found;
+      }
+      return [];
+    };
+    return findInChildren(group.collections);
+  } else {
+    // Top-level collections in this group
+    return group.collections.map(c => c.name);
+  }
+}
 
 // X (Twitter) Icon Component
 const XIcon: React.FC<{ className?: string }> = (props) => (
@@ -39,10 +74,23 @@ interface NavItemConfig {
 
 // Mobile menu content for Library - fetches data only when mounted
 const MobileLibraryContent: React.FC<{ selectedNodeId: string }> = ({ selectedNodeId }) => {
+  const dialogs = useCollectionDialogs();
+
   const { data: readLaterCountData } = useQuery(
     ['read-later-count'],
     async () => (await PageControllerApiFactory().getReadLaterCountUsingGET()).data,
   );
+
+  const { data: treeData } = useQuery<CollectionTreeVO>(
+    ['collections-tree'],
+    async () => await CollectionApi.getTree(),
+    { refetchInterval: 30000 }
+  );
+
+  // Calculate sibling names for duplicate validation
+  const siblingNames = useMemo(() => {
+    return findSiblingNames(treeData, dialogs.editingGroupId, dialogs.editingParentId);
+  }, [treeData, dialogs.editingGroupId, dialogs.editingParentId]);
 
   return (
     <>
@@ -50,6 +98,56 @@ const MobileLibraryContent: React.FC<{ selectedNodeId: string }> = ({ selectedNo
       <LibraryNavTree
         selectedNodeId={selectedNodeId}
         readLaterCount={readLaterCountData?.data}
+      />
+
+      <CollectionTree
+        selectedNodeId={selectedNodeId}
+        treeData={treeData || null}
+        onCollectionContextMenu={dialogs.openCollectionMenu}
+        onGroupContextMenu={dialogs.openGroupMenu}
+        onAddGroup={dialogs.openAddGroup}
+      />
+
+      {/* Dialogs */}
+      <CollectionEditDialog
+        open={dialogs.editDialogOpen}
+        collection={dialogs.editingCollection}
+        siblingNames={siblingNames}
+        onClose={dialogs.closeEditDialog}
+        onSave={dialogs.saveCollection}
+      />
+
+      <DeleteCollectionDialog
+        open={dialogs.deleteDialogOpen}
+        collection={dialogs.deletingCollection}
+        onClose={dialogs.closeDeleteDialog}
+        onConfirm={dialogs.confirmDelete}
+      />
+
+      <GroupEditDialog
+        open={dialogs.groupEditDialogOpen}
+        group={dialogs.editingGroup}
+        error={dialogs.groupError}
+        onClose={dialogs.closeGroupEditDialog}
+        onSave={dialogs.saveGroup}
+      />
+
+      {/* Context Menus */}
+      <CollectionContextMenu
+        contextMenu={dialogs.collectionContextMenu}
+        onClose={dialogs.closeCollectionMenu}
+        onEdit={dialogs.openEditCollection}
+        onDelete={dialogs.openDeleteCollection}
+        onAddSubCollection={dialogs.openAddSubCollection}
+      />
+
+      <GroupContextMenu
+        contextMenu={dialogs.groupContextMenu}
+        onClose={dialogs.closeGroupMenu}
+        onEdit={dialogs.openEditGroup}
+        onDelete={dialogs.deleteGroup}
+        onAddCollection={dialogs.addCollectionFromGroup}
+        onAddGroup={dialogs.openAddGroup}
       />
     </>
   );
@@ -132,7 +230,7 @@ const MobileSettingsContent: React.FC<{ selectedNodeId: string }> = ({ selectedN
   return (
     <>
       <div className="mobile-menu-header">Settings</div>
-      <SettingsNavTree selectedNodeId={selectedNodeId} />
+      <SettingsNav selectedNodeId={selectedNodeId} />
     </>
   );
 };
@@ -147,6 +245,7 @@ const getActiveNavFromPath = (
   if (path.startsWith('/page/')) return null;
   if (path === '/' || path === '/recently-read') return 'home';
   if (['/list', '/starred', '/later', '/archive', '/highlights'].includes(path)) return 'saved';
+  if (path.startsWith('/collection/')) return 'saved';
   if (path === '/feeds') return 'feeds';
   if (path === '/twitter') return 'x';
   if (path.startsWith('/settings')) return 'settings';
@@ -316,7 +415,7 @@ const PrimaryNavigation: React.FC = () => {
         anchor="bottom"
         open={mobileMenuOpen !== null}
         onClose={closeMobileMenu}
-        onOpen={() => {}}
+        onOpen={() => { }}
         disableSwipeToOpen={true}
         swipeAreaWidth={0}
         PaperProps={{
