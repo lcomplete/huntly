@@ -37,10 +37,19 @@ public class TwitterUserSetting implements Serializable {
     
     @Column(name = "is_myself")
     private Boolean myself;
-    
+
+    @Column(name = "tweet_to_collection_id")
+    private Long tweetToCollectionId;
+
+    @Column(name = "bookmark_to_collection_id")
+    private Long bookmarkToCollectionId;
+
+    @Column(name = "like_to_collection_id")
+    private Long likeToCollectionId;
+
     @Column(name = "created_at")
     private Instant createdAt;
-    
+
     @Column(name = "updated_at")
     private Instant updatedAt;
 }
