@@ -207,6 +207,14 @@ const CollectionItemContent: React.FC<{
     onContextMenu?.(e, collection);
   };
 
+  // Handle click - if already selected and has children, toggle expand/collapse instead of navigating
+  const handleClick = (e: React.MouseEvent) => {
+    if (isSelected && hasChildren) {
+      e.preventDefault();
+      onToggleCollection(collection.id);
+    }
+  };
+
   // Indentation: align child arrow with parent icon center
   // Arrow: ml -2.5 (20px left) + width 16px + mr 0.25 (2px) = icon starts at -2px
   // Icon width 20px, center at 8px from content start
@@ -220,6 +228,7 @@ const CollectionItemContent: React.FC<{
         to={linkTo}
         style={{ textDecoration: 'none' }}
         onContextMenu={handleContextMenu}
+        onClick={handleClick}
       >
         <Box
           sx={{

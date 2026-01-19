@@ -323,6 +323,7 @@ export default function PageFilters(props: PageFilterProps) {
     READ_LATER_AT: <WatchLaterOutlined fontSize="small" />,
     SAVED_AT: <BookmarkBorderOutlined fontSize="small" />,
     STARRED_AT: <StarOutlineOutlined fontSize="small" />,
+    UNSORTED_SAVED_AT: <BookmarkBorderOutlined fontSize="small" />,
     VOTE_SCORE: <WhatshotOutlined fontSize="small" />
   };
   const activeContentIcon = contentIconMap[contentFilterType || 0];

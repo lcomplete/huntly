@@ -457,8 +457,8 @@ const PageList = (props: PageListProps) => {
                   defaultSearchKeywords={defaultSearchKeywords}
                   defaultSearchText={defaultSearchText}/>
        <div className={'flex flex-auto overflow-hidden'}>
-        <div className="page-list-container p-2 flex flex-col grow items-center min-w-0">
-          <div className={'page-list w-full max-w-[720px] flex flex-col items-center'} ref={pageListRef}>
+        <div className="page-list-container p-2 flex flex-col grow items-center min-w-0 overflow-y-auto overflow-x-hidden">
+          <div className={'page-list w-full max-w-[720px] flex flex-col items-center min-h-[400px]'} ref={pageListRef}>
             {showDoneTip && <div className={'w-full'}>
                 <TransitionAlert severity="info">
                     You've read all articles in this section.

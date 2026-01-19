@@ -24,7 +24,7 @@ export interface PageListOptions {
     markRead?: boolean;
     readLater?: boolean;
     saveStatus?: 'ARCHIVED' | 'NOT_SAVED' | 'SAVED';
-    sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'VOTE_SCORE';
+    sort?: 'ARCHIVED_AT' | 'COLLECTED_AT' | 'CONNECTED_AT' | 'CREATED_AT' | 'LAST_READ_AT' | 'READ_LATER_AT' | 'SAVED_AT' | 'STARRED_AT' | 'UNSORTED_SAVED_AT' | 'VOTE_SCORE';
     sourceId?: number;
     starred?: boolean;
     startDate?: string;

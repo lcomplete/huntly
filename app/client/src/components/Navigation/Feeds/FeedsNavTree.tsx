@@ -275,15 +275,21 @@ const FolderItem: React.FC<{
   folder: FolderConnectors;
   selectedNodeId: string;
   expanded: boolean;
+  showUnreadOnly?: boolean;
   onToggle: () => void;
   onContextMenu?: (event: React.MouseEvent, folder: Folder) => void;
   onFeedContextMenu?: (event: React.MouseEvent, feed: ConnectorItem) => void;
-}> = ({ folder, selectedNodeId, expanded, onToggle, onContextMenu, onFeedContextMenu }) => {
+}> = ({ folder, selectedNodeId, expanded, showUnreadOnly = false, onToggle, onContextMenu, onFeedContextMenu }) => {
   const [hovered, setHovered] = useState(false);
   const linkTo = '/folder/' + folder.id;
   const isSelected = selectedNodeId === linkTo;
   const inboxCount = folder.connectorItems?.reduce((sum, f) => sum + (f.inboxCount || 0), 0) || 0;
-  const hasChildren = folder.connectorItems && folder.connectorItems.length > 0;
+  
+  // Filter feeds by unread if needed
+  const filteredFeeds = showUnreadOnly
+    ? folder.connectorItems?.filter((feed) => (feed.inboxCount || 0) > 0)
+    : folder.connectorItems;
+  const hasChildren = filteredFeeds && filteredFeeds.length > 0;
 
   const handleExpand = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -298,9 +304,17 @@ const FolderItem: React.FC<{
     }
   };
 
+  // Handle click - if already selected and has children, toggle expand/collapse instead of navigating
+  const handleClick = (e: React.MouseEvent) => {
+    if (isSelected && hasChildren) {
+      e.preventDefault();
+      onToggle();
+    }
+  };
+
   return (
     <>
-      <NavLink to={linkTo} style={{ textDecoration: 'none' }} onContextMenu={handleContextMenu}>
+      <NavLink to={linkTo} style={{ textDecoration: 'none' }} onContextMenu={handleContextMenu} onClick={handleClick}>
         <Box
           sx={{
             display: 'flex',
@@ -408,7 +422,7 @@ const FolderItem: React.FC<{
           <Droppable droppableId={`folder-${folder.id}`} type={`FEEDS-${folder.id}`}>
             {(provided) => (
               <Box ref={provided.innerRef} {...provided.droppableProps} sx={{ minHeight: 4 }}>
-                {folder.connectorItems.map((feed, index) => (
+                {filteredFeeds.map((feed, index) => (
                   <Draggable key={feed.id} draggableId={`feed-${feed.id}`} index={index}>
                     {(dragProvided, snapshot) => (
                       <Box
@@ -668,6 +682,7 @@ export default function FeedsNavTree({
                             folder={folder}
                             selectedNodeId={selectedNodeId}
                             expanded={isExpanded}
+                            showUnreadOnly={showUnreadOnly}
                             onToggle={() => handleToggleFolder(folder.id!)}
                             onContextMenu={onFolderContextMenu}
                             onFeedContextMenu={onFeedContextMenu}

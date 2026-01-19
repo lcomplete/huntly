@@ -40,11 +40,11 @@ const CollectionList = () => {
     const [collection, setCollection] = useState<Collection | null>(null);
     const isUnsorted = id === 'unsorted';
 
-    // Use SAVED_AT for unsorted (like My List), COLLECTED_AT for regular collections
+    // Use UNSORTED_SAVED_AT for unsorted (fallback: collectedAt -> savedAt -> archivedAt), COLLECTED_AT for regular collections
     const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>(() => ({
-        defaultSortValue: isUnsorted ? 'SAVED_AT' : 'COLLECTED_AT',
+        defaultSortValue: isUnsorted ? 'UNSORTED_SAVED_AT' : 'COLLECTED_AT',
         sortFields: [{
-            value: isUnsorted ? 'SAVED_AT' : 'COLLECTED_AT',
+            value: isUnsorted ? 'UNSORTED_SAVED_AT' : 'COLLECTED_AT',
             label: isUnsorted ? 'Recently saved' : 'Recently collected'
         }],
         asc: false,
@@ -56,8 +56,8 @@ const CollectionList = () => {
         if (isUnsorted) {
             setCollection({ id: 0, name: "Unsorted", groupId: 0, displaySequence: 0 });
             setPageFilterOptions({
-                defaultSortValue: 'SAVED_AT',
-                sortFields: [{ value: 'SAVED_AT', label: 'Recently saved' }],
+                defaultSortValue: 'UNSORTED_SAVED_AT',
+                sortFields: [{ value: 'UNSORTED_SAVED_AT', label: 'Recently saved' }],
                 asc: false,
                 includeArchived: true,
                 includeArchivedOption: true,
