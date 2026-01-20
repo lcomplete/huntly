@@ -24,4 +24,15 @@ public abstract class InfoConnector {
     public abstract List<CapturePage> fetchAllPages();
 
     public abstract CapturePage fetchPageContent(CapturePage capturePage);
+
+    /**
+     * Fetch newest pages with HTTP 304 cache support.
+     * Default implementation delegates to fetchNewestPages() without cache support.
+     *
+     * @return FetchPagesResult containing pages and cache headers
+     */
+    public FetchPagesResult fetchNewestPagesWithCache() {
+        List<CapturePage> pages = fetchNewestPages();
+        return FetchPagesResult.of(pages, null, null);
+    }
 }

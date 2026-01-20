@@ -13,12 +13,16 @@ import java.time.Instant;
 @Setter
 public class ConnectorProperties {
     private Instant lastFetchAt;
-    
+
     private String subscribeUrl;
-    
+
     private String apiToken;
 
     private Boolean crawlFullContent;
-    
+
     private ProxySetting proxySetting;
+
+    private String httpEtag;
+
+    private String httpLastModified;
 }

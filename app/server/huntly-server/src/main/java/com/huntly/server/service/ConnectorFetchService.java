@@ -47,7 +47,9 @@ public class ConnectorFetchService {
 
     ThreadPoolExecutor fetchExecutor;
 
-    public ConnectorFetchService(HuntlyProperties huntlyProperties, ConnectorService connectorService, CapturePageService capturePageService, PageArticleContentService pageArticleContentService, EventPublisher eventPublisher, GlobalSettingService globalSettingService, PageService pageService) {
+    public ConnectorFetchService(HuntlyProperties huntlyProperties, ConnectorService connectorService,
+            CapturePageService capturePageService, PageArticleContentService pageArticleContentService,
+            EventPublisher eventPublisher, GlobalSettingService globalSettingService, PageService pageService) {
         this.huntlyProperties = huntlyProperties;
         this.connectorService = connectorService;
         this.capturePageService = capturePageService;
@@ -57,12 +59,13 @@ public class ConnectorFetchService {
         inProcessConnectorIds = Collections.synchronizedSet(new HashSet<>());
 
         fetchExecutor = new ThreadPoolExecutor(
-                ObjectUtils.defaultIfNull(huntlyProperties.getConnectorFetchCorePoolSize(), AppConstants.DEFAULT_CONNECTOR_FETCH_CORE_POOL_SIZE),
-                ObjectUtils.defaultIfNull(huntlyProperties.getConnectorFetchMaxPoolSize(), AppConstants.DEFAULT_CONNECTOR_FETCH_MAX_POOL_SIZE),
+                ObjectUtils.defaultIfNull(huntlyProperties.getConnectorFetchCorePoolSize(),
+                        AppConstants.DEFAULT_CONNECTOR_FETCH_CORE_POOL_SIZE),
+                ObjectUtils.defaultIfNull(huntlyProperties.getConnectorFetchMaxPoolSize(),
+                        AppConstants.DEFAULT_CONNECTOR_FETCH_MAX_POOL_SIZE),
                 300, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(10000),
-                r -> new Thread(r, "connector_fetch_thread")
-        );
+                r -> new Thread(r, "connector_fetch_thread"));
     }
 
     public void fetchAllConnectPages() {
@@ -118,14 +121,44 @@ public class ConnectorFetchService {
 
     private void fetchPages(Connector connector) {
         var connectorProperties = connectorService.getConnectorProperties(connector.getId());
-        InfoConnector infoConnector = InfoConnectorFactory.createInfoConnector(connector.getType(), connectorProperties);
+        InfoConnector infoConnector = InfoConnectorFactory.createInfoConnector(connector.getType(),
+                connectorProperties);
         if (infoConnector == null) {
             return;
         }
-        var pages = connector.getLastFetchBeginAt() == null ? infoConnector.fetchAllPages() : infoConnector.fetchNewestPages();
-        boolean inboxChangedTriggered = false;
+
         boolean isRssFetch = Objects.equals(connector.getType(), ConnectorType.RSS.getCode());
         boolean isGithubFetch = Objects.equals(connector.getType(), ConnectorType.GITHUB.getCode());
+
+        List<CapturePage> pages;
+
+        // For RSS feeds, use cache-aware fetching (HTTP 304 support)
+        if (isRssFetch && connector.getLastFetchBeginAt() != null) {
+            var fetchResult = infoConnector.fetchNewestPagesWithCache();
+
+            // If feed was not modified (HTTP 304), we can skip processing
+            if (fetchResult.isNotModified()) {
+                log.info("Feed not modified (HTTP 304), skipping: {}", connector.getName());
+                return;
+            }
+
+            pages = fetchResult.getPages() != null ? fetchResult.getPages() : new ArrayList<>();
+
+            // Update HTTP cache headers for future conditional requests
+            if (StringUtils.isNotBlank(fetchResult.getHttpEtag())
+                    || StringUtils.isNotBlank(fetchResult.getHttpLastModified())) {
+                connectorService.updateHttpCacheHeaders(
+                        connector.getId(),
+                        fetchResult.getHttpEtag(),
+                        fetchResult.getHttpLastModified());
+            }
+        } else {
+            // For first fetch or non-RSS connectors, use regular fetch
+            pages = connector.getLastFetchBeginAt() == null ? infoConnector.fetchAllPages()
+                    : infoConnector.fetchNewestPages();
+        }
+
+        boolean inboxChangedTriggered = false;
 
         for (CapturePage page : pages) {
             page.setConnectorId(connector.getId());
@@ -152,15 +185,18 @@ public class ConnectorFetchService {
             }
 
             Page savedPage = null;
-            //Avoid frequent updates of RSS articles.
-            if (isRssFetch && existPage != null && Objects.equals(existPage.getConnectorId(), page.getConnectorId()) && Objects.equals(existPage.getTitle(), page.getTitle()) && Objects.equals(existPage.getConnectedAt(), page.getConnectedAt())) {
+            // Avoid frequent updates of RSS articles.
+            if (isRssFetch && existPage != null && Objects.equals(existPage.getConnectorId(), page.getConnectorId())
+                    && Objects.equals(existPage.getTitle(), page.getTitle())
+                    && Objects.equals(existPage.getConnectedAt(), page.getConnectedAt())) {
                 savedPage = existPage;
             } else {
                 savedPage = capturePageService.save(page);
             }
 
             if (isRssFetch && isExecuteFetch) {
-                pageArticleContentService.saveContent(savedPage.getId(), rawContent, ArticleContentCategory.RAW_CONTENT);
+                pageArticleContentService.saveContent(savedPage.getId(), rawContent,
+                        ArticleContentCategory.RAW_CONTENT);
             }
 
             if (savedPage.getMarkRead() == null || Objects.equals(savedPage.getMarkRead(), false)) {
@@ -177,7 +213,8 @@ public class ConnectorFetchService {
         // update rss connector site icon
         if (isRssFetch) {
             if (StringUtils.isBlank(connector.getIconUrl())) {
-                var icon = SiteUtils.getFaviconFromHome(connector.getSubscribeUrl(), HttpUtils.buildHttpClient(globalSettingService.getProxySetting(), 10));
+                var icon = SiteUtils.getFaviconFromHome(connector.getSubscribeUrl(),
+                        HttpUtils.buildHttpClient(globalSettingService.getProxySetting(), 10));
                 if (icon != null) {
                     connectorService.updateIconUrl(connector.getId(), icon.getIconUrl());
                 }
@@ -199,7 +236,9 @@ public class ConnectorFetchService {
         if (connector == null) {
             return false;
         }
-        Integer fetchIntervalSeconds = ObjectUtils.defaultIfNull(connector.getFetchIntervalSeconds(), huntlyProperties.getDefaultFeedFetchIntervalSeconds());
-        return connector.getLastFetchBeginAt() == null || connector.getLastFetchBeginAt().plusSeconds(fetchIntervalSeconds).isBefore(Instant.now());
+        Integer fetchIntervalSeconds = ObjectUtils.defaultIfNull(connector.getFetchIntervalSeconds(),
+                huntlyProperties.getDefaultFeedFetchIntervalSeconds());
+        return connector.getLastFetchBeginAt() == null
+                || connector.getLastFetchBeginAt().plusSeconds(fetchIntervalSeconds).isBefore(Instant.now());
     }
 }

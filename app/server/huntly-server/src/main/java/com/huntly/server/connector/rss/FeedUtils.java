@@ -23,23 +23,55 @@ import java.nio.charset.Charset;
  */
 @UtilityClass
 public class FeedUtils {
-    public static SyndFeed parseFeedUrl(String feedUrl, OkHttpClient client) {
-        Request request = new Request.Builder()
-                .url(feedUrl)
-                .build();
-        try(Response response = client.newCall(request).execute()) {
-            byte[] xmlBytes = null;
+
+    private static final int HTTP_NOT_MODIFIED = 304;
+
+    /**
+     * Fetch feed with conditional request support (HTTP 304).
+     *
+     * @param feedUrl      The feed URL to fetch
+     * @param client       The OkHttp client
+     * @param etag         The ETag from previous request (can be null)
+     * @param lastModified The Last-Modified from previous request (can be null)
+     * @return FeedFetchResult containing the feed or notModified flag
+     */
+    public static FeedFetchResult fetchFeed(String feedUrl, OkHttpClient client, String etag, String lastModified) {
+        Request.Builder requestBuilder = new Request.Builder().url(feedUrl);
+
+        // Add conditional request headers if available
+        if (StringUtils.isNotBlank(etag)) {
+            requestBuilder.header("If-None-Match", etag);
+        }
+        if (StringUtils.isNotBlank(lastModified)) {
+            requestBuilder.header("If-Modified-Since", lastModified);
+        }
+
+        Request request = requestBuilder.build();
+
+        try (Response response = client.newCall(request).execute()) {
+            // Check for 304 Not Modified
+            if (response.code() == HTTP_NOT_MODIFIED) {
+                return FeedFetchResult.notModified();
+            }
+
             if (response.body() == null) {
                 throw new ConnectorFetchException("xml response null for url: " + feedUrl);
             }
 
-            xmlBytes = response.body().bytes();
+            byte[] xmlBytes = response.body().bytes();
             Charset encoding = FeedUtils.guessEncoding(xmlBytes);
             String xmlString = XmlUtils.removeInvalidXmlCharacters(new String(xmlBytes, encoding));
             if (xmlString == null) {
                 throw new ConnectorFetchException("xml fetch failed for url: " + feedUrl);
             }
-            return new SyndFeedInput().build(new StringReader(xmlString));
+
+            SyndFeed feed = new SyndFeedInput().build(new StringReader(xmlString));
+
+            // Extract cache headers from response
+            String responseEtag = response.header("ETag");
+            String responseLastModified = response.header("Last-Modified");
+
+            return FeedFetchResult.of(feed, responseEtag, responseLastModified);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (FeedException e) {
@@ -47,37 +79,48 @@ public class FeedUtils {
         }
     }
 
-//    public static SyndFeed parseFeedUrl(String feedUrl, HttpClient client) {
-//        HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(feedUrl))
-//                .build();
-//        HttpResponse<byte[]> response = null;
-//        try {
-//            response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//        var xmlBytes = response.body();
-//        Charset encoding = FeedUtils.guessEncoding(xmlBytes);
-//        String xmlString = XmlUtils.removeInvalidXmlCharacters(new String(xmlBytes, encoding));
-//        if (xmlString == null) {
-//            throw new ConnectorFetchException("xml fetch failed for url: " + feedUrl);
-//        }
-//
-//        try {
-//            SyndFeed feed = new SyndFeedInput().build(new StringReader(xmlString));
-//            return feed;
-//        } catch (FeedException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
+    /**
+     * @deprecated Use {@link #fetchFeed(String, OkHttpClient, String, String)} for
+     *             HTTP 304 support
+     */
+    @Deprecated
+    public static SyndFeed parseFeedUrl(String feedUrl, OkHttpClient client) {
+        FeedFetchResult result = fetchFeed(feedUrl, client, null, null);
+        return result.getFeed();
+    }
 
-//    public static SyndFeed parseFeedUrl(String feedUrl) {
-//        var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60))
-//                .followRedirects(HttpClient.Redirect.ALWAYS).build();
-//        return parseFeedUrl(feedUrl, client);
-//    }
+    // public static SyndFeed parseFeedUrl(String feedUrl, HttpClient client) {
+    // HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(feedUrl))
+    // .build();
+    // HttpResponse<byte[]> response = null;
+    // try {
+    // response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+    // } catch (IOException e) {
+    // throw new RuntimeException(e);
+    // } catch (InterruptedException e) {
+    // throw new RuntimeException(e);
+    // }
+    // var xmlBytes = response.body();
+    // Charset encoding = FeedUtils.guessEncoding(xmlBytes);
+    // String xmlString = XmlUtils.removeInvalidXmlCharacters(new String(xmlBytes,
+    // encoding));
+    // if (xmlString == null) {
+    // throw new ConnectorFetchException("xml fetch failed for url: " + feedUrl);
+    // }
+    //
+    // try {
+    // SyndFeed feed = new SyndFeedInput().build(new StringReader(xmlString));
+    // return feed;
+    // } catch (FeedException e) {
+    // throw new RuntimeException(e);
+    // }
+    // }
+
+    // public static SyndFeed parseFeedUrl(String feedUrl) {
+    // var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60))
+    // .followRedirects(HttpClient.Redirect.ALWAYS).build();
+    // return parseFeedUrl(feedUrl, client);
+    // }
 
     public static Charset guessEncoding(byte[] bytes) {
         String extracted = extractDeclaredEncoding(bytes);
