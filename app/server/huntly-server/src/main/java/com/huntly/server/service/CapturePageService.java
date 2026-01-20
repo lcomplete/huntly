@@ -208,13 +208,16 @@ public class CapturePageService extends BasePageService {
                     default:
                         break;
                 }
+                if(page.getCollectedAt() == null) {
+                    page.setCollectedAt(Instant.now());
+                }
             }
 
-            // Set collection if configured
-            if (collectionId != null && page.getCollectionId() == null) {
+            if (collectionId != null) {
                 page.setCollectionId(collectionId);
+                // Ensure collectedAt is set when collectionId is set
                 if (page.getCollectedAt() == null) {
-                    page.setCollectedAt(Instant.now());
+                    page.setCollectedAt(page.getCreatedAt() != null ? page.getCreatedAt() : Instant.now());
                 }
             }
         }

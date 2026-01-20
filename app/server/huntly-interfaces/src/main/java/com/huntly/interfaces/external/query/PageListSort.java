@@ -23,36 +23,21 @@ public enum PageListSort {
     COLLECTED_AT("collectedAt"),
 
     /**
-     * For unsorted pages only: sorts by collectedAt, savedAt, archivedAt in order.
-     * Uses multiple sort fields for proper ordering.
+     * For unsorted pages only: sorts by createdAt which always exists.
      */
-    UNSORTED_SAVED_AT("collectedAt", "savedAt", "archivedAt");
+    UNSORTED_SAVED_AT("createdAt");
 
-    private final String[] sortFields;
+    private final String sortField;
 
-    PageListSort(String... sortFields) {
-        this.sortFields = sortFields;
+    PageListSort(String sortField) {
+        this.sortField = sortField;
     }
 
     /**
-     * Returns the primary sort field.
+     * Returns the sort field.
      */
     public String getSortField() {
-        return sortFields[0];
-    }
-
-    /**
-     * Returns all sort fields for multi-field sorting.
-     */
-    public String[] getSortFields() {
-        return sortFields;
-    }
-
-    /**
-     * Returns true if this sort uses multiple fields.
-     */
-    public boolean isMultiFieldSort() {
-        return sortFields.length > 1;
+        return sortField;
     }
 
     static PageListSort valueOfSort(String sort) {

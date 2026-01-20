@@ -34,7 +34,7 @@ const sortLabelMap: Record<SORT_VALUE, string> = {
   'CONNECTED_AT': 'Published',
   'VOTE_SCORE': 'Created',
   'COLLECTED_AT': 'Collected',
-  'UNSORTED_SAVED_AT': 'Collected',
+  'UNSORTED_SAVED_AT': 'Created',
 };
 
 type MagazineItemProps = {
