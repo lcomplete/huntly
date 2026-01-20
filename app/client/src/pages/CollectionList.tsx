@@ -40,7 +40,7 @@ const CollectionList = () => {
     const [collection, setCollection] = useState<Collection | null>(null);
     const isUnsorted = id === 'unsorted';
 
-    // Use UNSORTED_SAVED_AT for unsorted (fallback: collectedAt -> savedAt -> archivedAt), COLLECTED_AT for regular collections
+    // Use UNSORTED_SAVED_AT for unsorted (uses createdAt), COLLECTED_AT for regular collections
     const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>(() => ({
         defaultSortValue: isUnsorted ? 'UNSORTED_SAVED_AT' : 'COLLECTED_AT',
         sortFields: [{

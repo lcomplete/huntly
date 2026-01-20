@@ -40,8 +40,8 @@ public interface PageItemMapper {
                 item.setRecordAt(page.getCollectedAt());
                 break;
             case UNSORTED_SAVED_AT:
-                // Fallback: collectedAt -> savedAt -> archivedAt
-                item.setRecordAt(coalesce(page.getCollectedAt(), page.getSavedAt(), page.getArchivedAt()));
+                // Use createdAt which always exists
+                item.setRecordAt(page.getCreatedAt());
                 break;
             case LAST_READ_AT:
             default:
@@ -49,15 +49,6 @@ public interface PageItemMapper {
                 break;
         }
         return item;
-    }
-
-    default java.time.Instant coalesce(java.time.Instant... values) {
-        for (java.time.Instant value : values) {
-            if (value != null) {
-                return value;
-            }
-        }
-        return null;
     }
 
     default PageItem updateFromSource(@MappingTarget PageItem pageItem, Source source) {

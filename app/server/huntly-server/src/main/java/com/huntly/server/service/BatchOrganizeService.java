@@ -142,11 +142,17 @@ public class BatchOrganizeService {
 
         // Handle collectedAt based on mode
         if ("USE_PUBLISH_TIME".equals(mode)) {
-            // Set collectedAt to publish time (connectedAt), fallback to original collectedAt if null
+            // Set collectedAt to publish time (connectedAt), fallback to original collectedAt, then createdAt
             update.set(root.<Instant>get("collectedAt"),
-                    cb.coalesce(root.<Instant>get("connectedAt"), root.<Instant>get("collectedAt")).as(Instant.class));
+                    cb.coalesce(
+                            cb.coalesce(root.<Instant>get("connectedAt"), root.<Instant>get("collectedAt")),
+                            root.<Instant>get("createdAt")
+                    ).as(Instant.class));
+        } else {
+            // KEEP mode: keep original collectedAt, fallback to createdAt if null
+            update.set(root.<Instant>get("collectedAt"),
+                    cb.coalesce(root.<Instant>get("collectedAt"), root.<Instant>get("createdAt")).as(Instant.class));
         }
-        // KEEP mode: don't modify collectedAt
 
         int updated = entityManager.createQuery(update).executeUpdate();
         return BatchMoveResult.of(updated, updated);

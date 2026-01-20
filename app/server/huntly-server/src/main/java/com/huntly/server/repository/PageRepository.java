@@ -116,23 +116,26 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
     List<Page> findUnsortedLibraryPages(Pageable pageable);
 
     /**
-     * Batch update collection only, keeping original collectedAt.
-     * Used for pages already in library.
-     */
-    @Transactional
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE Page p SET p.collectionId = :collectionId WHERE p.id IN :ids")
-    int batchUpdateCollection(@Param("ids") List<Long> ids, @Param("collectionId") Long collectionId);
-
-    /**
-     * Batch update collection and set collectedAt to connectedAt (publish time).
-     * Fallback to original collectedAt if connectedAt is null.
+     * Batch update collection and ensure collectedAt is set.
+     * Keeps original collectedAt if exists, otherwise uses createdAt as fallback.
      * Used for pages already in library.
      */
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Page p SET p.collectionId = :collectionId, " +
-           "p.collectedAt = COALESCE(p.connectedAt, p.collectedAt) " +
+           "p.collectedAt = COALESCE(p.collectedAt, p.createdAt) " +
+           "WHERE p.id IN :ids")
+    int batchUpdateCollection(@Param("ids") List<Long> ids, @Param("collectionId") Long collectionId);
+
+    /**
+     * Batch update collection and set collectedAt to connectedAt (publish time).
+     * Fallback to original collectedAt, then createdAt if connectedAt is null.
+     * Used for pages already in library.
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Page p SET p.collectionId = :collectionId, " +
+           "p.collectedAt = COALESCE(p.connectedAt, p.collectedAt, p.createdAt) " +
            "WHERE p.id IN :ids")
     int batchUpdateCollectionWithPublishTime(@Param("ids") List<Long> ids, @Param("collectionId") Long collectionId);
 }

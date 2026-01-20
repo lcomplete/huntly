@@ -78,8 +78,7 @@ public class PageListService {
                     : PageListSort.CREATED_AT.getSortField();
         }
         var specs = Specifications.<Page>and()
-                // Skip this filter for multi-field sort (UNSORTED_SAVED_AT) since filterUnsorted handles it
-                .ne(StringUtils.isNotBlank(sortField) && !listSort.isMultiFieldSort(), sortField, (Object) null)
+                .ne(StringUtils.isNotBlank(sortField), sortField, (Object) null)
                 .gt(listQuery.getLastRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getLastRecordAt())
                 .lt(listQuery.getLastRecordAt() != null && !listQuery.isAsc(), sortField, listQuery.getLastRecordAt())
                 .lt(listQuery.getFirstRecordAt() != null && listQuery.isAsc(), sortField, listQuery.getFirstRecordAt())
@@ -131,21 +130,7 @@ public class PageListService {
                         .eq("collectionId", (Object) null)
                         .build())
                 .build();
-        // Build sort - handle multi-field sorting for UNSORTED_SAVED_AT
-        org.springframework.data.domain.Sort sort;
-        if (listSort.isMultiFieldSort()) {
-            var sortBuilder = Sorts.builder();
-            for (String field : listSort.getSortFields()) {
-                if (listQuery.isAsc()) {
-                    sortBuilder.asc(field);
-                } else {
-                    sortBuilder.desc(field);
-                }
-            }
-            sort = sortBuilder.build();
-        } else {
-            sort = (listQuery.isAsc() ? Sorts.builder().asc(sortField) : Sorts.builder().desc(sortField)).build();
-        }
+        org.springframework.data.domain.Sort sort = (listQuery.isAsc() ? Sorts.builder().asc(sortField) : Sorts.builder().desc(sortField)).build();
         var size = PageSizeUtils.getPageSize(listQuery.getCount());
         List<Page> pages = pageRepository.findAll(specs, size, sort);
         // todo enhance query
