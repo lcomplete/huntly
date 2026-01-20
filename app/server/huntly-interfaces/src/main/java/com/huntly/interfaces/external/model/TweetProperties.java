@@ -2,6 +2,7 @@ package com.huntly.interfaces.external.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -125,10 +126,11 @@ public class TweetProperties {
     
     @Getter
     @Setter
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class Size{
         private Integer width;
-        
+
         private Integer height;
     }
     
