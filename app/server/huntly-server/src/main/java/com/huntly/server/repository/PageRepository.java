@@ -126,12 +126,13 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
 
     /**
      * Batch update collection and set collectedAt to connectedAt (publish time).
+     * Fallback to original collectedAt if connectedAt is null.
      * Used for pages already in library.
      */
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Page p SET p.collectionId = :collectionId, " +
-           "p.collectedAt = COALESCE(p.connectedAt, :fallback) " +
+           "p.collectedAt = COALESCE(p.connectedAt, p.collectedAt) " +
            "WHERE p.id IN :ids")
-    int batchUpdateCollectionWithPublishTime(@Param("ids") List<Long> ids, @Param("collectionId") Long collectionId, @Param("fallback") Instant fallback);
+    int batchUpdateCollectionWithPublishTime(@Param("ids") List<Long> ids, @Param("collectionId") Long collectionId);
 }

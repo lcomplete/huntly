@@ -51,13 +51,22 @@ public class BatchOrganizeService {
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int DESCRIPTION_MAX_LENGTH = 150;
 
+    private static final int MAX_PAGE_SIZE = 500;
+
     /**
      * Filter pages with pagination.
      */
     public BatchFilterResult filterPages(BatchFilterQuery query) {
+        if (query == null) {
+            return BatchFilterResult.of(0, List.of(), 0, 0);
+        }
+
         Specification<Page> spec = buildSpecification(query);
-        int page = query.getPage() != null ? query.getPage() : 0;
+
+        // Validate and clamp page/size to prevent invalid PageRequest
+        int page = query.getPage() != null ? Math.max(0, query.getPage()) : 0;
         int size = query.getSize() != null ? query.getSize() : DEFAULT_PAGE_SIZE;
+        size = Math.max(1, Math.min(size, MAX_PAGE_SIZE)); // Clamp between 1 and MAX_PAGE_SIZE
 
         long totalCount = pageRepository.count(spec);
         int totalPages = (int) Math.ceil((double) totalCount / size);
@@ -110,9 +119,12 @@ public class BatchOrganizeService {
 
     private BatchMoveResult batchMoveByFilter(BatchMoveRequest request) {
         BatchFilterQuery query = request.getFilterQuery();
+        if (query == null) {
+            log.warn("batchMoveByFilter called with selectAll=true but filterQuery is null");
+            return BatchMoveResult.of(0, 0);
+        }
         Long targetCollectionId = request.getTargetCollectionId();
         String mode = StringUtils.isBlank(request.getCollectedAtMode()) ? "KEEP" : request.getCollectedAtMode().toUpperCase();
-        Instant now = Instant.now();
 
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaUpdate<Page> update = cb.createCriteriaUpdate(Page.class);
@@ -130,9 +142,9 @@ public class BatchOrganizeService {
 
         // Handle collectedAt based on mode
         if ("USE_PUBLISH_TIME".equals(mode)) {
-            // Set collectedAt to publish time (connectedAt), fallback to now if null
+            // Set collectedAt to publish time (connectedAt), fallback to original collectedAt if null
             update.set(root.<Instant>get("collectedAt"),
-                    cb.coalesce(root.<Instant>get("connectedAt"), now).as(Instant.class));
+                    cb.coalesce(root.<Instant>get("connectedAt"), root.<Instant>get("collectedAt")).as(Instant.class));
         }
         // KEEP mode: don't modify collectedAt
 
@@ -145,12 +157,11 @@ public class BatchOrganizeService {
             return BatchMoveResult.of(0, 0);
         }
 
-        Instant now = Instant.now();
         int updated;
         String mode = StringUtils.isBlank(collectedAtMode) ? "KEEP" : collectedAtMode.toUpperCase();
 
         if ("USE_PUBLISH_TIME".equals(mode)) {
-            updated = pageRepository.batchUpdateCollectionWithPublishTime(pageIds, targetCollectionId, now);
+            updated = pageRepository.batchUpdateCollectionWithPublishTime(pageIds, targetCollectionId);
         } else {
             // KEEP mode: don't modify collectedAt, pages are already in library
             updated = pageRepository.batchUpdateCollection(pageIds, targetCollectionId);
@@ -160,6 +171,10 @@ public class BatchOrganizeService {
     }
 
     private Specification<Page> buildSpecification(BatchFilterQuery query) {
+        // Parse dates upfront - only apply filter if parsing succeeds
+        Instant startInstant = convertDateToInstant(query.getStartDate(), 0);
+        Instant endInstant = convertDateToInstant(query.getEndDate(), 1);
+
         var specs = Specifications.<Page>and()
                 // Library save status filter
                 .predicate(StringUtils.isNotBlank(query.getSaveStatus()) && !"ALL".equalsIgnoreCase(query.getSaveStatus()),
@@ -180,9 +195,9 @@ public class BatchOrganizeService {
                 .eq(Boolean.TRUE.equals(query.getReadLater()), "readLater", true)
                 // Author filter (case-insensitive partial match)
                 .predicate(StringUtils.isNotBlank(query.getAuthor()), buildAuthorSpec(query.getAuthor()))
-                // Date range filter (always use createdAt)
-                .ge(StringUtils.isNotBlank(query.getStartDate()), "createdAt", convertDateToInstant(query.getStartDate(), 0))
-                .lt(StringUtils.isNotBlank(query.getEndDate()), "createdAt", convertDateToInstant(query.getEndDate(), 1));
+                // Date range filter - only add when parsing succeeds (non-null)
+                .ge(startInstant != null, "createdAt", startInstant)
+                .lt(endInstant != null, "createdAt", endInstant);
 
         return specs.build();
     }

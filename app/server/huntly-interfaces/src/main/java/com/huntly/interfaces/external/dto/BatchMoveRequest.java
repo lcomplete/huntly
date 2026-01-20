@@ -36,8 +36,8 @@ public class BatchMoveRequest {
 
     /**
      * How to set the collectedAt timestamp.
-     * Values: KEEP (keep original), UPDATE_NOW (set to current time),
-     * or a date field name (SAVED_AT, ARCHIVED_AT, CREATED_AT, CONNECTED_AT, etc.)
+     * Values: KEEP (keep original collectedAt), USE_PUBLISH_TIME (set to publish time / connectedAt).
+     * Default is KEEP if not specified.
      */
     private String collectedAtMode;
 }

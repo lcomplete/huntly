@@ -89,12 +89,14 @@ export default function BatchOrganizeDialog({
         setResult(data);
       } catch (error) {
         console.error("Failed to load pages:", error);
+        setResult(null);
+        enqueueSnackbar("Failed to load pages. Please try again.", { variant: "error" });
       } finally {
         setIsLoading(false);
       }
     };
     loadData();
-  }, [open, filterQuery, currentPage]);
+  }, [open, filterQuery, currentPage, enqueueSnackbar]);
 
   const handleSelectItem = useCallback((id: number, checked: boolean) => {
     setSelectedIds((prev) => {
