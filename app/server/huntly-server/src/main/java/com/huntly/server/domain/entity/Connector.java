@@ -22,7 +22,7 @@ public class Connector implements Serializable {
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    
+
     @Column(name = "type")
     private Integer type;
 
@@ -31,7 +31,7 @@ public class Connector implements Serializable {
 
     @Column(name = "subscribe_url")
     private String subscribeUrl;
-    
+
     @Column(name = "api_token")
     private String apiToken;
 
@@ -64,10 +64,16 @@ public class Connector implements Serializable {
 
     @Column(name = "crawl_full_content")
     private Boolean crawlFullContent;
-    
+
     @Column(name = "is_enabled")
     private Boolean enabled;
 
     @Column(name = "created_at")
     private Instant createdAt;
+
+    @Column(name = "http_etag")
+    private String httpEtag;
+
+    @Column(name = "http_last_modified")
+    private String httpLastModified;
 }

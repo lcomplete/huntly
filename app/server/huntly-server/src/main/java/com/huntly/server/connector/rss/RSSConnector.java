@@ -3,6 +3,7 @@ package com.huntly.server.connector.rss;
 import com.huntly.common.util.UrlUtils;
 import com.huntly.interfaces.external.model.CapturePage;
 import com.huntly.server.connector.ConnectorProperties;
+import com.huntly.server.connector.FetchPagesResult;
 import com.huntly.server.connector.InfoConnector;
 import com.huntly.server.domain.exceptions.ConnectorFetchException;
 import com.huntly.server.util.HttpUtils;
@@ -47,31 +48,54 @@ public class RSSConnector extends InfoConnector {
 
     @Override
     public List<CapturePage> fetchNewestPages() {
+        FetchPagesResult result = fetchNewestPagesWithCache();
+        return result.getPages() != null ? result.getPages() : new ArrayList<>();
+    }
+
+    @Override
+    public FetchPagesResult fetchNewestPagesWithCache() {
         if (StringUtils.isBlank(connectorProperties.getSubscribeUrl())) {
-            return new ArrayList<>();
+            return FetchPagesResult.of(new ArrayList<>(), null, null);
         }
 
         try {
-            SyndFeed feed = FeedUtils.parseFeedUrl(connectorProperties.getSubscribeUrl(), okClient);
+            // Use conditional request with cached ETag and Last-Modified
+            FeedFetchResult feedResult = FeedUtils.fetchFeed(
+                    connectorProperties.getSubscribeUrl(),
+                    okClient,
+                    connectorProperties.getHttpEtag(),
+                    connectorProperties.getHttpLastModified());
+
+            // If feed was not modified, return early with notModified flag
+            if (feedResult.isNotModified()) {
+                log.debug("Feed not modified (HTTP 304): {}", connectorProperties.getSubscribeUrl());
+                return FetchPagesResult.notModified();
+            }
+
+            SyndFeed feed = feedResult.getFeed();
             var entries = feed.getEntries();
             List<CapturePage> pages = new ArrayList<>();
             for (var entry : entries) {
                 CapturePage capturePage = new CapturePage();
                 String content = getContent(entry);
-                String description = StringUtils.trimToEmpty(entry.getDescription() == null ? null : entry.getDescription().getValue());
+                String description = StringUtils
+                        .trimToEmpty(entry.getDescription() == null ? null : entry.getDescription().getValue());
                 capturePage.setUrl(entry.getLink());
                 capturePage.setDomain(UrlUtils.getDomainName(entry.getLink()));
                 capturePage.setContent(content);
                 capturePage.setDescription(description);
                 capturePage.setTitle(getTitle(entry));
-                capturePage.setConnectedAt(ObjectUtils.firstNonNull(entry.getPublishedDate(), entry.getUpdatedDate(), feed.getPublishedDate(), new Date()).toInstant());
+                capturePage.setConnectedAt(ObjectUtils.firstNonNull(entry.getPublishedDate(), entry.getUpdatedDate(),
+                        feed.getPublishedDate(), new Date()).toInstant());
                 capturePage.setAuthor(StringUtils.trimToEmpty(entry.getAuthor()));
-                capturePage.setCategory(entry.getCategories().stream().map(SyndCategory::getName).collect(Collectors.joining(", ")));
+                capturePage.setCategory(
+                        entry.getCategories().stream().map(SyndCategory::getName).collect(Collectors.joining(", ")));
                 capturePage.setNeedFindThumbUrl(true);
                 pages.add(capturePage);
             }
 
-            return pages;
+            // Return pages with cache headers from response
+            return FetchPagesResult.of(pages, feedResult.getEtag(), feedResult.getLastModified());
         } catch (Exception e) {
             throw new ConnectorFetchException(e);
         }
@@ -93,7 +117,8 @@ public class RSSConnector extends InfoConnector {
     private String getContent(SyndEntry entry) {
         String content = null;
         if (!entry.getContents().isEmpty()) {
-            content = entry.getContents().stream().map(SyndContent::getValue).collect(Collectors.joining(System.lineSeparator()));
+            content = entry.getContents().stream().map(SyndContent::getValue)
+                    .collect(Collectors.joining(System.lineSeparator()));
         }
         return StringUtils.trimToEmpty(content);
     }

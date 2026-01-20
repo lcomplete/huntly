@@ -42,8 +42,10 @@ public class ConnectorService {
 
     private GlobalSettingService globalSettingService;
 
-    public ConnectorService(HuntlyProperties huntlyProperties, FolderRepository folderRepository, ConnectorSettingRepository connectorSettingRepository,
-                            ConnectorRepository connectorRepository, PageRepository pageRepository, GlobalSettingService globalSettingService) {
+    public ConnectorService(HuntlyProperties huntlyProperties, FolderRepository folderRepository,
+            ConnectorSettingRepository connectorSettingRepository,
+            ConnectorRepository connectorRepository, PageRepository pageRepository,
+            GlobalSettingService globalSettingService) {
         this.huntlyProperties = huntlyProperties;
         this.folderRepository = folderRepository;
         this.connectorSettingRepository = connectorSettingRepository;
@@ -69,6 +71,8 @@ public class ConnectorService {
             properties.setSubscribeUrl(con.getSubscribeUrl());
             properties.setLastFetchAt(con.getLastFetchBeginAt());
             properties.setProxySetting(globalSettingService.getProxySetting());
+            properties.setHttpEtag(con.getHttpEtag());
+            properties.setHttpLastModified(con.getHttpLastModified());
         });
         return properties;
     }
@@ -95,8 +99,22 @@ public class ConnectorService {
         }
     }
 
+    public void updateHttpCacheHeaders(Integer connectorId, String httpEtag, String httpLastModified) {
+        var connector = connectorRepository.findById(connectorId).orElse(null);
+        if (connector != null) {
+            if (httpEtag != null) {
+                connector.setHttpEtag(httpEtag);
+            }
+            if (httpLastModified != null) {
+                connector.setHttpLastModified(httpLastModified);
+            }
+            connectorRepository.save(connector);
+        }
+    }
+
     public Connector saveWhenNotExist(Connector connector) {
-        var existsConnector = connectorRepository.findBySubscribeUrlAndType(connector.getSubscribeUrl(), connector.getType());
+        var existsConnector = connectorRepository.findBySubscribeUrlAndType(connector.getSubscribeUrl(),
+                connector.getType());
         if (existsConnector.isEmpty()) {
             connectorRepository.save(connector);
         }
@@ -118,7 +136,8 @@ public class ConnectorService {
     }
 
     private List<FolderConnectors> getFolderFeedConnectors(List<Folder> folders, List<Connector> connectors) {
-        connectors = connectors.stream().filter(t -> ConnectorType.RSS.getCode().equals(t.getType())).collect(Collectors.toList());
+        connectors = connectors.stream().filter(t -> ConnectorType.RSS.getCode().equals(t.getType()))
+                .collect(Collectors.toList());
         List<FolderConnectors> folderConnectorsList = new ArrayList<>();
 
         // add connectors without folder first
@@ -136,7 +155,8 @@ public class ConnectorService {
         return folderConnectorsList;
     }
 
-    private void fillFolderConnectors(List<FolderConnectors> folderConnectorsList, Folder folder, List<Connector> childConnectors) {
+    private void fillFolderConnectors(List<FolderConnectors> folderConnectorsList, Folder folder,
+            List<Connector> childConnectors) {
         if (!CollectionUtils.isEmpty(childConnectors)) {
             FolderConnectors folderConnectors = new FolderConnectors();
             folderConnectors.setId(folder.getId());
@@ -275,8 +295,9 @@ public class ConnectorService {
             return null;
         }
 
-        var connector = gitHubSetting.getConnectorId() > 0 ?
-                connectorRepository.findById(gitHubSetting.getConnectorId()).orElse(null) : null;
+        var connector = gitHubSetting.getConnectorId() > 0
+                ? connectorRepository.findById(gitHubSetting.getConnectorId()).orElse(null)
+                : null;
         if (connector == null) {
             connector = new Connector();
             connector.setCreatedAt(Instant.now());

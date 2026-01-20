@@ -262,11 +262,11 @@ export default function BatchOrganizeSetting() {
             {filterResult.items.length > 0 && (
               <>
                 <BatchPageItemList items={filterResult.items.slice(0, 5)} />
-                {filterResult.totalCount > 5 && (
-                  <Button variant="outlined" size="small" onClick={handleViewMore}>
-                    View More ({filterResult.totalCount} total)
-                  </Button>
-                )}
+                <Button variant="outlined" size="small" onClick={handleViewMore}>
+                  {filterResult.totalCount === 1
+                    ? "Organize (1)"
+                    : `Batch Organize (${filterResult.totalCount})`}
+                </Button>
               </>
             )}
 

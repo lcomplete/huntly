@@ -27,7 +27,7 @@ jobs:
         run: |
           # 保留 latest 和 previous，删除其他 huntly 镜像
           docker images lcomplete/huntly --format "table {{.Repository}}:{{.Tag}}" | grep -v "latest\|previous\|REPOSITORY" | xargs -r docker rmi || true
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Ensure data directory exists
         run: |
