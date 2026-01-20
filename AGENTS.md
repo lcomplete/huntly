@@ -21,3 +21,8 @@ Follow Conventional Commits (`feat:`, `fix:`, optional scopes) in imperative voi
 
 ## Security & Configuration Tips
 Avoid committing SQLite artifacts in `app/server/huntly-server/db.sqlite*`; persist data through the `/data` volume when containerised. Store secrets in environment variables or Tauri keychains. Expose the API over HTTPS and review CORS settings before distributing new browser builds.
+
+## Documentation Guidelines
+When updating the project's README, ensure all language versions are updated consistently:
+- `README.md` (English)
+- `README.zh.md` (Chinese)

@@ -52,9 +52,9 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 
 ## Roadmap
 
-- [ ] Export all saved content to Markdown
+- [x] Export all saved content to Markdown
+- [x] Flexible Organization: Collections
 - [ ] Enhanced extension with standalone AI processing (no server required)
-- [ ] Flexible Organization: Tags, folders
 
 ## Screenshot
 

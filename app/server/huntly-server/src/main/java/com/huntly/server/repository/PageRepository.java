@@ -114,4 +114,24 @@ public interface PageRepository extends JpaRepository<Page, Long>, JpaSpecificat
      */
     @Query("SELECT p FROM Page p WHERE p.collectionId IS NULL AND p.librarySaveStatus > 0 ORDER BY p.savedAt DESC")
     List<Page> findUnsortedLibraryPages(Pageable pageable);
+
+    /**
+     * Batch update collection only, keeping original collectedAt.
+     * Used for pages already in library.
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Page p SET p.collectionId = :collectionId WHERE p.id IN :ids")
+    int batchUpdateCollection(@Param("ids") List<Long> ids, @Param("collectionId") Long collectionId);
+
+    /**
+     * Batch update collection and set collectedAt to connectedAt (publish time).
+     * Used for pages already in library.
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Page p SET p.collectionId = :collectionId, " +
+           "p.collectedAt = COALESCE(p.connectedAt, :fallback) " +
+           "WHERE p.id IN :ids")
+    int batchUpdateCollectionWithPublishTime(@Param("ids") List<Long> ids, @Param("collectionId") Long collectionId, @Param("fallback") Instant fallback);
 }

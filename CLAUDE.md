@@ -181,6 +181,11 @@ Key modules:
 - **Extension**: Jest with ts-jest for TypeScript support
 - **Client**: React Testing Library with Jest (via react-scripts)
 
+## Documentation Guidelines
+When updating the project's README, ensure all language versions are updated consistently:
+- `README.md` (English)
+- `README.zh.md` (Chinese)
+
 ## Common Patterns
 - **API Controllers**: REST endpoints in `controller/` package
 - **Service Layer**: Business logic in `service/` package
