@@ -215,6 +215,10 @@ public class CapturePageService extends BasePageService {
 
             if (collectionId != null) {
                 page.setCollectionId(collectionId);
+                // Ensure collectedAt is set when collectionId is set
+                if (page.getCollectedAt() == null) {
+                    page.setCollectedAt(page.getCreatedAt() != null ? page.getCreatedAt() : Instant.now());
+                }
             }
         }
         return save(page);
