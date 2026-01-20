@@ -57,6 +57,7 @@ public class LibraryExportService {
     private static final int EXPORT_PAGE_SIZE = 100;
     private static final int EXPORT_HIGHLIGHT_PAGE_SIZE = 100;
     private static final int FILE_NAME_SNIPPET_MAX_LENGTH = 80;
+    private static final int TWEET_FILE_NAME_SNIPPET_MAX_LENGTH = 40;
     private static final int CONTENT_SNIPPET_MAX_LENGTH = 120;
     private static final DateTimeFormatter FILE_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
             .withZone(ZoneOffset.UTC);
@@ -314,16 +315,18 @@ public class LibraryExportService {
     }
 
     private void writePageMarkdown(Path categoryDir, Page page) throws IOException {
+        boolean isTweet = isTweetType(page);
         String title = resolveTitle(page.getTitle(), extractContentSnippet(page.getContent()));
-        String fileName = buildFileName(page.getId(), title);
+        String contentTypeTag = resolveContentTypeTag(page);
+        String fileName = buildFileName(page.getId(), contentTypeTag, title, isTweet);
         String markdownBody = buildPageMarkdown(page);
-        Map<String, Object> frontmatter = buildPageFrontmatter(page, title);
+        Map<String, Object> frontmatter = buildPageFrontmatter(page, title, isTweet);
         writeMarkdownFile(categoryDir.resolve(fileName), frontmatter, markdownBody);
     }
 
     private void writeHighlightMarkdown(Path highlightsDir, HighlightListItem highlight) throws IOException {
         String title = resolveTitle(highlight.getPageTitle(), highlight.getHighlightedText());
-        String fileName = buildFileName(highlight.getId(), title);
+        String fileName = buildFileName(highlight.getId(), "highlight", title, false);
 
         Map<String, Object> frontmatter = new LinkedHashMap<>();
         frontmatter.put("id", highlight.getId());
@@ -351,9 +354,8 @@ public class LibraryExportService {
         return body.toString();
     }
 
-    private Map<String, Object> buildPageFrontmatter(Page page, String title) {
+    private Map<String, Object> buildPageFrontmatter(Page page, String title, boolean isTweet) {
         Map<String, Object> frontmatter = new LinkedHashMap<>();
-        boolean isTweet = isTweetType(page);
 
         frontmatter.put("id", page.getId());
         // Tweet doesn't need title field
@@ -715,15 +717,30 @@ public class LibraryExportService {
         return text.substring(0, CONTENT_SNIPPET_MAX_LENGTH);
     }
 
-    private String buildFileName(Long id, String title) {
-        String safeTitle = sanitizeFileSegment(title);
+    private String buildFileName(Long id, String typeTag, String title, boolean isTweet) {
+        int maxLength = isTweet ? TWEET_FILE_NAME_SNIPPET_MAX_LENGTH : FILE_NAME_SNIPPET_MAX_LENGTH;
+        String safeTitle = sanitizeFileSegment(title, maxLength);
         if (StringUtils.isBlank(safeTitle)) {
             safeTitle = "untitled";
         }
-        return id + "-" + safeTitle + ".md";
+        return id + "-" + typeTag + "-" + safeTitle + ".md";
     }
 
-    private String sanitizeFileSegment(String value) {
+    /**
+     * Resolve content type tag for file naming.
+     * Types: x (tweet), page (normal page), snippet
+     */
+    private String resolveContentTypeTag(Page page) {
+        if (isTweetType(page)) {
+            return "x";
+        }
+        if (page.getContentType() != null && Objects.equals(page.getContentType(), ContentType.SNIPPET.getCode())) {
+            return "snippet";
+        }
+        return "page";
+    }
+
+    private String sanitizeFileSegment(String value, int maxLength) {
         if (StringUtils.isBlank(value)) {
             return "";
         }
@@ -773,8 +790,8 @@ public class LibraryExportService {
         sanitized = sanitized.replaceAll("\\s+", " ").trim();
         sanitized = sanitized.replaceAll("[. ]+$", "");
 
-        if (sanitized.length() > FILE_NAME_SNIPPET_MAX_LENGTH) {
-            sanitized = sanitized.substring(0, FILE_NAME_SNIPPET_MAX_LENGTH).trim();
+        if (sanitized.length() > maxLength) {
+            sanitized = sanitized.substring(0, maxLength).trim();
         }
 
         return sanitized;

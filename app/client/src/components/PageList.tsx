@@ -487,7 +487,8 @@ const PageList = (props: PageListProps) => {
                             <MagazineItem page={page} showMarkReadOption={showMarkReadOption}
                                                onOperateSuccess={operateSuccess}
                                                currentVisit={lastVisitPageId === page.id}
-                                               onPageSelect={(e, id) => openPageDetail(e, id)}></MagazineItem>
+                                               onPageSelect={(e, id) => openPageDetail(e, id)}
+                                               pageListSort={filters.sort}></MagazineItem>
                           </div>;
                         }
                       )}

@@ -1,6 +1,12 @@
 import moment from "moment";
+import Tooltip from "@mui/material/Tooltip";
 
-const SmartMoment = ({dt}) => {
+type SmartMomentProps = {
+  dt: string | Date | number;
+  timeTypeLabel?: string;
+}
+
+const SmartMoment = ({dt, timeTypeLabel}: SmartMomentProps) => {
   function getMoment() {
     let text = "";
     if (moment(dt).isAfter(moment().add(-1, "d"))) {
@@ -13,10 +19,16 @@ const SmartMoment = ({dt}) => {
     return text;
   }
 
+  const tooltipText = timeTypeLabel
+    ? `${timeTypeLabel}: ${moment(dt).format('a h:mm ll')}`
+    : moment(dt).format('a h:mm ll');
+
   return (
-    <span title={moment(dt).format('a h:mm ll')}>
-      {getMoment()}
-    </span>
+    <Tooltip title={tooltipText} arrow>
+      <span>
+        {getMoment()}
+      </span>
+    </Tooltip>
   )
 }
 

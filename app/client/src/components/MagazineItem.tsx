@@ -22,13 +22,28 @@ import {GithubRepoProperties} from "../interfaces/githubRepoProperties";
 import StarOutlineIcon from '@mui/icons-material/StarOutline';
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
+import {SORT_VALUE} from "../model";
+
+const sortLabelMap: Record<SORT_VALUE, string> = {
+  'CREATED_AT': 'Created',
+  'ARCHIVED_AT': 'Archived',
+  'LAST_READ_AT': 'Read',
+  'READ_LATER_AT': 'Read later',
+  'SAVED_AT': 'Saved',
+  'STARRED_AT': 'Starred',
+  'CONNECTED_AT': 'Published',
+  'VOTE_SCORE': 'Created',
+  'COLLECTED_AT': 'Collected',
+  'UNSORTED_SAVED_AT': 'Collected',
+};
 
 type MagazineItemProps = {
   page: PageItem,
   onOperateSuccess?: (event: PageOperateEvent) => void,
   onPageSelect?: (event: any, id: number) => void,
   showMarkReadOption?: boolean,
-  currentVisit?: boolean
+  currentVisit?: boolean,
+  pageListSort?: SORT_VALUE
 }
 
 export default function MagazineItem({
@@ -37,6 +52,7 @@ export default function MagazineItem({
                                        onPageSelect,
                                        showMarkReadOption, // todo
                                        currentVisit,
+                                       pageListSort,
                                      }: MagazineItemProps) {
 
   const [readed, setReaded] = useState(page.markRead);
@@ -150,7 +166,7 @@ export default function MagazineItem({
                     </Typography>
                   </React.Fragment>
                   }
-                  <SmartMoment dt={page.recordAt}></SmartMoment>
+                  <SmartMoment dt={page.recordAt} timeTypeLabel={pageListSort ? sortLabelMap[pageListSort] : undefined}></SmartMoment>
                 </div>
               </a>
 

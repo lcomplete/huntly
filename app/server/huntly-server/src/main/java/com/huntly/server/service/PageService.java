@@ -114,14 +114,17 @@ public class PageService extends BasePageService {
 
     public void setPageLibrarySaveStatus(Page page, LibrarySaveStatus librarySaveStatus) {
         page.setLibrarySaveStatus(librarySaveStatus.getCode());
-        if (librarySaveStatus.getCode() == LibrarySaveStatus.SAVED.getCode()) {
-            page.setSavedAt(Instant.now());
+        if (librarySaveStatus.getCode() == LibrarySaveStatus.SAVED.getCode() || librarySaveStatus.getCode() == LibrarySaveStatus.ARCHIVED.getCode()) {
+            if (librarySaveStatus.getCode() == LibrarySaveStatus.SAVED.getCode()) {
+                page.setSavedAt(Instant.now());
+            }
+            if (librarySaveStatus.getCode() == LibrarySaveStatus.ARCHIVED.getCode()) {
+                page.setArchivedAt(Instant.now());
+            }
             // Set collectedAt when first saved (page goes to Unsorted collection)
             if (page.getCollectedAt() == null) {
                 page.setCollectedAt(Instant.now());
             }
-        } else if (librarySaveStatus.getCode() == LibrarySaveStatus.ARCHIVED.getCode()) {
-            page.setArchivedAt(Instant.now());
         } else if (librarySaveStatus.getCode() == LibrarySaveStatus.NOT_SAVED.getCode()) {
             // if not save, clear status
             page.setStarred(false);
