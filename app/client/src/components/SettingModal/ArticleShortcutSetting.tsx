@@ -20,6 +20,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -387,130 +388,134 @@ const ArticleShortcutSetting = () => {
                   draggableId={shortcut.id?.toString() || `new-${index}`}
                   index={index}
                 >
-                  {(provided, snapshot) => (
-                    <Box
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.5,
-                        p: 2,
-                        borderRadius: 2.5,
-                        border: '1px solid',
-                        borderColor: snapshot.isDragging ? '#3b82f6' : '#e2e8f0',
-                        bgcolor: '#fff',
-                        transition: 'all 0.15s ease-in-out',
-                        opacity: shortcut.enabled ? 1 : 0.6,
-                        '&:hover': {
-                          borderColor: '#cbd5e1',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                        },
-                        ...(snapshot.isDragging && {
-                          boxShadow: '0 8px 24px rgba(59,130,246,0.2)',
-                        })
-                      }}
-                    >
-                      {/* Drag Handle */}
+                  {(provided, snapshot) => {
+                    const draggable = (
                       <Box
-                        {...provided.dragHandleProps}
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
                         sx={{
                           display: 'flex',
                           alignItems: 'center',
-                          color: '#cbd5e1',
-                          cursor: 'grab',
-                          '&:hover': { color: '#94a3b8' },
-                          '&:active': { cursor: 'grabbing' }
+                          gap: 1.5,
+                          p: 2,
+                          borderRadius: 2.5,
+                          border: '1px solid',
+                          borderColor: snapshot.isDragging ? '#3b82f6' : '#e2e8f0',
+                          bgcolor: '#fff',
+                          transition: 'all 0.15s ease-in-out',
+                          opacity: shortcut.enabled ? 1 : 0.6,
+                          '&:hover': {
+                            borderColor: '#cbd5e1',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                          },
+                          ...(snapshot.isDragging && {
+                            boxShadow: '0 8px 24px rgba(59,130,246,0.2)',
+                          })
                         }}
                       >
-                        <DragIndicatorIcon fontSize="small" />
-                      </Box>
-
-                      {/* Toggle Switch */}
-                      <Tooltip title={shortcut.enabled ? "Disable shortcut" : "Enable shortcut"} arrow>
-                        <Switch
-                          size="small"
-                          checked={shortcut.enabled}
-                          onChange={() => handleToggleShortcut(shortcut)}
+                        {/* Drag Handle */}
+                        <Box
+                          {...provided.dragHandleProps}
                           sx={{
-                            '& .MuiSwitch-switchBase.Mui-checked': {
-                              color: '#3b82f6',
-                              '&:hover': { bgcolor: alpha('#3b82f6', 0.08) }
-                            },
-                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                              bgcolor: '#3b82f6'
-                            }
+                            display: 'flex',
+                            alignItems: 'center',
+                            color: '#cbd5e1',
+                            cursor: 'grab',
+                            '&:hover': { color: '#94a3b8' },
+                            '&:active': { cursor: 'grabbing' }
                           }}
-                        />
-                      </Tooltip>
-
-                      {/* Content */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              fontWeight: 600,
-                              color: shortcut.enabled ? '#1e293b' : '#64748b',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {shortcut.name}
-                          </Typography>
+                        >
+                          <DragIndicatorIcon fontSize="small" />
                         </Box>
-                        {shortcut.description && (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: '#94a3b8',
-                              mt: 0.25,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {shortcut.description}
-                          </Typography>
-                        )}
-                      </Box>
 
-                      {/* Actions */}
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="Edit shortcut" arrow>
-                          <IconButton
+                        {/* Toggle Switch */}
+                        <Tooltip title={shortcut.enabled ? "Disable shortcut" : "Enable shortcut"} arrow>
+                          <Switch
                             size="small"
-                            onClick={() => handleEditShortcut(shortcut)}
+                            checked={shortcut.enabled}
+                            onChange={() => handleToggleShortcut(shortcut)}
                             sx={{
-                              color: '#94a3b8',
-                              '&:hover': {
+                              '& .MuiSwitch-switchBase.Mui-checked': {
                                 color: '#3b82f6',
-                                bgcolor: alpha('#3b82f6', 0.08)
+                                '&:hover': { bgcolor: alpha('#3b82f6', 0.08) }
+                              },
+                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                bgcolor: '#3b82f6'
                               }
                             }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
+                          />
                         </Tooltip>
-                        <Tooltip title="Delete shortcut" arrow>
-                          <IconButton
-                            size="small"
-                            onClick={() => shortcut.id && handleDeleteShortcut(shortcut.id)}
-                            sx={{
-                              color: '#94a3b8',
-                              '&:hover': {
-                                color: '#ef4444',
-                                bgcolor: alpha('#ef4444', 0.08)
-                              }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+
+                        {/* Content */}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                fontWeight: 600,
+                                color: shortcut.enabled ? '#1e293b' : '#64748b',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {shortcut.name}
+                            </Typography>
+                          </Box>
+                          {shortcut.description && (
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: '#94a3b8',
+                                mt: 0.25,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {shortcut.description}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* Actions */}
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Edit shortcut" arrow>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEditShortcut(shortcut)}
+                              sx={{
+                                color: '#94a3b8',
+                                '&:hover': {
+                                  color: '#3b82f6',
+                                  bgcolor: alpha('#3b82f6', 0.08)
+                                }
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete shortcut" arrow>
+                            <IconButton
+                              size="small"
+                              onClick={() => shortcut.id && handleDeleteShortcut(shortcut.id)}
+                              sx={{
+                                color: '#94a3b8',
+                                '&:hover': {
+                                  color: '#ef4444',
+                                  bgcolor: alpha('#ef4444', 0.08)
+                                }
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </Box>
-                    </Box>
-                  )}
+                    );
+
+                    return snapshot.isDragging ? createPortal(draggable, document.body) : draggable;
+                  }}
                 </Draggable>
               ))}
               {provided.placeholder}

@@ -174,7 +174,7 @@ public class TweetParser {
         //tweetProperties.setFullText(String.join("", textList));
         // FE handle full text
         tweetProperties.setFullText(tweet.full_text);
-        tweetProperties.setUrl("https://twitter.com/" + user.screen_name + "/status/" + tweet.id_str);
+        tweetProperties.setUrl("https://twitter.com/" + tweetProperties.getUserScreeName() + "/status/" + tweet.id_str);
         // convert twitter datetime to instant
         String pattern = "EEE MMM dd HH:mm:ss ZZZZZ yyyy";
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, Locale.ENGLISH);

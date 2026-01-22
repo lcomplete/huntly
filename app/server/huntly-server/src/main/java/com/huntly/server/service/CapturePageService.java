@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -34,8 +35,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CapturePageService extends BasePageService {
     private final SourceRepository sourceRepository;
     private final ConnectorRepository connectorRepository;
-
     private final TwitterUserSettingRepository twitterUserSettingRepository;
+
+    // Lock map for preventing concurrent saves of the same tweet
+    private final ConcurrentHashMap<String, Object> tweetSaveLocks = new ConcurrentHashMap<>();
 
 
     public CapturePageService(PageRepository pageRepository, LuceneService luceneService, SourceRepository sourceRepository, ConnectorRepository connectorRepository, TwitterUserSettingRepository twitterUserSettingRepository) {
@@ -115,7 +118,29 @@ public class CapturePageService extends BasePageService {
     }
 
     public Page saveTweetPage(Page page, String loginScreenName, String browserScreenName) {
-        var existPage = pageRepository.findTop1ByUrl(page.getUrl());
+        // Use pageUniqueId (tweet id) as lock key for preventing concurrent saves of the same tweet
+        String lockKey = StringUtils.isNotBlank(page.getPageUniqueId()) ? page.getPageUniqueId() : page.getUrl();
+        Object lock = tweetSaveLocks.computeIfAbsent(lockKey, k -> new Object());
+
+        try {
+            synchronized (lock) {
+                return doSaveTweetPage(page, loginScreenName, browserScreenName);
+            }
+        } finally {
+            tweetSaveLocks.remove(lockKey);
+        }
+    }
+
+    private Page doSaveTweetPage(Page page, String loginScreenName, String browserScreenName) {
+        // Use pageUniqueId (tweet id) for duplicate detection, more reliable than URL
+        Optional<Page> existPage = Optional.empty();
+        if (StringUtils.isNotBlank(page.getPageUniqueId())) {
+            existPage = pageRepository.findTop1ByPageUniqueId(page.getPageUniqueId());
+        }
+        // Fallback to URL if pageUniqueId not found
+        if (existPage.isEmpty()) {
+            existPage = pageRepository.findTop1ByUrl(page.getUrl());
+        }
         if (existPage.isPresent()) {
             var currentPage = existPage.get();
             currentPage.setContent(page.getContent());
@@ -125,6 +150,14 @@ public class CapturePageService extends BasePageService {
             currentPage.setPageJsonProperties(page.getPageJsonProperties());
             currentPage.setCategory(page.getCategory());
             currentPage.setVoteScore(page.getVoteScore());
+            // Update URL if it was previously null-based
+            if (StringUtils.isNotBlank(page.getUrl()) && !page.getUrl().contains("/null/")) {
+                currentPage.setUrl(page.getUrl());
+            }
+            // Update pageUniqueId if it was previously empty
+            if (StringUtils.isNotBlank(page.getPageUniqueId()) && StringUtils.isBlank(currentPage.getPageUniqueId())) {
+                currentPage.setPageUniqueId(page.getPageUniqueId());
+            }
             page = currentPage;
         } else {
             page.setCreatedAt(Instant.now());

@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import SettingSectionTitle from "./SettingSectionTitle";
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { PreviewFeedsInfo, SettingControllerApiFactory } from "../../api";
 import { useSnackbar } from "notistack";
 import { useFormik } from "formik";
@@ -411,54 +412,58 @@ function FoldersTabContent() {
                           <Draggable key={'folder-' + (folder.id)} draggableId={(folder.id || 0).toString()}
                             index={index} isDragDisabled={folder.id === null || folder.id === 0}>
                             {
-                              (dragProvided, snapshot) => (
-                                <Box
-                                  ref={dragProvided.innerRef}
-                                  {...dragProvided.draggableProps}
-                                  {...dragProvided.dragHandleProps}
-                                  key={folder.id}
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    p: 1,
-                                    ...(snapshot.isDragging && {
-                                      background: 'white',
-                                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                    }),
-                                  }}
-                                >
+                              (dragProvided, snapshot) => {
+                                const draggable = (
                                   <Box
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    {...dragProvided.dragHandleProps}
+                                    key={folder.id}
                                     sx={{
                                       display: 'flex',
                                       alignItems: 'center',
-                                      flexGrow: 1,
-                                      cursor: 'pointer',
-                                      borderRadius: 1,
-                                      ...(folder.id || 0) === folderId && {
-                                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                                      },
-                                    }}
-                                    onClick={() => {
-                                      setFolderId(folder.id || 0)
+                                      p: 1,
+                                      ...(snapshot.isDragging && {
+                                        background: 'white',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                      }),
                                     }}
                                   >
-                                    <ListItemAvatar>
-                                      <Avatar>
-                                        <FolderIcon />
-                                      </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                      primary={folder.name}
-                                      secondary={!folder.id && 'Root Folder'}
-                                    />
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        flexGrow: 1,
+                                        cursor: 'pointer',
+                                        borderRadius: 1,
+                                        ...(folder.id || 0) === folderId && {
+                                          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                        },
+                                      }}
+                                      onClick={() => {
+                                        setFolderId(folder.id || 0)
+                                      }}
+                                    >
+                                      <ListItemAvatar>
+                                        <Avatar>
+                                          <FolderIcon />
+                                        </Avatar>
+                                      </ListItemAvatar>
+                                      <ListItemText
+                                        primary={folder.name}
+                                        secondary={!folder.id && 'Root Folder'}
+                                      />
+                                    </Box>
+                                    <IconButton edge="end" aria-label="edit" disabled={!folder.id} onClick={() => {
+                                      setEditFolderId(folder.id)
+                                    }}>
+                                      <EditIcon />
+                                    </IconButton>
                                   </Box>
-                                  <IconButton edge="end" aria-label="edit" disabled={!folder.id} onClick={() => {
-                                    setEditFolderId(folder.id)
-                                  }}>
-                                    <EditIcon />
-                                  </IconButton>
-                                </Box>
-                              )
+                                );
+
+                                return snapshot.isDragging ? createPortal(draggable, document.body) : draggable;
+                              }
                             }
                           </Draggable>)
                       }
@@ -486,44 +491,48 @@ function FoldersTabContent() {
                         connectors.map((conn, index) =>
                           <Draggable key={conn.id} draggableId={conn.id.toString()} index={index}>
                             {
-                              (dragProvided, snapshot) => (
-                                <Box
-                                  ref={dragProvided.innerRef}
-                                  {...dragProvided.draggableProps}
-                                  {...dragProvided.dragHandleProps}
-                                  key={conn.id}
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    p: 1,
-                                    ...(snapshot.isDragging && {
-                                      background: 'white',
-                                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                    }),
-                                  }}
-                                >
-                                  <ListItemAvatar>
-                                    <Avatar>
-                                      {
-                                        conn.iconUrl &&
-                                        <img src={conn.iconUrl} alt={conn.name} className={'w-[24px] h-[24px]'} />
-                                      }
-                                      {
-                                        !conn.iconUrl && <RssFeedIcon />
-                                      }
-                                    </Avatar>
-                                  </ListItemAvatar>
-                                  <ListItemText
-                                    primary={conn.name}
-                                    sx={{ color: conn.enabled ? '#000' : '#999' }}
-                                  />
-                                  <IconButton edge="end" aria-label="edit" onClick={() => {
-                                    setEditFeedsId(conn.id)
-                                  }}>
-                                    <EditIcon />
-                                  </IconButton>
-                                </Box>
-                              )
+                              (dragProvided, snapshot) => {
+                                const draggable = (
+                                  <Box
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    {...dragProvided.dragHandleProps}
+                                    key={conn.id}
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      p: 1,
+                                      ...(snapshot.isDragging && {
+                                        background: 'white',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                      }),
+                                    }}
+                                  >
+                                    <ListItemAvatar>
+                                      <Avatar>
+                                        {
+                                          conn.iconUrl &&
+                                          <img src={conn.iconUrl} alt={conn.name} className={'w-[24px] h-[24px]'} />
+                                        }
+                                        {
+                                          !conn.iconUrl && <RssFeedIcon />
+                                        }
+                                      </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText
+                                      primary={conn.name}
+                                      sx={{ color: conn.enabled ? '#000' : '#999' }}
+                                    />
+                                    <IconButton edge="end" aria-label="edit" onClick={() => {
+                                      setEditFeedsId(conn.id)
+                                    }}>
+                                      <EditIcon />
+                                    </IconButton>
+                                  </Box>
+                                );
+
+                                return snapshot.isDragging ? createPortal(draggable, document.body) : draggable;
+                              }
                             }
                           </Draggable>)
                       }
