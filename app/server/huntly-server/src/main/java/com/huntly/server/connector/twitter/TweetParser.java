@@ -29,14 +29,15 @@ public class TweetParser {
 
     Pattern textMatchPattern = Pattern.compile("\\P{M}\\p{M}*+");
 
-    public List<Page> tweetsToPages(InterceptTweets tweets) {
+    public List<ParsedTweetPage> tweetsToPages(InterceptTweets tweets) {
         ObjectMapper mapper = new ObjectMapper();
-        List<Page> pages = Lists.newArrayList();
+        List<ParsedTweetPage> parsedPages = Lists.newArrayList();
+
         try {
             TweetsRoot root = mapper.readValue(tweets.getJsonData(), TweetsRoot.class);
             TweetsRoot.Timeline timeline = getTimeline(root);
             if (timeline == null || timeline.instructions == null) {
-                return pages;
+                return parsedPages;
             }
 
             timeline.instructions.forEach(ins -> {
@@ -53,8 +54,8 @@ public class TweetParser {
                             contents.add(entry.content.itemContent);
                         }
                         contents.forEach(content -> {
-                            var itemPages = itemContentToPages(tweets.getCategory(), content);
-                            pages.addAll(itemPages);
+                            var itemParsedPages = itemContentToParsedPages(tweets.getCategory(), content);
+                            parsedPages.addAll(itemParsedPages);
                         });
                     });
                 }
@@ -64,20 +65,20 @@ public class TweetParser {
         }
 
         // reverse pages to make sure the latest tweet is the first one
-        Collections.reverse(pages);
-        return pages;
+        Collections.reverse(parsedPages);
+        return parsedPages;
     }
 
-    private List<Page> itemContentToPages(String category, TweetsRoot.ItemContent itemContent) {
-        List<Page> pages = Lists.newArrayList();
+    private List<ParsedTweetPage> itemContentToParsedPages(String category, TweetsRoot.ItemContent itemContent) {
+        List<ParsedTweetPage> parsedPages = Lists.newArrayList();
         if (itemContent == null || itemContent.tweet_results == null || itemContent.tweet_results.result == null) {
-            return pages;
+            return parsedPages;
         }
 
         var tweet = ObjectUtils.firstNonNull(itemContent.tweet_results.result.tweet, itemContent.tweet_results.result);
         var user = tweet.core.user_results.result.legacy;
         if (user == null) {
-            return pages;
+            return parsedPages;
         }
 
         var views = tweet.views;
@@ -90,16 +91,16 @@ public class TweetParser {
             quotedTweet = null;
         }
 
-        Page page = getPageFromTweetDetail(category, tweet, user, views, quotedTweet, false);
-        pages.add(page);
+        ParsedTweetPage parsedPage = getParsedTweetPageFromDetail(category, tweet, user, views, quotedTweet, false);
+        parsedPages.add(parsedPage);
         if (quotedTweet != null) {
-            Page quotedPage = getPageFromTweetDetail(category, quotedTweet.result, quotedTweet.result.core.user_results.result.legacy, null, null, true);
-            pages.add(quotedPage);
+            ParsedTweetPage quotedParsedPage = getParsedTweetPageFromDetail(category, quotedTweet.result, quotedTweet.result.core.user_results.result.legacy, null, null, true);
+            parsedPages.add(quotedParsedPage);
         }
-        return pages;
+        return parsedPages;
     }
 
-    private Page getPageFromTweetDetail(String category, TweetsRoot.Result tweetResult, TweetsRoot.Legacy user, TweetsRoot.Views views, TweetsRoot.QuotedStatusResult quotedTweet, boolean isFromQuote) {
+    private ParsedTweetPage getParsedTweetPageFromDetail(String category, TweetsRoot.Result tweetResult, TweetsRoot.Legacy user, TweetsRoot.Views views, TweetsRoot.QuotedStatusResult quotedTweet, boolean isFromQuote) {
         TweetProperties tweetProperties = getTweetProperties(user, tweetResult, views, quotedTweet);
         var tweet = tweetResult.legacy;
 
@@ -119,7 +120,7 @@ public class TweetParser {
 
         page.setPageJsonProperties(JSONUtils.toJson(tweetProperties));
 
-        return page;
+        return new ParsedTweetPage(page, tweetProperties);
     }
 
     private long calcVoteScore(TweetProperties tweetProperties) {

@@ -117,27 +117,22 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
   }
   readSyncStorageSettings().then((settings) => {
     if (settings.autoSaveEnabled) {
-      timeoutSavePureRead({minScore: settings.autoSaveMinScore, minContentLength: settings.autoSaveMinContentLength});
+      timeoutSavePureRead();
     }
   });
 });
 
-type AutoSaveSetting = {
-  minScore: number,
-  minContentLength: number
-}
-
-function timeoutSavePureRead(saveSetting: AutoSaveSetting) {
+function timeoutSavePureRead() {
   setTimeout(() => {
     const webClipper = new WebClipper()
-    webClipper.autoSavePureRead(saveSetting);
+    webClipper.autoSavePureRead();
   }, 2000);
 }
 
 export class WebClipper {
 
-  autoSavePureRead(saveSetting: AutoSaveSetting) {
-    if (!this.isMaybeReadable(saveSetting)) {
+  autoSavePureRead() {
+    if (!this.isMaybeReadable()) {
       return;
     }
 
@@ -149,10 +144,10 @@ export class WebClipper {
     return doc.querySelector("meta[data-huntly='1']");
   }
 
-  isMaybeReadable(saveSetting: AutoSaveSetting) {
+  isMaybeReadable() {
     return !this.hasHuntlyMeta(document) && isProbablyReaderable(document, {
-      minScore: saveSetting.minScore,
-      minContentLength: saveSetting.minContentLength
+      minScore: 20,
+      minContentLength: 40
     });
   }
 

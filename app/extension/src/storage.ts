@@ -1,9 +1,8 @@
 export const STORAGE_SERVER_URL = "serverUrl";
 export const STORAGE_SERVER_URL_LIST = "serverUrlList";
 export const STORAGE_AUTO_SAVE_ENABLED = "autoSaveEnabled";
-export const STORAGE_AUTO_SAVE_MIN_SCORE = "autoSaveMinScore";
-export const STORAGE_AUTO_SAVE_MIN_CONTENT_LENGTH = "autoSaveMinContentLength";
 export const STORAGE_AUTO_SAVE_TWEET = "autoSaveTweet";
+export const STORAGE_AUTO_SAVE_TWEET_MIN_LIKES = "autoSaveTweetMinLikes";
 
 export type ServerUrlItem = {
   url: string,
@@ -13,18 +12,16 @@ export type StorageSettings = {
   serverUrl: string;
   serverUrlList: ServerUrlItem[];
   autoSaveEnabled: boolean;
-  autoSaveMinScore: number;
-  autoSaveMinContentLength: number;
   autoSaveTweet: boolean;
+  autoSaveTweetMinLikes: number;
 }
 
 export const DefaultStorageSettings: StorageSettings = {
   serverUrl: "",
   serverUrlList: [],
-  autoSaveEnabled: true,
-  autoSaveMinScore: 20,
-  autoSaveMinContentLength: 40,
-  autoSaveTweet: false
+  autoSaveEnabled: false,
+  autoSaveTweet: false,
+  autoSaveTweetMinLikes: 0
 }
 
 export async function readSyncStorageSettings(): Promise<StorageSettings> {
@@ -32,9 +29,8 @@ export async function readSyncStorageSettings(): Promise<StorageSettings> {
   return {
     serverUrl: items[STORAGE_SERVER_URL] || DefaultStorageSettings.serverUrl,
     serverUrlList: items[STORAGE_SERVER_URL_LIST] || DefaultStorageSettings.serverUrlList,
-    autoSaveEnabled: items[STORAGE_AUTO_SAVE_ENABLED],
-    autoSaveMinScore: items[STORAGE_AUTO_SAVE_MIN_SCORE] || DefaultStorageSettings.autoSaveMinScore,
-    autoSaveMinContentLength: items[STORAGE_AUTO_SAVE_MIN_CONTENT_LENGTH] || DefaultStorageSettings.autoSaveMinContentLength,
-    autoSaveTweet: items[STORAGE_AUTO_SAVE_TWEET]
+    autoSaveEnabled: items[STORAGE_AUTO_SAVE_ENABLED] ?? DefaultStorageSettings.autoSaveEnabled,
+    autoSaveTweet: items[STORAGE_AUTO_SAVE_TWEET] ?? DefaultStorageSettings.autoSaveTweet,
+    autoSaveTweetMinLikes: items[STORAGE_AUTO_SAVE_TWEET_MIN_LIKES] ?? DefaultStorageSettings.autoSaveTweetMinLikes
   };
 }
