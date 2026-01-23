@@ -116,6 +116,8 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
   } else if (msg.type === 'auto_save_tweets') {
     readSyncStorageSettings().then((settings) => {
       if (settings.autoSaveTweet) {
+        // Add minLikes to payload
+        msg.payload.minLikes = settings.autoSaveTweetMinLikes;
         sendData("tweet/saveTweets", msg.payload);
       }
     });

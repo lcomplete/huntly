@@ -44,11 +44,12 @@ public class TweetController {
 
     @PostMapping("/saveTweets")
     public ApiResult<Integer> saveTweets(@RequestBody InterceptTweets tweets) {
-        var pages = tweetParser.tweetsToPages(tweets);
+        var parsedPages = tweetParser.tweetsToPages(tweets);
         AtomicInteger count = new AtomicInteger();
-        pages.forEach(page -> {
-            // SQLite only supports one connection. To avoid other threads from being unable to obtain the SQLite connection, asynchronous events are used 
-            eventPublisher.publishTweetPageCaptureEvent(new TweetPageCaptureEvent(page, tweets.getLoginScreenName(), tweets.getBrowserScreenName()));
+        Integer minLikes = tweets.getMinLikes();
+        parsedPages.forEach(parsedPage -> {
+            // SQLite only supports one connection. To avoid other threads from being unable to obtain the SQLite connection, asynchronous events are used
+            eventPublisher.publishTweetPageCaptureEvent(new TweetPageCaptureEvent(parsedPage, tweets.getLoginScreenName(), tweets.getBrowserScreenName(), minLikes));
             count.getAndIncrement();
         });
         return ApiResult.ok(count.get());

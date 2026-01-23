@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -34,8 +35,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CapturePageService extends BasePageService {
     private final SourceRepository sourceRepository;
     private final ConnectorRepository connectorRepository;
-
     private final TwitterUserSettingRepository twitterUserSettingRepository;
+
+    // Lock map for preventing concurrent saves of the same tweet
+    private final ConcurrentHashMap<String, Object> tweetSaveLocks = new ConcurrentHashMap<>();
 
 
     public CapturePageService(PageRepository pageRepository, LuceneService luceneService, SourceRepository sourceRepository, ConnectorRepository connectorRepository, TwitterUserSettingRepository twitterUserSettingRepository) {
@@ -114,8 +117,30 @@ public class CapturePageService extends BasePageService {
         return save(page);
     }
 
-    public Page saveTweetPage(Page page, String loginScreenName, String browserScreenName) {
-        var existPage = pageRepository.findTop1ByUrl(page.getUrl());
+    public Page saveTweetPage(Page page, String loginScreenName, String browserScreenName, Integer minLikes, int favoriteCount) {
+        // Use pageUniqueId (tweet id) as lock key for preventing concurrent saves of the same tweet
+        String lockKey = StringUtils.isNotBlank(page.getPageUniqueId()) ? page.getPageUniqueId() : page.getUrl();
+        Object lock = tweetSaveLocks.computeIfAbsent(lockKey, k -> new Object());
+
+        try {
+            synchronized (lock) {
+                return doSaveTweetPage(page, loginScreenName, browserScreenName, minLikes, favoriteCount);
+            }
+        } finally {
+            tweetSaveLocks.remove(lockKey);
+        }
+    }
+
+    private Page doSaveTweetPage(Page page, String loginScreenName, String browserScreenName, Integer minLikes, int favoriteCount) {
+        // Use pageUniqueId (tweet id) for duplicate detection, more reliable than URL
+        Optional<Page> existPage = Optional.empty();
+        if (StringUtils.isNotBlank(page.getPageUniqueId())) {
+            existPage = pageRepository.findTop1ByPageUniqueId(page.getPageUniqueId());
+        }
+        // Fallback to URL if pageUniqueId not found
+        if (existPage.isEmpty()) {
+            existPage = pageRepository.findTop1ByUrl(page.getUrl());
+        }
         if (existPage.isPresent()) {
             var currentPage = existPage.get();
             currentPage.setContent(page.getContent());
@@ -125,11 +150,19 @@ public class CapturePageService extends BasePageService {
             currentPage.setPageJsonProperties(page.getPageJsonProperties());
             currentPage.setCategory(page.getCategory());
             currentPage.setVoteScore(page.getVoteScore());
+            // Update URL if it was previously null-based
+            if (StringUtils.isNotBlank(page.getUrl()) && !page.getUrl().contains("/null/")) {
+                currentPage.setUrl(page.getUrl());
+            }
+            // Update pageUniqueId if it was previously empty
+            if (StringUtils.isNotBlank(page.getPageUniqueId()) && StringUtils.isBlank(currentPage.getPageUniqueId())) {
+                currentPage.setPageUniqueId(page.getPageUniqueId());
+            }
             page = currentPage;
         } else {
             page.setCreatedAt(Instant.now());
         }
-        // tweet auto save
+        // tweet auto save rules
         String toUseScreenName = page.getAuthorScreenName();
         if (Objects.equals(page.getCategory(), "like") && StringUtils.isNotBlank(browserScreenName)) {
             toUseScreenName = browserScreenName;
@@ -137,10 +170,14 @@ public class CapturePageService extends BasePageService {
             toUseScreenName = loginScreenName;
         }
         var twitterUserSetting = twitterUserSettingRepository.findByScreenName(toUseScreenName);
+
+        // Check if this tweet matches a TwitterUserSetting rule with actual configuration
+        boolean matchesSaveRule = false;
+        Integer libraryType = null;
+        Long collectionId = null;
+
         if (twitterUserSetting.isPresent()) {
             var setting = twitterUserSetting.get();
-            Integer libraryType = null;
-            Long collectionId = null;
 
             // Priority: tweet (user's own) > bookmark > like
             // Only use if the setting has libraryType or collectionId configured
@@ -152,75 +189,88 @@ public class CapturePageService extends BasePageService {
             if (isOwnTweet && hasSetting(setting.getTweetToLibraryType(), setting.getTweetToCollectionId())) {
                 libraryType = setting.getTweetToLibraryType();
                 collectionId = setting.getTweetToCollectionId();
+                matchesSaveRule = true;
             }
             // 2. Second priority: bookmark settings
             else if (isBookmark && hasSetting(setting.getBookmarkToLibraryType(), setting.getBookmarkToCollectionId())) {
                 libraryType = setting.getBookmarkToLibraryType();
                 collectionId = setting.getBookmarkToCollectionId();
+                matchesSaveRule = true;
             }
             // 3. Third priority: like settings
             else if (isLike && hasSetting(setting.getLikeToLibraryType(), setting.getLikeToCollectionId())) {
                 libraryType = setting.getLikeToLibraryType();
                 collectionId = setting.getLikeToCollectionId();
-            }
-
-            // If only collectionId is set (no libraryType), default to MY_LIST (code = 1)
-            if (collectionId != null && (libraryType == null || libraryType == 0)) {
-                libraryType = 1; // MY_LIST
-            }
-
-            // Apply library type settings
-            LibrarySaveType librarySaveType = LibrarySaveType.fromCode(libraryType);
-            if (librarySaveType != null) {
-                switch (librarySaveType) {
-                    case STARRED:
-                        page.setStarred(true);
-                        page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                        if (page.getSavedAt() == null) {
-                            page.setSavedAt(Instant.now());
-                        }
-                        if (page.getStarredAt() == null) {
-                            page.setStarredAt(Instant.now());
-                        }
-                        break;
-                    case READ_LATER:
-                        page.setReadLater(true);
-                        page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                        if (page.getSavedAt() == null) {
-                            page.setSavedAt(Instant.now());
-                        }
-                        if (page.getReadLaterAt() == null) {
-                            page.setReadLaterAt(Instant.now());
-                        }
-                        break;
-                    case MY_LIST:
-                        page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
-                        if (page.getSavedAt() == null) {
-                            page.setSavedAt(Instant.now());
-                        }
-                        break;
-                    case ARCHIVE:
-                        page.setLibrarySaveStatus(LibrarySaveStatus.ARCHIVED.getCode());
-                        if (page.getArchivedAt() == null) {
-                            page.setArchivedAt(Instant.now());
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                if(page.getCollectedAt() == null) {
-                    page.setCollectedAt(Instant.now());
-                }
-            }
-
-            if (collectionId != null) {
-                page.setCollectionId(collectionId);
-                // Ensure collectedAt is set when collectionId is set
-                if (page.getCollectedAt() == null) {
-                    page.setCollectedAt(page.getCreatedAt() != null ? page.getCreatedAt() : Instant.now());
-                }
+                matchesSaveRule = true;
             }
         }
+
+        // Apply minLikes filter only if the tweet does NOT match a TwitterUserSetting rule
+        // Tweets that match rules should always be saved regardless of likes count
+        if (!matchesSaveRule && minLikes != null && minLikes > 0) {
+            if (favoriteCount < minLikes) {
+                // Skip saving this tweet - it doesn't meet the minimum likes requirement
+                return null;
+            }
+        }
+
+        // If only collectionId is set (no libraryType), default to MY_LIST (code = 1)
+        if (collectionId != null && (libraryType == null || libraryType == 0)) {
+            libraryType = 1; // MY_LIST
+        }
+
+        // Apply library type settings
+        LibrarySaveType librarySaveType = LibrarySaveType.fromCode(libraryType);
+        if (librarySaveType != null) {
+            switch (librarySaveType) {
+                case STARRED:
+                    page.setStarred(true);
+                    page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                    if (page.getSavedAt() == null) {
+                        page.setSavedAt(Instant.now());
+                    }
+                    if (page.getStarredAt() == null) {
+                        page.setStarredAt(Instant.now());
+                    }
+                    break;
+                case READ_LATER:
+                    page.setReadLater(true);
+                    page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                    if (page.getSavedAt() == null) {
+                        page.setSavedAt(Instant.now());
+                    }
+                    if (page.getReadLaterAt() == null) {
+                        page.setReadLaterAt(Instant.now());
+                    }
+                    break;
+                case MY_LIST:
+                    page.setLibrarySaveStatus(LibrarySaveStatus.SAVED.getCode());
+                    if (page.getSavedAt() == null) {
+                        page.setSavedAt(Instant.now());
+                    }
+                    break;
+                case ARCHIVE:
+                    page.setLibrarySaveStatus(LibrarySaveStatus.ARCHIVED.getCode());
+                    if (page.getArchivedAt() == null) {
+                        page.setArchivedAt(Instant.now());
+                    }
+                    break;
+                default:
+                    break;
+            }
+            if(page.getCollectedAt() == null) {
+                page.setCollectedAt(Instant.now());
+            }
+        }
+
+        if (collectionId != null) {
+            page.setCollectionId(collectionId);
+            // Ensure collectedAt is set when collectionId is set
+            if (page.getCollectedAt() == null) {
+                page.setCollectedAt(page.getCreatedAt() != null ? page.getCreatedAt() : Instant.now());
+            }
+        }
+
         return save(page);
     }
 

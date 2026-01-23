@@ -19,6 +19,13 @@ public class TweetPageCaptureListener {
     @EventListener
     @Async
     public void tweetPageCaptureEvent(TweetPageCaptureEvent event) {
-        capturePageService.saveTweetPage(event.getPage(), event.getLoginScreenName(), event.getBrowserScreenName());
+        var parsedPage = event.getParsedTweetPage();
+        capturePageService.saveTweetPage(
+                parsedPage.getPage(),
+                event.getLoginScreenName(),
+                event.getBrowserScreenName(),
+                event.getMinLikes(),
+                parsedPage.getFavoriteCount()
+        );
     }
 }
