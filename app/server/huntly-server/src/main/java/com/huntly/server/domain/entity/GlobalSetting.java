@@ -55,6 +55,9 @@ public class GlobalSetting implements Serializable {
     @Column(name = "mcp_token")
     private String mcpToken;
 
+    @Column(name = "auto_save_tweet_min_likes")
+    private Integer autoSaveTweetMinLikes;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

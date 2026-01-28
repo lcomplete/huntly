@@ -10,10 +10,8 @@ import {
   LibraryExportStatus,
   startLibraryExport
 } from "../../api/libraryExport";
-import { TwitterSaveRulesSetting } from "./TwitterSaveRulesSetting";
 import BatchOrganizeSetting from "./BatchOrganizeSetting";
 import DownloadIcon from '@mui/icons-material/Download';
-import RuleIcon from '@mui/icons-material/Rule';
 import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
 
 const POLL_INTERVAL_MS = 5000;
@@ -242,18 +240,14 @@ export default function LibrarySetting() {
     <div>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="library settings tabs">
-          <Tab icon={<RuleIcon />} iconPosition="start" label="Save rules" {...a11yProps(0)} sx={{ minHeight: 48 }} />
-          <Tab icon={<DriveFileMoveIcon />} iconPosition="start" label="Batch Organize" {...a11yProps(1)} sx={{ minHeight: 48 }} />
-          <Tab icon={<DownloadIcon />} iconPosition="start" label="Export" {...a11yProps(2)} sx={{ minHeight: 48 }} />
+          <Tab icon={<DriveFileMoveIcon />} iconPosition="start" label="Batch Organize" {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<DownloadIcon />} iconPosition="start" label="Export" {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>
-        <TwitterSaveRulesSetting />
-      </TabPanel>
-      <TabPanel value={tabValue} index={1}>
         <BatchOrganizeSetting />
       </TabPanel>
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={1}>
         <ExportSetting />
       </TabPanel>
     </div>

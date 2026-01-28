@@ -132,7 +132,7 @@ export async function fetchEnabledShortcuts(): Promise<any[]> {
   try {
     const baseUri = await getApiBaseUrl();
     const response = await getData(baseUri, "article-shortcuts/enabled");
-    
+
     if (response) {
       return JSON.parse(response);
     }
@@ -140,5 +140,24 @@ export async function fetchEnabledShortcuts(): Promise<any[]> {
   } catch (error) {
     console.error("Error fetching shortcuts:", error);
     return [];
+  }
+}
+
+/**
+ * Fetch global setting from the server
+ * @returns Promise with the global setting object
+ */
+export async function fetchGlobalSetting(): Promise<any> {
+  try {
+    const baseUri = await getApiBaseUrl();
+    const response = await getData(baseUri, "setting/general/globalSetting");
+
+    if (response) {
+      return JSON.parse(response);
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching global setting:", error);
+    return null;
   }
 }

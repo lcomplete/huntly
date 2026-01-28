@@ -5,7 +5,7 @@ import * as yup from 'yup';
 import {FieldArray, Form, Formik, getIn} from "formik";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from '@mui/icons-material/Add';
-import {readSyncStorageSettings, ServerUrlItem, StorageSettings} from "./storage";
+import {ContentParserType, readSyncStorageSettings, ServerUrlItem, StorageSettings, DefaultStorageSettings} from "./storage";
 
 export type SettingsProps = {
   onOptionsChange?: (settings:StorageSettings) => void
@@ -16,14 +16,14 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
   const [enabledServerIndex, setEnabledServerIndex] = useState<number>(0);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(true);
   const [autoSaveTweet, setAutoSaveTweet] = useState<boolean>(false);
-  const [autoSaveTweetMinLikes, setAutoSaveTweetMinLikes] = useState<number>(0);
+  const [contentParser, setContentParser] = useState<ContentParserType>("readability");
   const [showSavedTip, setShowSavedTip] = useState<boolean>(false);
 
   useEffect(() => {
     readSyncStorageSettings().then((settings) => {
       setAutoSaveEnabled(settings.autoSaveEnabled);
       setAutoSaveTweet(settings.autoSaveTweet);
-      setAutoSaveTweetMinLikes(settings.autoSaveTweetMinLikes);
+      setContentParser(settings.contentParser);
       if (settings.serverUrlList.length > 0) {
         setServerUrlList(settings.serverUrlList);
         settings.serverUrlList.forEach((item, index) => {
@@ -44,7 +44,6 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
     })),
     autoSaveEnabled: yup.boolean().required('Auto save enabled is required.'),
     autoSaveTweet: yup.boolean().required('Auto save tweet is required.'),
-    autoSaveTweetMinLikes: yup.number().min(0).max(10000).required('Min likes is required.')
   });
 
   return (
@@ -67,17 +66,17 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
             settings: serverUrlList,
             autoSaveEnabled: autoSaveEnabled,
             autoSaveTweet: autoSaveTweet,
-            autoSaveTweetMinLikes: autoSaveTweetMinLikes
           }}
           validationSchema={urlValidation}
           onSubmit={(values) => {
             const serverUrl = values.settings[enabledServerIndex].url;
             const storageSettings: StorageSettings = {
+              ...DefaultStorageSettings,
               "serverUrl": serverUrl,
               "serverUrlList": values.settings,
               "autoSaveEnabled": values.autoSaveEnabled,
               "autoSaveTweet": values.autoSaveTweet,
-              "autoSaveTweetMinLikes": values.autoSaveTweetMinLikes
+              "contentParser": contentParser
             };
             chrome.storage.sync.set(
               {
@@ -85,7 +84,7 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
                 "serverUrlList": values.settings,
                 "autoSaveEnabled": values.autoSaveEnabled,
                 "autoSaveTweet": values.autoSaveTweet,
-                "autoSaveTweetMinLikes": values.autoSaveTweetMinLikes
+                "contentParser": contentParser
               },
               () => {
                 setShowSavedTip(true);
@@ -183,18 +182,6 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
                 <FormControlLabel
                   control={<Switch value={true} checked={values.autoSaveTweet} name={'autoSaveTweet'}
                                    onChange={handleChange}/>} label="Enabled"/>
-                <div className={'mt-2'}>
-                  <TextField
-                    type="number"
-                    size="small"
-                    label="Minimum likes (0 = save all)"
-                    name="autoSaveTweetMinLikes"
-                    value={values.autoSaveTweetMinLikes}
-                    onChange={handleChange}
-                    inputProps={{ min: 0, max: 10000 }}
-                    helperText="Only save tweets with at least this many likes"
-                  />
-                </div>
               </div>
 
               <Divider style={{marginTop: 5, marginBottom: 15}}/>

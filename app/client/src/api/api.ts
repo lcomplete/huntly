@@ -24,6 +24,56 @@ import { BASE_PATH, COLLECTION_FORMATS, RequestArgs, BaseAPI, RequiredError } fr
 /**
  * 
  * @export
+ * @interface ApiResultOfBatchFilterResult
+ */
+export interface ApiResultOfBatchFilterResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOfBatchFilterResult
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {BatchFilterResult}
+     * @memberof ApiResultOfBatchFilterResult
+     */
+    'data'?: BatchFilterResult;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOfBatchFilterResult
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ApiResultOfBatchMoveResult
+ */
+export interface ApiResultOfBatchMoveResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiResultOfBatchMoveResult
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {BatchMoveResult}
+     * @memberof ApiResultOfBatchMoveResult
+     */
+    'data'?: BatchMoveResult;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiResultOfBatchMoveResult
+     */
+    'message'?: string;
+}
+/**
+ * 
+ * @export
  * @interface ApiResultOfLibraryExportInfo
  */
 export interface ApiResultOfLibraryExportInfo {
@@ -319,6 +369,227 @@ export interface ArticleShortcut {
      * @memberof ArticleShortcut
      */
     'updatedAt'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface BatchFilterQuery
+ */
+export interface BatchFilterQuery {
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchFilterQuery
+     */
+    'author'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchFilterQuery
+     */
+    'collectionId'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchFilterQuery
+     */
+    'contentType'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchFilterQuery
+     */
+    'endDate'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof BatchFilterQuery
+     */
+    'filterUnsorted'?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchFilterQuery
+     */
+    'page'?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof BatchFilterQuery
+     */
+    'readLater'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchFilterQuery
+     */
+    'saveStatus'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchFilterQuery
+     */
+    'size'?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof BatchFilterQuery
+     */
+    'starred'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchFilterQuery
+     */
+    'startDate'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface BatchFilterResult
+ */
+export interface BatchFilterResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchFilterResult
+     */
+    'currentPage'?: number;
+    /**
+     * 
+     * @type {Array<BatchPageItem>}
+     * @memberof BatchFilterResult
+     */
+    'items'?: Array<BatchPageItem>;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchFilterResult
+     */
+    'totalCount'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchFilterResult
+     */
+    'totalPages'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface BatchMoveRequest
+ */
+export interface BatchMoveRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchMoveRequest
+     */
+    'collectedAtMode'?: string;
+    /**
+     * 
+     * @type {BatchFilterQuery}
+     * @memberof BatchMoveRequest
+     */
+    'filterQuery'?: BatchFilterQuery;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof BatchMoveRequest
+     */
+    'pageIds'?: Array<number>;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof BatchMoveRequest
+     */
+    'selectAll'?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchMoveRequest
+     */
+    'targetCollectionId'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface BatchMoveResult
+ */
+export interface BatchMoveResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchMoveResult
+     */
+    'successCount'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchMoveResult
+     */
+    'totalAffected'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface BatchPageItem
+ */
+export interface BatchPageItem {
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchPageItem
+     */
+    'author'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchPageItem
+     */
+    'collectedAt'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchPageItem
+     */
+    'contentType'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchPageItem
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof BatchPageItem
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchPageItem
+     */
+    'pageJsonProperties'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchPageItem
+     */
+    'publishTime'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchPageItem
+     */
+    'title'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof BatchPageItem
+     */
+    'url'?: string;
 }
 /**
  * 
@@ -751,6 +1022,18 @@ export interface Connector {
      * @type {string}
      * @memberof Connector
      */
+    'httpEtag'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Connector
+     */
+    'httpLastModified'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Connector
+     */
     'iconUrl'?: string;
     /**
      * 
@@ -1062,6 +1345,12 @@ export interface GlobalSetting {
     'autoSaveSiteBlacklists'?: string;
     /**
      * 
+     * @type {number}
+     * @memberof GlobalSetting
+     */
+    'autoSaveTweetMinLikes'?: number;
+    /**
+     * 
      * @type {boolean}
      * @memberof GlobalSetting
      */
@@ -1224,6 +1513,12 @@ export interface InterceptTweets {
      * @memberof InterceptTweets
      */
     'loginScreenName'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof InterceptTweets
+     */
+    'minLikes'?: number;
 }
 /**
  * 
@@ -4127,6 +4422,178 @@ export class BasicErrorControllerApi extends BaseAPI {
      */
     public errorUsingTRACE(options?: AxiosRequestConfig) {
         return BasicErrorControllerApiFp(this.configuration).errorUsingTRACE(options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * BatchOrganizeControllerApi - axios parameter creator
+ * @export
+ */
+export const BatchOrganizeControllerApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary batchMoveToCollection
+         * @param {BatchMoveRequest} [batchMoveRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        batchMoveToCollectionUsingPOST: async (batchMoveRequest?: BatchMoveRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page/batch/moveToCollection`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(batchMoveRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary filterPages
+         * @param {BatchFilterQuery} [batchFilterQuery] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        filterPagesUsingPOST: async (batchFilterQuery?: BatchFilterQuery, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/page/batch/filter`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(batchFilterQuery, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * BatchOrganizeControllerApi - functional programming interface
+ * @export
+ */
+export const BatchOrganizeControllerApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = BatchOrganizeControllerApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary batchMoveToCollection
+         * @param {BatchMoveRequest} [batchMoveRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async batchMoveToCollectionUsingPOST(batchMoveRequest?: BatchMoveRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfBatchMoveResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.batchMoveToCollectionUsingPOST(batchMoveRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary filterPages
+         * @param {BatchFilterQuery} [batchFilterQuery] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async filterPagesUsingPOST(batchFilterQuery?: BatchFilterQuery, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResultOfBatchFilterResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.filterPagesUsingPOST(batchFilterQuery, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * BatchOrganizeControllerApi - factory interface
+ * @export
+ */
+export const BatchOrganizeControllerApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = BatchOrganizeControllerApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary batchMoveToCollection
+         * @param {BatchMoveRequest} [batchMoveRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        batchMoveToCollectionUsingPOST(batchMoveRequest?: BatchMoveRequest, options?: any): AxiosPromise<ApiResultOfBatchMoveResult> {
+            return localVarFp.batchMoveToCollectionUsingPOST(batchMoveRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary filterPages
+         * @param {BatchFilterQuery} [batchFilterQuery] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        filterPagesUsingPOST(batchFilterQuery?: BatchFilterQuery, options?: any): AxiosPromise<ApiResultOfBatchFilterResult> {
+            return localVarFp.filterPagesUsingPOST(batchFilterQuery, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * BatchOrganizeControllerApi - object-oriented interface
+ * @export
+ * @class BatchOrganizeControllerApi
+ * @extends {BaseAPI}
+ */
+export class BatchOrganizeControllerApi extends BaseAPI {
+    /**
+     * 
+     * @summary batchMoveToCollection
+     * @param {BatchMoveRequest} [batchMoveRequest] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof BatchOrganizeControllerApi
+     */
+    public batchMoveToCollectionUsingPOST(batchMoveRequest?: BatchMoveRequest, options?: AxiosRequestConfig) {
+        return BatchOrganizeControllerApiFp(this.configuration).batchMoveToCollectionUsingPOST(batchMoveRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary filterPages
+     * @param {BatchFilterQuery} [batchFilterQuery] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof BatchOrganizeControllerApi
+     */
+    public filterPagesUsingPOST(batchFilterQuery?: BatchFilterQuery, options?: AxiosRequestConfig) {
+        return BatchOrganizeControllerApiFp(this.configuration).filterPagesUsingPOST(batchFilterQuery, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

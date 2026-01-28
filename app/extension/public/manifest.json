@@ -2,9 +2,10 @@
   "manifest_version": 3,
   "name": "Huntly",
   "description": "Huntly - Automatic saving browsed contents",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "options_ui": {
-    "page": "options.html"
+    "page": "options.html",
+    "open_in_tab": true
   },
   "icons": {
     "16": "favicon-16x16.png",

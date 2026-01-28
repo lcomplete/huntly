@@ -82,6 +82,7 @@ public class GlobalSettingService {
             dbSetting.setOpenApiKey(globalSetting.getOpenApiKey());
         }
         dbSetting.setMcpToken(globalSetting.getMcpToken());
+        dbSetting.setAutoSaveTweetMinLikes(globalSetting.getAutoSaveTweetMinLikes());
         dbSetting.setUpdatedAt(globalSetting.getUpdatedAt());
         return settingRepository.save(dbSetting);
     }

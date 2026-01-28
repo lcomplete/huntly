@@ -11,6 +11,9 @@ if (process.env.BROWSER === 'firefox') {
   manifestFile = 'public/manifest-firefox.json';
 }
 
+// Get version from environment variable (without 'v' prefix)
+const extensionVersion = process.env.EXTENSION_VERSION;
+
 module.exports = {
   entry: {
     popup: path.join(srcDir, 'popup.tsx'),
@@ -34,8 +37,14 @@ module.exports = {
   },
   module: {
     rules: [
+      // CSS as raw string for Shadow DOM injection (use ?raw query)
+      {
+        resourceQuery: /raw/,
+        type: 'asset/source',
+      },
       {
         test: /\.module\.css$/i,
+        resourceQuery: { not: [/raw/] },
         use: [
           {loader: "style-loader"},
           {
@@ -52,6 +61,7 @@ module.exports = {
       {
         test: /\.css$/i,
         exclude: /\.module\.css$/i,
+        resourceQuery: { not: [/raw/] },
         use: [
           {loader: "style-loader"},
           {
@@ -79,7 +89,19 @@ module.exports = {
       options: {},
     }),
     new CopyPlugin({
-      patterns: [{ from: manifestFile, to: path.resolve(__dirname, '..', outputPath, 'manifest.json') }]
+      patterns: [{
+        from: manifestFile,
+        to: path.resolve(__dirname, '..', outputPath, 'manifest.json'),
+        // Only apply transform when EXTENSION_VERSION is set (during release builds)
+        // This avoids unnecessary re-compilation during development
+        ...(extensionVersion ? {
+          transform(content) {
+            const manifest = JSON.parse(content.toString());
+            manifest.version = extensionVersion;
+            return JSON.stringify(manifest, null, 2);
+          }
+        } : {})
+      }]
     })
   ],
 };
