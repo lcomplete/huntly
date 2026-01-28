@@ -1,8 +1,231 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --huntly-ink: #1e293b;
+  --huntly-subtle: #475569;
+  --huntly-line: #e2e8f0;
+  --huntly-surface: #ffffff;
+  --huntly-soft: #f8fafc;
+  --huntly-accent: #3b82f6;
+  --huntly-accent-weak: #dbeafe;
+  --huntly-cta: #f97316;
+}
+
 .formHeader {
-    @apply text-lg font-medium text-gray-700 pb-2 mb-2;
-    border-bottom: 1px solid #ccc;
+  @apply text-lg font-medium text-gray-700 pb-2 mb-2;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Main Layout */
+.settings-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--huntly-soft);
+  justify-content: center;
+  padding: 48px 24px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.settings-shell {
+  display: flex;
+  width: 100%;
+  max-width: 1080px;
+  background: var(--huntly-surface);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: none;
+  border: 1px solid var(--huntly-line);
+  box-sizing: border-box;
+}
+
+/* Sidebar */
+.settings-sidebar {
+  width: 240px;
+  background: var(--huntly-soft);
+  border-right: 1px solid var(--huntly-line);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 20px;
+  border-bottom: 1px solid var(--huntly-line);
+}
+
+.sidebar-logo {
+  color: var(--huntly-accent);
+  font-size: 28px !important;
+  margin-right: 8px;
+}
+
+.sidebar-title {
+  font-weight: 600 !important;
+  color: var(--huntly-ink);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 12px 20px !important;
+}
+
+.sidebar-nav-item {
+  border-radius: 8px !important;
+  margin-bottom: 4px !important;
+  padding: 10px 16px !important;
+  transition: all 0.15s ease !important;
+  color: var(--huntly-subtle);
+}
+
+.sidebar-nav-item:hover {
+  background: #e2e8f0 !important;
+}
+
+.sidebar-nav-item.Mui-selected {
+  background: var(--huntly-accent-weak) !important;
+  color: #0284c7 !important;
+}
+
+.sidebar-nav-item.Mui-selected:hover {
+  background: #bae6fd !important;
+}
+
+.sidebar-nav-item.Mui-selected .sidebar-nav-icon {
+  color: #0284c7 !important;
+}
+
+.sidebar-nav-icon {
+  min-width: 40px !important;
+  color: #64748b !important;
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--huntly-line);
+  text-align: center;
+}
+
+/* Main Content Area */
+.settings-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 44px 36px;
+  background: var(--huntly-surface);
+}
+
+.settings-content {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* Section Styles */
+.settings-section {
+  background: var(--huntly-surface);
+  border-radius: 12px;
+  padding: 28px 32px;
+  box-shadow: none;
+  border: 1px solid var(--huntly-line);
+}
+
+.section-header {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--huntly-ink);
+  margin: 0 0 6px;
+}
+
+.section-description {
+  font-size: 0.875rem;
+  color: var(--huntly-subtle);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.section-description a {
+  color: #0284c7;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.section-description a:hover {
+  text-decoration: underline;
+}
+
+/* Form Elements */
+.setting-item {
+  margin-top: 8px;
+}
+
+.mt-3 {
+  margin-top: 12px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mt-6 {
+  margin-top: 24px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .settings-layout {
+    padding: 32px 16px;
+  }
+
+  .settings-sidebar {
+    width: 200px;
+  }
+
+  .settings-main {
+    padding: 28px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .settings-layout {
+    padding: 24px 12px;
+  }
+
+  .settings-shell {
+    flex-direction: column;
+  }
+
+  .settings-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    overflow-x: auto;
+    padding: 8px !important;
+  }
+
+  .sidebar-nav-item {
+    flex-shrink: 0;
+    margin-bottom: 0 !important;
+    margin-right: 4px !important;
+  }
+
+  .sidebar-footer {
+    display: none;
+  }
+
+  .settings-main {
+    padding: 22px 16px;
+  }
 }

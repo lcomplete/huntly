@@ -30,6 +30,7 @@ import SettingsFeeds from "./pages/settings/SettingsFeeds";
 import SettingsLibrary from "./pages/settings/SettingsLibrary";
 import SettingsAccount from "./pages/settings/SettingsAccount";
 import SettingsGithub from "./pages/settings/SettingsGithub";
+import SettingsX from "./pages/settings/SettingsX";
 
 function App() {
   const router = createBrowserRouter(
@@ -56,6 +57,7 @@ function App() {
           <Route path="/settings/huntly-ai" element={<SettingsHuntlyAI />} />
           <Route path="/settings/library" element={<SettingsLibrary />} />
           <Route path="/settings/feeds" element={<SettingsFeeds />} />
+          <Route path="/settings/x" element={<SettingsX />} />
           <Route path="/settings/github" element={<SettingsGithub />} />
           <Route path="/settings/account" element={<SettingsAccount />} />
         </Route>
