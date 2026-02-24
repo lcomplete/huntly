@@ -1,4 +1,5 @@
 import {log} from "./logger";
+import {isDebugging} from "./env";
 import {readSyncStorageSettings, getPromptsSettings, getLanguageNativeName} from "./storage";
 import {
   autoSaveArticle,
@@ -694,25 +695,28 @@ const CONTEXT_MENU_READING_MODE_PAGE = "huntly_reading_mode_page";
 const CONTEXT_MENU_READING_MODE_SELECTION = "huntly_reading_mode_selection";
 const CONTEXT_MENU_READING_MODE_ACTION = "huntly_reading_mode_action";
 
+// Add DEV flag to menu title in development mode
+const READING_MODE_TITLE = isDebugging ? "Huntly Reading Mode [DEV]" : "Huntly Reading Mode";
+
 chrome.runtime.onInstalled.addListener(() => {
   // Context menu for page (no selection)
   chrome.contextMenus.create({
     id: CONTEXT_MENU_READING_MODE_PAGE,
-    title: "Huntly Reading Mode",
+    title: READING_MODE_TITLE,
     contexts: ["page"],
   });
 
   // Context menu for selection (snippet mode)
   chrome.contextMenus.create({
     id: CONTEXT_MENU_READING_MODE_SELECTION,
-    title: "Huntly Reading Mode",
+    title: READING_MODE_TITLE,
     contexts: ["selection"],
   });
 
   // Context menu for extension icon (action)
   chrome.contextMenus.create({
     id: CONTEXT_MENU_READING_MODE_ACTION,
-    title: "Huntly Reading Mode",
+    title: READING_MODE_TITLE,
     contexts: ["action"],
   });
 });
