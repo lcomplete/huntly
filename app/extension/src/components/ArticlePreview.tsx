@@ -82,23 +82,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-// Helper function to check if URL is from X/Twitter
-function isXTwitterSite(url: string | undefined, domain: string | undefined): boolean {
-  if (domain === "twitter.com" || domain === "x.com") {
-    return true;
-  }
-  if (url) {
-    try {
-      const urlObj = new URL(url);
-      const hostname = urlObj.hostname;
-      return hostname === "twitter.com" || hostname === "x.com";
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
-
 export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
   page: initialPage,
   initialParserType,
@@ -137,7 +120,6 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
   const shadowContainer = useShadowContainer();
 
   const isSnippetMode = page.contentType === 4;
-  const isXSite = isXTwitterSite(page.url, page.domain);
 
   // Handle parser change
   const handleParserChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -452,7 +434,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
             >
               <div className="huntly-scroll-container">
                 <article className="huntly-markdown-body">
-                  {!isSnippetMode && !isXSite && <h1 style={{ marginBottom: "16px" }}>{page.title}</h1>}
+                  {!isSnippetMode && <h1 style={{ marginBottom: "16px" }}>{page.title}</h1>}
                   <div dangerouslySetInnerHTML={{ __html: page.content }} />
                 </article>
               </div>
