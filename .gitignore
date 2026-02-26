@@ -42,6 +42,7 @@ db.sqlite*
 
 .vscode/
 
+.agents/
 .claude/
 .cursor/
 .playwright-mcp/
