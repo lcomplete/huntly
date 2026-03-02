@@ -126,11 +126,12 @@ public class LuceneService implements DisposableBean {
             boolean docExists = false;
             Directory dir = getDirectory();
             if (DirectoryReader.indexExists(dir)) {
-                DirectoryReader reader = DirectoryReader.open(dir);
-                IndexSearcher searcher = new IndexSearcher(reader);
-                Query idQuery = new TermQuery(new Term("id", page.getId().toString()));
-                TopDocs docs = searcher.search(idQuery, 1);
-                docExists = docs.totalHits.value > 0;
+                try (DirectoryReader reader = DirectoryReader.open(dir)) {
+                    IndexSearcher searcher = new IndexSearcher(reader);
+                    Query idQuery = new TermQuery(new Term("id", page.getId().toString()));
+                    TopDocs docs = searcher.search(idQuery, 1);
+                    docExists = docs.totalHits.value > 0;
+                }
             }
             Document doc = pageToDocument(page);
             if (docExists) {
@@ -307,136 +308,137 @@ public class LuceneService implements DisposableBean {
         try {
             Directory dir = getDirectory();
             if (DirectoryReader.indexExists(dir)) {
-                DirectoryReader reader = DirectoryReader.open(dir);
-                IndexSearcher searcher = new IndexSearcher(reader);
-                List<FieldQueryInfo> fields = new ArrayList<>();
-                fields.add(new FieldQueryInfo().setName(DocFields.TITLE).setWildcard(true).setBoost(100));
-                if (!Boolean.TRUE.equals(option.getOnlySearchTitle())) {
-                    fields.add(new FieldQueryInfo().setName(DocFields.CONTENT).setWildcard(true).setBoost(5));
-                }
-                var boolQueryBuilder = new BooleanQuery.Builder();
-                if (Boolean.TRUE.equals(option.getAlreadyRead())) {
-                    Query query = LongPoint.newRangeQuery(DocFields.LAST_READ_AT, 1, Long.MAX_VALUE);
-                    boolQueryBuilder.add(query, BooleanClause.Occur.MUST);
-                }
-                if (option.getType() != null) {
-                    Query query = null;
-                    switch (option.getType()) {
-                        case TWEET:
-                            query = IntPoint.newExactQuery(DocFields.CONTENT_TYPE, ContentType.TWEET.getCode());
-                            break;
-                        case GITHUB_STARRED_REPO:
-                            query = IntPoint.newExactQuery(DocFields.CONNECTOR_TYPE, ConnectorType.GITHUB.getCode());
-                            break;
-                        case BROWSER_HISTORY:
-                            query = IntPoint.newExactQuery(DocFields.CONTENT_TYPE, ContentType.BROWSER_HISTORY.getCode());
-                            break;
-                        case FEEDS:
-                            query = IntPoint.newExactQuery(DocFields.CONNECTOR_TYPE, ConnectorType.RSS.getCode());
-                            break;
-                        default:
-                            break;
+                try (DirectoryReader reader = DirectoryReader.open(dir)) {
+                    IndexSearcher searcher = new IndexSearcher(reader);
+                    List<FieldQueryInfo> fields = new ArrayList<>();
+                    fields.add(new FieldQueryInfo().setName(DocFields.TITLE).setWildcard(true).setBoost(100));
+                    if (!Boolean.TRUE.equals(option.getOnlySearchTitle())) {
+                        fields.add(new FieldQueryInfo().setName(DocFields.CONTENT).setWildcard(true).setBoost(5));
                     }
-                    if (query != null) {
+                    var boolQueryBuilder = new BooleanQuery.Builder();
+                    if (Boolean.TRUE.equals(option.getAlreadyRead())) {
+                        Query query = LongPoint.newRangeQuery(DocFields.LAST_READ_AT, 1, Long.MAX_VALUE);
                         boolQueryBuilder.add(query, BooleanClause.Occur.MUST);
                     }
-                }
-                if (option.getLibrary() != null) {
-                    Query query = null;
-                    switch (option.getLibrary()) {
-                        case MY_LIST:
-                            query = IntPoint.newExactQuery(DocFields.LIBRARY_SAVE_STATUS, LibrarySaveStatus.SAVED.getCode());
-                            break;
-                        case STARRED:
-                            query = new TermQuery(new Term(DocFields.STARRED, "1"));
-                            break;
-                        case READ_LATER:
-                            query = new TermQuery(new Term(DocFields.READ_LATER, "1"));
-                            break;
-                        case ARCHIVE:
-                            query = IntPoint.newExactQuery(DocFields.LIBRARY_SAVE_STATUS, LibrarySaveStatus.ARCHIVED.getCode());
-                            break;
-                        case HIGHLIGHTS:
-                            query = IntPoint.newRangeQuery(DocFields.HIGHLIGHT_COUNT, 1, Integer.MAX_VALUE);
-                            break;
-                        case UNSORTED:
-                            // Unsorted: must be in library (librarySaveStatus > 0) AND no collection assigned
-                            // For backward compatibility with old docs that don't have collection_id field:
-                            // Match docs that do NOT have a valid collectionId (>= 1)
-                            BooleanQuery.Builder unsortedBuilder = new BooleanQuery.Builder();
-                            unsortedBuilder.add(IntPoint.newRangeQuery(DocFields.LIBRARY_SAVE_STATUS, 1, Integer.MAX_VALUE), BooleanClause.Occur.MUST);
-                            
-                            // Exclude docs that have a valid collection (collectionId >= 1)
-                            // This covers: collectionId = -1, collectionId = 0, or field doesn't exist (old docs)
-                            unsortedBuilder.add(LongPoint.newRangeQuery(DocFields.COLLECTION_ID, 1L, Long.MAX_VALUE), BooleanClause.Occur.MUST_NOT);
-                            
-                            query = unsortedBuilder.build();
-                            break;
-                        default:
-                            break;
-                    }
-                    if (query != null) {
-                        boolQueryBuilder.add(query, BooleanClause.Occur.MUST);
-                    }
-                }
-
-                for (AdvancedSearch advancedSearch : completeSearch.advancedSearches) {
-                    if (CollectionUtils.isEmpty(advancedSearch.words)) {
-                        continue;
-                    }
-                    var advancedSearchQueryBuilder = new BooleanQuery.Builder();
-                    for (String word : advancedSearch.words) {
-                        var query = new WildcardQuery(new Term(advancedSearch.docField, "*" + word + "*"));
-                        advancedSearchQueryBuilder.add(query, BooleanClause.Occur.SHOULD);
-                    }
-                    boolQueryBuilder.add(advancedSearchQueryBuilder.build(), BooleanClause.Occur.MUST);
-                }
-
-                // Filter by collection IDs if specified
-                if (!CollectionUtils.isEmpty(completeSearch.getCollectionIds())) {
-                    var collectionQueryBuilder = new BooleanQuery.Builder();
-                    for (Long collectionId : completeSearch.getCollectionIds()) {
-                        Query collectionQuery = LongPoint.newExactQuery(DocFields.COLLECTION_ID, collectionId);
-                        collectionQueryBuilder.add(collectionQuery, BooleanClause.Occur.SHOULD);
-                    }
-                    boolQueryBuilder.add(collectionQueryBuilder.build(), BooleanClause.Occur.MUST);
-                }
-
-                for (String word : words) {
-                    var wordQueryBuilder = new BooleanQuery.Builder();
-                    for (FieldQueryInfo field : fields) {
-                        Query query;
-                        if (field.isWildcard()) {
-                            query = new WildcardQuery(new Term(field.getName(), "*" + word + "*"));
-                        } else {
-                            query = new TermQuery(new Term(field.getName(), word));
+                    if (option.getType() != null) {
+                        Query query = null;
+                        switch (option.getType()) {
+                            case TWEET:
+                                query = IntPoint.newExactQuery(DocFields.CONTENT_TYPE, ContentType.TWEET.getCode());
+                                break;
+                            case GITHUB_STARRED_REPO:
+                                query = IntPoint.newExactQuery(DocFields.CONNECTOR_TYPE, ConnectorType.GITHUB.getCode());
+                                break;
+                            case BROWSER_HISTORY:
+                                query = IntPoint.newExactQuery(DocFields.CONTENT_TYPE, ContentType.BROWSER_HISTORY.getCode());
+                                break;
+                            case FEEDS:
+                                query = IntPoint.newExactQuery(DocFields.CONNECTOR_TYPE, ConnectorType.RSS.getCode());
+                                break;
+                            default:
+                                break;
                         }
-                        BoostQuery boosted = new BoostQuery(query, field.getBoost());
-                        wordQueryBuilder.add(boosted, BooleanClause.Occur.SHOULD);
+                        if (query != null) {
+                            boolQueryBuilder.add(query, BooleanClause.Occur.MUST);
+                        }
                     }
-                    boolQueryBuilder.add(wordQueryBuilder.build(), BooleanClause.Occur.MUST);
-                }
-                StopWatch sw = new StopWatch();
-                sw.start();
-                var page = ObjectUtils.defaultIfNull(searchQuery.getPage(), 1);
-                var size = PageSizeUtils.getPageSize(searchQuery.getSize(), 100);
-                var maxPage = 10000;
-                int startIndex = (page - 1) * size;
-                TopScoreDocCollector collector = TopScoreDocCollector.create(page * size, maxPage);
-                searcher.search(boolQueryBuilder.build(), collector);
-                TopDocs docs = collector.topDocs(startIndex, size);
-                if (docs.totalHits.value > 0) {
-                    var hits = docs.scoreDocs;
-                    for (ScoreDoc hit : hits) {
-                        var doc = searcher.doc(hit.doc);
-                        PageItem item = docToPageItem(doc);
-                        pageItems.add(item);
+                    if (option.getLibrary() != null) {
+                        Query query = null;
+                        switch (option.getLibrary()) {
+                            case MY_LIST:
+                                query = IntPoint.newExactQuery(DocFields.LIBRARY_SAVE_STATUS, LibrarySaveStatus.SAVED.getCode());
+                                break;
+                            case STARRED:
+                                query = new TermQuery(new Term(DocFields.STARRED, "1"));
+                                break;
+                            case READ_LATER:
+                                query = new TermQuery(new Term(DocFields.READ_LATER, "1"));
+                                break;
+                            case ARCHIVE:
+                                query = IntPoint.newExactQuery(DocFields.LIBRARY_SAVE_STATUS, LibrarySaveStatus.ARCHIVED.getCode());
+                                break;
+                            case HIGHLIGHTS:
+                                query = IntPoint.newRangeQuery(DocFields.HIGHLIGHT_COUNT, 1, Integer.MAX_VALUE);
+                                break;
+                            case UNSORTED:
+                                // Unsorted: must be in library (librarySaveStatus > 0) AND no collection assigned
+                                // For backward compatibility with old docs that don't have collection_id field:
+                                // Match docs that do NOT have a valid collectionId (>= 1)
+                                BooleanQuery.Builder unsortedBuilder = new BooleanQuery.Builder();
+                                unsortedBuilder.add(IntPoint.newRangeQuery(DocFields.LIBRARY_SAVE_STATUS, 1, Integer.MAX_VALUE), BooleanClause.Occur.MUST);
+
+                                // Exclude docs that have a valid collection (collectionId >= 1)
+                                // This covers: collectionId = -1, collectionId = 0, or field doesn't exist (old docs)
+                                unsortedBuilder.add(LongPoint.newRangeQuery(DocFields.COLLECTION_ID, 1L, Long.MAX_VALUE), BooleanClause.Occur.MUST_NOT);
+
+                                query = unsortedBuilder.build();
+                                break;
+                            default:
+                                break;
+                        }
+                        if (query != null) {
+                            boolQueryBuilder.add(query, BooleanClause.Occur.MUST);
+                        }
                     }
+
+                    for (AdvancedSearch advancedSearch : completeSearch.advancedSearches) {
+                        if (CollectionUtils.isEmpty(advancedSearch.words)) {
+                            continue;
+                        }
+                        var advancedSearchQueryBuilder = new BooleanQuery.Builder();
+                        for (String word : advancedSearch.words) {
+                            var query = new WildcardQuery(new Term(advancedSearch.docField, "*" + word + "*"));
+                            advancedSearchQueryBuilder.add(query, BooleanClause.Occur.SHOULD);
+                        }
+                        boolQueryBuilder.add(advancedSearchQueryBuilder.build(), BooleanClause.Occur.MUST);
+                    }
+
+                    // Filter by collection IDs if specified
+                    if (!CollectionUtils.isEmpty(completeSearch.getCollectionIds())) {
+                        var collectionQueryBuilder = new BooleanQuery.Builder();
+                        for (Long collectionId : completeSearch.getCollectionIds()) {
+                            Query collectionQuery = LongPoint.newExactQuery(DocFields.COLLECTION_ID, collectionId);
+                            collectionQueryBuilder.add(collectionQuery, BooleanClause.Occur.SHOULD);
+                        }
+                        boolQueryBuilder.add(collectionQueryBuilder.build(), BooleanClause.Occur.MUST);
+                    }
+
+                    for (String word : words) {
+                        var wordQueryBuilder = new BooleanQuery.Builder();
+                        for (FieldQueryInfo field : fields) {
+                            Query query;
+                            if (field.isWildcard()) {
+                                query = new WildcardQuery(new Term(field.getName(), "*" + word + "*"));
+                            } else {
+                                query = new TermQuery(new Term(field.getName(), word));
+                            }
+                            BoostQuery boosted = new BoostQuery(query, field.getBoost());
+                            wordQueryBuilder.add(boosted, BooleanClause.Occur.SHOULD);
+                        }
+                        boolQueryBuilder.add(wordQueryBuilder.build(), BooleanClause.Occur.MUST);
+                    }
+                    StopWatch sw = new StopWatch();
+                    sw.start();
+                    var page = ObjectUtils.defaultIfNull(searchQuery.getPage(), 1);
+                    var size = PageSizeUtils.getPageSize(searchQuery.getSize(), 100);
+                    var maxPage = 10000;
+                    int startIndex = (page - 1) * size;
+                    TopScoreDocCollector collector = TopScoreDocCollector.create(page * size, maxPage);
+                    searcher.search(boolQueryBuilder.build(), collector);
+                    TopDocs docs = collector.topDocs(startIndex, size);
+                    if (docs.totalHits.value > 0) {
+                        var hits = docs.scoreDocs;
+                        for (ScoreDoc hit : hits) {
+                            var doc = searcher.doc(hit.doc);
+                            PageItem item = docToPageItem(doc);
+                            pageItems.add(item);
+                        }
+                    }
+                    sw.stop();
+                    searchResult.setPage(page);
+                    searchResult.setTotalHits(docs.totalHits.value);
+                    searchResult.setCostSeconds(sw.getTotalTimeSeconds());
                 }
-                sw.stop();
-                searchResult.setPage(page);
-                searchResult.setTotalHits(docs.totalHits.value);
-                searchResult.setCostSeconds(sw.getTotalTimeSeconds());
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
