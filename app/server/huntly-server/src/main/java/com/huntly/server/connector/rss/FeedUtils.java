@@ -72,55 +72,15 @@ public class FeedUtils {
             String responseLastModified = response.header("Last-Modified");
 
             return FeedFetchResult.of(feed, responseEtag, responseLastModified);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (FeedException e) {
-            throw new RuntimeException(e);
+        } catch (IOException | FeedException e) {
+            throw new ConnectorFetchException(e);
         }
     }
 
-    /**
-     * @deprecated Use {@link #fetchFeed(String, OkHttpClient, String, String)} for
-     *             HTTP 304 support
-     */
-    @Deprecated
     public static SyndFeed parseFeedUrl(String feedUrl, OkHttpClient client) {
         FeedFetchResult result = fetchFeed(feedUrl, client, null, null);
         return result.getFeed();
     }
-
-    // public static SyndFeed parseFeedUrl(String feedUrl, HttpClient client) {
-    // HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(feedUrl))
-    // .build();
-    // HttpResponse<byte[]> response = null;
-    // try {
-    // response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-    // } catch (IOException e) {
-    // throw new RuntimeException(e);
-    // } catch (InterruptedException e) {
-    // throw new RuntimeException(e);
-    // }
-    // var xmlBytes = response.body();
-    // Charset encoding = FeedUtils.guessEncoding(xmlBytes);
-    // String xmlString = XmlUtils.removeInvalidXmlCharacters(new String(xmlBytes,
-    // encoding));
-    // if (xmlString == null) {
-    // throw new ConnectorFetchException("xml fetch failed for url: " + feedUrl);
-    // }
-    //
-    // try {
-    // SyndFeed feed = new SyndFeedInput().build(new StringReader(xmlString));
-    // return feed;
-    // } catch (FeedException e) {
-    // throw new RuntimeException(e);
-    // }
-    // }
-
-    // public static SyndFeed parseFeedUrl(String feedUrl) {
-    // var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60))
-    // .followRedirects(HttpClient.Redirect.ALWAYS).build();
-    // return parseFeedUrl(feedUrl, client);
-    // }
 
     public static Charset guessEncoding(byte[] bytes) {
         String extracted = extractDeclaredEncoding(bytes);

@@ -23,17 +23,27 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author lcomplete
  */
 @UtilityClass
 public class HttpUtils {
+    private static final Cache FEED_CACHE = new Cache(
+            new File(AppConstants.HTTP_FEED_CACHE_DIR),
+            AppConstants.HTTP_FEED_CACHE_MAXSIZE);
+
+    private static final ConcurrentHashMap<String, OkHttpClient> FEED_CLIENTS = new ConcurrentHashMap<>();
+
     public static OkHttpClient buildFeedOkHttpClient(ProxySetting proxySetting, Integer timeoutSeconds) {
+        String clientKey = buildFeedClientKey(proxySetting, timeoutSeconds);
+        return FEED_CLIENTS.computeIfAbsent(clientKey, key -> createFeedOkHttpClient(proxySetting, timeoutSeconds));
+    }
+
+    private static OkHttpClient createFeedOkHttpClient(ProxySetting proxySetting, Integer timeoutSeconds) {
         var builder = new OkHttpClient.Builder()
-                .cache(new Cache(
-                        new File(AppConstants.HTTP_FEED_CACHE_DIR), AppConstants.HTTP_FEED_CACHE_MAXSIZE
-                ))
+                .cache(FEED_CACHE)
                 .connectionSpecs(Arrays.asList(ConnectionSpec.MODERN_TLS, ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT))
                 .followRedirects(true);
         if (proxySetting != null && StringUtils.isNotBlank(proxySetting.getHost())) {
@@ -48,6 +58,12 @@ public class HttpUtils {
             builder = builder.callTimeout(Duration.ofSeconds(timeoutSeconds));
         }
         return builder.build();
+    }
+
+    private static String buildFeedClientKey(ProxySetting proxySetting, Integer timeoutSeconds) {
+        String host = proxySetting != null ? StringUtils.defaultString(proxySetting.getHost()) : "";
+        Integer port = proxySetting != null ? proxySetting.getPort() : null;
+        return host + ":" + (port == null ? "" : port) + ":" + (timeoutSeconds == null ? "" : timeoutSeconds);
     }
 
     public static OkHttpClient buildFeedOkHttpClient(ProxySetting proxySetting) {
