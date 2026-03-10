@@ -11,7 +11,16 @@ export class RequestInterceptor {
       this.addEventListener('load', function() {
         if (this.responseType === 'json' || this.responseType === 'text' || this.responseType === '') {
           try {
-            responseHandler(this.responseText, this.responseURL);
+            // 当 responseType='json' 时，responseText 不可访问，需要使用 response 属性
+            let responseText;
+            if (this.responseType === 'json') {
+              responseText = typeof this.response === 'string'
+                ? this.response
+                : JSON.stringify(this.response);
+            } else {
+              responseText = this.responseText;
+            }
+            responseHandler(responseText, this.responseURL);
           } catch (error) {
             console.warn('RequestInterceptor handler error:', error);
           }
