@@ -1,35 +1,37 @@
 ---
-name: Huntly Knowledge Base
-description: This skill should be used when the user asks about their saved content, bookmarks, starred articles, highlights, reading history, tweets, or knowledge base in Huntly sqlite database. Triggers include "我的收藏", "知识库", "我保存了什么", "my bookmarks", "my library", "what did I save".
+name: huntly-knowledge-base
+description: Queries the user's Huntly SQLite database to search saved bookmarks, starred articles, highlights, reading history, tweets, and RSS feeds. Use when the user asks about their saved content, knowledge base, or reading history — including Chinese triggers like "我的收藏", "知识库", or "我保存了什么".
 ---
 
 # Huntly Knowledge Base
 
-Access user's personal knowledge base stored in Huntly via SQLite database.
+Query and retrieve content from a user's personal Huntly knowledge base stored in SQLite.
 
-## REQUIRED: Get Database Path First
+## Workflow
 
-**STOP immediately after this skill triggers. Ask the user for the database path before ANY action.**
+1. **Get database path** — ask the user before any queries
+2. **Determine query scope** — library content by default, or broader if requested
+3. **Build and run SQL** — use the schema reference below
+4. **Present results** — summarise findings with titles, sources, and dates
+
+## Step 1: Get Database Path
+
+Ask the user for the path to their `db.sqlite` file before proceeding. Do not auto-search.
+
 ```
 "I need to access your Huntly database. What is the path to your db.sqlite file?"
-Examples:
-- /Users/username/Library/Application Support/Huntly/db.sqlite
-- ~/Library/Application Support/Huntly/db.sqlite
-- /home/username/.config/Huntly/db.sqlite"
 ```
-**DO NOT proceed with any queries until you have the database path.**
-**DO NOT auto-search for the file.**
 
----
+Common locations:
+- `/Users/<username>/Library/Application Support/Huntly/db.sqlite`
+- `/home/<username>/.config/Huntly/db.sqlite`
 
-## Core Rule: Library Content First
+## Step 2: Query Scope — Library Content First
 
-By default, query **Library content** (user actively saved), not auto-collected content.
-
-**Library Filter:**
+By default, query **library content** (user actively saved), not auto-collected browsing history.
 
 ```sql
-WHERE library_save_status IN (1, 2) 
+WHERE library_save_status IN (1, 2)
 ```
 
 | Type | Condition | Order By |
@@ -39,47 +41,57 @@ WHERE library_save_status IN (1, 2)
 | Starred | `is_starred = 1` | `starred_at` |
 | Read Later | `is_read_later = 1` | `read_later_at` |
 
----
+Only include `library_save_status = 0` or `NULL` when the user explicitly asks about browsing history or auto-collected content.
 
-## Main Table: `page`
+## Step 3: Schema Reference
+
+### Main Table: `page`
 
 | Field | Description |
 |-------|-------------|
 | `id`, `title`, `url` | Basic identifiers |
 | `description`, `content` | Text content (content is HTML) |
 | `author`, `author_screen_name` | Author info |
-| `domain`, `site_name` | Source website info |
-| `thumb_url` | Thumbnail image URL |
+| `domain`, `site_name` | Source website |
 | `library_save_status` | 0/NULL=unsaved, 1=My List, 2=Archive |
 | `is_starred`, `is_read_later`, `is_mark_read` | Boolean flags |
 | `connector_type` | NULL=web, 1=RSS, 2=GitHub |
-| `connector_id` | FK → connector |
 | `content_type` | 0=history, 1=tweet, 2=markdown, 3=quoted tweet, 4=snippet |
-| `collection_id` | FK → collection |
+| `collection_id` | FK to `collection` |
 | `created_at`, `saved_at`, `starred_at`, `archived_at`, `read_later_at` | Timestamps |
-| `highlight_count` | Statistics |
-| `page_json_properties` | JSON string with extra data (see below) |
+| `page_json_properties` | JSON string with type-specific metadata (see below) |
 
-### `page_json_properties` Field
+### `page_json_properties` Metadata
 
-JSON string containing type-specific metadata:
+**Tweets (`content_type=1`):** `tweetIdStr`, `userName`, `userScreeName`, `fullText`, `createdAt`, `retweetCount`, `favoriteCount`, `viewCount`, `medias[]`, `hashtags[]`, `quotedTweet`
 
-**For tweets (`content_type=1`):** `TweetProperties`
-- `tweetIdStr`, `userIdStr`, `userName`, `userScreeName`, `userProfileImageUrl`
-- `fullText`, `createdAt`
-- `quoteCount`, `replyCount`, `retweetCount`, `favoriteCount`, `viewCount`
-- `medias[]` (mediaUrl, type, videoInfo), `hashtags[]`, `urls[]`, `userMentions[]`
-- `quotedTweet`, `retweetedTweet` (nested TweetProperties)
-- `card` (title, description, imageUrl, url, domain)
+**GitHub repos (`connector_type=2`):** `name`, `defaultBranch`, `homepage`, `stargazersCount`, `forksCount`, `topics[]`
 
-**For GitHub repos (`connector_type=2`):** `GithubRepoProperties`
-- `name`, `nodeId`, `defaultBranch`, `homepage`
-- `stargazersCount`, `forksCount`, `watchersCount`
-- `topics[]`, `updatedAt`
-
-## Related Tables
+### Related Tables
 
 - **`page_highlight`**: `page_id`, `highlighted_text`, `created_at`
 - **`connector`**: `id`, `name`, `type` (1=RSS, 2=GitHub), `subscribe_url`, `folder_id`
 - **`collection`**: `id`, `name`, `parent_id`
-- **`folder`**: `id`, `name` (RSS folder organization)
+- **`folder`**: `id`, `name` (RSS folder grouping)
+
+## Example Queries
+
+```sql
+-- Find starred articles about a topic
+SELECT title, url, starred_at FROM page
+WHERE is_starred = 1 AND (title LIKE '%topic%' OR description LIKE '%topic%')
+ORDER BY starred_at DESC LIMIT 10;
+
+-- List saved tweets by a specific user
+SELECT json_extract(page_json_properties, '$.fullText') AS tweet,
+       json_extract(page_json_properties, '$.favoriteCount') AS likes
+FROM page
+WHERE content_type = 1 AND library_save_status IN (1, 2)
+  AND json_extract(page_json_properties, '$.userScreeName') = 'username'
+ORDER BY saved_at DESC;
+
+-- Count saved items by source
+SELECT domain, COUNT(*) AS total FROM page
+WHERE library_save_status IN (1, 2)
+GROUP BY domain ORDER BY total DESC LIMIT 10;
+```
