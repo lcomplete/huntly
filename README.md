@@ -127,6 +127,11 @@ See the [Run the Server wiki](https://github.com/lcomplete/huntly/wiki/Run-the-S
 
 **Enjoy it!**
 
+## Contributing
+
+> [!IMPORTANT]
+> All Pull Requests must target the `dev` branch.
+
 ## Become a Sponsor
 
 If you find Huntly helpful, please consider supporting its development!
