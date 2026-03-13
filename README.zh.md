@@ -127,6 +127,11 @@ sudo xattr -r -d com.apple.quarantine /YOUR_PATH/Huntly.app
 
 **尽情享受吧！**
 
+## 参与贡献
+
+> [!IMPORTANT]
+> 所有 Pull Request 必须提交到 `dev` 分支。
+
 ## 成为赞助者
 
 如果您觉得 Huntly 有帮助，请考虑支持它的开发！
