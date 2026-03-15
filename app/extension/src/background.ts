@@ -21,6 +21,13 @@ import {
 } from "./ai/storage";
 import { PROVIDER_REGISTRY, ProviderType } from "./ai/types";
 import { createProviderModel } from "./ai/providers";
+import {
+  applyStreamingPreviewChunk,
+  createStreamingPreviewState,
+  getStreamingPreviewResult,
+  hasStreamingPreviewStateChanged,
+} from "./ai/streamingPreview";
+import { streamOpenAICompatibleChatCompletion } from "./ai/openAICompatibleStream";
 import { streamText } from "ai";
 // Note: turndown is not used here because service worker has no DOM
 // HTML to markdown conversion should be done in content script/popup before sending to background
@@ -248,6 +255,21 @@ async function startProcessingWithVercelAI(task: any) {
   });
 
   try {
+    const sendStreamingPreviewUpdate = (streamState: ReturnType<typeof createStreamingPreviewState>, data: string) => {
+      chrome.tabs.sendMessage(tabId, {
+        type: 'shortcuts_process_data',
+        payload: {
+          data,
+          accumulatedContent: streamState.displayContent,
+          answerContent: streamState.responseContent,
+          reasoningContent: streamState.reasoningContent,
+          isThinking: streamState.isThinking,
+          title: shortcutName,
+          taskId: taskId
+        }
+      });
+    };
+
     // Get provider config
     const storage = await getAIProvidersStorage();
     const providerType = selectedModel.provider as ProviderType;
@@ -260,12 +282,6 @@ async function startProcessingWithVercelAI(task: any) {
     // Extract model ID from the selectedModel.id (format: "provider:modelId")
     const modelId = selectedModel.id.split(':').slice(1).join(':');
 
-    // Create the model
-    const model = createProviderModel(config, modelId);
-    if (!model) {
-      throw new Error(`Failed to create model for ${providerType}`);
-    }
-
     // Get default target language for {lang} replacement
     const promptsSettings = await getPromptsSettings();
     const defaultTargetLanguage = promptsSettings.defaultTargetLanguage || 'English';
@@ -277,40 +293,89 @@ async function startProcessingWithVercelAI(task: any) {
     // Prepare user prompt: content is already markdown (converted in ArticlePreview), add title prefix
     const userPrompt = prepareMarkdownContent(content, title);
 
-    let accumulatedContent = "";
+    let streamState = createStreamingPreviewState();
 
-    // Use streamText for streaming response with abort signal
-    const result = await streamText({
-      model,
-      system: systemPrompt,
-      prompt: userPrompt,
-      maxTokens: 8000,
-      abortSignal: abortController.signal,
-    });
-
-    // Process the stream
-    for await (const textPart of result.textStream) {
-      // Check if aborted
-      if (abortController.signal.aborted) {
-        break;
+    if (providerType === 'zhipu' || providerType === 'minimax') {
+      const baseUrl = config.baseUrl || PROVIDER_REGISTRY[providerType].defaultBaseUrl;
+      if (!baseUrl) {
+        throw new Error(`Provider ${providerType} base URL is not configured`);
       }
 
-      accumulatedContent += textPart;
+      await streamOpenAICompatibleChatCompletion({
+        apiKey: config.apiKey,
+        baseUrl,
+        modelId,
+        systemPrompt,
+        userPrompt,
+        maxTokens: 8000,
+        abortSignal: abortController.signal,
+        onDelta: ({ contentDelta, reasoningDelta }) => {
+          let nextStreamState = streamState;
 
-      // Send streaming data to preview
-      try {
-        chrome.tabs.sendMessage(tabId, {
-          type: 'shortcuts_process_data',
-          payload: {
-            data: textPart,
-            accumulatedContent: accumulatedContent,
-            title: shortcutName,
-            taskId: taskId
+          if (reasoningDelta) {
+            nextStreamState = applyStreamingPreviewChunk(nextStreamState, {
+              type: 'reasoning',
+              textDelta: reasoningDelta,
+            });
           }
-        });
-      } catch (error) {
-        console.warn("Failed to send shortcuts_process_data message:", error);
-        break;
+
+          if (contentDelta) {
+            nextStreamState = applyStreamingPreviewChunk(nextStreamState, {
+              type: 'text-delta',
+              textDelta: contentDelta,
+            });
+          }
+
+          if (!hasStreamingPreviewStateChanged(streamState, nextStreamState)) {
+            return;
+          }
+
+          streamState = nextStreamState;
+          sendStreamingPreviewUpdate(streamState, contentDelta || reasoningDelta);
+        },
+      });
+    } else {
+      // Create the model
+      const model = createProviderModel(config, modelId);
+      if (!model) {
+        throw new Error(`Failed to create model for ${providerType}`);
+      }
+
+      // Use streamText for streaming response with abort signal
+      const result = await streamText({
+        model,
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxTokens: 8000,
+        abortSignal: abortController.signal,
+      });
+
+      // Process the full stream so providers that emit reasoning deltas before
+      // text deltas (for example, glm-5) still produce visible incremental output.
+      for await (const chunk of result.fullStream) {
+        // Check if aborted
+        if (abortController.signal.aborted) {
+          break;
+        }
+
+        const nextStreamState = applyStreamingPreviewChunk(streamState, chunk);
+        if (!hasStreamingPreviewStateChanged(streamState, nextStreamState)) {
+          continue;
+        }
+        streamState = nextStreamState;
+
+        // Send streaming data to preview
+        try {
+          sendStreamingPreviewUpdate(
+            streamState,
+            chunk.type === 'text-delta' || chunk.type === 'reasoning'
+              ? chunk.textDelta
+              : ''
+          );
+        } catch (error) {
+          console.warn("Failed to send shortcuts_process_data message:", error);
+          break;
+        }
       }
     }
 
@@ -319,11 +384,14 @@ async function startProcessingWithVercelAI(task: any) {
 
     // Only send completion if not aborted
     if (!abortController.signal.aborted) {
+      const finalContent = getStreamingPreviewResult(streamState);
       try {
         chrome.tabs.sendMessage(tabId, {
           type: 'shortcuts_process_result',
           payload: {
-            content: accumulatedContent,
+            content: finalContent,
+            reasoningContent: streamState.reasoningContent,
+            isThinking: false,
             title: shortcutName,
             taskId: taskId
           }

@@ -44,21 +44,35 @@ interface ArticlePreviewProps {
 // Streaming content renderer component
 const StreamingContentRenderer = ({ currentTaskId }: { currentTaskId: string | null }) => {
   const [processedContent, setProcessedContent] = useState("");
+  const [reasoningContent, setReasoningContent] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setProcessedContent("");
+    setReasoningContent("");
+    setIsThinking(false);
     const messageListener = (msg: any) => {
       if (!currentTaskId || msg.payload?.taskId !== currentTaskId) return;
       if (msg.type === "shortcuts_process_data") {
-        setProcessedContent(msg.payload.accumulatedContent);
+        setProcessedContent(msg.payload.answerContent ?? msg.payload.accumulatedContent ?? "");
+        setReasoningContent(msg.payload.reasoningContent ?? "");
+        setIsThinking(Boolean(msg.payload.isThinking));
+      }
+      if (msg.type === "shortcuts_process_result") {
+        setProcessedContent(msg.payload.content ?? "");
+        setReasoningContent(msg.payload.reasoningContent ?? "");
+        setIsThinking(Boolean(msg.payload.isThinking));
       }
     };
     chrome.runtime.onMessage.addListener(messageListener);
     return () => chrome.runtime.onMessage.removeListener(messageListener);
   }, [currentTaskId]);
 
-  if (!processedContent) {
+  const hasProcessedContent = Boolean(processedContent.trim());
+  const hasReasoningContent = Boolean(reasoningContent.trim());
+
+  if (!hasProcessedContent && !hasReasoningContent) {
     return (
       <div className="huntly-loading-placeholder">
         {[100, 80, 60].map((width) => (
@@ -69,8 +83,39 @@ const StreamingContentRenderer = ({ currentTaskId }: { currentTaskId: string | n
   }
 
   return (
-    <div ref={contentRef} className="huntly-markdown-body">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
+    <div ref={contentRef}>
+      {(hasReasoningContent || isThinking) && (
+        <details className="huntly-thinking-panel" key={currentTaskId || "thinking-panel"}>
+          <summary className="huntly-thinking-summary">
+            <div className="huntly-thinking-summary-content">
+              {isThinking && <span className="huntly-thinking-spinner" aria-hidden="true" />}
+              <span className="huntly-thinking-title">{isThinking ? "Thinking" : "Thought process"}</span>
+              <span className="huntly-thinking-chevron" aria-hidden="true">⌄</span>
+            </div>
+          </summary>
+          <div className="huntly-thinking-body">
+            {hasReasoningContent ? (
+              <div className="huntly-markdown-body huntly-thinking-markdown">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{reasoningContent}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="huntly-thinking-empty">The model is still thinking...</div>
+            )}
+          </div>
+        </details>
+      )}
+
+      {hasProcessedContent ? (
+        <div className="huntly-markdown-body">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
+        </div>
+      ) : (
+        <div className="huntly-loading-placeholder">
+          {[100, 80, 60].map((width) => (
+            <div key={`answer-loading-${width}`} className="huntly-loading-bar" style={{ width: `${width}%` }} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -190,9 +190,84 @@ export const getShadowDomStyles = (): string => `
   animation: huntly-pulse 1.5s ease-in-out infinite;
 }
 
+.huntly-thinking-panel {
+  margin: 0 0 16px 0;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f7ff 100%);
+  overflow: hidden;
+}
+
+.huntly-thinking-summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 12px 14px;
+}
+
+.huntly-thinking-summary::-webkit-details-marker {
+  display: none;
+}
+
+.huntly-thinking-summary-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.huntly-thinking-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.huntly-thinking-chevron {
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1;
+  margin-left: -2px;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.huntly-thinking-panel[open] .huntly-thinking-chevron {
+  transform: rotate(180deg);
+}
+
+.huntly-thinking-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid rgba(29, 78, 216, 0.2);
+  border-top-color: #2563eb;
+  animation: huntly-spin 0.9s linear infinite;
+}
+
+.huntly-thinking-body {
+  border-top: 1px solid #dbeafe;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0 14px 14px;
+}
+
+.huntly-thinking-markdown {
+  font-size: 14px;
+  color: #334155;
+}
+
+.huntly-thinking-empty {
+  padding-top: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
 @keyframes huntly-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+@keyframes huntly-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Header right section */
