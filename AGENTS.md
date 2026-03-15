@@ -26,3 +26,6 @@ Avoid committing SQLite artifacts in `app/server/huntly-server/db.sqlite*`; pers
 When updating the project's README, ensure all language versions are updated consistently:
 - `README.md` (English)
 - `README.zh.md` (Chinese)
+
+## UI Language Guidelines
+All user interface text must be written in English. This applies to button labels, menu items, tooltips, error messages, notifications, form labels, and any user-facing strings across all clients (browser extension, web client, desktop app).

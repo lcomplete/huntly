@@ -1,6 +1,10 @@
-import {log} from "./logger";
-import {isDebugging} from "./env";
-import {readSyncStorageSettings, getPromptsSettings, getLanguageNativeName} from "./storage";
+import { log } from "./logger";
+import { isDebugging } from "./env";
+import {
+  readSyncStorageSettings,
+  getPromptsSettings,
+  getLanguageNativeName,
+} from "./storage";
 import {
   autoSaveArticle,
   saveArticle,
@@ -13,7 +17,7 @@ import {
   getCollectionTree,
 } from "./services";
 import { combineUrl } from "./utils";
-import {sseRequestManager} from "./sseTaskManager";
+import { sseRequestManager } from "./sseTaskManager";
 import {
   getAIProvidersStorage,
   getAvailableProviderTypes,
@@ -22,12 +26,17 @@ import {
 import { PROVIDER_REGISTRY, ProviderType } from "./ai/types";
 import { createProviderModel } from "./ai/providers";
 import {
+  getOpenAICompatibleBaseUrl,
+  usesRawOpenAICompatibleStream,
+} from "./ai/openAICompatibleProviders";
+import {
   applyStreamingPreviewChunk,
   createStreamingPreviewState,
   getStreamingPreviewResult,
   hasStreamingPreviewStateChanged,
 } from "./ai/streamingPreview";
 import { streamOpenAICompatibleChatCompletion } from "./ai/openAICompatibleStream";
+import { getThinkingModeOptions } from "./ai/thinkingMode";
 import { streamText } from "ai";
 // Note: turndown is not used here because service worker has no DOM
 // HTML to markdown conversion should be done in content script/popup before sending to background
@@ -47,10 +56,14 @@ const SAVED_BADGE_BG = "#15803D";
  * @param url The URL to check
  * @param forceRefresh If true, bypass the cache and re-check the URL
  */
-async function updateBadgeForTab(tabId: number, url: string, forceRefresh: boolean = false): Promise<void> {
+async function updateBadgeForTab(
+  tabId: number,
+  url: string,
+  forceRefresh: boolean = false
+): Promise<void> {
   try {
     // Skip non-http(s) URLs
-    if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+    if (!url || (!url.startsWith("http://") && !url.startsWith("https://"))) {
       chrome.action.setBadgeText({ text: "", tabId });
       return;
     }
@@ -108,19 +121,23 @@ function cancelVercelAITask(taskId: string): boolean {
   return false;
 }
 
-function startProcessingWithShortcuts(task: any, shortcuts: any[], skipPreview: boolean = false) {
+function startProcessingWithShortcuts(
+  task: any,
+  shortcuts: any[],
+  skipPreview: boolean = false
+) {
   if (!task) return;
 
   // Function to start the actual processing
   const startProcessing = () => {
     // 发送处理开始的消息
     chrome.tabs.sendMessage(task.tabId, {
-      type: 'shortcuts_processing_start',
+      type: "shortcuts_processing_start",
       payload: {
         title: task.shortcutName,
         shortcutName: task.shortcutName,
-        taskId: task.taskId
-      }
+        taskId: task.taskId,
+      },
     });
 
     let accumulatedContent = "";
@@ -141,13 +158,13 @@ function startProcessingWithShortcuts(task: any, shortcuts: any[], skipPreview: 
         // 发送流式数据到预览页面
         try {
           chrome.tabs.sendMessage(task.tabId, {
-            type: 'shortcuts_process_data',
+            type: "shortcuts_process_data",
             payload: {
               data: data,
               accumulatedContent: accumulatedContent,
               title: task.shortcutName,
-              taskId: taskId
-            }
+              taskId: taskId,
+            },
           });
         } catch (error) {
           console.warn("Failed to send shortcuts_process_data message:", error);
@@ -160,32 +177,42 @@ function startProcessingWithShortcuts(task: any, shortcuts: any[], skipPreview: 
         // 发送处理结果到预览页面
         try {
           chrome.tabs.sendMessage(task.tabId, {
-            type: 'shortcuts_process_result',
+            type: "shortcuts_process_result",
             payload: {
               content: accumulatedContent,
               title: task.shortcutName,
-              taskId: taskId
-            }
+              taskId: taskId,
+            },
           });
         } catch (error) {
-          console.warn("Failed to send shortcuts_process_result message:", error);
+          console.warn(
+            "Failed to send shortcuts_process_result message:",
+            error
+          );
         }
       },
       // onError callback - 处理错误
       (error: any, taskId: string) => {
-        console.error("Error processing with shortcut for task:", taskId, error);
+        console.error(
+          "Error processing with shortcut for task:",
+          taskId,
+          error
+        );
 
         try {
           chrome.tabs.sendMessage(task.tabId, {
-            type: 'shortcuts_process_error',
+            type: "shortcuts_process_error",
             payload: {
-              error: error.message || 'Processing failed',
+              error: error.message || "Processing failed",
               title: task.shortcutName,
-              taskId: taskId
-            }
+              taskId: taskId,
+            },
           });
         } catch (sendError) {
-          console.warn("Failed to send shortcuts_process_error message:", sendError);
+          console.warn(
+            "Failed to send shortcuts_process_error message:",
+            sendError
+          );
         }
       }
     );
@@ -198,12 +225,14 @@ function startProcessingWithShortcuts(task: any, shortcuts: any[], skipPreview: 
   }
 
   // Send shortcuts_preview to open the preview window first
-  chrome.tabs.sendMessage(task.tabId, {
-    type: 'shortcuts_preview',
-    payload: {
-      shortcuts: shortcuts,
-      taskId: task.taskId,
-      page: {
+  chrome.tabs.sendMessage(
+    task.tabId,
+    {
+      type: "shortcuts_preview",
+      payload: {
+        shortcuts: shortcuts,
+        taskId: task.taskId,
+        page: {
           title: task.title,
           content: task.content,
           url: task.url,
@@ -218,15 +247,20 @@ function startProcessingWithShortcuts(task: any, shortcuts: any[], skipPreview: 
           domain: "",
           faviconUrl: "",
           contentType: task.contentType, // Pass contentType for snippet mode
-      }
+        },
+      },
+    },
+    function (response) {
+      startProcessing();
     }
-  }, function(response) {
-    startProcessing();
-  });
+  );
 }
 
 // Prepare markdown content with title prefix
-function prepareMarkdownContent(markdownContent: string, title?: string): string {
+function prepareMarkdownContent(
+  markdownContent: string,
+  title?: string
+): string {
   // If title exists, add it to the content beginning
   if (title && title.trim()) {
     return `# ${title}\n\n${markdownContent}`;
@@ -238,7 +272,16 @@ function prepareMarkdownContent(markdownContent: string, title?: string): string
 async function startProcessingWithVercelAI(task: any) {
   if (!task) return;
 
-  const { tabId, taskId, shortcutName, shortcutContent, content, title, selectedModel } = task;
+  const {
+    tabId,
+    taskId,
+    shortcutName,
+    shortcutContent,
+    content,
+    title,
+    selectedModel,
+    thinkingModeEnabled,
+  } = task;
 
   // Create AbortController for this task
   const abortController = new AbortController();
@@ -246,18 +289,21 @@ async function startProcessingWithVercelAI(task: any) {
 
   // Send processing start message
   chrome.tabs.sendMessage(tabId, {
-    type: 'shortcuts_processing_start',
+    type: "shortcuts_processing_start",
     payload: {
       title: shortcutName,
       shortcutName: shortcutName,
-      taskId: taskId
-    }
+      taskId: taskId,
+    },
   });
 
   try {
-    const sendStreamingPreviewUpdate = (streamState: ReturnType<typeof createStreamingPreviewState>, data: string) => {
+    const sendStreamingPreviewUpdate = (
+      streamState: ReturnType<typeof createStreamingPreviewState>,
+      data: string
+    ) => {
       chrome.tabs.sendMessage(tabId, {
-        type: 'shortcuts_process_data',
+        type: "shortcuts_process_data",
         payload: {
           data,
           accumulatedContent: streamState.displayContent,
@@ -265,8 +311,8 @@ async function startProcessingWithVercelAI(task: any) {
           reasoningContent: streamState.reasoningContent,
           isThinking: streamState.isThinking,
           title: shortcutName,
-          taskId: taskId
-        }
+          taskId: taskId,
+        },
       });
     };
 
@@ -280,23 +326,28 @@ async function startProcessingWithVercelAI(task: any) {
     }
 
     // Extract model ID from the selectedModel.id (format: "provider:modelId")
-    const modelId = selectedModel.id.split(':').slice(1).join(':');
+    const modelId = selectedModel.id.split(":").slice(1).join(":");
 
     // Get default target language for {lang} replacement
     const promptsSettings = await getPromptsSettings();
-    const defaultTargetLanguage = promptsSettings.defaultTargetLanguage || 'English';
+    const defaultTargetLanguage =
+      promptsSettings.defaultTargetLanguage || "English";
 
     // Build the prompt: replace {lang} placeholder with native language name
     const nativeLanguageName = getLanguageNativeName(defaultTargetLanguage);
-    const systemPrompt = (shortcutContent || '').replace(/\{lang\}/g, nativeLanguageName);
+    const systemPrompt = (shortcutContent || "").replace(
+      /\{lang\}/g,
+      nativeLanguageName
+    );
 
     // Prepare user prompt: content is already markdown (converted in ArticlePreview), add title prefix
     const userPrompt = prepareMarkdownContent(content, title);
 
     let streamState = createStreamingPreviewState();
+    const includeReasoningPreview = Boolean(thinkingModeEnabled);
 
-    if (providerType === 'zhipu' || providerType === 'minimax') {
-      const baseUrl = config.baseUrl || PROVIDER_REGISTRY[providerType].defaultBaseUrl;
+    if (usesRawOpenAICompatibleStream(config)) {
+      const baseUrl = getOpenAICompatibleBaseUrl(config);
       if (!baseUrl) {
         throw new Error(`Provider ${providerType} base URL is not configured`);
       }
@@ -308,20 +359,23 @@ async function startProcessingWithVercelAI(task: any) {
         systemPrompt,
         userPrompt,
         maxTokens: 8000,
+        requestBodyExtras: getThinkingModeOptions(Boolean(thinkingModeEnabled)),
         abortSignal: abortController.signal,
         onDelta: ({ contentDelta, reasoningDelta }) => {
           let nextStreamState = streamState;
 
           if (reasoningDelta) {
             nextStreamState = applyStreamingPreviewChunk(nextStreamState, {
-              type: 'reasoning',
+              type: "reasoning",
               textDelta: reasoningDelta,
+            }, {
+              includeReasoning: includeReasoningPreview,
             });
           }
 
           if (contentDelta) {
             nextStreamState = applyStreamingPreviewChunk(nextStreamState, {
-              type: 'text-delta',
+              type: "text-delta",
               textDelta: contentDelta,
             });
           }
@@ -331,7 +385,10 @@ async function startProcessingWithVercelAI(task: any) {
           }
 
           streamState = nextStreamState;
-          sendStreamingPreviewUpdate(streamState, contentDelta || reasoningDelta);
+          sendStreamingPreviewUpdate(
+            streamState,
+            contentDelta || reasoningDelta
+          );
         },
       });
     } else {
@@ -358,7 +415,9 @@ async function startProcessingWithVercelAI(task: any) {
           break;
         }
 
-        const nextStreamState = applyStreamingPreviewChunk(streamState, chunk);
+        const nextStreamState = applyStreamingPreviewChunk(streamState, chunk, {
+          includeReasoning: includeReasoningPreview,
+        });
         if (!hasStreamingPreviewStateChanged(streamState, nextStreamState)) {
           continue;
         }
@@ -368,9 +427,9 @@ async function startProcessingWithVercelAI(task: any) {
         try {
           sendStreamingPreviewUpdate(
             streamState,
-            chunk.type === 'text-delta' || chunk.type === 'reasoning'
+            chunk.type === "text-delta" || chunk.type === "reasoning"
               ? chunk.textDelta
-              : ''
+              : ""
           );
         } catch (error) {
           console.warn("Failed to send shortcuts_process_data message:", error);
@@ -387,20 +446,19 @@ async function startProcessingWithVercelAI(task: any) {
       const finalContent = getStreamingPreviewResult(streamState);
       try {
         chrome.tabs.sendMessage(tabId, {
-          type: 'shortcuts_process_result',
+          type: "shortcuts_process_result",
           payload: {
             content: finalContent,
             reasoningContent: streamState.reasoningContent,
             isThinking: false,
             title: shortcutName,
-            taskId: taskId
-          }
+            taskId: taskId,
+          },
         });
       } catch (error) {
         console.warn("Failed to send shortcuts_process_result message:", error);
       }
     }
-
   } catch (error: any) {
     // Clean up AbortController
     vercelAIAbortControllers.delete(taskId);
@@ -411,39 +469,50 @@ async function startProcessingWithVercelAI(task: any) {
       return;
     }
 
-    console.error("Error processing with Vercel AI SDK for task:", taskId, error);
+    console.error(
+      "Error processing with Vercel AI SDK for task:",
+      taskId,
+      error
+    );
 
     try {
       chrome.tabs.sendMessage(tabId, {
-        type: 'shortcuts_process_error',
+        type: "shortcuts_process_error",
         payload: {
-          error: error.message || 'Processing failed',
+          error: error.message || "Processing failed",
           title: shortcutName,
-          taskId: taskId
-        }
+          taskId: taskId,
+        },
       });
     } catch (sendError) {
-      console.warn("Failed to send shortcuts_process_error message:", sendError);
+      console.warn(
+        "Failed to send shortcuts_process_error message:",
+        sendError
+      );
     }
   }
 }
 
-chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function (
+  msg: Message,
+  sender,
+  sendResponse
+) {
   if (msg.type === "auto_save_clipper") {
     autoSaveArticle(msg.payload).then(handleSaveArticleResponse);
   } else if (msg.type === "save_clipper") {
     saveArticle(msg.payload);
-  } else if (msg.type === 'auto_save_tweets') {
+  } else if (msg.type === "auto_save_tweets") {
     readSyncStorageSettings().then((settings) => {
       if (settings.autoSaveTweet) {
         sendData("tweet/saveTweets", msg.payload);
       }
     });
-  } else if (msg.type === 'read_tweet') {
+  } else if (msg.type === "read_tweet") {
     sendData("tweet/trackRead", msg.payload);
-  } else if (msg.type === 'shortcuts_process') {
+  } else if (msg.type === "shortcuts_process") {
     const selectedModel = msg.payload.selectedModel;
-    const isHuntlyServer = selectedModel?.provider === 'huntly-server';
+    const isHuntlyServer = selectedModel?.provider === "huntly-server";
 
     if (isHuntlyServer) {
       // Use Huntly Server SSE API
@@ -472,10 +541,11 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
         title: msg.payload.title || "",
         contentType: msg.payload.contentType,
         selectedModel: selectedModel,
+        thinkingModeEnabled: Boolean(msg.payload.thinkingModeEnabled),
       };
       startProcessingWithVercelAI(task);
     }
-  } else if (msg.type === 'shortcuts_cancel') {
+  } else if (msg.type === "shortcuts_cancel") {
     // 根据 taskId 取消处理任务
     const taskId = msg.payload.taskId;
     // Try to cancel SSE task (Huntly server) or Vercel AI task
@@ -484,36 +554,36 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     if (sseCancelled || vercelCancelled) {
       log("Processing cancelled for task:", taskId);
     }
-  } else if (msg.type === 'get_huntly_shortcuts') {
+  } else if (msg.type === "get_huntly_shortcuts") {
     // Fetch huntly shortcuts from the server (for content script use)
     fetchEnabledShortcuts()
       .then((shortcuts) => {
         sendResponse({ success: true, shortcuts: shortcuts || [] });
       })
       .catch((error) => {
-        console.error('Failed to fetch huntly shortcuts:', error);
+        console.error("Failed to fetch huntly shortcuts:", error);
         sendResponse({ success: false, shortcuts: [], error: error.message });
       });
     return true; // Keep the message channel open for async response
-  } else if (msg.type === 'get_ai_toolbar_data') {
+  } else if (msg.type === "get_ai_toolbar_data") {
     // Get all AI toolbar data for content script use (shortcuts + models)
     getAIToolbarData()
       .then((data) => {
         sendResponse({ success: true, ...data });
       })
       .catch((error) => {
-        console.error('Failed to get AI toolbar data:', error);
+        console.error("Failed to get AI toolbar data:", error);
         sendResponse({ success: false, error: error.message });
       });
     return true; // Keep the message channel open for async response
-  } else if ((msg as any).type === 'open_tab') {
+  } else if ((msg as any).type === "open_tab") {
     // Open a new tab (for content script context where chrome.tabs.create is not available)
     const openTabMsg = msg as Message & { url?: string };
     const url = openTabMsg.url || openTabMsg.payload?.url;
     if (url) {
       chrome.tabs.create({ url });
     }
-  } else if ((msg as any).type === 'badge_refresh') {
+  } else if ((msg as any).type === "badge_refresh") {
     // Refresh badge for a specific tab after manual save/delete from popup
     const tabId = msg.payload?.tabId;
     const url = msg.payload?.url;
@@ -522,10 +592,10 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
     } else {
       refreshBadgeForActiveTab();
     }
-  } else if ((msg as any).type === 'http_proxy') {
+  } else if ((msg as any).type === "http_proxy") {
     const { method, baseUrl, url, data } = msg.payload || {};
     if (!baseUrl || !url) {
-      sendResponse({ success: false, error: 'Invalid proxy request.' });
+      sendResponse({ success: false, error: "Invalid proxy request." });
       return;
     }
 
@@ -533,14 +603,14 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
       try {
         const fullUrl = combineUrl(baseUrl, url);
         const init: RequestInit = {
-          method: method || 'GET',
-          cache: 'no-cache',
-          credentials: 'include',
+          method: method || "GET",
+          cache: "no-cache",
+          credentials: "include",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         };
-        if (data !== undefined && method !== 'GET' && method !== 'DELETE') {
+        if (data !== undefined && method !== "GET" && method !== "DELETE") {
           init.body = JSON.stringify(data);
         }
 
@@ -548,15 +618,21 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
         const text = await response.text();
         sendResponse({ success: true, data: text, status: response.status });
       } catch (error) {
-        sendResponse({ success: false, error: (error as Error)?.message || 'http_proxy failed' });
+        sendResponse({
+          success: false,
+          error: (error as Error)?.message || "http_proxy failed",
+        });
       }
     })();
     return true;
-  } else if ((msg as any).type === 'save_detail_init') {
+  } else if ((msg as any).type === "save_detail_init") {
     const { data } = msg.payload || {};
     const inputPage = data?.page as PageModel | undefined;
     if (!inputPage?.url) {
-      sendResponse({ success: false, error: 'Invalid page data for save detail initialization.' });
+      sendResponse({
+        success: false,
+        error: "Invalid page data for save detail initialization.",
+      });
       return;
     }
 
@@ -564,13 +640,16 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
       try {
         const resp = await saveArticle(inputPage);
         if (!resp) {
-          sendResponse({ success: false, error: 'Failed to save page.' });
+          sendResponse({ success: false, error: "Failed to save page." });
           return;
         }
         const json = JSON.parse(resp);
         const pageId = json?.data as number;
         if (!pageId || pageId <= 0) {
-          sendResponse({ success: false, error: 'Invalid page id from save API.' });
+          sendResponse({
+            success: false,
+            error: "Invalid page id from save API.",
+          });
           return;
         }
 
@@ -598,7 +677,10 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
           },
         });
       } catch (error) {
-        sendResponse({ success: false, error: (error as Error)?.message || 'save_detail_init failed' });
+        sendResponse({
+          success: false,
+          error: (error as Error)?.message || "save_detail_init failed",
+        });
       }
     })();
     return true;
@@ -609,9 +691,9 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
 async function getAIToolbarData() {
   // Load shortcuts data
   const promptsSettings = await getPromptsSettings();
-  const enabledPrompts = promptsSettings.prompts.filter(p => p.enabled);
-  const userPrompts = enabledPrompts.filter(p => !p.isSystem);
-  const systemPrompts = enabledPrompts.filter(p => p.isSystem);
+  const enabledPrompts = promptsSettings.prompts.filter((p) => p.enabled);
+  const userPrompts = enabledPrompts.filter((p) => !p.isSystem);
+  const systemPrompts = enabledPrompts.filter((p) => p.isSystem);
   const huntlyShortcutsEnabled = promptsSettings.huntlyShortcutsEnabled;
 
   // Load huntly shortcuts if enabled
@@ -621,7 +703,7 @@ async function getAIToolbarData() {
     try {
       huntlyShortcuts = await fetchEnabledShortcuts();
     } catch (error) {
-      console.error('Failed to fetch huntly shortcuts:', error);
+      console.error("Failed to fetch huntly shortcuts:", error);
     }
   }
 
@@ -639,22 +721,24 @@ async function getAIToolbarData() {
   // Add Huntly Server models first (only if huntlyShortcutsEnabled)
   if (baseUrl && huntlyShortcutsEnabled) {
     modelList.push({
-      id: 'huntly-server:default',
-      name: 'Huntly AI',
-      provider: 'huntly-server',
-      providerName: 'Huntly',
+      id: "huntly-server:default",
+      name: "Huntly AI",
+      provider: "huntly-server",
+      providerName: "Huntly",
     });
   }
 
   // Add models from enabled providers
   for (const providerType of availableProviders) {
-    if (providerType === 'huntly-server') continue;
+    if (providerType === "huntly-server") continue;
 
     const config = storage.providers[providerType];
     if (config?.enabled && config.enabledModels.length > 0) {
       const providerMeta = PROVIDER_REGISTRY[providerType];
       for (const modelId of config.enabledModels) {
-        const modelMeta = providerMeta.defaultModels.find(m => m.id === modelId);
+        const modelMeta = providerMeta.defaultModels.find(
+          (m) => m.id === modelId
+        );
         modelList.push({
           id: `${providerType}:${modelId}`,
           name: modelMeta?.name || modelId,
@@ -670,7 +754,9 @@ async function getAIToolbarData() {
   if (modelList.length > 0) {
     const defaultProviderType = await getEffectiveDefaultProviderType();
     if (defaultProviderType) {
-      defaultModel = modelList.find(m => m.provider === defaultProviderType) || modelList[0];
+      defaultModel =
+        modelList.find((m) => m.provider === defaultProviderType) ||
+        modelList[0];
     } else {
       defaultModel = modelList[0];
     }
@@ -696,7 +782,7 @@ function handleSaveArticleResponse(resp: string) {
     const json = JSON.parse(resp);
     chrome.runtime.sendMessage({
       type: "save_clipper_success",
-      payload: {id: json.data}
+      payload: { id: json.data },
     });
     // Update badge for the active tab after auto-save
     refreshBadgeForActiveTab();
@@ -707,7 +793,7 @@ function handleSaveArticleResponse(resp: string) {
  * Refresh the badge for the currently active tab (force re-check)
  */
 function refreshBadgeForActiveTab() {
-  chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     const tab = tabs[0];
     if (tab?.id && tab?.url) {
       updateBadgeForTab(tab.id, tab.url, true);
@@ -718,8 +804,8 @@ function refreshBadgeForActiveTab() {
 chrome.tabs.onUpdated.addListener(function (tabId: number, changeInfo, tab) {
   if (changeInfo.status == "complete") {
     chrome.tabs.sendMessage<Message>(tabId, {
-      type: "tab_complete"
-    })
+      type: "tab_complete",
+    });
 
     // Update badge when page finishes loading
     if (tab.url) {
@@ -733,12 +819,12 @@ chrome.tabs.onUpdated.addListener(function (tabId: number, changeInfo, tab) {
     badgeCache.delete(tabId);
     updateBadgeForTab(tabId, changeInfo.url);
   }
-})
+});
 
 // Listen for tab activation (user switches tabs)
-chrome.tabs.onActivated.addListener(function(activeInfo) {
+chrome.tabs.onActivated.addListener(function (activeInfo) {
   // Update badge when user switches to a different tab
-  chrome.tabs.get(activeInfo.tabId, function(tab) {
+  chrome.tabs.get(activeInfo.tabId, function (tab) {
     if (tab.url) {
       updateBadgeForTab(activeInfo.tabId, tab.url);
     }
@@ -746,12 +832,14 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
 });
 
 // 监听标签页关闭事件
-chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
+chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
   // 取消该标签页的所有处理任务
   const cancelledCount = sseRequestManager.cancelTasksByTabId(tabId);
 
   if (cancelledCount > 0) {
-    log(`Processing cancelled for ${cancelledCount} tasks due to tab ${tabId} close`);
+    log(
+      `Processing cancelled for ${cancelledCount} tasks due to tab ${tabId} close`
+    );
   }
 
   // Clean up badge cache for this tab
@@ -764,7 +852,9 @@ const CONTEXT_MENU_READING_MODE_SELECTION = "huntly_reading_mode_selection";
 const CONTEXT_MENU_READING_MODE_ACTION = "huntly_reading_mode_action";
 
 // Add DEV flag to menu title in development mode
-const READING_MODE_TITLE = isDebugging ? "Huntly Reading Mode [DEV]" : "Huntly Reading Mode";
+const READING_MODE_TITLE = isDebugging
+  ? "Huntly Reading Mode [DEV]"
+  : "Huntly Reading Mode";
 
 chrome.runtime.onInstalled.addListener(() => {
   // Context menu for page (no selection)
@@ -793,10 +883,12 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (!tab?.id) return;
 
-  const isSelectionMode = info.menuItemId === CONTEXT_MENU_READING_MODE_SELECTION;
-  const isReadingModeMenu = info.menuItemId === CONTEXT_MENU_READING_MODE_PAGE ||
-                            info.menuItemId === CONTEXT_MENU_READING_MODE_SELECTION ||
-                            info.menuItemId === CONTEXT_MENU_READING_MODE_ACTION;
+  const isSelectionMode =
+    info.menuItemId === CONTEXT_MENU_READING_MODE_SELECTION;
+  const isReadingModeMenu =
+    info.menuItemId === CONTEXT_MENU_READING_MODE_PAGE ||
+    info.menuItemId === CONTEXT_MENU_READING_MODE_SELECTION ||
+    info.menuItemId === CONTEXT_MENU_READING_MODE_ACTION;
 
   if (!isReadingModeMenu) return;
 
@@ -805,7 +897,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (isSelectionMode) {
     // Get selection content from content script and open snippet reading mode
-    chrome.tabs.sendMessage(tab.id, { type: 'get_selection' }, (response) => {
+    chrome.tabs.sendMessage(tab.id, { type: "get_selection" }, (response) => {
       if (chrome.runtime.lastError) {
         log("Failed to get selection:", chrome.runtime.lastError);
         return;
@@ -815,24 +907,24 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       if (page) {
         // Open reading mode with snippet
         chrome.tabs.sendMessage(tab.id!, {
-          type: 'shortcuts_preview',
+          type: "shortcuts_preview",
           payload: {
             page: page,
             externalShortcuts: aiToolbarData?.externalShortcuts,
             externalModels: aiToolbarData?.externalModels,
-          }
+          },
         });
       }
     });
   } else {
     // Open full page reading mode
     chrome.tabs.sendMessage(tab.id, {
-      type: 'shortcuts_preview',
+      type: "shortcuts_preview",
       payload: {
         page: null, // null means content script will parse the current page
         externalShortcuts: aiToolbarData?.externalShortcuts,
         externalModels: aiToolbarData?.externalModels,
-      }
+      },
     });
   }
 });

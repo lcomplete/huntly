@@ -90,6 +90,7 @@ chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendRespons
         externalModels={msg.payload?.externalModels}
         autoExecuteShortcut={msg.payload?.autoExecuteShortcut}
         autoSelectedModel={msg.payload?.autoSelectedModel}
+        initialThinkingModeEnabled={msg.payload?.initialThinkingModeEnabled}
       />
     );
     return;

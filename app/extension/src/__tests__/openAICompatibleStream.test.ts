@@ -1,4 +1,7 @@
-import { extractOpenAICompatibleStreamDelta } from "../ai/openAICompatibleStream";
+import {
+  buildOpenAICompatibleChatCompletionBody,
+  extractOpenAICompatibleStreamDelta,
+} from "../ai/openAICompatibleStream";
 
 describe("openAICompatibleStream", () => {
   it("extracts reasoning_content deltas from OpenAI-compatible chunks", () => {
@@ -25,5 +28,28 @@ describe("openAICompatibleStream", () => {
     const delta = extractOpenAICompatibleStreamDelta("[DONE]");
 
     expect(delta.done).toBe(true);
+  });
+
+  it("includes request body extras when building request payload", () => {
+    const body = buildOpenAICompatibleChatCompletionBody({
+      modelId: "qwen3-max",
+      systemPrompt: "You are helpful",
+      userPrompt: "Translate this",
+      maxTokens: 2048,
+      requestBodyExtras: {
+        enable_thinking: false,
+      },
+    });
+
+    expect(body).toEqual({
+      model: "qwen3-max",
+      stream: true,
+      max_tokens: 2048,
+      messages: [
+        { role: "system", content: "You are helpful" },
+        { role: "user", content: "Translate this" },
+      ],
+      enable_thinking: false,
+    });
   });
 });

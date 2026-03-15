@@ -11,6 +11,10 @@ export interface StreamingPreviewChunk {
   textDelta?: string;
 }
 
+export interface StreamingPreviewOptions {
+  includeReasoning?: boolean;
+}
+
 export function createStreamingPreviewState(): StreamingPreviewState {
   return {
     displayContent: "",
@@ -23,8 +27,10 @@ export function createStreamingPreviewState(): StreamingPreviewState {
 
 export function applyStreamingPreviewChunk(
   state: StreamingPreviewState,
-  chunk: StreamingPreviewChunk
+  chunk: StreamingPreviewChunk,
+  options: StreamingPreviewOptions = {}
 ): StreamingPreviewState {
+  const includeReasoning = options.includeReasoning ?? true;
   const textDelta = chunk.textDelta || "";
   if (!textDelta) {
     return state;
@@ -42,6 +48,10 @@ export function applyStreamingPreviewChunk(
   }
 
   if (chunk.type === "reasoning") {
+    if (!includeReasoning) {
+      return state;
+    }
+
     return {
       displayContent: state.hasReceivedResponseText
         ? state.displayContent

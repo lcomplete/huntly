@@ -102,6 +102,7 @@ const Popup = () => {
 
   // AI processing state
   const [processingShortcut, setProcessingShortcut] = useState(false);
+  const [thinkingModeEnabled, setThinkingModeEnabled] = useState(false);
 
   // Save detail panel state
   const [showDetailPanel, setShowDetailPanel] = useState(false);
@@ -514,6 +515,7 @@ const Popup = () => {
         parserType: parserType,
         externalShortcuts: aiToolbarData.success ? aiToolbarData.externalShortcuts : undefined,
         externalModels: aiToolbarData.success ? aiToolbarData.externalModels : undefined,
+        initialThinkingModeEnabled: thinkingModeEnabled,
       }
     });
 
@@ -553,6 +555,7 @@ const Popup = () => {
         externalModels: aiToolbarData.success ? aiToolbarData.externalModels : undefined,
         autoExecuteShortcut: shortcut,
         autoSelectedModel: selectedModel,
+        initialThinkingModeEnabled: thinkingModeEnabled,
       }
     });
 
@@ -854,6 +857,11 @@ const Popup = () => {
                                 isProcessing={processingShortcut}
                                 compact={true}
                                 hideHuntlyAI={serverConnectionFailed}
+                                showThinkingToggle={true}
+                                thinkingModeEnabled={thinkingModeEnabled}
+                                onThinkingModeToggle={() =>
+                                  setThinkingModeEnabled((prev) => !prev)
+                                }
                               />
                             </div>
                           )}

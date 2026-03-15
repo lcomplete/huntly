@@ -13,8 +13,33 @@ interface StreamOpenAICompatibleChatCompletionOptions {
   systemPrompt: string;
   userPrompt: string;
   maxTokens: number;
+  requestBodyExtras?: Record<string, unknown>;
   abortSignal: AbortSignal;
   onDelta: (delta: OpenAICompatibleStreamDelta) => void;
+}
+
+export function buildOpenAICompatibleChatCompletionBody({
+  modelId,
+  systemPrompt,
+  userPrompt,
+  maxTokens,
+  requestBodyExtras = {},
+}: Pick<
+  StreamOpenAICompatibleChatCompletionOptions,
+  "modelId" | "systemPrompt" | "userPrompt" | "maxTokens" | "requestBodyExtras"
+>) {
+  return {
+    model: modelId,
+    stream: true,
+    max_tokens: maxTokens,
+    messages: [
+      ...(systemPrompt.trim()
+        ? [{ role: "system", content: systemPrompt }]
+        : []),
+      { role: "user", content: userPrompt },
+    ],
+    ...requestBodyExtras,
+  };
 }
 
 export function extractOpenAICompatibleStreamDelta(
@@ -37,8 +62,8 @@ export function extractOpenAICompatibleStreamDelta(
       typeof delta.reasoning_content === "string"
         ? delta.reasoning_content
         : typeof delta.reasoning === "string"
-          ? delta.reasoning
-          : "",
+        ? delta.reasoning
+        : "",
     done: false,
   };
 }
@@ -50,6 +75,7 @@ export async function streamOpenAICompatibleChatCompletion({
   systemPrompt,
   userPrompt,
   maxTokens,
+  requestBodyExtras,
   abortSignal,
   onDelta,
 }: StreamOpenAICompatibleChatCompletionOptions): Promise<void> {
@@ -60,24 +86,23 @@ export async function streamOpenAICompatibleChatCompletion({
       Accept: "text/event-stream",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: modelId,
-      stream: true,
-      max_tokens: maxTokens,
-      messages: [
-        ...(systemPrompt.trim()
-          ? [{ role: "system", content: systemPrompt }]
-          : []),
-        { role: "user", content: userPrompt },
-      ],
-    }),
+    body: JSON.stringify(
+      buildOpenAICompatibleChatCompletionBody({
+        modelId,
+        systemPrompt,
+        userPrompt,
+        maxTokens,
+        requestBodyExtras,
+      })
+    ),
     signal: abortSignal,
   });
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      errorText || `HTTP error! status: ${response.status} ${response.statusText}`
+      errorText ||
+        `HTTP error! status: ${response.status} ${response.statusText}`
     );
   }
 

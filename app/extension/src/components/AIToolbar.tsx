@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Menu,
@@ -8,34 +8,35 @@ import {
   CircularProgress,
   Typography,
   Box,
-} from '@mui/material';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import SettingsIcon from '@mui/icons-material/Settings';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import StopRoundedIcon from '@mui/icons-material/StopRounded';
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SettingsIcon from "@mui/icons-material/Settings";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import PsychologyIcon from "@mui/icons-material/Psychology";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import {
   Prompt,
   getPromptsSettings,
   saveSelectedModelId,
   getSelectedModelId,
-} from '../storage';
-import { fetchEnabledShortcuts, getApiBaseUrl } from '../services';
+} from "../storage";
+import { fetchEnabledShortcuts, getApiBaseUrl } from "../services";
 import {
   getAIProvidersStorage,
   getAvailableProviderTypes,
   getEffectiveDefaultProviderType,
-} from '../ai/storage';
-import {
-  ProviderType,
-  PROVIDER_REGISTRY,
-} from '../ai/types';
+} from "../ai/storage";
+import { ProviderType, PROVIDER_REGISTRY } from "../ai/types";
 
 // Types
 export interface ShortcutItem {
   id: string | number;
   name: string;
   content?: string;
-  type: 'user' | 'system' | 'huntly';
+  type: "user" | "system" | "huntly";
 }
 
 export interface ModelItem {
@@ -60,7 +61,10 @@ export interface ExternalModelsData {
 }
 
 export interface AIToolbarProps {
-  onShortcutClick: (shortcut: ShortcutItem, selectedModel: ModelItem | null) => void;
+  onShortcutClick: (
+    shortcut: ShortcutItem,
+    selectedModel: ModelItem | null
+  ) => void;
   isProcessing?: boolean;
   showPreview?: boolean;
   onPreviewClick?: () => void;
@@ -77,11 +81,21 @@ export interface AIToolbarProps {
   initialSelectedModel?: ModelItem | null;
   /** Hide Huntly AI option (e.g., when server is not connected) */
   hideHuntlyAI?: boolean;
+  /** Show the thinking mode toggle next to model selector */
+  showThinkingToggle?: boolean;
+  /** Whether thinking mode is currently enabled */
+  thinkingModeEnabled?: boolean;
+  /** Called when user toggles thinking mode */
+  onThinkingModeToggle?: () => void;
 }
 
 // Gradient definition for AI icon
 export const AIGradientDef = () => (
-  <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
+  <svg
+    width={0}
+    height={0}
+    style={{ position: "absolute", visibility: "hidden" }}
+  >
     <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stopColor="#4facfe" />
       <stop offset="50%" stopColor="#a18cd1" />
@@ -100,6 +114,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   externalModels,
   initialSelectedModel,
   hideHuntlyAI = false,
+  showThinkingToggle = false,
+  thinkingModeEnabled = false,
+  onThinkingModeToggle,
 }) => {
   // Determine if using external data
   const useExternalShortcuts = !!externalShortcuts;
@@ -118,7 +135,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   const [huntlyShortcutsEnabled, setHuntlyShortcutsEnabled] = useState(
     externalShortcuts?.huntlyShortcutsEnabled ?? true
   );
-  const [loadingShortcuts, setLoadingShortcuts] = useState(!useExternalShortcuts);
+  const [loadingShortcuts, setLoadingShortcuts] = useState(
+    !useExternalShortcuts
+  );
 
   // Models state
   const [models, setModels] = useState<ModelItem[]>(
@@ -136,7 +155,8 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
       getSelectedModelId().then((savedModelId) => {
         let model: ModelItem | null = null;
         if (savedModelId) {
-          model = externalModels.models.find(m => m.id === savedModelId) || null;
+          model =
+            externalModels.models.find((m) => m.id === savedModelId) || null;
         }
         // Fall back to default model if saved one not found
         if (!model) {
@@ -156,8 +176,8 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
 
   // Switch away from Huntly AI if it's hidden
   useEffect(() => {
-    if (hideHuntlyAI && selectedModel?.provider === 'huntly-server') {
-      const nonHuntlyModel = models.find(m => m.provider !== 'huntly-server');
+    if (hideHuntlyAI && selectedModel?.provider === "huntly-server") {
+      const nonHuntlyModel = models.find((m) => m.provider !== "huntly-server");
       if (nonHuntlyModel) {
         setSelectedModel(nonHuntlyModel);
       } else {
@@ -167,7 +187,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   }, [hideHuntlyAI, selectedModel, models]);
 
   // Menu state
-  const [shortcutAnchorEl, setShortcutAnchorEl] = useState<null | HTMLElement>(null);
+  const [shortcutAnchorEl, setShortcutAnchorEl] = useState<null | HTMLElement>(
+    null
+  );
   const [modelAnchorEl, setModelAnchorEl] = useState<null | HTMLElement>(null);
   const shortcutMenuOpen = Boolean(shortcutAnchorEl);
   const modelMenuOpen = Boolean(modelAnchorEl);
@@ -181,9 +203,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
       try {
         // Load prompts from storage
         const promptsSettings = await getPromptsSettings();
-        const enabledPrompts = promptsSettings.prompts.filter(p => p.enabled);
-        setUserPrompts(enabledPrompts.filter(p => !p.isSystem));
-        setSystemPrompts(enabledPrompts.filter(p => p.isSystem));
+        const enabledPrompts = promptsSettings.prompts.filter((p) => p.enabled);
+        setUserPrompts(enabledPrompts.filter((p) => !p.isSystem));
+        setSystemPrompts(enabledPrompts.filter((p) => p.isSystem));
         setHuntlyShortcutsEnabled(promptsSettings.huntlyShortcutsEnabled);
 
         // Check if server is configured
@@ -199,12 +221,18 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
               shortcuts = await fetchEnabledShortcuts();
             } catch (fetchError) {
               // Direct fetch failed (likely CORS in content script), use message passing
-              const response = await new Promise<{ success: boolean; shortcuts: any[] }>((resolve) => {
+              const response = await new Promise<{
+                success: boolean;
+                shortcuts: any[];
+              }>((resolve) => {
                 chrome.runtime.sendMessage(
-                  { type: 'get_huntly_shortcuts' },
+                  { type: "get_huntly_shortcuts" },
                   (resp) => {
                     if (chrome.runtime.lastError) {
-                      console.error('Message passing failed:', chrome.runtime.lastError);
+                      console.error(
+                        "Message passing failed:",
+                        chrome.runtime.lastError
+                      );
                       resolve({ success: false, shortcuts: [] });
                     } else {
                       resolve(resp || { success: false, shortcuts: [] });
@@ -216,12 +244,12 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
             }
             setHuntlyShortcuts(shortcuts);
           } catch (error) {
-            console.error('Failed to load huntly shortcuts:', error);
+            console.error("Failed to load huntly shortcuts:", error);
             setHuntlyShortcuts([]);
           }
         }
       } catch (error) {
-        console.error('Failed to load shortcuts:', error);
+        console.error("Failed to load shortcuts:", error);
       } finally {
         setLoadingShortcuts(false);
       }
@@ -245,22 +273,24 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         // Add Huntly Server models first (only if huntlyShortcutsEnabled)
         if (baseUrl && promptsSettings.huntlyShortcutsEnabled) {
           modelList.push({
-            id: 'huntly-server:default',
-            name: 'Huntly AI',
-            provider: 'huntly-server',
-            providerName: 'Huntly',
+            id: "huntly-server:default",
+            name: "Huntly AI",
+            provider: "huntly-server",
+            providerName: "Huntly",
           });
         }
 
         // Add models from enabled providers
         for (const providerType of availableProviders) {
-          if (providerType === 'huntly-server') continue;
+          if (providerType === "huntly-server") continue;
 
           const config = storage.providers[providerType];
           if (config?.enabled && config.enabledModels.length > 0) {
             const providerMeta = PROVIDER_REGISTRY[providerType];
             for (const modelId of config.enabledModels) {
-              const modelMeta = providerMeta.defaultModels.find(m => m.id === modelId);
+              const modelMeta = providerMeta.defaultModels.find(
+                (m) => m.id === modelId
+              );
               modelList.push({
                 id: `${providerType}:${modelId}`,
                 name: modelMeta?.name || modelId,
@@ -280,14 +310,17 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
           let selectedModel: ModelItem | null = null;
 
           if (savedModelId) {
-            selectedModel = modelList.find(m => m.id === savedModelId) || null;
+            selectedModel =
+              modelList.find((m) => m.id === savedModelId) || null;
           }
 
           // Fall back to default provider or first model
           if (!selectedModel) {
             const defaultProviderType = await getEffectiveDefaultProviderType();
             if (defaultProviderType) {
-              selectedModel = modelList.find(m => m.provider === defaultProviderType) || modelList[0];
+              selectedModel =
+                modelList.find((m) => m.provider === defaultProviderType) ||
+                modelList[0];
             } else {
               selectedModel = modelList[0];
             }
@@ -296,7 +329,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
           setSelectedModel(selectedModel);
         }
       } catch (error) {
-        console.error('Failed to load models:', error);
+        console.error("Failed to load models:", error);
       } finally {
         setLoadingModels(false);
       }
@@ -304,7 +337,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
     loadModels();
   }, [useExternalModels]);
 
-  const handleShortcutMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleShortcutMenuOpen = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     setShortcutAnchorEl(event.currentTarget);
   };
 
@@ -333,35 +368,39 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   };
 
   const openSettings = (tab?: string) => {
-    const optionsUrl = chrome.runtime.getURL('options.html');
+    const optionsUrl = chrome.runtime.getURL("options.html");
     const url = tab ? `${optionsUrl}#${tab}` : optionsUrl;
     // chrome.tabs.create is not available in content scripts, use message passing
     if (chrome.tabs?.create) {
       chrome.tabs.create({ url });
     } else {
       // Fallback for content script context - send message to background
-      chrome.runtime.sendMessage({ type: 'open_tab', url });
+      chrome.runtime.sendMessage({ type: "open_tab", url });
     }
     handleShortcutMenuClose();
     handleModelMenuClose();
   };
 
   // Check if selected model is Huntly AI
-  const isHuntlyAISelected = selectedModel?.provider === 'huntly-server';
+  const isHuntlyAISelected = selectedModel?.provider === "huntly-server";
 
   // Determine which shortcuts to show based on selected model
-  const showHuntlyShortcuts = isHuntlyAISelected && huntlyShortcutsEnabled && huntlyShortcuts.length > 0;
+  const showHuntlyShortcuts =
+    isHuntlyAISelected && huntlyShortcutsEnabled && huntlyShortcuts.length > 0;
   const showUserSystemPrompts = !isHuntlyAISelected;
 
-  const hasShortcuts = showHuntlyShortcuts ||
-    (showUserSystemPrompts && (userPrompts.length > 0 || systemPrompts.length > 0));
+  const hasShortcuts =
+    showHuntlyShortcuts ||
+    (showUserSystemPrompts &&
+      (userPrompts.length > 0 || systemPrompts.length > 0));
   const hasModels = models.length > 0;
 
   // Group models by provider - only show Huntly AI when huntlyShortcutsEnabled is true and not hidden
-  const huntlyModels = (huntlyShortcutsEnabled && !hideHuntlyAI)
-    ? models.filter(m => m.provider === 'huntly-server')
-    : [];
-  const otherModels = models.filter(m => m.provider !== 'huntly-server');
+  const huntlyModels =
+    huntlyShortcutsEnabled && !hideHuntlyAI
+      ? models.filter((m) => m.provider === "huntly-server")
+      : [];
+  const otherModels = models.filter((m) => m.provider !== "huntly-server");
 
   // Group other models by provider
   const modelsByProvider = otherModels.reduce((acc, model) => {
@@ -372,12 +411,20 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
     return acc;
   }, {} as Record<string, ModelItem[]>);
 
-  const buttonSize = compact ? 'small' : 'medium';
+  const buttonSize = compact ? "small" : "medium";
   // Ensure portal-based menus render above the shadow DOM overlay.
   const menuZIndex = 2147483647;
+  const thinkingModeTooltip = !selectedModel
+    ? "Thinking · choose a model"
+    : thinkingModeEnabled
+    ? "Thinking on"
+    : "Thinking off";
+  const thinkingModeButtonLabel = thinkingModeEnabled
+    ? "Thinking on"
+    : "Thinking off";
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
       <AIGradientDef />
 
       {/* Model Selector */}
@@ -388,10 +435,10 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         endIcon={<KeyboardArrowDownIcon />}
         disabled={loadingModels || isProcessing}
         sx={{
-          textTransform: 'none',
+          textTransform: "none",
           minWidth: compact ? 100 : 120,
           maxWidth: compact ? 160 : 220,
-          justifyContent: 'space-between',
+          justifyContent: "space-between",
         }}
       >
         {loadingModels ? (
@@ -401,9 +448,52 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
             {selectedModel.name}
           </Typography>
         ) : (
-          'Select Model'
+          "Select Model"
         )}
       </Button>
+
+      {showThinkingToggle && (
+        <Tooltip
+          title={thinkingModeTooltip}
+          arrow
+          placement="top"
+          PopperProps={{
+            container: menuContainer,
+            sx: { zIndex: menuZIndex },
+          }}
+        >
+          <span title={thinkingModeTooltip}>
+            <IconButton
+              size={compact ? "small" : "medium"}
+              onClick={onThinkingModeToggle}
+              disabled={!selectedModel || isProcessing}
+              aria-label={thinkingModeButtonLabel}
+              aria-pressed={thinkingModeEnabled}
+              sx={{
+                color: thinkingModeEnabled ? "text.primary" : "text.disabled",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  bgcolor: "action.hover",
+                  color: thinkingModeEnabled
+                    ? "text.primary"
+                    : "text.secondary",
+                },
+                "&.Mui-disabled": {
+                  color: "text.disabled",
+                },
+              }}
+            >
+              {thinkingModeEnabled ? (
+                <PsychologyIcon fontSize={compact ? "small" : "medium"} />
+              ) : (
+                <PsychologyOutlinedIcon
+                  fontSize={compact ? "small" : "medium"}
+                />
+              )}
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
 
       <Menu
         anchorEl={modelAnchorEl}
@@ -412,45 +502,55 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         container={menuContainer}
         disableScrollLock
         sx={{ zIndex: menuZIndex }}
-        PaperProps={{ sx: { maxHeight: 400, minWidth: 180, zIndex: menuZIndex } }}
+        PaperProps={{
+          sx: { maxHeight: 400, minWidth: 180, zIndex: menuZIndex },
+        }}
       >
-        {!hasModels ? (
-          [
-            <MenuItem key="configure" onClick={() => openSettings('ai-providers')}>
-              <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
-              Configure AI Providers
-            </MenuItem>
-          ]
-        ) : (
-          [
-            /* Huntly models */
-            ...huntlyModels.map(model => (
+        {!hasModels
+          ? [
               <MenuItem
-                key={`huntly-model-${model.id}`}
-                onClick={() => handleModelSelect(model)}
-                selected={selectedModel?.id === model.id}
+                key="configure"
+                onClick={() => openSettings("ai-providers")}
               >
-                {model.name}
-              </MenuItem>
-            )),
-            /* Other providers */
-            ...Object.entries(modelsByProvider).flatMap(([providerName, providerModels], index) => [
-              ...((index > 0 || huntlyModels.length > 0) ? [<Divider key={`divider-${providerName}`} />] : []),
-              <ListSubheader key={`header-${providerName}`} sx={{ lineHeight: '32px', bgcolor: 'background.paper' }}>
-                {providerName}
-              </ListSubheader>,
-              ...providerModels.map(model => (
+                <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
+                Configure AI Providers
+              </MenuItem>,
+            ]
+          : [
+              /* Huntly models */
+              ...huntlyModels.map((model) => (
                 <MenuItem
-                  key={`provider-model-${model.id}`}
+                  key={`huntly-model-${model.id}`}
                   onClick={() => handleModelSelect(model)}
                   selected={selectedModel?.id === model.id}
                 >
                   {model.name}
                 </MenuItem>
               )),
-            ]),
-          ]
-        )}
+              /* Other providers */
+              ...Object.entries(modelsByProvider).flatMap(
+                ([providerName, providerModels], index) => [
+                  ...(index > 0 || huntlyModels.length > 0
+                    ? [<Divider key={`divider-${providerName}`} />]
+                    : []),
+                  <ListSubheader
+                    key={`header-${providerName}`}
+                    sx={{ lineHeight: "32px", bgcolor: "background.paper" }}
+                  >
+                    {providerName}
+                  </ListSubheader>,
+                  ...providerModels.map((model) => (
+                    <MenuItem
+                      key={`provider-model-${model.id}`}
+                      onClick={() => handleModelSelect(model)}
+                      selected={selectedModel?.id === model.id}
+                    >
+                      {model.name}
+                    </MenuItem>
+                  )),
+                ]
+              ),
+            ]}
       </Menu>
 
       {/* AI Shortcuts Button */}
@@ -459,10 +559,16 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         variant="text"
         color="primary"
         onClick={handleShortcutMenuOpen}
-        startIcon={<AutoAwesomeIcon sx={{ fill: 'url(#aiGradient)' }} />}
-        endIcon={isProcessing ? <CircularProgress size={14} /> : <KeyboardArrowDownIcon />}
+        startIcon={<AutoAwesomeIcon sx={{ fill: "url(#aiGradient)" }} />}
+        endIcon={
+          isProcessing ? (
+            <CircularProgress size={14} />
+          ) : (
+            <KeyboardArrowDownIcon />
+          )
+        }
         disabled={isProcessing}
-        sx={{ textTransform: 'none' }}
+        sx={{ textTransform: "none" }}
       >
         AI Shortcuts
       </Button>
@@ -472,26 +578,26 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         <Box
           onClick={onStopClick}
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             width: 30,
             height: 30,
-            borderRadius: '50%',
-            border: '1.5px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            '&:hover': {
-              bgcolor: 'action.hover',
-              borderColor: 'text.secondary',
+            borderRadius: "50%",
+            border: "1.5px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+            "&:hover": {
+              bgcolor: "action.hover",
+              borderColor: "text.secondary",
             },
-            '@keyframes pulse': {
-              '0%, 100%': {
+            "@keyframes pulse": {
+              "0%, 100%": {
                 opacity: 1,
               },
-              '50%': {
+              "50%": {
                 opacity: 0.5,
               },
             },
@@ -501,8 +607,8 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
           <StopRoundedIcon
             sx={{
               fontSize: 20,
-              color: 'text.primary',
-              animation: 'pulse 1.5s ease-in-out infinite',
+              color: "text.primary",
+              animation: "pulse 1.5s ease-in-out infinite",
             }}
           />
         </Box>
@@ -515,89 +621,122 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         container={menuContainer}
         disableScrollLock
         sx={{ zIndex: menuZIndex }}
-        PaperProps={{ sx: { maxHeight: 400, minWidth: 200, zIndex: menuZIndex } }}
+        PaperProps={{
+          sx: { maxHeight: 400, minWidth: 200, zIndex: menuZIndex },
+        }}
       >
-        {loadingShortcuts ? (
-          [
-            <MenuItem key="loading" disabled>
-              <CircularProgress size={16} sx={{ mr: 1 }} />
-              Loading...
-            </MenuItem>
-          ]
-        ) : !hasShortcuts ? (
-          [
-            <MenuItem key="configure" onClick={() => openSettings('prompts')}>
-              <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
-              {isHuntlyAISelected ? 'Configure Huntly Shortcuts' : 'Configure Prompts'}
-            </MenuItem>
-          ]
-        ) : (
-          [
-            /* Huntly AI selected - show only Huntly Shortcuts */
-            ...(showHuntlyShortcuts ? [
-              <ListSubheader key="huntly-header" sx={{ lineHeight: '32px', bgcolor: 'background.paper' }}>
-                Huntly Shortcuts
-              </ListSubheader>,
-              ...huntlyShortcuts.map(shortcut => (
-                <MenuItem
-                  key={`huntly-shortcut-${shortcut.id}`}
-                  onClick={() => handleShortcutSelect({
-                    id: shortcut.id,
-                    name: shortcut.name,
-                    content: shortcut.prompt,
-                    type: 'huntly',
-                  })}
-                >
-                  {shortcut.name}
-                </MenuItem>
-              )),
-            ] : []),
-            /* Other models selected - show User & System Prompts */
-            ...(showUserSystemPrompts ? [
-              /* User Prompts */
-              ...(userPrompts.length > 0 ? [
-                <ListSubheader key="prompts-header" sx={{ lineHeight: '32px', bgcolor: 'background.paper' }}>
-                  Prompts
-                </ListSubheader>,
-              ] : []),
-              ...userPrompts.map(prompt => (
-                <MenuItem
-                  key={`user-prompt-${prompt.id}`}
-                  disabled={!selectedModel}
-                  onClick={() => handleShortcutSelect({
-                    id: prompt.id,
-                    name: prompt.name,
-                    content: prompt.content,
-                    type: 'user',
-                  })}
-                >
-                  {prompt.name}
-                </MenuItem>
-              )),
-              /* System Prompts */
-              ...(systemPrompts.length > 0 && userPrompts.length > 0 ? [<Divider key="system-divider" />] : []),
-              ...(systemPrompts.length > 0 ? [
-                <ListSubheader key="system-header" sx={{ lineHeight: '32px', bgcolor: 'background.paper' }}>
-                  System Prompts
-                </ListSubheader>,
-              ] : []),
-              ...systemPrompts.map(prompt => (
-                <MenuItem
-                  key={`system-prompt-${prompt.id}`}
-                  disabled={!selectedModel}
-                  onClick={() => handleShortcutSelect({
-                    id: prompt.id,
-                    name: prompt.name,
-                    content: prompt.content,
-                    type: 'system',
-                  })}
-                >
-                  {prompt.name}
-                </MenuItem>
-              )),
-            ] : []),
-          ]
-        )}
+        {loadingShortcuts
+          ? [
+              <MenuItem key="loading" disabled>
+                <CircularProgress size={16} sx={{ mr: 1 }} />
+                Loading...
+              </MenuItem>,
+            ]
+          : !hasShortcuts
+          ? [
+              <MenuItem key="configure" onClick={() => openSettings("prompts")}>
+                <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
+                {isHuntlyAISelected
+                  ? "Configure Huntly Shortcuts"
+                  : "Configure Prompts"}
+              </MenuItem>,
+            ]
+          : [
+              /* Huntly AI selected - show only Huntly Shortcuts */
+              ...(showHuntlyShortcuts
+                ? [
+                    <ListSubheader
+                      key="huntly-header"
+                      sx={{ lineHeight: "32px", bgcolor: "background.paper" }}
+                    >
+                      Huntly Shortcuts
+                    </ListSubheader>,
+                    ...huntlyShortcuts.map((shortcut) => (
+                      <MenuItem
+                        key={`huntly-shortcut-${shortcut.id}`}
+                        onClick={() =>
+                          handleShortcutSelect({
+                            id: shortcut.id,
+                            name: shortcut.name,
+                            content: shortcut.prompt,
+                            type: "huntly",
+                          })
+                        }
+                      >
+                        {shortcut.name}
+                      </MenuItem>
+                    )),
+                  ]
+                : []),
+              /* Other models selected - show User & System Prompts */
+              ...(showUserSystemPrompts
+                ? [
+                    /* User Prompts */
+                    ...(userPrompts.length > 0
+                      ? [
+                          <ListSubheader
+                            key="prompts-header"
+                            sx={{
+                              lineHeight: "32px",
+                              bgcolor: "background.paper",
+                            }}
+                          >
+                            Prompts
+                          </ListSubheader>,
+                        ]
+                      : []),
+                    ...userPrompts.map((prompt) => (
+                      <MenuItem
+                        key={`user-prompt-${prompt.id}`}
+                        disabled={!selectedModel}
+                        onClick={() =>
+                          handleShortcutSelect({
+                            id: prompt.id,
+                            name: prompt.name,
+                            content: prompt.content,
+                            type: "user",
+                          })
+                        }
+                      >
+                        {prompt.name}
+                      </MenuItem>
+                    )),
+                    /* System Prompts */
+                    ...(systemPrompts.length > 0 && userPrompts.length > 0
+                      ? [<Divider key="system-divider" />]
+                      : []),
+                    ...(systemPrompts.length > 0
+                      ? [
+                          <ListSubheader
+                            key="system-header"
+                            sx={{
+                              lineHeight: "32px",
+                              bgcolor: "background.paper",
+                            }}
+                          >
+                            System Prompts
+                          </ListSubheader>,
+                        ]
+                      : []),
+                    ...systemPrompts.map((prompt) => (
+                      <MenuItem
+                        key={`system-prompt-${prompt.id}`}
+                        disabled={!selectedModel}
+                        onClick={() =>
+                          handleShortcutSelect({
+                            id: prompt.id,
+                            name: prompt.name,
+                            content: prompt.content,
+                            type: "system",
+                          })
+                        }
+                      >
+                        {prompt.name}
+                      </MenuItem>
+                    )),
+                  ]
+                : []),
+            ]}
       </Menu>
     </Box>
   );

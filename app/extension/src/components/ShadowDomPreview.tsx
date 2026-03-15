@@ -22,6 +22,8 @@ interface ShadowDomPreviewProps {
   autoExecuteShortcut?: ShortcutItem;
   /** Model to use for auto-execute */
   autoSelectedModel?: ModelItem | null;
+  /** Initial thinking mode from popup-triggered preview */
+  initialThinkingModeEnabled?: boolean;
 }
 
 interface ShadowContentProps {

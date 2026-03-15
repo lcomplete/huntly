@@ -75,4 +75,23 @@ describe("streamingPreview", () => {
 
     expect(hasStreamingPreviewStateChanged(initialState, nextState)).toBe(true);
   });
+
+  it("ignores reasoning chunks when reasoning preview is disabled", () => {
+    const initialState = createStreamingPreviewState();
+    const nextState = applyStreamingPreviewChunk(
+      initialState,
+      {
+        type: "reasoning",
+        textDelta: "Hidden thinking",
+      },
+      {
+        includeReasoning: false,
+      }
+    );
+
+    expect(nextState).toEqual(initialState);
+    expect(hasStreamingPreviewStateChanged(initialState, nextState)).toBe(
+      false
+    );
+  });
 });
