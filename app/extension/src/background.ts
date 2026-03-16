@@ -50,6 +50,27 @@ const badgeCache = new Map<number, string>();
 const SAVED_BADGE_TEXT = "✓";
 const SAVED_BADGE_BG = "#15803D";
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  const contentType = blob.type || "application/octet-stream";
+  const buffer = await blob.arrayBuffer();
+  const base64 = arrayBufferToBase64(buffer);
+
+  return `data:${contentType};base64,${base64}`;
+}
+
 /**
  * Update the badge for a tab based on whether the page is saved in Huntly
  * @param tabId The tab ID to update
@@ -583,6 +604,34 @@ chrome.runtime.onMessage.addListener(function (
     if (url) {
       chrome.tabs.create({ url });
     }
+  } else if ((msg as any).type === "fetch_image") {
+    // Fetch a cross-origin image from the background (privileged context)
+    // and return it as a data URL for export.
+    const imageUrl = msg.payload?.url;
+    if (!imageUrl) {
+      sendResponse({ success: false, error: "No URL provided" });
+      return;
+    }
+    (async () => {
+      try {
+        const response = await fetch(imageUrl, { credentials: "omit" });
+        if (!response.ok) {
+          sendResponse({ success: false, error: `HTTP ${response.status}` });
+          return;
+        }
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.startsWith("image/")) {
+          sendResponse({ success: false, error: "Not an image" });
+          return;
+        }
+        const blob = await response.blob();
+        const dataUrl = await blobToDataUrl(blob);
+        sendResponse({ success: true, dataUrl });
+      } catch (error) {
+        sendResponse({ success: false, error: (error as Error)?.message || "Fetch failed" });
+      }
+    })();
+    return true; // Keep the message channel open for async response
   } else if ((msg as any).type === "badge_refresh") {
     // Refresh badge for a specific tab after manual save/delete from popup
     const tabId = msg.payload?.tabId;

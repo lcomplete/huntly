@@ -557,6 +557,13 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
     try {
       canvas.toBlob((blob) => {
         if (!blob) {
+          try {
+            canvas.toDataURL("image/png");
+          } catch (error) {
+            reject(error);
+            return;
+          }
+
           reject(new Error("Failed to create image blob"));
           return;
         }
@@ -567,6 +574,101 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
       reject(error);
     }
   });
+}
+
+/**
+ * Fetch an image via the background service worker (privileged context)
+ * which bypasses CORS restrictions that apply to content scripts in MV3.
+ */
+function fetchImageViaBackground(imageUrl: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage(
+        { type: "fetch_image", payload: { url: imageUrl } },
+        (response) => {
+          if (chrome.runtime.lastError || !response?.success) {
+            resolve(null);
+            return;
+          }
+          resolve(response.dataUrl);
+        }
+      );
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Convert export-unsafe images to data URLs using the background service
+ * worker's privileged fetch. This covers both explicit cross-origin images
+ * and same-origin URLs that redirect to a different origin at load time,
+ * such as GitHub's /raw/ image routes.
+ */
+async function convertCrossOriginImages(
+  originalRoot: HTMLElement,
+  clonedRoot: HTMLElement,
+  sourceOrigin: string,
+  baseUri: string
+): Promise<void> {
+  const originalImages = collectElements<HTMLImageElement>(originalRoot, "img");
+  const clonedImages = collectElements<HTMLImageElement>(clonedRoot, "img");
+  const pairCount = Math.min(originalImages.length, clonedImages.length);
+
+  const conversions = Array.from({ length: pairCount }, async (_, index) => {
+    const originalImage = originalImages[index];
+    const clonedImage = clonedImages[index];
+    const src =
+      clonedImage.getAttribute("src") ||
+      originalImage.currentSrc ||
+      originalImage.getAttribute("src");
+    if (!src) return;
+
+    const url = parseExportResourceUrl(src, baseUri);
+    if (!url) return;
+
+    // Skip non-HTTP URLs – data:, blob:, extension: are already safe.
+    if (url.protocol !== "http:" && url.protocol !== "https:") return;
+
+    const imageLoaded = Boolean(
+      originalImage.complete &&
+        originalImage.naturalWidth > 0 &&
+        originalImage.naturalHeight > 0
+    );
+
+    if (imageLoaded && isImageExportSafe(originalImage)) {
+      return;
+    }
+
+    // Avoid fetching ordinary same-origin images that simply haven't loaded
+    // yet. If the already-loaded image is still unsafe, fetch it regardless
+    // of origin to handle redirecting asset URLs.
+    if (!imageLoaded && url.origin === sourceOrigin) {
+      return;
+    }
+
+    try {
+      const dataUrl = await fetchImageViaBackground(url.href);
+      if (!dataUrl) return;
+
+      clonedImage.src = dataUrl;
+
+      // Clear srcset / <picture> <source>s so the browser uses the data URL.
+      if (clonedImage.srcset) {
+        clonedImage.removeAttribute("srcset");
+      }
+      if (clonedImage.parentElement instanceof HTMLPictureElement) {
+        clonedImage.parentElement
+          .querySelectorAll("source")
+          .forEach((sourceNode) => sourceNode.remove());
+      }
+    } catch {
+      // Fetch failed – leave the original src; the existing sanitize
+      // fallback will replace it with a placeholder if needed.
+    }
+  });
+
+  await Promise.all(conversions);
 }
 
 function waitForNextPaint(targetDocument: Document): Promise<void> {
@@ -846,6 +948,19 @@ export async function elementToCanvas(
   try {
     const targetDocument = exportRoot.ownerDocument;
     const sourceDocument = element.ownerDocument;
+    const sourceOrigin =
+      sourceDocument.location?.origin || window.location.origin;
+    const sourceBaseUri = sourceDocument.baseURI;
+
+    // Convert export-unsafe images to data URLs before html2canvas runs so
+    // they can be rendered without tainting the canvas.
+    await convertCrossOriginImages(
+      element,
+      exportRoot,
+      sourceOrigin,
+      sourceBaseUri
+    );
+
     await waitForStylesheets(targetDocument);
     await copyFontFaces(sourceDocument, targetDocument);
     await waitForFonts(targetDocument);
