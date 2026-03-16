@@ -2,6 +2,20 @@ import html2canvas from "html2canvas";
 
 export type ExportSource = "original" | "ai";
 
+const EXPORT_SURFACE_PADDING = 16;
+
+const EXPORT_FRAME_STYLE = [
+  "position: fixed",
+  "top: 0",
+  "left: -10000px",
+  "opacity: 0",
+  "pointer-events: none",
+  "border: 0",
+  "overflow: hidden",
+  "background: #ffffff",
+  "z-index: -1",
+].join("; ");
+
 /**
  * Get the markdown body styles for PDF export
  */
@@ -45,23 +59,236 @@ function getPdfExportStyles(): string {
 }
 
 /**
- * Convert a DOM element to a canvas image
- * Note: May not work correctly for elements inside Shadow DOM
+ * Collect styles from the element's render root so the export surface can
+ * reproduce Shadow DOM scoped content inside an isolated iframe.
+ */
+function collectStyleNodes(
+  root: Document | ShadowRoot
+): Array<HTMLStyleElement | HTMLLinkElement> {
+  if (root instanceof ShadowRoot) {
+    return Array.from(
+      root.querySelectorAll<HTMLStyleElement | HTMLLinkElement>(
+        "style, link[rel='stylesheet']"
+      )
+    );
+  }
+
+  return Array.from(
+    root.head.querySelectorAll<HTMLStyleElement | HTMLLinkElement>(
+      "style, link[rel='stylesheet']"
+    )
+  );
+}
+
+function copyStyleNodes(
+  sourceRoot: Document | ShadowRoot,
+  targetDocument: Document
+): void {
+  const targetHead = targetDocument.head;
+
+  collectStyleNodes(sourceRoot).forEach((styleNode) => {
+    targetHead.appendChild(styleNode.cloneNode(true));
+  });
+}
+
+function getElementRenderSize(element: HTMLElement): {
+  width: number;
+  height: number;
+} {
+  const rect = element.getBoundingClientRect();
+
+  return {
+    width: Math.max(
+      Math.ceil(rect.width),
+      element.scrollWidth,
+      element.clientWidth,
+      element.offsetWidth,
+      1
+    ),
+    height: Math.max(
+      Math.ceil(rect.height),
+      element.scrollHeight,
+      element.clientHeight,
+      element.offsetHeight,
+      1
+    ),
+  };
+}
+
+function prepareClonedTree(clonedElement: HTMLElement): void {
+  if (clonedElement.tagName === "SCRIPT") {
+    clonedElement.remove();
+    return;
+  }
+
+  clonedElement.querySelectorAll("script").forEach((scriptNode) => {
+    scriptNode.remove();
+  });
+
+  if (clonedElement instanceof HTMLImageElement) {
+    clonedElement.loading = "eager";
+    clonedElement.decoding = "sync";
+  }
+
+  clonedElement.querySelectorAll("img").forEach((imageNode) => {
+    imageNode.loading = "eager";
+    imageNode.decoding = "sync";
+  });
+}
+
+function waitForNextPaint(targetDocument: Document): Promise<void> {
+  const view = targetDocument.defaultView;
+
+  if (!view) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    view.requestAnimationFrame(() => {
+      view.requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+async function waitForFonts(targetDocument: Document): Promise<void> {
+  if (targetDocument.fonts) {
+    await targetDocument.fonts.ready;
+  }
+}
+
+async function waitForImages(targetNode: ParentNode): Promise<void> {
+  const images =
+    targetNode instanceof HTMLImageElement
+      ? [targetNode]
+      : Array.from(targetNode.querySelectorAll("img"));
+
+  await Promise.all(
+    images.map((imageNode) => {
+      if (imageNode.complete) {
+        return Promise.resolve();
+      }
+
+      return new Promise<void>((resolve) => {
+        imageNode.addEventListener("load", () => resolve(), { once: true });
+        imageNode.addEventListener(
+          "error",
+          () => resolve(),
+          { once: true }
+        );
+      });
+    })
+  );
+}
+
+function createExportFrame(element: HTMLElement): {
+  iframe: HTMLIFrameElement;
+  exportRoot: HTMLElement;
+} {
+  const sourceDocument = element.ownerDocument;
+  const sourceRoot = element.getRootNode();
+  const { width, height } = getElementRenderSize(element);
+  const exportWidth = width + EXPORT_SURFACE_PADDING * 2;
+
+  const iframe = sourceDocument.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.tabIndex = -1;
+  iframe.style.cssText = `${EXPORT_FRAME_STYLE}; width: ${exportWidth}px; height: ${height}px;`;
+
+  sourceDocument.body.appendChild(iframe);
+
+  const targetDocument = iframe.contentDocument;
+  if (!targetDocument) {
+    iframe.remove();
+    throw new Error("Failed to create export frame document");
+  }
+
+  targetDocument.open();
+  targetDocument.write(`<!DOCTYPE html>
+<html lang="${sourceDocument.documentElement.lang || "en"}">
+<head>
+  <meta charset="utf-8">
+  <base href="${sourceDocument.baseURI}">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+
+    body {
+      display: block;
+      color: #24292f;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body></body>
+</html>`);
+  targetDocument.close();
+
+  copyStyleNodes(
+    sourceRoot instanceof ShadowRoot ? sourceRoot : sourceDocument,
+    targetDocument
+  );
+
+  const exportRoot = targetDocument.createElement("div");
+  exportRoot.setAttribute("data-huntly-export-root", "true");
+  exportRoot.style.width = `${exportWidth}px`;
+  exportRoot.style.padding = `${EXPORT_SURFACE_PADDING}px`;
+  exportRoot.style.backgroundColor = "#ffffff";
+  exportRoot.style.overflow = "hidden";
+
+  const clonedElement = element.cloneNode(true) as HTMLElement;
+  prepareClonedTree(clonedElement);
+  exportRoot.appendChild(clonedElement);
+  targetDocument.body.appendChild(exportRoot);
+
+  return {
+    iframe,
+    exportRoot,
+  };
+}
+
+/**
+ * Convert a DOM element to a canvas image. Elements rendered inside Shadow DOM
+ * are first projected into an isolated light DOM iframe so html2canvas can
+ * render the full content with the correct styles.
  */
 export async function elementToCanvas(
   element: HTMLElement
 ): Promise<HTMLCanvasElement> {
-  return html2canvas(element, {
-    backgroundColor: "#ffffff",
-    scale: 2,
-    useCORS: true,
-    allowTaint: true,
-    logging: false,
-    scrollX: 0,
-    scrollY: 0,
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
-  });
+  const { iframe, exportRoot } = createExportFrame(element);
+
+  try {
+    const targetDocument = exportRoot.ownerDocument;
+    await waitForFonts(targetDocument);
+    await waitForImages(exportRoot);
+    await waitForNextPaint(targetDocument);
+
+    const { width, height } = getElementRenderSize(exportRoot);
+    iframe.style.width = `${width}px`;
+    iframe.style.height = `${height}px`;
+    exportRoot.style.width = `${width}px`;
+
+    return await html2canvas(exportRoot, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
+    });
+  } finally {
+    iframe.remove();
+  }
 }
 
 /**
@@ -113,12 +340,45 @@ export async function copyImageToClipboard(
 }
 
 /**
+ * Prepare markdown content with title
+ */
+function prepareMarkdownWithTitle(markdown: string, title?: string): string {
+  if (title?.trim()) {
+    return `# ${title}\n\n${markdown}`;
+  }
+  return markdown;
+}
+
+/**
  * Copy markdown text to clipboard
  */
 export async function copyMarkdownToClipboard(
-  markdown: string
+  markdown: string,
+  title?: string
 ): Promise<void> {
-  await navigator.clipboard.writeText(markdown);
+  const content = prepareMarkdownWithTitle(markdown, title);
+  await navigator.clipboard.writeText(content);
+}
+
+/**
+ * Export markdown as .md file download
+ */
+export function exportAsMarkdown(
+  markdown: string,
+  filename: string = "huntly-export",
+  title?: string
+): void {
+  const content = prepareMarkdownWithTitle(markdown, title);
+  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.download = `${filename}.md`;
+  link.href = url;
+  link.click();
+
+  // Clean up the URL object
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -164,4 +424,3 @@ export function exportAsPdf(
 
   document.body.appendChild(iframe);
 }
-

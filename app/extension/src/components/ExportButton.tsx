@@ -26,6 +26,7 @@ const MENU_Z_INDEX = 2147483647;
 import {
   exportAsPdf,
   exportAsImage,
+  exportAsMarkdown,
   copyImageToClipboard,
   copyMarkdownToClipboard,
   ExportSource,
@@ -160,16 +161,31 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
 
   const handleCopyMarkdown = async () => {
     const markdown = getMarkdown();
-    
+
     setIsExporting(true);
     try {
-      await copyMarkdownToClipboard(markdown);
+      await copyMarkdownToClipboard(markdown, title);
       handleClose();
     } catch (error) {
       console.error("Failed to copy markdown:", error);
       alert("Failed to copy markdown. Please try again.");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    const markdown = getMarkdown();
+
+    setIsExporting(true);
+    try {
+      exportAsMarkdown(markdown, sanitizeFilename(title), title);
+    } catch (error) {
+      console.error("Failed to export markdown:", error);
+      alert("Failed to export markdown. Please try again.");
+    } finally {
+      setIsExporting(false);
+      handleClose();
     }
   };
 
@@ -301,6 +317,13 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
             <ImageIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Export as Image</ListItemText>
+        </MenuItem>
+
+        <MenuItem onClick={handleExportMarkdown} disabled={isExporting}>
+          <ListItemIcon>
+            <CodeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Export as Markdown</ListItemText>
         </MenuItem>
 
         <Divider />
