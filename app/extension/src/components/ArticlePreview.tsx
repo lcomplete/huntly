@@ -1,27 +1,34 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import TurndownService from "turndown";
 import { ContentParserType, readSyncStorageSettings } from "../storage";
 import { PageOperateResult } from "../model/pageOperateResult";
 import { parseDocument } from "../parser/contentParser";
-import AIToolbar, { ShortcutItem, ModelItem, AIGradientDef, ExternalShortcutsData, ExternalModelsData } from "./AIToolbar";
+import AIToolbar, {
+  ShortcutItem,
+  ModelItem,
+  AIGradientDef,
+  ExternalShortcutsData,
+  ExternalModelsData,
+} from "./AIToolbar";
 import SaveDetailPanel from "./SaveDetailPanel";
 import { useShadowContainer } from "./shadowContainerContext";
+import ExportButton from "./ExportButton";
 
 // Create turndown instance for HTML to markdown conversion
 const turndownService = new TurndownService({
-  headingStyle: 'atx',
-  codeBlockStyle: 'fenced',
+  headingStyle: "atx",
+  codeBlockStyle: "fenced",
 });
 
 // Helper function to convert HTML to markdown
 function htmlToMarkdown(html: string): string {
-  if (!html) return '';
+  if (!html) return "";
   try {
     return turndownService.turndown(html);
   } catch (error) {
-    console.error('Failed to convert HTML to markdown:', error);
+    console.error("Failed to convert HTML to markdown:", error);
     return html; // Fallback to original HTML if conversion fails
   }
 }
@@ -39,41 +46,145 @@ interface ArticlePreviewProps {
   autoExecuteShortcut?: ShortcutItem;
   /** Model to use for auto-execute */
   autoSelectedModel?: ModelItem | null;
+  /** Initial thinking mode from popup-triggered preview */
+  initialThinkingModeEnabled?: boolean;
+}
+
+// Ref handle for StreamingContentRenderer
+export interface StreamingContentRendererHandle {
+  getProcessedMarkdown: () => string;
+  getContentElement: () => HTMLDivElement | null;
 }
 
 // Streaming content renderer component
-const StreamingContentRenderer = ({ currentTaskId }: { currentTaskId: string | null }) => {
+const StreamingContentRenderer = forwardRef<
+  StreamingContentRendererHandle,
+  { currentTaskId: string | null }
+>(({ currentTaskId }, ref) => {
   const [processedContent, setProcessedContent] = useState("");
+  const [reasoningContent, setReasoningContent] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    getProcessedMarkdown: () => processedContent,
+    getContentElement: () => contentRef.current,
+  }));
 
   useEffect(() => {
     setProcessedContent("");
+    setReasoningContent("");
+    setIsThinking(false);
     const messageListener = (msg: any) => {
       if (!currentTaskId || msg.payload?.taskId !== currentTaskId) return;
       if (msg.type === "shortcuts_process_data") {
-        setProcessedContent(msg.payload.accumulatedContent);
+        setProcessedContent(
+          msg.payload.answerContent ?? msg.payload.accumulatedContent ?? ""
+        );
+        setReasoningContent(msg.payload.reasoningContent ?? "");
+        setIsThinking(Boolean(msg.payload.isThinking));
+      }
+      if (msg.type === "shortcuts_process_result") {
+        setProcessedContent(msg.payload.content ?? "");
+        setReasoningContent(msg.payload.reasoningContent ?? "");
+        setIsThinking(Boolean(msg.payload.isThinking));
       }
     };
     chrome.runtime.onMessage.addListener(messageListener);
     return () => chrome.runtime.onMessage.removeListener(messageListener);
   }, [currentTaskId]);
 
-  if (!processedContent) {
+  const hasProcessedContent = Boolean(processedContent.trim());
+  const hasReasoningContent = Boolean(reasoningContent.trim());
+
+  if (!hasProcessedContent && !hasReasoningContent) {
     return (
       <div className="huntly-loading-placeholder">
         {[100, 80, 60].map((width) => (
-          <div key={`loading-${width}`} className="huntly-loading-bar" style={{ width: `${width}%` }} />
+          <div
+            key={`loading-${width}`}
+            className="huntly-loading-bar"
+            style={{ width: `${width}%` }}
+          />
         ))}
       </div>
     );
   }
 
   return (
-    <div ref={contentRef} className="huntly-markdown-body">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
+    <div ref={contentRef}>
+      {(hasReasoningContent || isThinking) && (
+        <details
+          className="huntly-thinking-panel"
+          key={currentTaskId || "thinking-panel"}
+        >
+          <summary className="huntly-thinking-summary">
+            <div className="huntly-thinking-summary-content">
+              <div className="huntly-thinking-status-row">
+                {isThinking && (
+                  <span
+                    className="huntly-thinking-spinner"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="huntly-thinking-title">
+                  {isThinking ? "Thinking" : "Thought process"}
+                </span>
+              </div>
+              <span className="huntly-thinking-chevron" aria-hidden="true">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 6l4 4 4-4" />
+                </svg>
+              </span>
+            </div>
+          </summary>
+          <div
+            className="huntly-thinking-body"
+            aria-live={isThinking ? "polite" : "off"}
+          >
+            {hasReasoningContent ? (
+              <div className="huntly-markdown-body huntly-thinking-markdown">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {reasoningContent}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <div className="huntly-thinking-empty">
+                The model is still thinking...
+              </div>
+            )}
+          </div>
+        </details>
+      )}
+
+      {hasProcessedContent ? (
+        <div className="huntly-markdown-body">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {processedContent}
+          </ReactMarkdown>
+        </div>
+      ) : (
+        <div className="huntly-loading-placeholder">
+          {[100, 80, 60].map((width) => (
+            <div
+              key={`answer-loading-${width}`}
+              className="huntly-loading-bar"
+              style={{ width: `${width}%` }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
-};
+});
 
 // Close icon SVG
 const CloseIcon = () => (
@@ -91,9 +202,11 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
   externalModels,
   autoExecuteShortcut,
   autoSelectedModel,
+  initialThinkingModeEnabled = false,
 }) => {
   const [page, setPage] = useState<PageModel>(initialPage);
-  const [parserType, setParserType] = useState<ContentParserType>(initialParserType);
+  const [parserType, setParserType] =
+    useState<ContentParserType>(initialParserType);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showProcessedSection, setShowProcessedSection] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -108,6 +221,13 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
     collectionTree?: any;
   } | null>(null);
   const [serverConfigured, setServerConfigured] = useState(false);
+  const [thinkingModeEnabled, setThinkingModeEnabled] = useState(
+    initialThinkingModeEnabled
+  );
+
+  // Refs for export functionality
+  const originalContentRef = useRef<HTMLDivElement>(null);
+  const streamingRendererRef = useRef<StreamingContentRendererHandle>(null);
 
   // Check if Huntly server is configured
   useEffect(() => {
@@ -121,68 +241,98 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
 
   const isSnippetMode = page.contentType === 4;
 
+  // Get original content as markdown for export
+  const originalMarkdown = useCallback(() => {
+    const htmlContent = isSnippetMode
+      ? page.description || page.content
+      : page.content;
+    return htmlToMarkdown(htmlContent);
+  }, [page, isSnippetMode]);
+
+  // Getter function for AI content element - used for export
+  // This is passed as a function to ensure we always get the latest DOM element
+  const getAiContentElement = useCallback((): HTMLElement | null => {
+    return streamingRendererRef.current?.getContentElement() || null;
+  }, []);
+
+  // Get AI markdown for export
+  const getAiMarkdown = useCallback(() => {
+    return streamingRendererRef.current?.getProcessedMarkdown() || "";
+  }, []);
+
   // Handle parser change
-  const handleParserChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newParserType = e.target.value as ContentParserType;
-    setParserType(newParserType);
+  const handleParserChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newParserType = e.target.value as ContentParserType;
+      setParserType(newParserType);
 
-    // Re-parse the document with the new parser
-    const doc = document.cloneNode(true) as Document;
-    const article = parseDocument(doc, newParserType);
+      // Re-parse the document with the new parser
+      const doc = document.cloneNode(true) as Document;
+      const article = parseDocument(doc, newParserType);
 
-    if (article) {
-      const newPage: PageModel = {
-        ...page,
-        title: article.title || page.title,
-        content: article.content,
-        description: article.excerpt || page.description,
-        author: article.byline || page.author,
-        siteName: article.siteName || page.siteName,
-      };
-      setPage(newPage);
-      onParserChange?.(newParserType, newPage);
-    }
-  }, [page, onParserChange]);
+      if (article) {
+        const newPage: PageModel = {
+          ...page,
+          title: article.title || page.title,
+          content: article.content,
+          description: article.excerpt || page.description,
+          author: article.byline || page.author,
+          siteName: article.siteName || page.siteName,
+        };
+        setPage(newPage);
+        onParserChange?.(newParserType, newPage);
+      }
+    },
+    [page, onParserChange]
+  );
 
   // Handle shortcut click from AIToolbar
-  const handleShortcutClick = useCallback((shortcut: ShortcutItem, selectedModel: ModelItem | null) => {
-    if (isProcessing && currentTaskId) {
+  const handleShortcutClick = useCallback(
+    (shortcut: ShortcutItem, selectedModel: ModelItem | null) => {
+      if (isProcessing && currentTaskId) {
+        chrome.runtime.sendMessage({
+          type: "shortcuts_cancel",
+          payload: { taskId: currentTaskId },
+        });
+      }
+
+      setProcessingError(null);
+      setIsProcessing(true);
+
+      const newTaskId = `task_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}`;
+      setCurrentTaskId(newTaskId);
+      setShowProcessedSection(true);
+
+      // Get HTML content to process
+      const htmlContent = isSnippetMode
+        ? page.description || page.content
+        : page.content;
+      // Convert HTML to markdown for AI processing
+      const markdownContent = htmlToMarkdown(htmlContent);
+
       chrome.runtime.sendMessage({
-        type: "shortcuts_cancel",
-        payload: { taskId: currentTaskId },
+        type: "shortcuts_process",
+        payload: {
+          tabId: null,
+          taskId: newTaskId,
+          shortcutId: shortcut.id,
+          shortcutName: shortcut.name,
+          shortcutContent: shortcut.content,
+          shortcutType: shortcut.type,
+          content: markdownContent, // Send markdown instead of HTML
+          url: page.url,
+          title: isSnippetMode ? "" : page.title,
+          contentType: isSnippetMode ? 4 : undefined,
+          selectedModel: selectedModel,
+          thinkingModeEnabled,
+          skipPreview: true, // Preview is already open, skip shortcuts_preview message
+        },
       });
-    }
-
-    setProcessingError(null);
-    setIsProcessing(true);
-
-    const newTaskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    setCurrentTaskId(newTaskId);
-    setShowProcessedSection(true);
-
-    // Get HTML content to process
-    const htmlContent = isSnippetMode ? (page.description || page.content) : page.content;
-    // Convert HTML to markdown for AI processing
-    const markdownContent = htmlToMarkdown(htmlContent);
-
-    chrome.runtime.sendMessage({
-      type: "shortcuts_process",
-      payload: {
-        tabId: null,
-        taskId: newTaskId,
-        shortcutId: shortcut.id,
-        shortcutName: shortcut.name,
-        shortcutContent: shortcut.content,
-        shortcutType: shortcut.type,
-        content: markdownContent, // Send markdown instead of HTML
-        url: page.url,
-        title: isSnippetMode ? "" : page.title,
-        contentType: isSnippetMode ? 4 : undefined,
-        selectedModel: selectedModel,
-        skipPreview: true, // Preview is already open, skip shortcuts_preview message
-      },
-    });
-  }, [isProcessing, currentTaskId, page, isSnippetMode]);
+    },
+    [isProcessing, currentTaskId, page, isSnippetMode, thinkingModeEnabled]
+  );
 
   // Handle stop button click
   const handleStopClick = useCallback(() => {
@@ -253,9 +403,15 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
         },
       });
       if (!response?.success) {
-        const errorMsg = response?.error || "Failed to initialize save details.";
+        const errorMsg =
+          response?.error || "Failed to initialize save details.";
         // Detect auth/login errors
-        if (errorMsg.includes("401") || errorMsg.includes("403") || errorMsg.includes("Unauthorized") || errorMsg.includes("Failed to fetch")) {
+        if (
+          errorMsg.includes("401") ||
+          errorMsg.includes("403") ||
+          errorMsg.includes("Unauthorized") ||
+          errorMsg.includes("Failed to fetch")
+        ) {
           setEditError("Please log in to Huntly server first.");
         } else {
           setEditError(errorMsg);
@@ -271,7 +427,9 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
       };
       setEditData(detailData);
     } catch (error) {
-      setEditError((error as Error)?.message || "Failed to initialize save details.");
+      setEditError(
+        (error as Error)?.message || "Failed to initialize save details."
+      );
     } finally {
       setEditLoading(false);
     }
@@ -340,10 +498,26 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
               externalShortcuts={externalShortcuts}
               externalModels={externalModels}
               initialSelectedModel={autoSelectedModel}
+              showThinkingToggle={true}
+              thinkingModeEnabled={thinkingModeEnabled}
+              onThinkingModeToggle={() =>
+                setThinkingModeEnabled((prev) => !prev)
+              }
             />
 
-            {/* Right section: Save detail, Parser selector and Close button */}
+            {/* Right section: Export group, Edit button, Parser selector and Close button */}
             <div className="huntly-header-right">
+              {/* Export button group (contains source toggle + export dropdown) */}
+              <ExportButton
+                originalContentRef={originalContentRef as React.RefObject<HTMLElement>}
+                aiContentRef={getAiContentElement}
+                originalMarkdown={originalMarkdown()}
+                aiMarkdown={getAiMarkdown()}
+                hasAiContent={showProcessedSection && !processingError}
+                title={page.title || "huntly-export"}
+                menuContainer={shadowContainer || undefined}
+              />
+
               {/* Save detail button - only show when server is configured */}
               {serverConfigured && (
                 <button
@@ -353,8 +527,20 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                   disabled={editLoading}
                 >
                   {editLoading ? (
-                    <svg className="huntly-icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                    <svg
+                      className="huntly-icon-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        strokeDasharray="32"
+                        strokeDashoffset="12"
+                      />
                     </svg>
                   ) : (
                     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -396,7 +582,11 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                 aria-label="Edit details panel"
                 onClick={(e) => e.stopPropagation()}
               >
-                {editError && <div className="huntly-edit-alert huntly-edit-alert-error">{editError}</div>}
+                {editError && (
+                  <div className="huntly-edit-alert huntly-edit-alert-error">
+                    {editError}
+                  </div>
+                )}
                 {editLoading ? (
                   <div className="huntly-edit-loading">Preparing editor...</div>
                 ) : editData ? (
@@ -414,12 +604,16 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                         setEditData(null);
                       }}
                       onOperateResultChanged={(result) => {
-                        setEditData((prev) => (prev ? { ...prev, operateResult: result } : prev));
+                        setEditData((prev) =>
+                          prev ? { ...prev, operateResult: result } : prev
+                        );
                       }}
                     />
                   </div>
                 ) : (
-                  <div className="huntly-edit-loading">Unable to load editor.</div>
+                  <div className="huntly-edit-loading">
+                    Unable to load editor.
+                  </div>
                 )}
               </div>
             </>
@@ -433,8 +627,10 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
               style={{ width: showProcessedSection ? "50%" : "100%" }}
             >
               <div className="huntly-scroll-container">
-                <article className="huntly-markdown-body">
-                  {!isSnippetMode && <h1 style={{ marginBottom: "16px" }}>{page.title}</h1>}
+                <article className="huntly-markdown-body" ref={originalContentRef}>
+                  {!isSnippetMode && (
+                    <h1 style={{ marginBottom: "16px" }}>{page.title}</h1>
+                  )}
                   <div dangerouslySetInnerHTML={{ __html: page.content }} />
                 </article>
               </div>
@@ -449,7 +645,10 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                       Error: {processingError}
                     </div>
                   ) : (
-                    <StreamingContentRenderer currentTaskId={currentTaskId} />
+                    <StreamingContentRenderer
+                      ref={streamingRendererRef}
+                      currentTaskId={currentTaskId}
+                    />
                   )}
                 </div>
               </div>

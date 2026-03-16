@@ -1,7 +1,11 @@
 import { getLocalizedSystemPrompt } from './ai/system-prompts';
-import { LANGUAGES, LanguageOption } from './languages';
-export { getLocalizedSystemPrompt, SystemPromptContent } from './ai/system-prompts';
-export { LANGUAGES, LanguageOption } from './languages';
+import { LANGUAGES } from './languages';
+import type { LanguageOption } from './languages';
+
+export { getLocalizedSystemPrompt } from './ai/system-prompts';
+export type { SystemPromptContent } from './ai/system-prompts';
+export { LANGUAGES } from './languages';
+export type { LanguageOption } from './languages';
 
 export const STORAGE_SERVER_URL = "serverUrl";
 export const STORAGE_SERVER_URL_LIST = "serverUrlList";

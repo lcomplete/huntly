@@ -63,6 +63,12 @@ const PROVIDER_ICONS: Record<ProviderType, React.ReactNode> = {
       <path d="M12.09.238L2.11 5.56v12.88l4.16 2.4V8.56l5.82-3.36v18.56l-3.38 1.95 3.38 1.95 9.98-5.76V8.8l-9.98-5.76V.238zM22.07 8.8v12.88l-4.16 2.4V11.76l-5.82 3.36z" />
     </svg>
   ),
+  qwen: (
+    <svg viewBox="0 0 24 24" width="32" height="32">
+      <circle cx="12" cy="12" r="11" fill="#615EFF" />
+      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">Q</text>
+    </svg>
+  ),
   zhipu: (
     <span style={{ fontSize: 24, fontWeight: 700, color: '#1E88E5' }}>智谱</span>
   ),

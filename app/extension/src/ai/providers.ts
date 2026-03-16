@@ -9,9 +9,9 @@ import { generateText, LanguageModelV1 } from 'ai';
 import {
   AIProviderConfig,
   ConnectionTestResult,
-  ProviderType,
   PROVIDER_REGISTRY,
 } from './types';
+import { getOpenAICompatibleBaseUrl } from './openAICompatibleProviders';
 
 export function createProviderModel(
   config: AIProviderConfig,
@@ -26,7 +26,7 @@ export function createProviderModel(
     case 'openai': {
       const provider = createOpenAI({
         apiKey: config.apiKey,
-        baseURL: config.baseUrl || undefined,
+        baseURL: getOpenAICompatibleBaseUrl(config),
       });
       return provider(model) as LanguageModelV1;
     }
@@ -85,11 +85,20 @@ export function createProviderModel(
       return provider(model) as LanguageModelV1;
     }
 
+    case 'qwen': {
+      // Qwen uses OpenAI-compatible API (DashScope)
+      const provider = createOpenAI({
+        apiKey: config.apiKey,
+        baseURL: getOpenAICompatibleBaseUrl(config),
+      });
+      return provider(model) as LanguageModelV1;
+    }
+
     case 'zhipu': {
       // Zhipu AI uses OpenAI-compatible API
       const provider = createOpenAI({
         apiKey: config.apiKey,
-        baseURL: config.baseUrl || 'https://open.bigmodel.cn/api/paas/v4',
+        baseURL: getOpenAICompatibleBaseUrl(config),
       });
       return provider(model) as LanguageModelV1;
     }
@@ -98,7 +107,7 @@ export function createProviderModel(
       // MiniMax uses OpenAI-compatible API
       const provider = createOpenAI({
         apiKey: config.apiKey,
-        baseURL: config.baseUrl || 'https://api.minimax.chat/v1',
+        baseURL: getOpenAICompatibleBaseUrl(config),
       });
       return provider(model) as LanguageModelV1;
     }

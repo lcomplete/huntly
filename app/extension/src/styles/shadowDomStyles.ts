@@ -1,5 +1,5 @@
-// This file exports the CSS styles as a string for injection into Shadow DOM
-// We use a separate file to avoid webpack's style-loader injecting into document head
+// This file exports the CSS styles as a string for injection into Shadow DOM.
+// Keep it separate so style-loader does not inject these styles into document head.
 
 export const getShadowDomStyles = (): string => `
 /* Reset all inherited styles from host page to prevent external CSS interference */
@@ -190,9 +190,158 @@ export const getShadowDomStyles = (): string => `
   animation: huntly-pulse 1.5s ease-in-out infinite;
 }
 
+/* ============================================
+   Thinking Panel - Ultra Minimalist Style
+   Clean, subtle, and refined
+   ============================================ */
+
+.huntly-thinking-panel {
+  margin: 0 0 20px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.huntly-thinking-panel[open] {
+  border-color: #d1d5db;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.huntly-thinking-summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 12px;
+  transition: background-color 0.2s ease;
+  outline: none;
+}
+
+.huntly-thinking-summary:hover {
+  background: #f8fafc;
+}
+
+.huntly-thinking-summary:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.16);
+}
+
+.huntly-thinking-summary::-webkit-details-marker {
+  display: none;
+}
+
+.huntly-thinking-summary-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+}
+
+.huntly-thinking-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.huntly-thinking-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #111827;
+  letter-spacing: 0.01em;
+}
+
+.huntly-thinking-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  color: #374151;
+  background: #ffffff;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.huntly-thinking-chevron svg {
+  width: 12px;
+  height: 12px;
+}
+
+.huntly-thinking-panel[open] .huntly-thinking-chevron {
+  transform: rotate(180deg);
+  border-color: #d1d5db;
+  background: #f8fafc;
+}
+
+/* Minimal spinner - thin and subtle */
+.huntly-thinking-spinner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid #d1d5db;
+  border-top-color: #6b7280;
+  animation: huntly-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.huntly-thinking-body {
+  border-top: 1px solid #eef2f7;
+  background: linear-gradient(180deg, #fcfcfd 0%, #ffffff 100%);
+  padding: 12px 14px 14px 14px;
+}
+
+.huntly-thinking-markdown {
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.7;
+  max-height: min(320px, 38vh);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.huntly-thinking-markdown > :first-child {
+  margin-top: 0;
+}
+
+.huntly-thinking-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.huntly-thinking-markdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.huntly-thinking-markdown::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
+.huntly-thinking-markdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.huntly-thinking-empty {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+
 @keyframes huntly-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+@keyframes huntly-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Header right section */
@@ -201,6 +350,35 @@ export const getShadowDomStyles = (): string => `
   align-items: center;
   gap: 12px;
   margin-left: auto;
+}
+
+/* Button group - visually combined buttons */
+.huntly-button-group {
+  display: inline-flex;
+  align-items: center;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.huntly-button-group > * {
+  border-radius: 6px !important;
+}
+
+.huntly-button-group .huntly-icon-button {
+  width: 30px;
+  height: 30px;
+}
+
+.huntly-button-group .huntly-icon-button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.huntly-button-group .huntly-icon-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Parser selector */

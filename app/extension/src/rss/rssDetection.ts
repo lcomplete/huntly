@@ -32,21 +32,25 @@ function sendMessageToTab(tabId: number, message: Message): Promise<RssDetection
  * Detect if the current tab is an RSS/Atom feed
  * Sends message to content script which checks document.contentType and content
  */
-export async function detectRssFeed(url: string): Promise<RssFeedInfo> {
+export async function detectRssFeed(url: string, tabId?: number): Promise<RssFeedInfo> {
   const result: RssFeedInfo = {
     isRssFeed: false,
     feedUrl: url,
   };
 
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
+    let resolvedTabId = tabId;
 
-    if (!tab?.id) {
+    if (!resolvedTabId) {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      resolvedTabId = tabs[0]?.id;
+    }
+
+    if (!resolvedTabId) {
       return result;
     }
 
-    const response = await sendMessageToTab(tab.id, { type: 'detect_rss_feed' });
+    const response = await sendMessageToTab(resolvedTabId, { type: 'detect_rss_feed' });
 
     if (response?.isRssFeed) {
       result.isRssFeed = true;
@@ -59,4 +63,3 @@ export async function detectRssFeed(url: string): Promise<RssFeedInfo> {
 
   return result;
 }
-

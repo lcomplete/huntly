@@ -33,7 +33,6 @@
         "<all_urls>"
       ],
       "js": [
-        "js/vendor.js",
         "js/content_script.js"
       ],
       "run_at": "document_start"
@@ -43,6 +42,7 @@
         "<all_urls>"
       ],
       "js": [
+        "js/web_clipper_vendor.js",
         "js/web_clipper.js"
       ],
       "run_at": "document_end"

@@ -77,10 +77,6 @@ yarn watch
 # Production build
 yarn build
 
-# Firefox-specific builds
-yarn watch:firefox
-yarn build:firefox
-
 # Run tests
 yarn test
 
@@ -193,3 +189,10 @@ When updating the project's README, ensure all language versions are updated con
 - **DTO Mapping**: MapStruct for entity-DTO conversion
 - **Event-Driven**: Application events for decoupled processing
 - **Streaming**: Server-Sent Events for real-time AI content processing
+
+## UI Language Guidelines
+All user interface text must be written in English. This applies to:
+- Button labels, menu items, and tooltips
+- Error messages and notifications
+- Form labels and placeholder text
+- Any user-facing strings in the browser extension, web client, and desktop app

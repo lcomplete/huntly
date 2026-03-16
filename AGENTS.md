@@ -6,7 +6,7 @@
 ## Build, Test, and Development Commands
 - Server: `cd app/server` and use `./start-dev.sh` (primary dev mode, supports `--task` to enable connectors and `--sql` to show SQL); `./mvnw clean verify` builds everything; direct maven run: `./mvnw spring-boot:run -pl huntly-server -am` serves `localhost:8080`.
 - Web client: `cd app/client && yarn install && yarn start`; use `yarn build` for production assets and `yarn test` for the Jest suite.
-- Browser extension: `cd app/extension && yarn install && yarn dev`; guard releases with `yarn build` and `yarn test`. Use `yarn build:firefox` for Firefox-specific builds.
+- Browser extension: `cd app/extension && yarn install && yarn dev`; guard releases with `yarn build` and `yarn test`.
 - Desktop app (Tauri): `cd app/tauri && yarn install && yarn tauri dev`; `yarn build` compiles frontend and `yarn tauri build` bundles the desktop app.
 - Containers: `docker-compose up -d` runs the published image; `docker build -t huntly-local -f Dockerfile .` produces a workspace-aware image.
 
@@ -26,3 +26,6 @@ Avoid committing SQLite artifacts in `app/server/huntly-server/db.sqlite*`; pers
 When updating the project's README, ensure all language versions are updated consistently:
 - `README.md` (English)
 - `README.zh.md` (Chinese)
+
+## UI Language Guidelines
+All user interface text must be written in English. This applies to button labels, menu items, tooltips, error messages, notifications, form labels, and any user-facing strings across all clients (browser extension, web client, desktop app).

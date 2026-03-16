@@ -46,7 +46,6 @@ When modifying server APIs:
 ### Browser Extension Patterns
 - **Content Scripts**: Message passing between content script and background worker
 - **Auto-save**: Special handling for Twitter timeline interception (`tweet_interceptor.js`)
-- **Multi-browser**: Separate Firefox builds via `BROWSER=firefox` env var
 
 ## Critical Integration Points
 

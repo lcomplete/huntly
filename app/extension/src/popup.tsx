@@ -1,4 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { createRoot } from 'react-dom/client';
 import './popup.css';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
@@ -44,9 +51,8 @@ import {
 } from "./services";
 import { LibrarySaveStatus } from "./model/librarySaveStatus";
 import { PageOperateResult } from "./model/pageOperateResult";
-import { detectRssFeed, RssSubscription } from "./rss";
-import AIToolbar, { ShortcutItem, ModelItem, AIGradientDef } from "./components/AIToolbar";
-import SaveDetailPanel from "./components/SaveDetailPanel";
+import { detectRssFeed } from "./rss";
+import type { ShortcutItem, ModelItem } from "./components/AIToolbar";
 
 // Parser selector component - only shows the alternative parser option
 const ParserSelector = ({ parserType, onParserChange }: {
@@ -72,6 +78,32 @@ const ParserSelector = ({ parserType, onParserChange }: {
     </Box>
   );
 };
+
+const LazyAIToolbar = lazy(() =>
+  import("./components/AIToolbar").then((module) => ({
+    default: module.AIToolbar,
+  }))
+);
+
+const LazyRssSubscription = lazy(() =>
+  import("./rss/RssSubscription").then((module) => ({
+    default: module.RssSubscription,
+  }))
+);
+
+const LazySaveDetailPanel = lazy(() => import("./components/SaveDetailPanel"));
+
+interface ParseDocResponse {
+  page?: PageModel;
+  parserType?: ContentParserType;
+  isHuntlySite?: boolean;
+}
+
+interface ActiveTabMessageResult {
+  ok: boolean;
+  tab: chrome.tabs.Tab | null;
+  response?: any;
+}
 
 const Popup = () => {
   const [storageSettings, setStorageSettings] = useState<StorageSettings>(null);
@@ -102,6 +134,7 @@ const Popup = () => {
 
   // AI processing state
   const [processingShortcut, setProcessingShortcut] = useState(false);
+  const [thinkingModeEnabled, setThinkingModeEnabled] = useState(false);
 
   // Save detail panel state
   const [showDetailPanel, setShowDetailPanel] = useState(false);
@@ -109,193 +142,221 @@ const Popup = () => {
   // RSS Feed Detection
   const [isRssFeed, setIsRssFeed] = useState(false);
   const [rssFeedUrl, setRssFeedUrl] = useState<string>('');
-  const [checkingRssFeed, setCheckingRssFeed] = useState(true);
+  const activeTabRef = useRef<chrome.tabs.Tab | null>(null);
+  const activeTabPromiseRef = useRef<Promise<chrome.tabs.Tab | null> | null>(null);
+
+  const getActiveTab = useCallback(async (): Promise<chrome.tabs.Tab | null> => {
+    if (activeTabRef.current) {
+      return activeTabRef.current;
+    }
+
+    if (!activeTabPromiseRef.current) {
+      activeTabPromiseRef.current = chrome.tabs
+        .query({ active: true, currentWindow: true })
+        .then((tabs) => {
+          activeTabRef.current = tabs[0] || null;
+          return activeTabRef.current;
+        })
+        .finally(() => {
+          activeTabPromiseRef.current = null;
+        });
+    }
+
+    return activeTabPromiseRef.current;
+  }, []);
+
+  const sendMessageToTab = useCallback(
+    (tabId: number, message: Message): Promise<{ ok: boolean; response?: any }> => {
+      return new Promise((resolve) => {
+        chrome.tabs.sendMessage(tabId, message, (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({ ok: false });
+            return;
+          }
+          resolve({ ok: true, response });
+        });
+      });
+    },
+    []
+  );
+
+  const sendMessageToActiveTab = useCallback(
+    async (message: Message): Promise<ActiveTabMessageResult> => {
+      const tab = await getActiveTab();
+      if (!tab?.id) {
+        return { ok: false, tab };
+      }
+
+      const result = await sendMessageToTab(tab.id, message);
+      return {
+        ok: result.ok,
+        tab,
+        response: result.response,
+      };
+    },
+    [getActiveTab, sendMessageToTab]
+  );
+
+  const postMessageToActiveTab = useCallback(async (message: Message): Promise<boolean> => {
+    const tab = await getActiveTab();
+    if (!tab?.id) {
+      return false;
+    }
+
+    chrome.tabs.sendMessage(tab.id, message);
+    return true;
+  }, [getActiveTab]);
 
   useEffect(() => {
-    chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
-      log(msg)
+    const handleRuntimeMessage = (msg: Message) => {
+      log(msg);
       if (msg.type === "save_clipper_success") {
         setAutoSavedPageId(msg.payload["id"]);
       }
-    });
+    };
+
+    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
+    };
   }, []);
 
+  const loadArticlePage = useCallback(async (customParserType?: ContentParserType, keepPageOnFail?: boolean) => {
+    setParsingArticle(true);
+    setParseFailed(false);
+    const { ok, response } = await sendMessageToActiveTab({
+      type: 'parse_doc',
+      payload: customParserType ? { parserType: customParserType } : undefined
+    });
+
+    setParsingArticle(false);
+
+    const parseResponse = ok ? response as ParseDocResponse : null;
+    if (parseResponse) {
+      setIsHuntlySite(parseResponse.isHuntlySite === true);
+      if (parseResponse.page) {
+        setPage(parseResponse.page);
+        if (parseResponse.parserType) {
+          setParserType(parseResponse.parserType);
+        }
+        return parseResponse;
+      }
+    }
+
+    if (!keepPageOnFail) {
+      setPage(null);
+    }
+    setParseFailed(true);
+    return null;
+  }, [sendMessageToActiveTab]);
+
+  const setSettingsState = useCallback((settings: StorageSettings) => {
+    setStorageSettings(settings);
+    const preferredParser = settings.contentParser || "readability";
+    setParserType(preferredParser);
+    void loadArticlePage(preferredParser, false);
+
+    if (!settings.serverUrl) {
+      setUsername(null);
+      setArticleOperateResult(null);
+      setLoadingUser(false);
+      setServerConnectionFailed(false);
+      return;
+    }
+
+    setLoadingUser(true);
+    setServerConnectionFailed(false);
+    getLoginUserInfo().then((data) => {
+      const result = JSON.parse(data);
+      setUsername(result.username);
+    }).catch(() => {
+      setUsername(null);
+      setArticleOperateResult(null);
+      setServerConnectionFailed(true);
+    }).finally(() => {
+      setLoadingUser(false);
+    });
+  }, [loadArticlePage]);
+
   useEffect(() => {
+    let cancelled = false;
     readSyncStorageSettings().then((settings) => {
-      setSettingsState(settings);
+      if (!cancelled) {
+        setSettingsState(settings);
+      }
     });
-  }, []);
 
-  // RSS Feed Detection Effect
+    return () => {
+      cancelled = true;
+    };
+  }, [setSettingsState]);
+
   useEffect(() => {
+    let cancelled = false;
+
     async function checkForRssFeed() {
       try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const tab = tabs[0];
-        if (tab && tab.url) {
-          const feedInfo = await detectRssFeed(tab.url);
-          if (feedInfo.isRssFeed) {
+        const tab = await getActiveTab();
+        if (tab?.id && tab.url) {
+          const feedInfo = await detectRssFeed(tab.url, tab.id);
+          if (!cancelled && feedInfo.isRssFeed) {
             setIsRssFeed(true);
             setRssFeedUrl(tab.url);
           }
         }
       } catch (error) {
         log('RSS detection error:', error);
-      } finally {
-        setCheckingRssFeed(false);
       }
     }
-    checkForRssFeed();
-  }, []);
 
-  function setSettingsState(settings: StorageSettings) {
-    setStorageSettings(settings);
-    // Initialize parserType from user settings
-    if (settings.contentParser) {
-      setParserType(settings.contentParser);
+    void checkForRssFeed();
+    return () => {
+      cancelled = true;
+    };
+  }, [getActiveTab]);
+
+  useEffect(() => {
+    if (!page && !snippetPage) {
+      return;
     }
-    if (!settings.serverUrl) {
-      // No server enabled - still load page info for parsing, but skip server-related operations
-      setLoadingUser(false);
-      setServerConnectionFailed(false);
-      loadPageInfoOnly();
-    } else {
-      setLoadingUser(true);
-      setServerConnectionFailed(false);
-      getLoginUserInfo().then((data) => {
-        const result = JSON.parse(data);
-        setUsername(result.username);
 
-        loadPageInfo();
-      }).catch(() => {
-        setUsername(null);
-        // Server connection failed - still show article preview in read-only mode
-        setServerConnectionFailed(true);
-        loadPageInfoOnly();
-      }).finally(() => {
-        setLoadingUser(false);
-      });
+    void import("./components/AIToolbar");
+  }, [page, snippetPage]);
+
+  useEffect(() => {
+    if (!storageSettings?.serverUrl || !username || serverConnectionFailed || !page?.url) {
+      return;
     }
-  }
 
-  function loadPageInfoOnly(customParserType?: ContentParserType, keepPageOnFail?: boolean) {
-    setParsingArticle(true);
-    setParseFailed(false);
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      const tab = tabs[0];
-      if (tab) {
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'parse_doc',
-          payload: { parserType: customParserType }
-        }, function (response) {
-          setParsingArticle(false);
-          if (response) {
-            setIsHuntlySite(response.isHuntlySite === true);
-            if (response.page) {
-              setPage(response.page);
-              if (response.parserType) {
-                setParserType(response.parserType);
-              }
-            } else {
-              // Only clear page if not keeping on fail (initial load vs parser switch)
-              if (!keepPageOnFail) {
-                setPage(null);
-              }
-              setParseFailed(true);
-            }
-          } else {
-            if (!keepPageOnFail) {
-              setPage(null);
-            }
-            setParseFailed(true);
-          }
-        });
-      } else {
-        setParsingArticle(false);
-        if (!keepPageOnFail) {
-          setPage(null);
-        }
-        setParseFailed(true);
-      }
-    });
-  }
-
-  function loadPageInfo(customParserType?: ContentParserType, keepPageOnFail?: boolean) {
-    setParsingArticle(true);
-    setParseFailed(false);
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      const tab = tabs[0];
-      if (tab) {
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'parse_doc',
-          payload: { parserType: customParserType }
-        }, function (response) {
-          setParsingArticle(false);
-          if (response) {
-            setIsHuntlySite(response.isHuntlySite === true);
-            if (response.page) {
-              setPage(response.page);
-              if (response.parserType) {
-                setParserType(response.parserType);
-              }
-              loadPageOperateResult(autoSavedPageId, response.page.url, setArticleOperateResult);
-            } else {
-              // Only clear page if not keeping on fail (initial load vs parser switch)
-              if (!keepPageOnFail) {
-                setPage(null);
-              }
-              setParseFailed(true);
-            }
-          } else {
-            if (!keepPageOnFail) {
-              setPage(null);
-            }
-            setParseFailed(true);
-          }
-        });
-      } else {
-        setParsingArticle(false);
-        if (!keepPageOnFail) {
-          setPage(null);
-        }
-        setParseFailed(true);
-      }
-    });
-  }
+    loadPageOperateResult(autoSavedPageId, page.url, setArticleOperateResult);
+  }, [autoSavedPageId, page?.url, serverConnectionFailed, storageSettings?.serverUrl, username]);
 
   function handleTabChange(event: React.SyntheticEvent, newValue: number) {
     setActiveTab(newValue);
     if (newValue === 1) {
       if (!snippetPage) {
-        checkSnippetSelection();
+        void checkSnippetSelection();
       }
     }
   }
 
-  function checkSnippetSelection() {
+  async function checkSnippetSelection() {
     setCheckingSnippet(true);
     setSnippetOperateResult(null);
     setIsRestoredSnippet(false);
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      const tab = tabs[0];
-      if (tab) {
-        chrome.tabs.sendMessage(tab.id, { type: 'get_selection' }, function (response) {
-          setCheckingSnippet(false);
-          if (response && response.page) {
-            const sPage = response.page;
-            sPage.contentType = 4; // SNIPPET
-            setSnippetPage(sPage);
-            // Check if this is a restored snippet from page memory
-            setIsRestoredSnippet(response.isRestored === true);
-          } else {
-            setSnippetPage(null);
-            setIsRestoredSnippet(false);
-          }
-        });
-      } else {
-        setCheckingSnippet(false);
-      }
-    });
+    const { ok, response } = await sendMessageToActiveTab({ type: 'get_selection' });
+    setCheckingSnippet(false);
+
+    if (ok && response?.page) {
+      const sPage = response.page;
+      sPage.contentType = 4; // SNIPPET
+      setSnippetPage(sPage);
+      setIsRestoredSnippet(response.isRestored === true);
+      return;
+    }
+
+    setSnippetPage(null);
+    setIsRestoredSnippet(false);
   }
 
   function loadPageOperateResult(pageId, url, setResult) {
@@ -303,7 +364,9 @@ const Popup = () => {
       if (result) {
         const operateResult = JSON.parse(result);
         setResult(operateResult);
+        return;
       }
+      setResult(null);
     });
   }
 
@@ -325,9 +388,8 @@ const Popup = () => {
   }
 
   function notifyBadgeRefresh() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      const tab = tabs[0];
-      if (tab) {
+    void getActiveTab().then((tab) => {
+      if (tab?.id) {
         chrome.runtime.sendMessage({
           type: 'badge_refresh',
           payload: { tabId: tab.id, url: tab.url }
@@ -490,32 +552,18 @@ const Popup = () => {
   }
 
   async function articlePreview() {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    if (!tab) return;
-
-    // Get AI toolbar data from background script for content script use
-    const aiToolbarData = await new Promise<any>((resolve) => {
-      chrome.runtime.sendMessage({ type: 'get_ai_toolbar_data' }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Failed to get AI toolbar data:', chrome.runtime.lastError);
-          resolve({ success: false });
-        } else {
-          resolve(response || { success: false });
-        }
-      });
-    });
-
-    log('[Huntly] articlePreview - parserType:', parserType);
-    chrome.tabs.sendMessage(tab.id, {
+    const opened = await postMessageToActiveTab({
       type: 'shortcuts_preview',
       payload: {
         page: activePage,
         parserType: parserType,
-        externalShortcuts: aiToolbarData.success ? aiToolbarData.externalShortcuts : undefined,
-        externalModels: aiToolbarData.success ? aiToolbarData.externalModels : undefined,
+        initialThinkingModeEnabled: thinkingModeEnabled,
       }
     });
+
+    if (!opened) {
+      return;
+    }
 
     // Close popup window
     window.close();
@@ -527,42 +575,41 @@ const Popup = () => {
 
     setProcessingShortcut(true);
 
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    if (!tab) return;
-
-    // Get AI toolbar data from background script for content script use
-    const aiToolbarData = await new Promise<any>((resolve) => {
-      chrome.runtime.sendMessage({ type: 'get_ai_toolbar_data' }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Failed to get AI toolbar data:', chrome.runtime.lastError);
-          resolve({ success: false });
-        } else {
-          resolve(response || { success: false });
-        }
-      });
-    });
-
     // Open preview with auto-execute shortcut
-    chrome.tabs.sendMessage(tab.id, {
+    const opened = await postMessageToActiveTab({
       type: 'shortcuts_preview',
       payload: {
         page: activePage,
         parserType: parserType,
-        externalShortcuts: aiToolbarData.success ? aiToolbarData.externalShortcuts : undefined,
-        externalModels: aiToolbarData.success ? aiToolbarData.externalModels : undefined,
         autoExecuteShortcut: shortcut,
         autoSelectedModel: selectedModel,
+        initialThinkingModeEnabled: thinkingModeEnabled,
       }
     });
+
+    if (!opened) {
+      setProcessingShortcut(false);
+      return;
+    }
 
     // Close popup window
     window.close();
   };
 
+  const settingsLoaded = storageSettings !== null;
+  const showSignInPrompt =
+    settingsLoaded &&
+    !loadingUser &&
+    !!storageSettings?.serverUrl &&
+    !username &&
+    !serverConnectionFailed;
+  const canShowMainContent = settingsLoaded && !showSignInPrompt;
+  const hideHuntlyAI =
+    serverConnectionFailed ||
+    Boolean(storageSettings?.serverUrl && !username);
+
   return (
     <div style={{ minWidth: "600px", minHeight: '200px', display: 'flex', flexDirection: 'column', maxHeight: '600px', overflow: 'hidden' }} className={'mb-4'}>
-      <AIGradientDef />
       <div className={'commonPadding header'}>
         <div className="flex items-center text-sky-600 font-bold">
           <img src="/favicon-16x16.png" alt="Huntly" className="h-4 w-4 mr-1" />
@@ -592,13 +639,13 @@ const Popup = () => {
         {
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {
-              loadingUser && <div className={'flex justify-center items-center h-[120px]'}>
+              !settingsLoaded && <div className={'flex justify-center items-center h-[120px]'}>
                 <CircularProgress />
               </div>
             }
             {/* Server configured but not signed in and server is reachable */}
             {
-              !loadingUser && storageSettings?.serverUrl && !username && !serverConnectionFailed && <div>
+              showSignInPrompt && <div>
                 <div className={'mt-5'}>
                   <Alert severity={'info'}>Please sign in to start.</Alert>
                 </div>
@@ -609,7 +656,7 @@ const Popup = () => {
             }
             {/* Server configured and signed in, no server configured (read-only mode), or server connection failed */}
             {
-              !loadingUser && (username || !storageSettings?.serverUrl || serverConnectionFailed) && <div>
+              canShowMainContent && <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 {/* Server connection failed warning */}
                 {serverConnectionFailed && (
                   <div className={'mb-2'}>
@@ -618,17 +665,23 @@ const Popup = () => {
                     </Alert>
                   </div>
                 )}
-                {/* RSS Feed Subscription Interface */}
-                {checkingRssFeed && (
-                  <div className={'flex justify-center items-center h-[120px]'}>
-                    <CircularProgress />
+                {loadingUser && storageSettings?.serverUrl && !serverConnectionFailed && (
+                  <div className={'mb-2'}>
+                    <Alert severity={'info'}>Checking Huntly account...</Alert>
                   </div>
                 )}
-                {!checkingRssFeed && isRssFeed && (
-                  <RssSubscription feedUrl={rssFeedUrl} />
+                {/* RSS Feed Subscription Interface */}
+                {isRssFeed && (
+                  <Suspense fallback={
+                    <div className={'flex justify-center items-center h-[120px]'}>
+                      <CircularProgress />
+                    </div>
+                  }>
+                    <LazyRssSubscription feedUrl={rssFeedUrl} />
+                  </Suspense>
                 )}
                 {/* Regular Popup Interface - shown when not an RSS feed */}
-                {!checkingRssFeed && !isRssFeed && (
+                {!isRssFeed && (
                   <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                     <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2, flexShrink: 0 }}>
                       <Tabs value={activeTab} onChange={handleTabChange} aria-label="huntly tabs" variant="fullWidth" sx={{
@@ -661,8 +714,7 @@ const Popup = () => {
                             parserType={parserType}
                             onParserChange={(newParser) => {
                               setParserType(newParser);
-                              // Don't keep page on fail when page is already null
-                              username ? loadPageInfo(newParser, false) : loadPageInfoOnly(newParser, false);
+                              void loadArticlePage(newParser, false);
                             }}
                           />
                         </div>
@@ -696,7 +748,7 @@ const Popup = () => {
                           </div>
                         }
                         {
-                          storageSettings?.serverUrl && !isHuntlySite && activeOperateResult && activeOperateResult.id > 0 && <div className={'mb-2'}>
+                          storageSettings?.serverUrl && username && !loadingUser && !isHuntlySite && activeOperateResult && activeOperateResult.id > 0 && <div className={'mb-2'}>
                             <Alert severity={'success'}>
                               {activeTab === 0 ? 'This webpage has been hunted.' : 'This snippet has been saved.'}
                               <a href={combineUrl(storageSettings.serverUrl, "/page/" + activeOperateResult.id)} target={'_blank'}
@@ -706,25 +758,31 @@ const Popup = () => {
                         }
                         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                           {showDetailPanel && activeOperateResult?.id > 0 ? (
-                            <SaveDetailPanel
-                              pageId={activeOperateResult.id}
-                              page={activePage}
-                              operateResult={activeOperateResult}
-                              initialParserType={parserType}
-                              faviconUrl={activePage.faviconUrl}
-                              onClose={() => setShowDetailPanel(false)}
-                              onDeleted={() => {
-                                setActiveOperateResult(null);
-                                setShowDetailPanel(false);
-                              }}
-                              onOperateResultChanged={(result) => setActiveOperateResult(result)}
-                            />
+                            <Suspense fallback={
+                              <div className={'flex justify-center items-center h-[160px]'}>
+                                <CircularProgress />
+                              </div>
+                            }>
+                              <LazySaveDetailPanel
+                                pageId={activeOperateResult.id}
+                                page={activePage}
+                                operateResult={activeOperateResult}
+                                initialParserType={parserType}
+                                faviconUrl={activePage.faviconUrl}
+                                onClose={() => setShowDetailPanel(false)}
+                                onDeleted={() => {
+                                  setActiveOperateResult(null);
+                                  setShowDetailPanel(false);
+                                }}
+                                onOperateResultChanged={(result) => setActiveOperateResult(result)}
+                              />
+                            </Suspense>
                           ) : (
                             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '16px' }}>
                               <div className={'flex items-center'}>
                                 <TextField value={activePage.url} size={"small"} fullWidth={true} disabled={true} />
                                 {/* Only show action buttons when server is configured, connected, and not on Huntly site */}
-                                {storageSettings?.serverUrl && !isHuntlySite && !serverConnectionFailed && <div className={'grow shrink-0 pl-2 flex items-center'}>
+                                {storageSettings?.serverUrl && username && !loadingUser && !isHuntlySite && !serverConnectionFailed && <div className={'grow shrink-0 pl-2 flex items-center'}>
                                   {
                                     activeOperateResult?.readLater ? (
                                       <Tooltip title={"Remove from read later"}>
@@ -849,12 +907,23 @@ const Popup = () => {
 
                           {!showDetailPanel && (
                             <div className={'mt-2 flex justify-center'}>
-                              <AIToolbar
-                                onShortcutClick={handleAIShortcutClick}
-                                isProcessing={processingShortcut}
-                                compact={true}
-                                hideHuntlyAI={serverConnectionFailed}
-                              />
+                              <Suspense fallback={
+                                <div className={'flex justify-center items-center h-10'}>
+                                  <CircularProgress size={20} />
+                                </div>
+                              }>
+                                <LazyAIToolbar
+                                  onShortcutClick={handleAIShortcutClick}
+                                  isProcessing={processingShortcut}
+                                  compact={true}
+                                  hideHuntlyAI={hideHuntlyAI}
+                                  showThinkingToggle={true}
+                                  thinkingModeEnabled={thinkingModeEnabled}
+                                  onThinkingModeToggle={() =>
+                                    setThinkingModeEnabled((prev) => !prev)
+                                  }
+                                />
+                              </Suspense>
                             </div>
                           )}
                         </div>

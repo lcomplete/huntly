@@ -41,7 +41,7 @@
 | 功能 | 描述 |
 |---------|-------------|
 | 🤖 **AI 内容处理** | 利用 AI 进行摘要、翻译和智能内容分析，支持自定义快捷指令 |
-| 🔌 **MCP 服务器集成** | 内置 Model Context Protocol (MCP) 服务器，让 AI 助手（Claude、Cursor 等）可以访问您的知识库、搜索内容、获取 RSS 订阅、推文、GitHub stars 和高亮标注 |
+| 🔌 **MCP & Agent Skills** | MCP 服务器 + Agent Skills，让 AI 助手可搜索您的知识库、RSS 订阅、推文和高亮标注。通过 `npx skills add lcomplete/huntly` 安装 |
 | 📚 **网页归档** | 使用 Defuddle 和 Mozilla Readability 自动保存和归档网页，提取正文内容 |
 | 📡 **RSS 订阅管理** | 集中管理所有 RSS 订阅，支持智能分类、OPML 导入/导出和全文搜索 |
 | 🔍 **强大的全文搜索** | Apache Lucene 搜索引擎，IK 分词器支持中文分词，布尔运算符和模糊搜索 |

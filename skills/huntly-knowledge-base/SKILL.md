@@ -1,5 +1,5 @@
 ---
-name: Huntly Knowledge Base
+name: huntly-knowledge-base
 description: This skill should be used when the user asks about their saved content, bookmarks, starred articles, highlights, reading history, tweets, or knowledge base in Huntly sqlite database. Triggers include "我的收藏", "知识库", "我保存了什么", "my bookmarks", "my library", "what did I save".
 ---
 

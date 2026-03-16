@@ -8,6 +8,7 @@ export type ProviderType =
   | 'anthropic'
   | 'google'
   | 'deepseek'
+  | 'qwen'
   | 'zhipu'
   | 'minimax'
   | 'groq'
@@ -63,12 +64,14 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
   openai: {
     type: 'openai',
     displayName: 'OpenAI',
-    description: 'GPT-5.2, GPT-4.1, o3, o4-mini and more',
+    description: 'GPT-5.4, GPT-5.3 Codex, o4-mini, o3-pro and more',
     icon: 'openai',
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.openai.com/v1',
     defaultModels: [
+      { id: 'gpt-5.4' },
+      { id: 'gpt-5.3-codex' },
       { id: 'gpt-5.2' },
       { id: 'gpt-5' },
       { id: 'gpt-5-mini' },
@@ -161,12 +164,14 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
   anthropic: {
     type: 'anthropic',
     displayName: 'Anthropic (Claude)',
-    description: 'Claude Opus 4.5, Sonnet 4.5, Haiku 4.5 and more',
+    description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 and more',
     icon: 'anthropic',
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.anthropic.com/v1',
     defaultModels: [
+      { id: 'claude-opus-4-6-20260205' },
+      { id: 'claude-sonnet-4-6-20260217' },
       { id: 'claude-opus-4-5-20250929' },
       { id: 'claude-sonnet-4-5-20250929' },
       { id: 'claude-haiku-4-5-20251015' },
@@ -213,16 +218,40 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
       { id: 'Mistral-large-2411' },
     ],
   },
+  qwen: {
+    type: 'qwen',
+    displayName: 'Qwen',
+    description: 'Qwen3.5, Qwen3-Max, Qwen-Max, Qwen-Plus and more',
+    icon: 'qwen',
+    requiresApiKey: true,
+    supportsCustomUrl: true,
+    defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    defaultModels: [
+      { id: 'qwen3.5-plus' },
+      { id: 'qwen3-max' },
+      { id: 'qwen3-235b-a22b' },
+      { id: 'qwen3-32b' },
+      { id: 'qwen-max' },
+      { id: 'qwen-max-latest' },
+      { id: 'qwen-plus' },
+      { id: 'qwen-plus-latest' },
+      { id: 'qwen-turbo' },
+      { id: 'qwen-turbo-latest' },
+      { id: 'qwen2.5-72b-instruct' },
+    ],
+  },
   zhipu: {
     type: 'zhipu',
-    displayName: 'Zhipu AI (智谱)',
-    description: 'GLM-4.7, GLM-Z1 and more',
+    displayName: 'Zhipu AI',
+    description: 'GLM-5, GLM-4.7, GLM-Z1 and more',
     icon: 'zhipu',
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     defaultModels: [
+      { id: 'glm-5' },
       { id: 'glm-4.7' },
+      { id: 'glm-4.7-flash' },
       { id: 'glm-4.6' },
       { id: 'glm-4.5' },
       { id: 'glm-z1-rumination' },
@@ -237,15 +266,17 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
   minimax: {
     type: 'minimax',
     displayName: 'MiniMax',
-    description: 'MiniMax M2, M1, Text-01 and more',
+    description: 'MiniMax-M2.5, MiniMax-M2.1, MiniMax-Text-01 and more',
     icon: 'minimax',
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.minimax.chat/v1',
     defaultModels: [
-      { id: 'minimax-m2.1' },
-      { id: 'minimax-m2' },
-      { id: 'minimax-m1' },
+      { id: 'MiniMax-M2.5' },
+      { id: 'MiniMax-M2.5-highspeed' },
+      { id: 'MiniMax-M2.1' },
+      { id: 'MiniMax-M2' },
+      { id: 'MiniMax-M1' },
       { id: 'MiniMax-VL-01' },
       { id: 'MiniMax-Text-01' },
       { id: 'abab6.5s-chat' },
@@ -273,6 +304,7 @@ export const PROVIDER_ORDER: ProviderType[] = [
   'anthropic',
   'google',
   'deepseek',
+  'qwen',
   'zhipu',
   'minimax',
   'groq',
@@ -288,6 +320,7 @@ export const DEFAULT_AI_STORAGE: AIProvidersStorage = {
     anthropic: null,
     google: null,
     deepseek: null,
+    qwen: null,
     zhipu: null,
     minimax: null,
     groq: null,
