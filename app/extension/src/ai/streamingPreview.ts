@@ -8,6 +8,7 @@ export interface StreamingPreviewState {
 
 export interface StreamingPreviewChunk {
   type: string;
+  text?: string;
   textDelta?: string;
 }
 
@@ -31,7 +32,7 @@ export function applyStreamingPreviewChunk(
   options: StreamingPreviewOptions = {}
 ): StreamingPreviewState {
   const includeReasoning = options.includeReasoning ?? true;
-  const textDelta = chunk.textDelta || "";
+  const textDelta = chunk.text || chunk.textDelta || "";
   if (!textDelta) {
     return state;
   }
@@ -47,7 +48,7 @@ export function applyStreamingPreviewChunk(
     };
   }
 
-  if (chunk.type === "reasoning") {
+  if (chunk.type === "reasoning" || chunk.type === "reasoning-delta") {
     if (!includeReasoning) {
       return state;
     }

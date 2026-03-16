@@ -22,7 +22,13 @@ import {
   TextField,
   Tooltip, Typography
 } from "@mui/material";
-import { readSyncStorageSettings, StorageSettings, ContentParserType } from "./storage";
+import {
+  readSyncStorageSettings,
+  StorageSettings,
+  ContentParserType,
+  getThinkingModeEnabled,
+  saveThinkingModeEnabled,
+} from "./storage";
 import { combineUrl } from "./utils";
 import PersonPinIcon from '@mui/icons-material/PersonPin';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -280,16 +286,27 @@ const Popup = () => {
 
   useEffect(() => {
     let cancelled = false;
-    readSyncStorageSettings().then((settings) => {
-      if (!cancelled) {
-        setSettingsState(settings);
+    Promise.all([readSyncStorageSettings(), getThinkingModeEnabled()]).then(
+      ([settings, savedThinkingModeEnabled]) => {
+        if (!cancelled) {
+          setThinkingModeEnabled(savedThinkingModeEnabled);
+          setSettingsState(settings);
+        }
       }
-    });
+    );
 
     return () => {
       cancelled = true;
     };
   }, [setSettingsState]);
+
+  const handleThinkingModeToggle = useCallback(() => {
+    setThinkingModeEnabled((prev) => {
+      const next = !prev;
+      void saveThinkingModeEnabled(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -919,9 +936,7 @@ const Popup = () => {
                                   hideHuntlyAI={hideHuntlyAI}
                                   showThinkingToggle={true}
                                   thinkingModeEnabled={thinkingModeEnabled}
-                                  onThinkingModeToggle={() =>
-                                    setThinkingModeEnabled((prev) => !prev)
-                                  }
+                                  onThinkingModeToggle={handleThinkingModeToggle}
                                 />
                               </Suspense>
                             </div>

@@ -44,6 +44,7 @@ db.sqlite*
 
 .agents/
 .claude/
+.augment/
 .cursor/
 .playwright-mcp/
 .antigravity/

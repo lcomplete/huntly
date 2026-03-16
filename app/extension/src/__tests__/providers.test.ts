@@ -1,5 +1,7 @@
 import {
   getOpenAICompatibleBaseUrl,
+  getOllamaBaseUrl,
+  getOllamaOpenAIBaseUrl,
   isDashScopeCompatibleBaseUrl,
   usesRawOpenAICompatibleStream,
 } from "../ai/openAICompatibleProviders";
@@ -89,5 +91,19 @@ describe("providers helpers", () => {
         updatedAt: Date.now(),
       })
     ).toBe("https://example.com/v1");
+  });
+
+  it("normalizes Ollama base urls for model and chat endpoints", () => {
+    expect(getOllamaBaseUrl("http://localhost:11434/v1")).toBe(
+      "http://localhost:11434"
+    );
+    expect(getOllamaBaseUrl(undefined)).toBe("http://localhost:11434");
+
+    expect(getOllamaOpenAIBaseUrl("http://localhost:11434")).toBe(
+      "http://localhost:11434/v1"
+    );
+    expect(getOllamaOpenAIBaseUrl("http://localhost:11434/v1")).toBe(
+      "http://localhost:11434/v1"
+    );
   });
 });
