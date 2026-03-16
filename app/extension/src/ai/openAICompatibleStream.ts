@@ -53,8 +53,21 @@ export function extractOpenAICompatibleStreamDelta(
     };
   }
 
-  const parsed = JSON.parse(data);
-  const delta = parsed?.choices?.[0]?.delta ?? {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(data);
+  } catch {
+    // Some providers emit non-JSON payloads or partial frames; skip them
+    return {
+      contentDelta: "",
+      reasoningDelta: "",
+      done: false,
+    };
+  }
+
+  const delta =
+    (parsed as { choices?: Array<{ delta?: Record<string, unknown> }> })
+      ?.choices?.[0]?.delta ?? {};
 
   return {
     contentDelta: typeof delta.content === "string" ? delta.content : "",

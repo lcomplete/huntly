@@ -990,8 +990,9 @@ export function exportAsMarkdown(
   link.href = url;
   link.click();
 
-  // Clean up the URL object
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
 }
 
 /**

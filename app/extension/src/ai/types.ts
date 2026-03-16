@@ -220,7 +220,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
   },
   qwen: {
     type: 'qwen',
-    displayName: 'Qwen (通义千问)',
+    displayName: 'Qwen',
     description: 'Qwen3.5, Qwen3-Max, Qwen-Max, Qwen-Plus and more',
     icon: 'qwen',
     requiresApiKey: true,
@@ -242,7 +242,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
   },
   zhipu: {
     type: 'zhipu',
-    displayName: 'Zhipu AI (智谱)',
+    displayName: 'Zhipu AI',
     description: 'GLM-5, GLM-4.7, GLM-Z1 and more',
     icon: 'zhipu',
     requiresApiKey: true,
