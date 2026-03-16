@@ -11,7 +11,7 @@ import {
   CircularProgress,
   Box,
 } from "@mui/material";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import IosShareIcon from "@mui/icons-material/IosShare";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ImageIcon from "@mui/icons-material/Image";
@@ -259,7 +259,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       <Button
         variant="text"
         size="small"
-        startIcon={isExporting ? <CircularProgress size={14} /> : <FileDownloadIcon sx={{ fontSize: 16 }} />}
+        startIcon={isExporting ? <CircularProgress size={14} /> : <IosShareIcon sx={{ fontSize: 16 }} />}
         endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 16 }} />}
         onClick={handleClick}
         disabled={isExporting}
@@ -297,7 +297,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         }}
         PaperProps={{
           sx: {
-            minWidth: 180,
+            minWidth: 160,
             mt: 0.5,
             boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
             borderRadius: "8px",
@@ -305,41 +305,41 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           },
         }}
       >
-        <MenuItem onClick={handleExportPdf} disabled={isExporting}>
-          <ListItemIcon>
-            <PictureAsPdfIcon fontSize="small" />
+        <MenuItem onClick={handleExportPdf} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <PictureAsPdfIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText>Export as PDF</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Export as PDF</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={handleExportImage} disabled={isExporting}>
-          <ListItemIcon>
-            <ImageIcon fontSize="small" />
+        <MenuItem onClick={handleExportImage} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <ImageIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText>Export as Image</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Export as Image</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={handleExportMarkdown} disabled={isExporting}>
-          <ListItemIcon>
-            <CodeIcon fontSize="small" />
+        <MenuItem onClick={handleExportMarkdown} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <CodeIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText>Export as Markdown</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Export as Markdown</ListItemText>
         </MenuItem>
 
         <Divider />
 
-        <MenuItem onClick={handleCopyImage} disabled={isExporting}>
-          <ListItemIcon>
-            <ContentCopyIcon fontSize="small" />
+        <MenuItem onClick={handleCopyImage} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <ContentCopyIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText>Copy Image</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Copy Image</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={handleCopyMarkdown} disabled={isExporting}>
-          <ListItemIcon>
-            <CodeIcon fontSize="small" />
+        <MenuItem onClick={handleCopyMarkdown} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <CodeIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText>Copy Markdown</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Copy Markdown</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

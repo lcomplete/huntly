@@ -4,13 +4,13 @@
   "description": "Huntly - Automatic saving browsed contents",
   "main": "index.js",
   "scripts": {
-    "dev": "webpack --config webpack/webpack.dev.js --watch",
-    "watch": "webpack --config webpack/webpack.dev.js --watch",
-    "watch:firefox": "cross-env BROWSER=firefox npm run watch",
-    "build": "webpack --config webpack/webpack.prod.js",
-    "build:firefox": "cross-env BROWSER=firefox npm run build",
-    "clean": "rimraf dist",
+    "dev": "rspack build --watch --mode development",
+    "watch": "rspack build --watch --mode development",
+    "watch:firefox": "cross-env BROWSER=firefox rspack build --watch --mode development",
+    "build": "rspack build --mode production",
+    "clean": "rimraf dist dist_firefox",
     "test": "npx jest",
+    "typecheck": "tsc --noEmit",
     "style": "prettier --write \"src/**/*.{ts,tsx}\""
   },
   "author": "",
@@ -32,7 +32,7 @@
     "@mui/icons-material": "^5.11.11",
     "@mui/material": "^5.11.14",
     "@types/turndown": "^5.0.6",
-    "ai": "^4.3.16",
+    "ai": "^6.0.127",
     "defuddle": "^0.6.6",
     "formik": "^2.2.9",
     "html2canvas": "^1.4.1",
@@ -47,13 +47,14 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@rspack/cli": "^1.7.8",
+    "@rspack/core": "^1.7.8",
     "@types/chrome": "0.0.158",
     "@types/jest": "^27.0.2",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@types/react-modal": "^3.16.0",
     "autoprefixer": "^10.4.14",
-    "copy-webpack-plugin": "^9.0.1",
     "cross-env": "^7.0.3",
     "css-loader": "^6.7.3",
     "glob": "^7.1.6",
@@ -66,10 +67,6 @@
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.3.2",
     "ts-jest": "^27.0.5",
-    "ts-loader": "^8.0.0",
-    "typescript": "^4.4.3 ",
-    "webpack": "^5.0.0",
-    "webpack-cli": "^4.0.0",
-    "webpack-merge": "^5.0.0"
+    "typescript": "^4.4.3 "
   }
 }

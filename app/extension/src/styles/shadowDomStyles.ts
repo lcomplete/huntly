@@ -1,5 +1,5 @@
-// This file exports the CSS styles as a string for injection into Shadow DOM
-// We use a separate file to avoid webpack's style-loader injecting into document head
+// This file exports the CSS styles as a string for injection into Shadow DOM.
+// Keep it separate so style-loader does not inject these styles into document head.
 
 export const getShadowDomStyles = (): string => `
 /* Reset all inherited styles from host page to prevent external CSS interference */

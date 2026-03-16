@@ -77,10 +77,6 @@ yarn watch
 # Production build
 yarn build
 
-# Firefox-specific builds
-yarn watch:firefox
-yarn build:firefox
-
 # Run tests
 yarn test
 

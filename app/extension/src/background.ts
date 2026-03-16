@@ -892,9 +892,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (!isReadingModeMenu) return;
 
-  // Get AI toolbar data
-  const aiToolbarData = await getAIToolbarData().catch(() => null);
-
   if (isSelectionMode) {
     // Get selection content from content script and open snippet reading mode
     chrome.tabs.sendMessage(tab.id, { type: "get_selection" }, (response) => {
@@ -910,8 +907,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           type: "shortcuts_preview",
           payload: {
             page: page,
-            externalShortcuts: aiToolbarData?.externalShortcuts,
-            externalModels: aiToolbarData?.externalModels,
           },
         });
       }
@@ -922,8 +917,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       type: "shortcuts_preview",
       payload: {
         page: null, // null means content script will parse the current page
-        externalShortcuts: aiToolbarData?.externalShortcuts,
-        externalModels: aiToolbarData?.externalModels,
       },
     });
   }

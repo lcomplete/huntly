@@ -16,7 +16,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import {
   Prompt,
   getPromptsSettings,
@@ -427,73 +427,150 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
       <AIGradientDef />
 
-      {/* Model Selector */}
-      <Button
-        size={buttonSize}
-        variant="outlined"
-        onClick={handleModelMenuOpen}
-        endIcon={<KeyboardArrowDownIcon />}
-        disabled={loadingModels || isProcessing}
+      {/* Model Selector with Thinking Toggle - unified container with gradient border */}
+      <Box
         sx={{
-          textTransform: "none",
-          minWidth: compact ? 100 : 120,
-          maxWidth: compact ? 160 : 220,
-          justifyContent: "space-between",
+          position: "relative",
+          display: "inline-flex",
+          alignItems: "center",
+          borderRadius: "10px",
+          padding: "1px",
+          background: "linear-gradient(135deg, #90b8e0 0%, #a8a0c8 50%, #c8b0c0 100%)",
+          backgroundSize: "200% 200%",
+          transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+          "&:hover": {
+            boxShadow: "0 2px 10px rgba(120, 140, 180, 0.2)",
+            backgroundPosition: "100% 100%",
+          },
         }}
       >
-        {loadingModels ? (
-          <CircularProgress size={14} />
-        ) : selectedModel ? (
-          <Typography variant="body2" noWrap>
-            {selectedModel.name}
-          </Typography>
-        ) : (
-          "Select Model"
-        )}
-      </Button>
-
-      {showThinkingToggle && (
-        <Tooltip
-          title={thinkingModeTooltip}
-          arrow
-          placement="top"
-          PopperProps={{
-            container: menuContainer,
-            sx: { zIndex: menuZIndex },
+        <Box
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            borderRadius: "9px",
+            padding: "3px 4px",
+            gap: "2px",
+            backgroundColor: "background.paper",
+            transition: "background-color 0.2s ease",
           }}
         >
-          <span title={thinkingModeTooltip}>
-            <IconButton
-              size={compact ? "small" : "medium"}
-              onClick={onThinkingModeToggle}
-              disabled={!selectedModel || isProcessing}
-              aria-label={thinkingModeButtonLabel}
-              aria-pressed={thinkingModeEnabled}
-              sx={{
-                color: thinkingModeEnabled ? "text.primary" : "text.disabled",
-                transition: "all 0.15s ease",
-                "&:hover": {
-                  bgcolor: "action.hover",
-                  color: thinkingModeEnabled
-                    ? "text.primary"
-                    : "text.secondary",
-                },
-                "&.Mui-disabled": {
-                  color: "text.disabled",
-                },
+          {/* Thinking toggle button */}
+          {showThinkingToggle && (
+            <Tooltip
+              title={thinkingModeTooltip}
+              arrow
+              placement="top"
+              PopperProps={{
+                container: menuContainer,
+                sx: { zIndex: menuZIndex },
               }}
             >
-              {thinkingModeEnabled ? (
-                <PsychologyIcon fontSize={compact ? "small" : "medium"} />
-              ) : (
-                <PsychologyOutlinedIcon
-                  fontSize={compact ? "small" : "medium"}
-                />
-              )}
-            </IconButton>
-          </span>
-        </Tooltip>
-      )}
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onThinkingModeToggle}
+                  disabled={!selectedModel || isProcessing}
+                  aria-label={thinkingModeButtonLabel}
+                  aria-pressed={thinkingModeEnabled}
+                  sx={{
+                    borderRadius: "6px",
+                    width: 26,
+                    height: 26,
+                    color: thinkingModeEnabled ? "primary.main" : "text.disabled",
+                    bgcolor: "transparent",
+                    transition: "color 0.2s ease",
+                    "& .MuiSvgIcon-root": {
+                      color: "inherit",
+                    },
+                    "&:hover": {
+                      bgcolor: "action.hover",
+                      color: thinkingModeEnabled ? "primary.dark" : "text.secondary",
+                    },
+                    "&.Mui-disabled": {
+                      color: "action.disabled",
+                    },
+                  }}
+                >
+                  <PsychologyIcon sx={{ fontSize: 15 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+
+          {/* Model dropdown button */}
+          <Button
+            variant="text"
+            size="small"
+            endIcon={
+              <KeyboardArrowDownIcon
+                sx={{
+                  fontSize: "16px !important",
+                  color: "text.secondary",
+                  opacity: 0.7,
+                  transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease",
+                  transform: modelMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            }
+            onClick={handleModelMenuOpen}
+            disabled={loadingModels || isProcessing}
+            sx={{
+              textTransform: "none",
+              borderRadius: "6px",
+              fontSize: "12px",
+              fontWeight: 500,
+              height: "26px",
+              minWidth: compact ? 90 : 110,
+              maxWidth: compact ? 150 : 200,
+              px: 1,
+              justifyContent: "space-between",
+              color: "text.primary",
+              transition: "background-color 0.15s ease",
+              "&:hover": {
+                backgroundColor: "action.hover",
+                "& .MuiButton-endIcon .MuiSvgIcon-root": {
+                  opacity: 1,
+                },
+              },
+              "&:active": {
+                backgroundColor: "action.selected",
+              },
+              "& .MuiButton-endIcon": {
+                marginLeft: "4px",
+              },
+            }}
+          >
+            {loadingModels ? (
+              <CircularProgress size={12} sx={{ color: "#a18cd1" }} />
+            ) : selectedModel ? (
+              <Typography
+                variant="body2"
+                noWrap
+                sx={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  letterSpacing: "0.01em",
+                  color: "text.primary",
+                }}
+              >
+                {selectedModel.name}
+              </Typography>
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: "text.secondary",
+                }}
+              >
+                Select Model
+              </Typography>
+            )}
+          </Button>
+        </Box>
+      </Box>
 
       <Menu
         anchorEl={modelAnchorEl}
@@ -502,8 +579,21 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         container={menuContainer}
         disableScrollLock
         sx={{ zIndex: menuZIndex }}
+        TransitionProps={{ timeout: 180 }}
         PaperProps={{
-          sx: { maxHeight: 400, minWidth: 180, zIndex: menuZIndex },
+          sx: {
+            maxHeight: 400,
+            minWidth: 200,
+            zIndex: menuZIndex,
+            borderRadius: "10px",
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)",
+            mt: 0.5,
+            "& .MuiList-root": {
+              py: 0.5,
+            },
+          },
         }}
       >
         {!hasModels
@@ -511,43 +601,109 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
               <MenuItem
                 key="configure"
                 onClick={() => openSettings("ai-providers")}
+                sx={{ borderRadius: "6px", mx: 0.5, fontSize: "13px" }}
               >
-                <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
+                <SettingsIcon fontSize="small" sx={{ mr: 1, opacity: 0.7 }} />
                 Configure AI Providers
               </MenuItem>,
             ]
           : [
               /* Huntly models */
-              ...huntlyModels.map((model) => (
-                <MenuItem
-                  key={`huntly-model-${model.id}`}
-                  onClick={() => handleModelSelect(model)}
-                  selected={selectedModel?.id === model.id}
-                >
-                  {model.name}
-                </MenuItem>
-              )),
+              ...huntlyModels.map((model) => {
+                const isSelected = selectedModel?.id === model.id;
+                return (
+                  <MenuItem
+                    key={`huntly-model-${model.id}`}
+                    onClick={() => handleModelSelect(model)}
+                    selected={isSelected}
+                    sx={{
+                      borderRadius: "6px",
+                      mx: 0.5,
+                      fontSize: "13px",
+                      fontWeight: isSelected ? 600 : 400,
+                      transition: "background-color 0.15s ease",
+                      "&.Mui-selected": {
+                        bgcolor: "action.selected",
+                        "&:hover": { bgcolor: "action.hover" },
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
+                      {model.name}
+                      {isSelected && (
+                        <CheckRoundedIcon
+                          sx={{
+                            fontSize: 15,
+                            ml: 1.5,
+                            color: "text.secondary",
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </MenuItem>
+                );
+              }),
               /* Other providers */
               ...Object.entries(modelsByProvider).flatMap(
                 ([providerName, providerModels], index) => [
                   ...(index > 0 || huntlyModels.length > 0
-                    ? [<Divider key={`divider-${providerName}`} />]
+                    ? [
+                        <Divider
+                          key={`divider-${providerName}`}
+                          sx={{ my: 0.5, mx: 1, borderColor: "divider", opacity: 0.6 }}
+                        />,
+                      ]
                     : []),
                   <ListSubheader
                     key={`header-${providerName}`}
-                    sx={{ lineHeight: "32px", bgcolor: "background.paper" }}
+                    sx={{
+                      lineHeight: "28px",
+                      bgcolor: "background.paper",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "text.secondary",
+                      opacity: 0.7,
+                      px: 1.5,
+                    }}
                   >
                     {providerName}
                   </ListSubheader>,
-                  ...providerModels.map((model) => (
-                    <MenuItem
-                      key={`provider-model-${model.id}`}
-                      onClick={() => handleModelSelect(model)}
-                      selected={selectedModel?.id === model.id}
-                    >
-                      {model.name}
-                    </MenuItem>
-                  )),
+                  ...providerModels.map((model) => {
+                    const isSelected = selectedModel?.id === model.id;
+                    return (
+                      <MenuItem
+                        key={`provider-model-${model.id}`}
+                        onClick={() => handleModelSelect(model)}
+                        selected={isSelected}
+                        sx={{
+                          borderRadius: "6px",
+                          mx: 0.5,
+                          fontSize: "13px",
+                          fontWeight: isSelected ? 600 : 400,
+                          transition: "background-color 0.15s ease",
+                          "&.Mui-selected": {
+                            bgcolor: "action.selected",
+                            "&:hover": { bgcolor: "action.hover" },
+                          },
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
+                          {model.name}
+                          {isSelected && (
+                            <CheckRoundedIcon
+                              sx={{
+                                fontSize: 15,
+                                ml: 1.5,
+                                color: "text.secondary",
+                              }}
+                            />
+                          )}
+                        </Box>
+                      </MenuItem>
+                    );
+                  }),
                 ]
               ),
             ]}

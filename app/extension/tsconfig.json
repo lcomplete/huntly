@@ -5,6 +5,7 @@
         "moduleResolution": "Node",
         "target": "es6",
         "esModuleInterop": true,
+        "skipLibCheck": true,
         "sourceMap": false,
         "rootDir": "src",
         "outDir": "dist/js",

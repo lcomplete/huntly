@@ -6,7 +6,7 @@
 ## Build, Test, and Development Commands
 - Server: `cd app/server` and use `./start-dev.sh` (primary dev mode, supports `--task` to enable connectors and `--sql` to show SQL); `./mvnw clean verify` builds everything; direct maven run: `./mvnw spring-boot:run -pl huntly-server -am` serves `localhost:8080`.
 - Web client: `cd app/client && yarn install && yarn start`; use `yarn build` for production assets and `yarn test` for the Jest suite.
-- Browser extension: `cd app/extension && yarn install && yarn dev`; guard releases with `yarn build` and `yarn test`. Use `yarn build:firefox` for Firefox-specific builds.
+- Browser extension: `cd app/extension && yarn install && yarn dev`; guard releases with `yarn build` and `yarn test`.
 - Desktop app (Tauri): `cd app/tauri && yarn install && yarn tauri dev`; `yarn build` compiles frontend and `yarn tauri build` bundles the desktop app.
 - Containers: `docker-compose up -d` runs the published image; `docker build -t huntly-local -f Dockerfile .` produces a workspace-aware image.
 
