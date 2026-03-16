@@ -34,3 +34,23 @@ export function getOpenAICompatibleBaseUrl(
 ): string | undefined {
   return config.baseUrl || PROVIDER_REGISTRY[config.type]?.defaultBaseUrl || undefined;
 }
+
+function trimTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
+export function getOllamaBaseUrl(baseUrl?: string): string {
+  const normalizedBaseUrl = trimTrailingSlash(
+    baseUrl || PROVIDER_REGISTRY.ollama.defaultBaseUrl
+  );
+
+  return normalizedBaseUrl.endsWith("/v1")
+    ? normalizedBaseUrl.slice(0, -3)
+    : normalizedBaseUrl;
+}
+
+export function getOllamaOpenAIBaseUrl(baseUrl?: string): string {
+  const normalizedBaseUrl = getOllamaBaseUrl(baseUrl);
+
+  return `${normalizedBaseUrl}/v1`;
+}

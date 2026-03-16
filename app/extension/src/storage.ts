@@ -17,6 +17,7 @@ export const STORAGE_USER_PROMPTS = "userPrompts";  // User-created prompts only
 export const STORAGE_ENABLED_SYSTEM_PROMPTS = "enabledSystemPrompts";  // IDs of enabled system prompts
 export const STORAGE_HUNTLY_SHORTCUTS_ENABLED = "huntlyShortcutsEnabled";
 export const STORAGE_SELECTED_MODEL_ID = "selectedModelId";  // Remember last selected model
+export const STORAGE_THINKING_MODE_ENABLED = "thinkingModeEnabled";  // Remember last thinking mode state
 
 export type ServerUrlItem = {
   url: string,
@@ -209,4 +210,15 @@ export async function saveSelectedModelId(modelId: string): Promise<void> {
 export async function getSelectedModelId(): Promise<string | null> {
   const items = await chrome.storage.sync.get({ [STORAGE_SELECTED_MODEL_ID]: null });
   return items[STORAGE_SELECTED_MODEL_ID];
+}
+
+export async function saveThinkingModeEnabled(enabled: boolean): Promise<void> {
+  await chrome.storage.sync.set({ [STORAGE_THINKING_MODE_ENABLED]: enabled });
+}
+
+export async function getThinkingModeEnabled(): Promise<boolean> {
+  const items = await chrome.storage.sync.get({
+    [STORAGE_THINKING_MODE_ENABLED]: false,
+  });
+  return Boolean(items[STORAGE_THINKING_MODE_ENABLED]);
 }

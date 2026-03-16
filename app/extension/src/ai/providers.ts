@@ -4,19 +4,22 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createGroq } from '@ai-sdk/groq';
 import { createAzure } from '@ai-sdk/azure';
-import { ollama, createOllama } from 'ollama-ai-provider';
-import { generateText, LanguageModelV1 } from 'ai';
+import { generateText, LanguageModel } from 'ai';
 import {
   AIProviderConfig,
   ConnectionTestResult,
   PROVIDER_REGISTRY,
 } from './types';
-import { getOpenAICompatibleBaseUrl } from './openAICompatibleProviders';
+import {
+  getOpenAICompatibleBaseUrl,
+  getOllamaBaseUrl,
+  getOllamaOpenAIBaseUrl,
+} from './openAICompatibleProviders';
 
 export function createProviderModel(
   config: AIProviderConfig,
   modelId?: string
-): LanguageModelV1 | null {
+): LanguageModel | null {
   const model = modelId || config.enabledModels[0];
   if (!model) return null;
 
@@ -28,7 +31,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'anthropic': {
@@ -39,7 +42,7 @@ export function createProviderModel(
           'anthropic-dangerous-direct-browser-access': 'true',
         },
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'google': {
@@ -47,7 +50,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: config.baseUrl || undefined,
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'deepseek': {
@@ -55,24 +58,22 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: config.baseUrl || undefined,
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'groq': {
       const provider = createGroq({
         apiKey: config.apiKey,
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'ollama': {
-      if (config.baseUrl) {
-        const provider = createOllama({
-          baseURL: config.baseUrl,
-        });
-        return provider(model) as LanguageModelV1;
-      }
-      return ollama(model) as LanguageModelV1;
+      const provider = createOpenAI({
+        apiKey: config.apiKey || 'ollama',
+        baseURL: getOllamaOpenAIBaseUrl(config.baseUrl),
+      });
+      return provider(model) as LanguageModel;
     }
 
     case 'azure-openai':
@@ -82,7 +83,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: config.baseUrl,
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'qwen': {
@@ -91,7 +92,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'zhipu': {
@@ -100,7 +101,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'minimax': {
@@ -109,7 +110,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModelV1;
+      return provider(model) as LanguageModel;
     }
 
     case 'huntly-server': {
@@ -180,7 +181,7 @@ export async function testProviderConnection(
     const result = await generateText({
       model,
       prompt: 'Say "OK" in one word.',
-      maxTokens: 5,
+      maxOutputTokens: 5,
     });
 
     // Check if we got a valid response - result.text can be empty string for some models
@@ -223,7 +224,7 @@ export async function testProviderConnection(
 
 export async function fetchOllamaModels(baseUrl?: string): Promise<string[]> {
   try {
-    const url = (baseUrl || 'http://localhost:11434') + '/api/tags';
+    const url = getOllamaBaseUrl(baseUrl) + '/api/tags';
     const response = await fetch(url);
     if (!response.ok) {
       return [];

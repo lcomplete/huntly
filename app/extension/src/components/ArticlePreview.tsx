@@ -2,7 +2,12 @@ import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperat
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import TurndownService from "turndown";
-import { ContentParserType, readSyncStorageSettings } from "../storage";
+import {
+  ContentParserType,
+  readSyncStorageSettings,
+  getThinkingModeEnabled,
+  saveThinkingModeEnabled,
+} from "../storage";
 import { PageOperateResult } from "../model/pageOperateResult";
 import { parseDocument } from "../parser/contentParser";
 import AIToolbar, {
@@ -222,7 +227,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
   } | null>(null);
   const [serverConfigured, setServerConfigured] = useState(false);
   const [thinkingModeEnabled, setThinkingModeEnabled] = useState(
-    initialThinkingModeEnabled
+    initialThinkingModeEnabled ?? false
   );
 
   // Refs for export functionality
@@ -233,6 +238,35 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
   useEffect(() => {
     readSyncStorageSettings().then((settings) => {
       setServerConfigured(!!settings.serverUrl);
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (typeof initialThinkingModeEnabled === "boolean") {
+      setThinkingModeEnabled(initialThinkingModeEnabled);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    getThinkingModeEnabled().then((savedThinkingModeEnabled) => {
+      if (!cancelled) {
+        setThinkingModeEnabled(savedThinkingModeEnabled);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialThinkingModeEnabled]);
+
+  const handleThinkingModeToggle = useCallback(() => {
+    setThinkingModeEnabled((prev) => {
+      const next = !prev;
+      void saveThinkingModeEnabled(next);
+      return next;
     });
   }, []);
 
@@ -500,9 +534,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
               initialSelectedModel={autoSelectedModel}
               showThinkingToggle={true}
               thinkingModeEnabled={thinkingModeEnabled}
-              onThinkingModeToggle={() =>
-                setThinkingModeEnabled((prev) => !prev)
-              }
+              onThinkingModeToggle={handleThinkingModeToggle}
             />
 
             {/* Right section: Export group, Edit button, Parser selector and Close button */}

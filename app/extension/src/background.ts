@@ -49,6 +49,7 @@ const vercelAIAbortControllers = new Map<string, AbortController>();
 const badgeCache = new Map<number, string>();
 const SAVED_BADGE_TEXT = "✓";
 const SAVED_BADGE_BG = "#15803D";
+const AI_MAX_OUTPUT_TOKENS = 20000;
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -379,7 +380,7 @@ async function startProcessingWithVercelAI(task: any) {
         modelId,
         systemPrompt,
         userPrompt,
-        maxTokens: 8000,
+        maxTokens: AI_MAX_OUTPUT_TOKENS,
         requestBodyExtras: getThinkingModeOptions(Boolean(thinkingModeEnabled)),
         abortSignal: abortController.signal,
         onDelta: ({ contentDelta, reasoningDelta }) => {
@@ -420,11 +421,11 @@ async function startProcessingWithVercelAI(task: any) {
       }
 
       // Use streamText for streaming response with abort signal
-      const result = await streamText({
+      const result = streamText({
         model,
         system: systemPrompt,
         prompt: userPrompt,
-        maxTokens: 8000,
+        maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
         abortSignal: abortController.signal,
       });
 
@@ -448,8 +449,8 @@ async function startProcessingWithVercelAI(task: any) {
         try {
           sendStreamingPreviewUpdate(
             streamState,
-            chunk.type === "text-delta" || chunk.type === "reasoning"
-              ? chunk.textDelta
+            chunk.type === "text-delta" || chunk.type === "reasoning-delta"
+              ? chunk.text
               : ""
           );
         } catch (error) {
