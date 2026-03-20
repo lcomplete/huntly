@@ -23,5 +23,6 @@
   "operationSuccess": "Operation successful",
   "operationFailed": "Operation failed",
   "deleteConfirmTitle": "Confirm Delete",
-  "deleteConfirmMessage": "Are you sure to delete?"
+  "deleteConfirmMessage": "Are you sure to delete?",
+  "select": "Select"
 }

@@ -23,5 +23,6 @@
   "operationSuccess": "操作成功",
   "operationFailed": "操作失败",
   "deleteConfirmTitle": "确认删除",
-  "deleteConfirmMessage": "确定要删除吗？"
+  "deleteConfirmMessage": "确定要删除吗？",
+  "select": "选择"
 }

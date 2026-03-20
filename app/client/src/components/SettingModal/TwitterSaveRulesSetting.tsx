@@ -29,6 +29,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import SettingSectionTitle from "./SettingSectionTitle";
 import { CollectionApi, CollectionTreeVO, CollectionVO } from "../../api/collectionApi";
 import CollectionPickerDialog from "../Dialogs/CollectionPickerDialog";
+import { useTranslation } from 'react-i18next';
 
 // Helper to find collection name by id from tree data
 const findCollectionName = (treeData: CollectionTreeVO | null, collectionId: number | null | undefined): string | null => {
@@ -63,6 +64,7 @@ interface CollectionSelectorProps {
 
 const CollectionSelector: React.FC<CollectionSelectorProps> = ({ value, onChange, treeData, label, themeColor = '#3b82f6' }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { t } = useTranslation(['settings', 'common', 'navigation']);
   const collectionName = findCollectionName(treeData, value);
 
   return (
@@ -106,7 +108,7 @@ const CollectionSelector: React.FC<CollectionSelectorProps> = ({ value, onChange
             </Typography>
           ) : (
             <Typography variant="body2" sx={{ color: '#94a3b8', fontStyle: 'italic' }}>
-              Select collection...
+              {t('common:select', 'Select collection...')}
             </Typography>
           )}
         </Box>
@@ -191,6 +193,7 @@ const getCollectionButtonStyles = (hasValue: boolean, color: string) => ({
 export const TwitterSaveRulesSetting = () => {
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
+  const { t } = useTranslation(['settings', 'common', 'navigation']);
 
   const {
     data: twitterSettings,
@@ -222,9 +225,9 @@ export const TwitterSaveRulesSetting = () => {
       <SettingSectionTitle
         first
         icon={RuleIcon}
-        description="Configure automatic saving rules for Twitter users' tweets, bookmarks, and likes."
+        description={t('settings:twitterRulesDesc')}
       >
-        Twitter Save Rules
+        {t('settings:twitterSaveRules')}
       </SettingSectionTitle>
 
       {twitterSettings && (
@@ -287,7 +290,7 @@ export const TwitterSaveRulesSetting = () => {
                               <TextField
                                 size="small"
                                 variant="outlined"
-                                label="Display Name"
+                                label={t('settings:displayName')}
                                 name={name}
                                 value={setting.name}
                                 sx={{
@@ -308,7 +311,7 @@ export const TwitterSaveRulesSetting = () => {
                               <TextField
                                 size="small"
                                 variant="outlined"
-                                label="Screen Name"
+                                label={t('settings:screenName')}
                                 name={screenName}
                                 value={setting.screenName}
                                 sx={{
@@ -341,13 +344,13 @@ export const TwitterSaveRulesSetting = () => {
                                 ml: 'auto'
                               }}>
                                 <Tooltip
-                                  title={setting.myself ? "This is your own Twitter account" : "Mark as my own account (to sync your tweets, bookmarks, and likes)"}
+                                  title={setting.myself ? t('settings:myAccount') : t('settings:setAsMine')}
                                   arrow
                                   placement="top"
                                 >
                                   <Chip
                                     icon={<PersonIcon sx={{ fontSize: 16 }} />}
-                                    label={setting.myself ? "My Account" : "Set as Mine"}
+                                    label={setting.myself ? t('settings:myAccount') : t('settings:setAsMine')}
                                     size="small"
                                     onClick={() => setFieldValue(myself, !setting.myself)}
                                     sx={{
@@ -407,14 +410,14 @@ export const TwitterSaveRulesSetting = () => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                   <TwitterIcon sx={{ fontSize: 18, color: '#1d9bf0' }} />
                                   <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>
-                                    Tweets
+                                    {t('settings:tweets')}
                                   </Typography>
                                 </Box>
                                 <CollectionSelector
                                   value={setting.tweetToCollectionId}
                                   onChange={(v) => setFieldValue(tweetToCollectionId, v)}
                                   treeData={collectionTree ?? null}
-                                  label="Collection"
+                                  label={t('navigation:collections')}
                                   themeColor="#1d9bf0"
                                 />
                                 <FormControl size="small" fullWidth>
@@ -437,11 +440,11 @@ export const TwitterSaveRulesSetting = () => {
                                       }
                                     }}
                                   >
-                                    <MenuItem value={0} sx={{ color: '#94a3b8', fontStyle: 'italic' }}>Library status (optional)</MenuItem>
-                                    <MenuItem value={1}>My list</MenuItem>
-                                    <MenuItem value={2}>Starred</MenuItem>
-                                    <MenuItem value={3}>Read later</MenuItem>
-                                    <MenuItem value={4}>Archive</MenuItem>
+                                    <MenuItem value={0} sx={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('settings:libraryStatus')}</MenuItem>
+                                    <MenuItem value={1}>{t('settings:myList')}</MenuItem>
+                                    <MenuItem value={2}>{t('settings:starred')}</MenuItem>
+                                    <MenuItem value={3}>{t('settings:readLater')}</MenuItem>
+                                    <MenuItem value={4}>{t('settings:archive')}</MenuItem>
                                   </Select>
                                 </FormControl>
                               </Box>
@@ -451,7 +454,7 @@ export const TwitterSaveRulesSetting = () => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                   <BookmarkIcon sx={{ fontSize: 18, color: '#f59e0b' }} />
                                   <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>
-                                    Bookmarks
+                                    {t('settings:bookmarks')}
                                   </Typography>
                                 </Box>
                                 <CollectionSelector
@@ -495,7 +498,7 @@ export const TwitterSaveRulesSetting = () => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                   <FavoriteIcon sx={{ fontSize: 18, color: '#ef4444' }} />
                                   <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>
-                                    Likes
+                                    {t('settings:likes')}
                                   </Typography>
                                 </Box>
                                 <CollectionSelector
@@ -561,7 +564,7 @@ export const TwitterSaveRulesSetting = () => {
                         }
                       }}
                     >
-                      Add Twitter User Rule
+                      {t('settings:addTwitterRule')}
                     </Button>
                   </Box>
                 )}
@@ -586,7 +589,7 @@ export const TwitterSaveRulesSetting = () => {
                     }
                   }}
                 >
-                  Save Settings
+                  {t('common:save')}
                 </Button>
               </Box>
             </Form>

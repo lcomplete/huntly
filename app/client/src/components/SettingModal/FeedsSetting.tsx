@@ -42,6 +42,7 @@ import FolderFormDialog from "./FolderFormDialog";
 import FeedsFormDialog from "./FeedsFormDialog";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { reorder } from "../../common/arrayUtils";
+import { useTranslation } from 'react-i18next';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -72,6 +73,7 @@ function a11yProps(index: number) {
 }
 
 export const FeedsSetting = () => {
+  const { t } = useTranslation(['settings']);
   const [tabValue, setTabValue] = useState(0);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -82,8 +84,8 @@ export const FeedsSetting = () => {
     <div>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="feeds settings tabs">
-          <Tab icon={<RssFeedIcon />} iconPosition="start" label="Feeds" {...a11yProps(0)} sx={{ minHeight: 48 }} />
-          <Tab icon={<FolderIcon />} iconPosition="start" label="Folders" {...a11yProps(1)} sx={{ minHeight: 48 }} />
+          <Tab icon={<RssFeedIcon />} iconPosition="start" label={t('settings:feeds')} {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<FolderIcon />} iconPosition="start" label={t('settings:folder')} {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>
@@ -97,6 +99,7 @@ export const FeedsSetting = () => {
 };
 
 function FeedsTabContent() {
+  const { t } = useTranslation(['settings']);
   const [file, setFile] = useState<File>();
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -225,10 +228,10 @@ function FeedsTabContent() {
   return (
     <div>
       <div>
-        <SettingSectionTitle first icon={RssFeedIcon}>Subscribe to RSS</SettingSectionTitle>
+        <SettingSectionTitle first icon={RssFeedIcon}>{t('settings:feeds')}</SettingSectionTitle>
         <form onSubmit={formikFeeds.handleSubmit}>
           <TextField fullWidth={true} size={'small'} margin={'normal'}
-            label={'RSS link'}
+            label={t('settings:rssLink')}
             id={'subscribeUrl'} name={'subscribeUrl'}
             value={formikFeeds.values.subscribeUrl}
             onChange={formikFeeds.handleChange}
@@ -242,7 +245,7 @@ function FeedsTabContent() {
               ),
             }}
           />
-          <Button color={'primary'} variant={'contained'} size={'medium'} type={'submit'}>Preview</Button>
+          <Button color={'primary'} variant={'contained'} size={'medium'} type={'submit'}>{t('settings:preview')}</Button>
         </form>
         <div>
           {feedsInfo && <Card className={`mt-2 flex mr-4`}>
@@ -294,23 +297,23 @@ function FeedsTabContent() {
         </div>
       </div>
       <div>
-        <SettingSectionTitle icon={UploadFileIcon}>OPML Import</SettingSectionTitle>
+        <SettingSectionTitle icon={UploadFileIcon}>{t('settings:opmlImport')}</SettingSectionTitle>
         <div>
-          <label htmlFor={'opmlFile'}>Choose file: </label>
+          <label htmlFor={'opmlFile'}>{t('settings:chooseFile')}</label>
           <input type={'file'} name={'opmlFile'} onChange={handleFileChange} />
           <Button type={'button'} color={'primary'} size={'small'} variant={'contained'} disabled={importing}
-            onClick={uploadOpml}>{importing ? 'importing' : 'import'}</Button>
+            onClick={uploadOpml}>{importing ? t('settings:importingAction') : t('settings:importAction')}</Button>
         </div>
       </div>
       <div>
-        <SettingSectionTitle icon={DownloadIcon}>OPML Export</SettingSectionTitle>
+        <SettingSectionTitle icon={DownloadIcon}>{t('settings:opmlExport')}</SettingSectionTitle>
         <div>
           <Button type={'button'} color={'primary'} size={'small'} variant={'contained'} disabled={exporting}
-            onClick={downloadOpml}>{exporting ? 'exporting' : 'export'}</Button>
+            onClick={downloadOpml}>{exporting ? t('settings:exportingAction') : t('settings:exportAction')}</Button>
         </div>
       </div>
       <div>
-        <SettingSectionTitle icon={SettingsIcon}>Options</SettingSectionTitle>
+        <SettingSectionTitle icon={SettingsIcon}>{t('settings:options')}</SettingSectionTitle>
         <div>
           <FormControlLabel
             control={
@@ -319,7 +322,7 @@ function FeedsTabContent() {
                 onChange={handleMarkReadOnScrollChange}
               />
             }
-            label="Mark read when you scroll past them"
+            label={t('settings:markReadOnScroll')}
           />
         </div>
       </div>
@@ -334,6 +337,7 @@ const ListWrapper = styled('div')(({ theme }) => ({
 }));
 
 function FoldersTabContent() {
+  const { t } = useTranslation(['settings']);
   const api = SettingControllerApiFactory();
   const [folderId, setFolderId] = React.useState<number>(0);
   const [editFolderId, setEditFolderId] = React.useState<number>(null);
@@ -393,12 +397,12 @@ function FoldersTabContent() {
         <div className="w-1/2 pr-4">
           <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200 min-h-[40px]">
             <Typography variant="subtitle1" component="h4" className="font-semibold text-gray-700">
-              Folders
+              {t('settings:folder')}
             </Typography>
             <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => {
               setEditFolderId(0);
             }} size="small">
-              New Folder
+              {t('settings:addFolder')}
             </Button>
           </div>
           {
@@ -451,7 +455,7 @@ function FoldersTabContent() {
                                       </ListItemAvatar>
                                       <ListItemText
                                         primary={folder.name}
-                                        secondary={!folder.id && 'Root Folder'}
+                                        secondary={!folder.id && t('settings:noFolder')}
                                       />
                                     </Box>
                                     <IconButton edge="end" aria-label="edit" disabled={!folder.id} onClick={() => {
@@ -478,7 +482,7 @@ function FoldersTabContent() {
         <div className="w-1/2 pl-4">
           <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200 min-h-[40px]">
             <Typography variant="subtitle1" component="h4" className="font-semibold text-gray-700">
-              Feeds
+              {t('settings:feeds')}
             </Typography>
           </div>
           {
