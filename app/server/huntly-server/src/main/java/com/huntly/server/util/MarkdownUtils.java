@@ -2,7 +2,7 @@ package com.huntly.server.util;
 
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 
-import javax.persistence.Convert;
+import jakarta.persistence.Convert;
 import javax.swing.text.html.HTML;
 
 import org.jsoup.Jsoup;

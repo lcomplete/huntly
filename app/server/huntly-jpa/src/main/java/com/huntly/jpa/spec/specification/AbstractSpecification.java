@@ -26,9 +26,9 @@ import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
 
-import javax.persistence.criteria.From;
-import javax.persistence.criteria.JoinType;
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
 
 abstract class AbstractSpecification<T> implements Specification<T>, Serializable {
     public String getProperty(String property) {

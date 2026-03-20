@@ -2,7 +2,7 @@ package com.huntly.interfaces.external.model;
 
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 
 /**

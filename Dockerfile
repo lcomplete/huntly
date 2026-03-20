@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:latest
+FROM eclipse-temurin:25-jre-alpine
 
 LABEL maintainer="lcomplete"
 
