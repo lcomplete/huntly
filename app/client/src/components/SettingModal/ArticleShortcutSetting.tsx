@@ -89,13 +89,13 @@ const ArticleShortcutSetting = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
         setIsEditModalOpen(false);
-        enqueueSnackbar('Shortcut saved successfully', {
+        enqueueSnackbar(t('settings:shortcutSaved'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error: any) => {
-        const errorMessage = error.message || "Failed to save shortcut";
+        const errorMessage = error.message || t('settings:failedToSaveShortcut');
         enqueueSnackbar(errorMessage, {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
@@ -112,7 +112,7 @@ const ArticleShortcutSetting = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
-        enqueueSnackbar('Shortcut deleted successfully', {
+        enqueueSnackbar(t('settings:shortcutDeleted'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -136,13 +136,13 @@ const ArticleShortcutSetting = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
         setIsImportModalOpen(false);
-        enqueueSnackbar('Default shortcuts imported successfully', {
+        enqueueSnackbar(t('settings:shortcutsImported'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
-        enqueueSnackbar(`Failed to import shortcuts: ${error}`, {
+        enqueueSnackbar(t('settings:failedToImportShortcuts', {error}), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -162,13 +162,13 @@ const ArticleShortcutSetting = () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
         setIsImportModalOpen(false);
         setSelectedShortcuts([]);
-        enqueueSnackbar('Selected shortcuts imported successfully', {
+        enqueueSnackbar(t('settings:shortcutsImported'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
-        enqueueSnackbar(`Failed to import shortcuts: ${error}`, {
+        enqueueSnackbar(t('settings:failedToImportShortcuts', {error}), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -195,7 +195,7 @@ const ArticleShortcutSetting = () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
       },
       onError: (error: any) => {
-        const errorMessage = error.message || "Failed to update shortcut order";
+        const errorMessage = error.message || t('settings:failedToUpdateShortcutOrder');
         enqueueSnackbar(errorMessage, {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
@@ -216,14 +216,14 @@ const ArticleShortcutSetting = () => {
     {
       onSuccess: (data) => {
         queryClient.invalidateQueries(["article-shortcuts"]);
-        const statusText = data.enabled ? "enabled" : "disabled";
-        enqueueSnackbar(`Shortcut "${data.name}" ${statusText} successfully`, {
+        const statusText = data.enabled ? t('settings:enabledText') : t('settings:disabledText');
+        enqueueSnackbar(t('settings:shortcutStatusUpdated', {name: data.name, status: statusText}), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
-        enqueueSnackbar(`Failed to update shortcut: ${error}`, {
+        enqueueSnackbar(t('settings:failedToUpdateShortcut', {error}), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -248,14 +248,14 @@ const ArticleShortcutSetting = () => {
   };
 
   const handleDeleteShortcut = (id: number) => {
-    if (window.confirm("Are you sure you want to delete this shortcut?")) {
+    if (window.confirm(t('settings:confirmDeleteShortcut'))) {
       deleteShortcutMutation.mutate(id);
     }
   };
 
   const handleSaveShortcut = () => {
     if (!editShortcut || !editShortcut.name || !editShortcut.content) {
-      enqueueSnackbar('Name and content are required', {
+      enqueueSnackbar(t('settings:nameAndContentRequired'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
@@ -325,7 +325,7 @@ const ArticleShortcutSetting = () => {
       <SettingSectionTitle
         first
         icon={BoltIcon}
-        description="Create AI-powered shortcuts to quickly process article content with custom prompts."
+        description={t('settings:articleShortcutsDesc')}
       >
         {t('settings:articleShortcuts')}
       </SettingSectionTitle>
@@ -755,7 +755,7 @@ const ArticleShortcutSetting = () => {
                 bgcolor: '#f8fafc'
               }}>
                 <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
-                  {selectedShortcuts.length} of {importableShortcuts.length} selected
+                  {t('settings:shortcutsSelected', { count: selectedShortcuts.length, total: importableShortcuts.length })}
                 </Typography>
                 <Button
                   size="small"
@@ -766,7 +766,7 @@ const ArticleShortcutSetting = () => {
                     color: '#3b82f6'
                   }}
                 >
-                  {selectedShortcuts.length === importableShortcuts.length ? 'Deselect All' : 'Select All'}
+                  {selectedShortcuts.length === importableShortcuts.length ? t('settings:deselectAll') : t('settings:selectAll')}
                 </Button>
               </Box>
               <List sx={{ py: 0 }}>

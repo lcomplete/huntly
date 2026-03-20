@@ -8,6 +8,7 @@ import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import NavListItem from "../shared/NavListItem";
 import SidebarHeader from "../shared/SidebarHeader";
+import { useTranslation } from "react-i18next";
 
 // X (Twitter) Icon Component - same as in PrimaryNavigation
 function XIcon(props: SvgIconProps) {
@@ -41,20 +42,33 @@ interface SettingsNavProps {
 }
 
 export default function SettingsNav({ selectedNodeId, showHeader = false }: SettingsNavProps) {
+  const { t } = useTranslation(['settings', 'navigation']);
   return (
     <>
-      {showHeader && <SidebarHeader title="Settings" />}
+      {showHeader && <SidebarHeader title={t('navigation:settings', 'Settings')} />}
       <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, pt: 0.5 }}>
-        {settingsItems.map((item) => (
-          <NavListItem
-            key={item.linkTo}
-            to={item.linkTo}
-            icon={item.labelIcon}
-            label={item.labelText}
-            isSelected={selectedNodeId === item.linkTo}
-            useGradient={item.useGradient}
-          />
-        ))}
+        {settingsItems.map((item) => {
+          const keyMap: Record<string, string> = {
+            'General': 'general',
+            'Huntly AI': 'huntlyAi',
+            'Library': 'library',
+            'Feeds': 'feeds',
+            'X': 'x',
+            'GitHub': 'github',
+            'Account': 'account',
+          };
+          const i18nKey = keyMap[item.labelText] || item.labelText.toLowerCase();
+          return (
+            <NavListItem
+              key={item.linkTo}
+              to={item.linkTo}
+              icon={item.labelIcon}
+              label={t(`settings:${i18nKey}`, item.labelText)}
+              isSelected={selectedNodeId === item.linkTo}
+              useGradient={item.useGradient}
+            />
+          );
+        })}
       </Box>
     </>
   );

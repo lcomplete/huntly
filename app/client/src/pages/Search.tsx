@@ -16,12 +16,14 @@ import {useSnackbar} from "notistack";
 import {safeInt} from "../common/typeUtils";
 import SearchBox from "../components/SearchBox";
 import SubHeader from "../components/SubHeader";
+import { useTranslation } from "react-i18next";
 import navLabels from "../components/Navigation/shared/NavLabels";
 import SearchIcon from "@mui/icons-material/Search";
 
 export default function Search() {
   const {ref: inViewRef, inView} = useInView();
   const {enqueueSnackbar} = useSnackbar();
+  const { t } = useTranslation(['search']);
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q');
   const options = searchParams.get("op");
@@ -33,11 +35,11 @@ export default function Search() {
 
   // Quick search suggestions with their keywords
   const quickSearchSuggestions = [
-    { label: 'title', keyword: 'title', description: 'Search in titles only' },
-    { label: 'tweet', keyword: 'tweet', description: 'Twitter/X content' },
-    { label: 'github', keyword: 'github', description: 'GitHub repositories' },
-    { label: 'starred', keyword: 'starred', description: 'Your starred items' },
-    { label: 'read later', keyword: 'later', description: 'Read later list' },
+    { label: 'title', keyword: 'title', description: t('search:searchInTitles') },
+    { label: 'tweet', keyword: 'tweet', description: t('search:twitterContent') },
+    { label: 'github', keyword: 'github', description: t('search:githubRepos') },
+    { label: 'starred', keyword: 'starred', description: t('search:starredItems') },
+    { label: 'read later', keyword: 'later', description: t('search:readLaterList') },
   ];
 
   const handleQuickSearch = (keyword: string) => {
@@ -130,7 +132,7 @@ export default function Search() {
         };
       });
       closePageDetail();
-      enqueueSnackbar('Page deleted.', {
+      enqueueSnackbar(t('search:pageDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -167,10 +169,10 @@ export default function Search() {
         <SearchIcon sx={{ fontSize: 42, color: '#3b82f6' }} />
       </Box>
       <Typography variant="h5" sx={{ fontWeight: 600, color: '#1e293b', mb: 1.5, letterSpacing: '-0.01em' }}>
-        Search everything in Huntly
+        {t('search:searchEverything')}
       </Typography>
       <Typography variant="body1" sx={{ color: '#64748b', mb: 4.5, maxWidth: 480, lineHeight: 1.6, fontSize: '15px' }}>
-        Find articles, tweets, highlights, feeds, and more across all your hunted content.
+        {t('search:searchDesc')}
       </Typography>
       <Box sx={{ width: '100%', maxWidth: 800 }}>
         <SearchBox
@@ -184,7 +186,7 @@ export default function Search() {
       </Box>
       <Box sx={{ mt: 5, color: '#94a3b8' }}>
         <Typography variant="body2" sx={{ mb: 1.5, fontSize: '13px', fontWeight: 500, color: '#64748b' }}>
-          Try searching for:
+          {t('search:trySearchingFor')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap', justifyContent: 'center' }}>
           {quickSearchSuggestions.map((suggestion) => (
@@ -249,7 +251,7 @@ export default function Search() {
             }}
           >
             <Typography variant="body2" sx={{ color: '#334155', fontWeight: 600, fontSize: '13.5px' }}>
-              {data.pages[0].totalHits.toLocaleString()} results
+              {data.pages[0].totalHits.toLocaleString()} {t('search:results')}
             </Typography>
             <Typography component="span" sx={{ ml: 1.5, color: '#94a3b8', fontWeight: 500, fontSize: '12.5px' }}>
               ({data.pages[0].costSeconds.toFixed(3)}s)
@@ -264,7 +266,7 @@ export default function Search() {
           {isLoading && <Loading />}
           {error && (
             <Typography color="error" sx={{ textAlign: 'center', py: 4 }}>
-              Oops, something went wrong. Please try again.
+              {t('search:searchError')}
             </Typography>
           )}
           {!isLoading && !error && data && (
@@ -296,19 +298,19 @@ export default function Search() {
                       }
                     }}
                   >
-                    Load More
+                    {t('search:loadMore')}
                   </Button>
                 ) : data.pages[0].totalHits > 0 ? (
                   <Typography variant="body2" sx={{ color: '#94a3b8', fontSize: '13px' }}>
-                    No more results
+                    {t('search:noMoreResults')}
                   </Typography>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 6 }}>
                     <Typography variant="body1" sx={{ color: '#475569', fontWeight: 500, mb: 1 }}>
-                      No results found for "{q}"
+                      {t('search:noResultsFor', { query: q })}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#94a3b8', fontSize: '13.5px' }}>
-                      Try adjusting your search terms
+                      {t('search:adjustSearchTerms')}
                     </Typography>
                   </Box>
                 )}

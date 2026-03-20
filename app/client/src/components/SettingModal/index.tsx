@@ -102,7 +102,7 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <GitHubIcon/>
               </ListItemIcon>
-              <ListItemText primary="GitHub"/>
+              <ListItemText primary={t('github', 'GitHub')}/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 5}

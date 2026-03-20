@@ -11,6 +11,7 @@ import MagazineItem from "../components/MagazineItem";
 import CompactItem from "../components/CompactItem";
 import Loading from "../components/Loading";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ExtensionIcon from "@mui/icons-material/Extension";
 import GitHubIcon from "@mui/icons-material/GitHub";
@@ -38,6 +39,7 @@ const hotTweetsHoursOptions = [
 
 const Home = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation(['home', 'navigation']);
 
   const [hotTweetsHours, setHotTweetsHours] = React.useState<number>(() => {
     const saved = localStorage.getItem(HOT_TWEETS_HOURS_KEY);
@@ -176,7 +178,7 @@ const Home = () => {
     if (!items || items.length === 0) {
       return (
         <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-          <Typography variant="body2">No highlights yet.</Typography>
+          <Typography variant="body2">{t('home:noHighlightsYet')}</Typography>
         </Box>
       );
     }
@@ -216,7 +218,7 @@ const Home = () => {
                     overflow: "hidden",
                   }}
                 >
-                  {highlightText || "Untitled highlight"}
+                  {highlightText || t('home:untitledHighlight')}
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
                   <Typography
@@ -229,7 +231,7 @@ const Home = () => {
                       maxWidth: "70%",
                     }}
                   >
-                    {highlight.pageTitle || "Untitled page"}
+                    {highlight.pageTitle || t('home:untitledPage')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     - <SmartMoment dt={highlight.createdAt} />
@@ -277,7 +279,7 @@ const Home = () => {
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                    Latest Feed
+                    {t('home:latestFeed')}
                   </Typography>
                   <Button
                     endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
@@ -293,16 +295,16 @@ const Home = () => {
                       }
                     }}
                   >
-                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{t('home:viewAll')}</Box>
                   </Button>
                 </Box>
                 {isLoadingLatestFeed && <Loading />}
                 {latestFeedError && (
-                  <Typography color="error">Failed to load latest feed</Typography>
+                  <Typography color="error">{t('home:failedToLoadLatestFeed')}</Typography>
                 )}
                 {!isLoadingLatestFeed &&
                   !latestFeedError &&
-                  renderPageList(latestFeed || [], "No unread feed items.")}
+                  renderPageList(latestFeed || [], t('home:noUnreadFeedItems'))}
               </Box>
 
               <Box sx={moduleSx}>
@@ -318,7 +320,7 @@ const Home = () => {
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                    Recently Read
+                    {t('home:recentlyRead')}
                   </Typography>
                   <Button
                     endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
@@ -334,16 +336,16 @@ const Home = () => {
                       }
                     }}
                   >
-                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{t('home:viewAll')}</Box>
                   </Button>
                 </Box>
                 {isLoadingRecentlyRead && <Loading />}
                 {recentlyReadError && (
-                  <Typography color="error">Failed to load recently read items</Typography>
+                  <Typography color="error">{t('home:failedToLoadRecentlyRead')}</Typography>
                 )}
                 {!isLoadingRecentlyRead &&
                   !recentlyReadError &&
-                  renderPageList(recentlyReadPages || [], "No recently read items yet.")}
+                  renderPageList(recentlyReadPages || [], t('home:noRecentlyReadItems'))}
               </Box>
             </Box>
 
@@ -361,7 +363,7 @@ const Home = () => {
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                    Read Later
+                    {t('home:readLater')}
                   </Typography>
                   <Button
                     endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
@@ -377,16 +379,16 @@ const Home = () => {
                       }
                     }}
                   >
-                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{t('home:viewAll')}</Box>
                   </Button>
                 </Box>
                 {isLoadingReadLater && <Loading />}
                 {readLaterError && (
-                  <Typography color="error">Failed to load read later items</Typography>
+                  <Typography color="error">{t('home:failedToLoadReadLater')}</Typography>
                 )}
                 {!isLoadingReadLater &&
                   !readLaterError &&
-                  renderPageList(readLaterPages || [], "No read later items yet.")}
+                  renderPageList(readLaterPages || [], t('home:noReadLaterItems'))}
               </Box>
 
               <Box sx={moduleSx}>
@@ -402,7 +404,7 @@ const Home = () => {
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                    Highlights
+                    {t('home:highlights')}
                   </Typography>
                   <Button
                     endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
@@ -418,12 +420,12 @@ const Home = () => {
                       }
                     }}
                   >
-                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{t('home:viewAll')}</Box>
                   </Button>
                 </Box>
                 {isLoadingHighlights && <Loading />}
                 {highlightsError && (
-                  <Typography color="error">Failed to load highlights</Typography>
+                  <Typography color="error">{t('home:failedToLoadHighlights')}</Typography>
                 )}
                 {!isLoadingHighlights && !highlightsError && renderHighlights(highlights || [])}
               </Box>
@@ -441,7 +443,7 @@ const Home = () => {
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                    Huntly Info
+                    {t('home:huntlyInfo')}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: { xs: 1.5, md: 2 }, justifyContent: "space-between" }}>
@@ -464,7 +466,7 @@ const Home = () => {
                       <InfoIcon sx={{ fontSize: { xs: 18, md: 24 } }} />
                     </Box>
                     <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
-                      Version
+                      {t('home:version')}
                     </Typography>
                     <Button
                       href="https://github.com/lcomplete/huntly/releases"
@@ -507,7 +509,7 @@ const Home = () => {
                       <ExtensionIcon sx={{ fontSize: { xs: 18, md: 24 } }} />
                     </Box>
                     <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
-                      Extension
+                      {t('home:extension')}
                     </Typography>
                     <Button
                       href="https://chromewebstore.google.com/detail/huntly/cphlcmmpbdkadofgcedjgfblmiklbokm"
@@ -527,7 +529,7 @@ const Home = () => {
                         },
                       }}
                     >
-                      Install
+                      {t('home:install')}
                     </Button>
                   </Box>
 
@@ -550,7 +552,7 @@ const Home = () => {
                       <GitHubIcon sx={{ fontSize: { xs: 18, md: 24 } }} />
                     </Box>
                     <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
-                      GitHub
+                      {t('navigation:github')}
                     </Typography>
                     <Button
                       href="https://github.com/lcomplete/huntly"
@@ -570,7 +572,7 @@ const Home = () => {
                         },
                       }}
                     >
-                      Star
+                      {t('home:star')}
                     </Button>
                   </Box>
                 </Box>
@@ -592,7 +594,7 @@ const Home = () => {
                 >
                   <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
                     <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                      Hot Tweets
+                      {t('home:hotTweets')}
                     </Typography>
                     <Button
                       endIcon={<ArrowForwardIcon sx={{ fontSize: { xs: "1.25rem", md: "1.25rem" } }} />}
@@ -608,7 +610,7 @@ const Home = () => {
                         }
                       }}
                     >
-                      <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>View All</Box>
+                      <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{t('home:viewAll')}</Box>
                     </Button>
                   </Box>
                 </Box>
@@ -661,11 +663,11 @@ const Home = () => {
                 >
                   {isLoadingHotTweets && <Loading />}
                   {hotTweetsError && (
-                    <Typography color="error">Failed to load hot tweets</Typography>
+                    <Typography color="error">{t('home:failedToLoadHotTweets')}</Typography>
                   )}
                   {!isLoadingHotTweets &&
                     !hotTweetsError &&
-                    renderPageList(hotTweets || [], `No hot tweets in the last ${hotTweetsHours}h.`, true)}
+                    renderPageList(hotTweets || [], t('home:noHotTweetsInHours', { hours: hotTweetsHours }), true)}
                 </Box>
               </Box>
             </Box>

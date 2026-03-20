@@ -11,7 +11,7 @@ import { useSnackbar } from 'notistack';
 import { ConnectorItem, Folder, FolderConnectors, SettingControllerApiFactory } from '../../../api';
 import { reorder } from '../../../common/arrayUtils';
 import { ConnectorType } from '../../../interfaces/connectorType';
-import navLabels from '../shared/NavLabels';
+import navLabels, { getTranslatedLabel } from '../shared/NavLabels';
 
 // Storage key for expanded folders state
 const STORAGE_KEY_FOLDERS = 'huntly-feeds-folders-expanded';
@@ -135,7 +135,7 @@ const AllFeedsItem: React.FC<{
             flexGrow: 1,
           }}
         >
-          {navLabels.allFeeds.labelText}
+          {getTranslatedLabel(navLabels.allFeeds)}
         </Typography>
         {count > 0 && (
           <Box

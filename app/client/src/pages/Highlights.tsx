@@ -26,6 +26,7 @@ import { safeInt } from '../common/typeUtils';
 import { PageOperateEvent } from '../components/PageOperationButtons';
 import MainContainer from '../components/MainContainer';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
+import { useTranslation } from "react-i18next";
 
 const renderHighlightedText = (text?: string | null) => {
   if (!text) {
@@ -49,6 +50,7 @@ const HighlightItem = React.memo(({
   onPageSelect?: (event: React.MouseEvent<HTMLElement>, pageId: number, highlightId?: number) => void;
   onDelete?: (highlightId: number) => void;
 }) => {
+  const { t } = useTranslation(['page', 'common']);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const handleHighlightClick = (e: React.MouseEvent<HTMLElement>) => {
     // 右键点击时不处理，让默认行为生效（显示右键菜单）
@@ -244,7 +246,7 @@ const HighlightItem = React.memo(({
                 }
               }}
             >
-              Delete
+              {t('common:delete')}
             </Button>
           </Box>
         </Box>
@@ -252,7 +254,7 @@ const HighlightItem = React.memo(({
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}
-        title="Are you sure you want to delete this highlight?"
+        title={t('page:deleteHighlightConfirm')}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
@@ -261,6 +263,7 @@ const HighlightItem = React.memo(({
 });
 
 const Highlights: React.FC = () => {
+  const { t } = useTranslation(['page', 'common']);
   const [params, setParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
@@ -310,12 +313,12 @@ const Highlights: React.FC = () => {
   }, [inView, hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
 
   React.useEffect(() => {
-    setDocTitle('My Highlights');
+    setDocTitle(t('page:myHighlightsTitle'));
   }, []);
 
   React.useEffect(() => {
     if (selectedPageId === 0) {
-      setDocTitle('My Highlights');
+      setDocTitle(t('page:myHighlightsTitle'));
     }
   }, [selectedPageId]);
 
@@ -350,14 +353,14 @@ const Highlights: React.FC = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['highlights']);
-        enqueueSnackbar('Highlight deleted.', {
+        enqueueSnackbar(t('page:highlightDeletedMsg'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
         console.error('Failed to delete highlight:', error);
-        enqueueSnackbar('Failed to delete highlight. Please try again.', {
+        enqueueSnackbar(t('page:deleteHighlightFailed'), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -392,7 +395,7 @@ const Highlights: React.FC = () => {
             {error && (
               <div className="w-full">
                 <Alert severity="error">
-                  Failed to load highlights. Please try again.
+                  {t('page:highlightsLoadError')}
                 </Alert>
               </div>
             )}
@@ -400,9 +403,9 @@ const Highlights: React.FC = () => {
               allHighlights.length === 0 ? (
                 <div className="w-full">
                   <Alert severity="info">
-                    <AlertTitle>No highlights found</AlertTitle>
+                    <AlertTitle>{t('page:noHighlightsFound')}</AlertTitle>
                     <div>
-                      You haven't highlighted any text yet. Start reading articles and highlight interesting passages to build your collection.
+                      {t('page:noHighlightsDesc')}
                     </div>
                   </Alert>
                 </div>
@@ -421,12 +424,12 @@ const Highlights: React.FC = () => {
                     {isFetchingNextPage && <Loading />}
                     {!isFetchingNextPage && hasNextPage && (
                       <Button variant="text" ref={inViewRef}>
-                        Load More
+                        {t('page:loadMore')}
                       </Button>
                     )}
                     {!isFetchingNextPage && !hasNextPage && allHighlights.length > 0 && (
                       <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                        No more highlights to load
+                        {t('page:noMoreHighlights')}
                       </Typography>
                     )}
                   </div>
