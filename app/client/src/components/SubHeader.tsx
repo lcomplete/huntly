@@ -1,8 +1,9 @@
 import {Box, IconButton, SvgIcon, Tooltip} from "@mui/material";
 import "./SubHeader.css";
 import * as React from "react";
+import { useTranslation } from 'react-i18next';
 import {ReactElement} from "react";
-import {NavLabel} from "./Navigation/shared/NavLabels";
+import {NavLabel, getTranslatedLabel} from "./Navigation/shared/NavLabels";
 import SearchBox from "./SearchBox";
 import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
@@ -30,6 +31,7 @@ type SubHeaderProps = {
 }
 
 const SubHeader = (props: SubHeaderProps) => {
+  const { t } = useTranslation('navigation');
   const {
     navLabel,
     navLabelArea,
@@ -44,10 +46,10 @@ const SubHeader = (props: SubHeaderProps) => {
   const buttonOptions = {...defaultBtnOptions, ...props.buttonOptions};
 
   const viewOptions = [
-    {id: 'magazine', label: 'Magazine view', icon: ListAltIcon},
-    {id: 'column', label: 'Column view', icon: VerticalSplitOutlinedIcon},
-    {id: 'list', label: 'List view', icon: ViewHeadlineOutlinedIcon},
-    {id: 'expanded', label: 'Expanded view', icon: ViewDayOutlinedIcon}
+    {id: 'magazine', label: t('magazineView'), icon: ListAltIcon},
+    {id: 'column', label: t('columnView'), icon: VerticalSplitOutlinedIcon},
+    {id: 'list', label: t('listView'), icon: ViewHeadlineOutlinedIcon},
+    {id: 'expanded', label: t('expandedView'), icon: ViewDayOutlinedIcon}
   ] as const;
 
   const [viewMode, setViewMode] = React.useState<typeof viewOptions[number]['id']>('magazine');
@@ -66,7 +68,7 @@ const SubHeader = (props: SubHeaderProps) => {
                            sx={{mr: 1, width: 24, height: 24}} src={navLabel.iconUrl}/>
               : <SvgIcon component={navLabel.labelIcon} sx={{color: navLabel.iconColor}}/>
           }
-          {navLabel.showLabel !== false && <span className={'subheader-label'} title={navLabel.labelText}>{navLabel.labelText}</span>}
+          {navLabel.showLabel !== false && <span className={'subheader-label'} title={getTranslatedLabel(navLabel)}>{getTranslatedLabel(navLabel)}</span>}
           {navLabelArea}
         </div>
 
@@ -74,13 +76,13 @@ const SubHeader = (props: SubHeaderProps) => {
           <div className={'subheader-actions subheader-actions-left'}>
             {
               buttonOptions.markRead && <div className={'group relative'}>
-                  <Tooltip title={'Mark list as read'} placement={"right"} disableInteractive>
+                  <Tooltip title={t('markListAsRead')} placement={"right"} disableInteractive>
                       <IconButton className={'group-hover:shadow-heavy group-hover:bg-white'} onClick={onMarkListAsRead}>
                           <CheckIcon fontSize="small"/>
                       </IconButton>
                   </Tooltip>
                   <div className={'group-hover:flex hidden absolute flex-col z-40'}>
-                      <Tooltip title={'Mark all as read'} placement={"right"} disableInteractive>
+                      <Tooltip title={t('markAllAsRead')} placement={"right"} disableInteractive>
                           <IconButton className={'mt-2 bg-white shadow-heavy hover:bg-white'} onClick={onMarkAllAsRead}>
                               <DoneAllIcon fontSize="small"/>
                           </IconButton>
