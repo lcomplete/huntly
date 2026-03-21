@@ -392,7 +392,7 @@ const PageList = (props: PageListProps) => {
         pages: oldData.pages.map(pages => pages.filter(curPage => curPage.id !== event.rawPageStatus.id))
       }));
       closePageDetail();
-      enqueueSnackbar('Page deleted.', {
+      enqueueSnackbar(t('page:pageDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });

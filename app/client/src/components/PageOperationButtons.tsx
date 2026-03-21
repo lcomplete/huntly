@@ -25,6 +25,7 @@ import {isDeepEqual} from "../common/objectUtils";
 import {ConnectorType} from "../interfaces/connectorType";
 import CollectionPickerDialog from "./Dialogs/CollectionPickerDialog";
 import {CollectionApi} from "../api/collectionApi";
+import { useTranslation } from "react-i18next";
 
 export enum PageOperation {
   readLater,
@@ -60,6 +61,7 @@ const PageOperationButtons = ({
                                 pageStatus,
                                 onOperateSuccess
                               }: { pageStatus: PageStatus, onOperateSuccess?: (event: PageOperateEvent) => void }) => {
+  const { t } = useTranslation(['page', 'common']);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openCollectionPicker, setOpenCollectionPicker] = useState(false);
   const [pageState, setPageState] = useState(pageStatus);
@@ -68,7 +70,7 @@ const PageOperationButtons = ({
     if (!isDeepEqual(pageState, pageStatus)) {
       setPageState(pageStatus);
     }
-  }, [pageStatus]);
+  }, [pageState, pageStatus]);
 
   const mutation = useMutation(({page, operation}: { page: PageStatus, operation: PageOperation }) => {
     switch (operation) {
@@ -245,7 +247,7 @@ const PageOperationButtons = ({
         </IconButton>
       </Tooltip>
       <div className={"group-hover:flex hidden absolute flex-col z-40"}>
-        <Tooltip title={"Move to collection"} placement={"right"}>
+        <Tooltip title={t('page:moveToCollection')} placement={"right"}>
           <IconButton onClick={showCollectionPicker} className={"mt-2 bg-white shadow-heavy hover:bg-white"}>
             <FolderOutlinedIcon fontSize={"small"}/>
           </IconButton>
@@ -255,7 +257,7 @@ const PageOperationButtons = ({
             {secondaryIcon}
           </IconButton>
         </Tooltip>
-        <Tooltip title={"Delete forever"} placement={"right"}>
+        <Tooltip title={t('page:deleteForever')} placement={"right"}>
           <IconButton onClick={showDeleteDialog} className={"mt-2 bg-white shadow-heavy hover:bg-white"}
                       color={"error"}>
             <DeleteForeverIcon fontSize={"small"}/>
@@ -268,12 +270,12 @@ const PageOperationButtons = ({
           aria-describedby="alert-dialog-description"
         >
           <DialogTitle id="alert-dialog-title">
-            {"Are you sure you want to delete this page from database?"}
+            {t('page:deletePageConfirm')}
           </DialogTitle>
           <DialogActions>
-            <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+            <Button onClick={handleCloseDeleteDialog}>{t('common:cancel')}</Button>
             <Button onClick={deletePage} autoFocus color={'warning'}>
-              Delete
+              {t('common:delete')}
             </Button>
           </DialogActions>
         </Dialog>
@@ -288,19 +290,36 @@ const PageOperationButtons = ({
   }
 
   const isFromFeeds = pageState.connectorType === ConnectorType.RSS;
+  let saveActionButtons;
+
+  if (pageState.librarySaveStatus === LibrarySaveStatus.Archived) {
+    saveActionButtons = groupSaveAction(
+      <ArchiveIcon fontSize={'small'}/>, save, t('page:removeFromArchive'),
+      <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, remove, t('page:removeFromMyList'));
+  } else if (pageState.librarySaveStatus === LibrarySaveStatus.Saved) {
+    saveActionButtons = groupSaveAction(
+      <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, remove, t('page:removeFromMyList'),
+      <ArchiveOutlinedIcon fontSize={'small'}/>, archive, t('page:archivePage')
+    );
+  } else {
+    saveActionButtons = groupSaveAction(
+      <PlaylistAddOutlinedIcon fontSize={"small"}/>, save, t('page:saveToMyList'),
+      <ArchiveOutlinedIcon fontSize={'small'}/>, archive, t('page:archivePage')
+    );
+  }
 
   return (
     <div className={'shrink-0'}>
       <Box sx={{}}>
         {isFromFeeds && (
           pageState.markRead ? (
-            <Tooltip title={"Mark as unread"}>
+            <Tooltip title={t('page:markAsUnread')}>
               <IconButton onClick={unMarkRead}>
                 <CheckCircleOutlineIcon fontSize={"small"}/>
               </IconButton>
             </Tooltip>
           ) : (
-            <Tooltip title={"Mark as read"}>
+            <Tooltip title={t('page:markAsRead')}>
               <IconButton onClick={markRead}>
                 <RadioButtonUncheckedIcon fontSize={"small"}/>
               </IconButton>
@@ -309,13 +328,13 @@ const PageOperationButtons = ({
         )}
         {
           pageState.readLater ? (
-            <Tooltip title={"Remove from read later"}>
+            <Tooltip title={t('page:removeFromReadLater')}>
               <IconButton onClick={unReadLater}>
                 <BookmarkAddedIcon fontSize={"small"}/>
               </IconButton>
             </Tooltip>
           ) : (
-            <Tooltip title={"Read later"}>
+            <Tooltip title={t('page:addToReadLater')}>
               <IconButton onClick={readLater}>
                 <BookmarkBorderIcon fontSize={"small"}/>
               </IconButton>
@@ -324,36 +343,20 @@ const PageOperationButtons = ({
         }
         {
           pageState.starred ? (
-            <Tooltip title={"Remove from starred"}>
+            <Tooltip title={t('page:unstar')}>
               <IconButton onClick={unStar}>
                 <StarIcon fontSize={"small"}/>
               </IconButton>
             </Tooltip>
           ) : (
-            <Tooltip title={"Star page"}>
+            <Tooltip title={t('page:star')}>
               <IconButton onClick={star}>
                 <StarBorderIcon fontSize={"small"}/>
               </IconButton>
             </Tooltip>
           )
         }
-        {
-          pageState.librarySaveStatus === LibrarySaveStatus.Archived ? (
-            groupSaveAction(
-              <ArchiveIcon fontSize={'small'}/>, save, 'Remove from archive',
-              <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, remove, 'Remove from my list')
-          ) : pageState.librarySaveStatus === LibrarySaveStatus.Saved ? (
-            groupSaveAction(
-              <PlaylistAddCheckOutlinedIcon fontSize={'small'}/>, remove, 'Remove from my list',
-              <ArchiveOutlinedIcon fontSize={'small'}/>, archive, 'Archive'
-            )
-          ) : (
-            groupSaveAction(
-              <PlaylistAddOutlinedIcon fontSize={"small"}/>, save, 'Save to my list',
-              <ArchiveOutlinedIcon fontSize={'small'}/>, archive, 'Archive'
-            )
-          )
-        }
+        {saveActionButtons}
       </Box>
     </div>
   );

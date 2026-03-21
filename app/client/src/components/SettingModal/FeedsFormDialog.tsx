@@ -18,7 +18,7 @@ import * as yup from "yup";
 import {useQuery} from "@tanstack/react-query";
 import { useTranslation } from 'react-i18next';
 
-export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, onClose: () => void }) {
+export default function FeedsFormDialog({feedsId, onClose}: Readonly<{ feedsId: number, onClose: () => void }>) {
   const [open, setOpen] = React.useState(true);
   const { t } = useTranslation(['settings', 'common']);
   const [feedsSetting, setFeedsSetting] = React.useState<FeedsSetting>({
@@ -31,14 +31,14 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
   });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const {enqueueSnackbar} = useSnackbar();
-  const api = SettingControllerApiFactory();
+  const api = React.useMemo(() => SettingControllerApiFactory(), []);
   useEffect(() => {
     if (feedsId > 0) {
       api.getFeedsSettingUsingGET(feedsId).then((response) => {
         setFeedsSetting(response.data);
       });
     }
-  }, [feedsId]);
+  }, [api, feedsId]);
   const {
     data: folders
   } = useQuery(["selecting-folders"], async () => (await api.getSortedFoldersUsingGET()).data);
@@ -54,22 +54,22 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
       ...feedsSetting
     },
     validationSchema: yup.object({
-      name: yup.string().required('Feed name is required.'),
+      name: yup.string().required(t('settings:feedNameRequired')),
       enabled: yup.boolean().nullable(),
       crawlFullContent: yup.boolean().nullable(),
       folderId: yup.number().nullable(),
-      subscribeUrl: yup.string().required('Subscribe URL is required.'),
-      fetchIntervalMinutes: yup.number().min(1,"Fetch interval can't less than 1.").required('Fetch interval is required.')
+      subscribeUrl: yup.string().required(t('settings:rssLinkRequired')),
+      fetchIntervalMinutes: yup.number().min(1, t('settings:fetchIntervalMin')).required(t('settings:fetchIntervalRequired'))
     }),
     onSubmit: (values) => {
       api.updateFeedsSettingUsingPOST(values).then(() => {
-        enqueueSnackbar('Update feed success.', {
+        enqueueSnackbar(t('settings:feedUpdated'), {
           variant: "success",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
         handleClose();
-      }).catch((err) => {
-        enqueueSnackbar('Update feed failed. Error: ' + err, {
+      }).catch(() => {
+        enqueueSnackbar(t('settings:feedUpdateFailed'), {
           variant: "error",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
@@ -87,13 +87,13 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
 
   function handleDelete() {
     api.deleteFeedUsingPOST(feedsId).then(() => {
-      enqueueSnackbar('Delete feed success.', {
+      enqueueSnackbar(t('settings:feedDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
       handleClose();
-    }).catch((err) => {
-      enqueueSnackbar('Delete feed failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:feedDeleteFailed'), {
         variant: "error",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -157,7 +157,7 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
                             control={<Checkbox value={true} name={'enabled'} onChange={formikFeeds.handleChange}
                                                checked={!!formikFeeds.values.enabled}/>
                             }
-                            label={t('settings:enableShortcut')}/>
+                            label={t('common:enable')}/>
           <FormControlLabel className={''}
                             control={<Checkbox value={true} name={'crawlFullContent'}
                                                onChange={formikFeeds.handleChange}

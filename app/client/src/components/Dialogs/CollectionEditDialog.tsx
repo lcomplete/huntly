@@ -12,6 +12,7 @@ import {
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { CollectionVO } from '../../api/collectionApi';
 import IconPicker, { IconValue } from '../IconPicker';
+import { useTranslation } from 'react-i18next';
 
 interface CollectionEditDialogProps {
     open: boolean;
@@ -28,6 +29,7 @@ const CollectionEditDialog: React.FC<CollectionEditDialogProps> = ({
     onClose,
     onSave,
 }) => {
+    const { t } = useTranslation(['navigation', 'common']);
     const [name, setName] = useState('');
     const [icon, setIcon] = useState<IconValue | null>(null);
 
@@ -97,14 +99,14 @@ const CollectionEditDialog: React.FC<CollectionEditDialogProps> = ({
         >
             <DialogTitle sx={{ pb: 1.5, pt: 2.5 }}>
                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>
-                    {isEditing ? 'Edit Collection' : 'New Collection'}
+                    {isEditing ? t('navigation:editCollection') : t('navigation:addCollection')}
                 </Typography>
             </DialogTitle>
             <DialogContent sx={{ pt: 1.5, pb: 2 }}>
                 {/* Icon row */}
                 <Box sx={{ mb: 2 }}>
                     <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#64748b', mb: 1 }}>
-                        Icon
+                        {t('common:icon')}
                     </Typography>
                     <IconPicker
                         value={icon}
@@ -117,18 +119,18 @@ const CollectionEditDialog: React.FC<CollectionEditDialogProps> = ({
                 {/* Name row */}
                 <Box>
                     <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#64748b', mb: 1 }}>
-                        Name
+                        {t('navigation:collectionName')}
                     </Typography>
                     <TextField
                         autoFocus
-                        placeholder="Collection name"
+                        placeholder={t('navigation:collectionName')}
                         fullWidth
                         variant="outlined"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         onKeyDown={handleKeyDown}
                         error={isDuplicateName}
-                        helperText={isDuplicateName ? 'A collection with this name already exists' : ''}
+                        helperText={isDuplicateName ? t('navigation:duplicateCollectionName') : ''}
                         InputProps={{
                             sx: {
                                 borderRadius: '8px',
@@ -164,7 +166,7 @@ const CollectionEditDialog: React.FC<CollectionEditDialogProps> = ({
                         },
                     }}
                 >
-                    Cancel
+                    {t('common:cancel')}
                 </Button>
                 <Button
                     onClick={handleSave}
@@ -189,7 +191,7 @@ const CollectionEditDialog: React.FC<CollectionEditDialogProps> = ({
                         },
                     }}
                 >
-                    {isEditing ? 'Save' : 'Create'}
+                    {isEditing ? t('common:save') : t('common:add')}
                 </Button>
             </DialogActions>
         </Dialog>

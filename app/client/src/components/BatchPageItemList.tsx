@@ -56,6 +56,13 @@ interface BatchPageItemListProps {
   readonly selectAll?: boolean;
   /** Callback when an item's selection changes */
   readonly onSelectItem?: (id: number, selected: boolean) => void;
+  /** Optional translated labels */
+  readonly labels?: {
+    openOriginal?: string;
+    author?: string;
+    collected?: string;
+    published?: string;
+  };
 }
 
 export default function BatchPageItemList({
@@ -64,6 +71,7 @@ export default function BatchPageItemList({
   selectedIds = new Set(),
   selectAll = false,
   onSelectItem,
+  labels,
 }: BatchPageItemListProps) {
   return (
     <Box className="space-y-2">
@@ -102,7 +110,7 @@ export default function BatchPageItemList({
                 >
                   {title}
                 </a>
-                <Tooltip title="Open original URL">
+                <Tooltip title={labels?.openOriginal || "Open original URL"}>
                   <IconButton
                     size="small"
                     href={item.url}
@@ -122,9 +130,9 @@ export default function BatchPageItemList({
 
               {/* Metadata */}
               <Box className="text-xs text-gray-400 mt-1 flex gap-4 flex-wrap">
-                {item.author && <span>Author: {item.author}</span>}
-                {item.collectedAt && <span>Collected: <SmartMoment dt={item.collectedAt} /></span>}
-                {pubTime && <span>Published: <SmartMoment dt={pubTime} /></span>}
+                {item.author && <span>{labels?.author || "Author"}: {item.author}</span>}
+                {item.collectedAt && <span>{labels?.collected || "Collected"}: <SmartMoment dt={item.collectedAt} /></span>}
+                {pubTime && <span>{labels?.published || "Published"}: <SmartMoment dt={pubTime} /></span>}
               </Box>
             </Box>
           </Box>

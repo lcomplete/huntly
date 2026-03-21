@@ -1,5 +1,6 @@
 {
   "save": "保存",
+  "export": "导出",
   "cancel": "取消",
   "delete": "删除",
   "edit": "编辑",
@@ -9,6 +10,7 @@
   "saveChanges": "保存更改",
   "change": "更改",
   "enable": "启用",
+  "icon": "图标",
   "loading": "加载中...",
   "error": "错误",
   "success": "成功",

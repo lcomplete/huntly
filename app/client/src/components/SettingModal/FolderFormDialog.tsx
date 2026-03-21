@@ -6,7 +6,7 @@ import * as yup from "yup";
 import {useSnackbar} from "notistack";
 import { useTranslation } from 'react-i18next';
 
-export default function FolderFormDialog({folderId, onClose}: { folderId: number, onClose: () => void }) {
+export default function FolderFormDialog({folderId, onClose}: Readonly<{ folderId: number, onClose: () => void }>) {
   const [open, setOpen] = React.useState(true);
   const { t } = useTranslation(['settings', 'common']);
   const [folder, setFolder] = React.useState<Folder>(null);
@@ -32,17 +32,17 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
       id: folder?.id || null
     },
     validationSchema: yup.object({
-      name: yup.string().required('Folder name is required.')
+      name: yup.string().required(t('settings:folderNameRequired'))
     }),
     onSubmit: (values) => {
       SettingControllerApiFactory().saveFolderUsingPOST(values).then(() => {
-        enqueueSnackbar('Save folder success.', {
+        enqueueSnackbar(t('settings:folderSaved'), {
           variant: "success",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
         handleClose();
-      }).catch((err) => {
-        enqueueSnackbar('Save folder failed. Error: ' + err, {
+      }).catch(() => {
+        enqueueSnackbar(t('settings:folderSaveFailed'), {
           variant: "error",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
@@ -60,13 +60,13 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
 
   function handleDelete() {
     SettingControllerApiFactory().deleteFolderUsingPOST(folderId).then(() => {
-      enqueueSnackbar('Delete folder success.', {
+      enqueueSnackbar(t('settings:folderDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
       handleClose();
-    }).catch((err) => {
-      enqueueSnackbar('Delete folder failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:folderDeleteFailed'), {
         variant: "error",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -79,7 +79,7 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
         <DialogTitle>{folderId === null || folderId === 0 ? t('settings:addFolder') : t('settings:editFolder')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Group your feeds into a private folder by topic, type, or project.
+            {t('settings:folderDescription')}
           </DialogContentText>
           <TextField
             autoFocus

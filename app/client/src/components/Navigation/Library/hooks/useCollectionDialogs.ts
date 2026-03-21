@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CollectionApi, CollectionVO, CollectionGroupVO } from '../../../../api/collectionApi';
+import { useTranslation } from 'react-i18next';
 
 interface ContextMenuState<T> {
   mouseX: number;
@@ -10,6 +11,7 @@ interface ContextMenuState<T> {
 
 export function useCollectionDialogs() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation(['navigation']);
 
   // Collection states
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -163,15 +165,15 @@ export function useCollectionDialogs() {
     } catch (error: any) {
       // Check if it's a duplicate name error
       // Backend returns error in format: { error: { message: "...", code: ..., type: "..." } }
-      const errorMessage = error?.response?.data?.error?.message || error?.message || 'Failed to save group';
+      const errorMessage = error?.response?.data?.error?.message || error?.message || t('navigation:groupSaveFailed');
       if (errorMessage.includes('already exists')) {
-        setGroupError('A group with this name already exists');
+        setGroupError(t('navigation:duplicateGroupName'));
       } else {
         setGroupError(errorMessage);
       }
       console.error('Failed to save group:', error);
     }
-  }, [editingGroup, invalidateTree, closeGroupEditDialog]);
+  }, [editingGroup, invalidateTree, closeGroupEditDialog, t]);
 
   return {
     // Collection dialog states

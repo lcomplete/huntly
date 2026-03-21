@@ -62,6 +62,44 @@ interface CollectionSelectorProps {
   themeColor?: string;
 }
 
+interface TwitterSettingFormItem {
+  clientKey: string;
+  id: number | null;
+  name: string;
+  screenName: string;
+  myself?: boolean | null;
+  tweetToLibraryType?: number | null;
+  bookmarkToLibraryType?: number | null;
+  likeToLibraryType?: number | null;
+  tweetToCollectionId?: number | null;
+  bookmarkToCollectionId?: number | null;
+  likeToCollectionId?: number | null;
+}
+
+function createTwitterSettingFormItem(
+  setting: Partial<Omit<TwitterSettingFormItem, "clientKey">> = {}
+): TwitterSettingFormItem {
+  return {
+    clientKey: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `twitter-rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: setting.id ?? null,
+    name: setting.name ?? "",
+    screenName: setting.screenName ?? "",
+    myself: setting.myself ?? null,
+    tweetToLibraryType: setting.tweetToLibraryType ?? null,
+    bookmarkToLibraryType: setting.bookmarkToLibraryType ?? null,
+    likeToLibraryType: setting.likeToLibraryType ?? null,
+    tweetToCollectionId: setting.tweetToCollectionId ?? null,
+    bookmarkToCollectionId: setting.bookmarkToCollectionId ?? null,
+    likeToCollectionId: setting.likeToCollectionId ?? null,
+  };
+}
+
+function toTwitterSettingPayload({ clientKey, ...setting }: TwitterSettingFormItem) {
+  return setting;
+}
+
 const CollectionSelector: React.FC<CollectionSelectorProps> = ({ value, onChange, treeData, label, themeColor = '#3b82f6' }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { t } = useTranslation(['settings', 'common', 'navigation']);
@@ -108,7 +146,7 @@ const CollectionSelector: React.FC<CollectionSelectorProps> = ({ value, onChange
             </Typography>
           ) : (
             <Typography variant="body2" sx={{ color: '#94a3b8', fontStyle: 'italic' }}>
-              {t('common:select', 'Select collection...')}
+              {t('settings:selectCollection')}
             </Typography>
           )}
         </Box>
@@ -208,8 +246,8 @@ export const TwitterSaveRulesSetting = () => {
 
   const twitterSettingsValidation = yup.object().shape({
     settings: yup.array().of(yup.object().shape({
-      name: yup.string().required('Name is required.'),
-      screenName: yup.string().required('Screen name is required.'),
+      name: yup.string().required(t('settings:displayNameRequired')),
+      screenName: yup.string().required(t('settings:screenNameRequired')),
       myself: yup.boolean().nullable(),
       tweetToLibraryType: yup.number().nullable(),
       bookmarkToLibraryType: yup.number().nullable(),
@@ -234,18 +272,19 @@ export const TwitterSaveRulesSetting = () => {
         <Formik
           initialValues={{
             settings: !twitterSettings || twitterSettings.length === 0
-              ? [{ id: null, name: "", screenName: "" }]
-              : twitterSettings
+              ? [createTwitterSettingFormItem()]
+              : twitterSettings.map((setting) => createTwitterSettingFormItem(setting))
           }}
           validationSchema={twitterSettingsValidation}
           onSubmit={values => {
-            api.saveTwitterUserSettingsUsingPOST(values.settings).then(() => {
-              enqueueSnackbar(`Twitter settings saved successfully.`, {
+            api.saveTwitterUserSettingsUsingPOST(values.settings.map(toTwitterSettingPayload)).then(() => {
+              enqueueSnackbar(t('settings:twitterSettingsSaved'), {
                 variant: "success",
                 anchorOrigin: { vertical: "bottom", horizontal: "center" }
               });
             }).catch((err) => {
-              enqueueSnackbar('Failed to save Twitter settings. Error: ' + err, {
+              const errorMessage = err instanceof Error ? err.message : "";
+              enqueueSnackbar(errorMessage || t('settings:twitterSettingsSaveFailed'), {
                 variant: "error",
                 anchorOrigin: { vertical: "bottom", horizontal: "center" }
               });
@@ -277,7 +316,7 @@ export const TwitterSaveRulesSetting = () => {
                       const myself = `settings[${index}].myself`;
 
                       return (
-                        <Box key={index} sx={ruleCardStyles}>
+                        <Box key={setting.clientKey} sx={ruleCardStyles}>
                           <Box sx={{ p: 2.5 }}>
                             {/* Header: User info and actions */}
                             <Box sx={{
@@ -379,7 +418,7 @@ export const TwitterSaveRulesSetting = () => {
                                     }}
                                   />
                                 </Tooltip>
-                                <Tooltip title="Remove this rule" arrow placement="top">
+                                <Tooltip title={t('settings:removeRule')} arrow placement="top">
                                   <IconButton
                                     size="small"
                                     onClick={() => remove(index)}
@@ -461,7 +500,7 @@ export const TwitterSaveRulesSetting = () => {
                                   value={setting.bookmarkToCollectionId}
                                   onChange={(v) => setFieldValue(bookmarkToCollectionId, v)}
                                   treeData={collectionTree ?? null}
-                                  label="Collection"
+                                  label={t('navigation:collection')}
                                   themeColor="#f59e0b"
                                 />
                                 <FormControl size="small" fullWidth>
@@ -484,11 +523,11 @@ export const TwitterSaveRulesSetting = () => {
                                       }
                                     }}
                                   >
-                                    <MenuItem value={0} sx={{ color: '#94a3b8', fontStyle: 'italic' }}>Library status (optional)</MenuItem>
-                                    <MenuItem value={1}>My list</MenuItem>
-                                    <MenuItem value={2}>Starred</MenuItem>
-                                    <MenuItem value={3}>Read later</MenuItem>
-                                    <MenuItem value={4}>Archive</MenuItem>
+                                    <MenuItem value={0} sx={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('settings:libraryStatus')}</MenuItem>
+                                    <MenuItem value={1}>{t('settings:myList')}</MenuItem>
+                                    <MenuItem value={2}>{t('settings:starred')}</MenuItem>
+                                    <MenuItem value={3}>{t('settings:readLater')}</MenuItem>
+                                    <MenuItem value={4}>{t('settings:archive')}</MenuItem>
                                   </Select>
                                 </FormControl>
                               </Box>
@@ -505,7 +544,7 @@ export const TwitterSaveRulesSetting = () => {
                                   value={setting.likeToCollectionId}
                                   onChange={(v) => setFieldValue(likeToCollectionId, v)}
                                   treeData={collectionTree ?? null}
-                                  label="Collection"
+                                  label={t('navigation:collection')}
                                   themeColor="#ef4444"
                                 />
                                 <FormControl size="small" fullWidth>
@@ -528,11 +567,11 @@ export const TwitterSaveRulesSetting = () => {
                                       }
                                     }}
                                   >
-                                    <MenuItem value={0} sx={{ color: '#94a3b8', fontStyle: 'italic' }}>Library status (optional)</MenuItem>
-                                    <MenuItem value={1}>My list</MenuItem>
-                                    <MenuItem value={2}>Starred</MenuItem>
-                                    <MenuItem value={3}>Read later</MenuItem>
-                                    <MenuItem value={4}>Archive</MenuItem>
+                                    <MenuItem value={0} sx={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('settings:libraryStatus')}</MenuItem>
+                                    <MenuItem value={1}>{t('settings:myList')}</MenuItem>
+                                    <MenuItem value={2}>{t('settings:starred')}</MenuItem>
+                                    <MenuItem value={3}>{t('settings:readLater')}</MenuItem>
+                                    <MenuItem value={4}>{t('settings:archive')}</MenuItem>
                                   </Select>
                                 </FormControl>
                               </Box>
@@ -547,7 +586,7 @@ export const TwitterSaveRulesSetting = () => {
                       type="button"
                       variant="outlined"
                       startIcon={<AddIcon />}
-                      onClick={() => push({ id: null, name: "", screenName: "" })}
+                      onClick={() => push(createTwitterSettingFormItem())}
                       sx={{
                         alignSelf: 'flex-start',
                         borderRadius: 2,

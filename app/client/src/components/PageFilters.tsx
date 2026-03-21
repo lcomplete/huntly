@@ -442,7 +442,7 @@ export default function PageFilters(props: PageFilterProps) {
                       handleClearDate();
                     }
                   }}
-                  aria-label="Clear date range"
+                    aria-label={t('page:clearDateRange')}
                 >
                   <ClearIcon fontSize="small" />
                 </span>
@@ -490,7 +490,7 @@ export default function PageFilters(props: PageFilterProps) {
         )}
 
         {includeArchivedOption && (
-          <Tooltip title={includeArchived ? "Including archived items" : "Click to include archived items"} arrow>
+          <Tooltip title={includeArchived ? t('page:includeArchived') : t('page:clickToIncludeArchived')} arrow>
             <span
               className={`page-filters-archive-toggle ${includeArchived ? 'is-active' : ''}`}
               onClick={handleIncludeArchivedToggle}
@@ -538,7 +538,7 @@ export default function PageFilters(props: PageFilterProps) {
                     handleClearDate();
                   }
                 }}
-                aria-label="Clear date range"
+                aria-label={t('page:clearDateRange')}
               >
                 <ClearIcon fontSize="small" />
               </span>

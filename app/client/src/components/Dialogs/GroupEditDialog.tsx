@@ -9,6 +9,7 @@ import {
     Typography,
 } from '@mui/material';
 import { CollectionGroupVO } from '../../api/collectionApi';
+import { useTranslation } from 'react-i18next';
 
 interface GroupEditDialogProps {
     open: boolean;
@@ -25,6 +26,7 @@ const GroupEditDialog: React.FC<GroupEditDialogProps> = ({
     onClose,
     onSave,
 }) => {
+    const { t } = useTranslation(['navigation', 'common']);
     const [name, setName] = useState('');
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -74,13 +76,13 @@ const GroupEditDialog: React.FC<GroupEditDialogProps> = ({
         >
             <DialogTitle sx={{ pb: 1.5, pt: 2.5 }}>
                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>
-                    {isEditing ? 'Rename Group' : 'New Group'}
+                    {isEditing ? t('navigation:editGroup') : t('navigation:addGroup')}
                 </Typography>
             </DialogTitle>
             <DialogContent sx={{ pt: 1.5, pb: 2 }}>
                 <TextField
                     autoFocus
-                    placeholder="Group name"
+                    placeholder={t('navigation:groupName')}
                     fullWidth
                     variant="outlined"
                     value={name}
@@ -135,7 +137,7 @@ const GroupEditDialog: React.FC<GroupEditDialogProps> = ({
                         },
                     }}
                 >
-                    Cancel
+                    {t('common:cancel')}
                 </Button>
                 <Button
                     onClick={handleSave}
@@ -160,7 +162,7 @@ const GroupEditDialog: React.FC<GroupEditDialogProps> = ({
                         },
                     }}
                 >
-                    {isEditing ? 'Save' : 'Create'}
+                    {isEditing ? t('common:save') : t('common:add')}
                 </Button>
             </DialogActions>
         </Dialog>

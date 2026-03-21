@@ -4,14 +4,16 @@ import navLabels from "../components/Navigation/shared/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";
+import { useTranslation } from "react-i18next";
 
 
 const MyList = () => {
+  const { t } = useTranslation(['page']);
   const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>({
     defaultSortValue: 'ARCHIVED_AT',
     sortFields: [{
       value: 'ARCHIVED_AT',
-      label: 'Recently archived'
+      label: t('page:sortByArchived')
     }],
     asc: false,
   })

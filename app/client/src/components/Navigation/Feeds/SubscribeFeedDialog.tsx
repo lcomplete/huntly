@@ -20,6 +20,7 @@ import { useFormik } from 'formik';
 import * as yup from 'yup';
 import { useQueryClient } from '@tanstack/react-query';
 import { PreviewFeedsInfo, SettingControllerApiFactory } from '../../../api';
+import { useTranslation } from 'react-i18next';
 
 interface SubscribeFeedDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
   const [feedsInfo, setFeedsInfo] = useState<PreviewFeedsInfo | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [following, setFollowing] = useState(false);
+  const { t } = useTranslation(['settings', 'navigation', 'common']);
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const api = SettingControllerApiFactory();
@@ -37,7 +39,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
   const formik = useFormik({
     initialValues: { subscribeUrl: '' },
     validationSchema: yup.object({
-      subscribeUrl: yup.string().url('Must be a valid URL').required('RSS link is required.'),
+      subscribeUrl: yup.string().url(t('settings:invalidUrl')).required(t('settings:rssLinkRequired')),
     }),
     onSubmit: async (values) => {
       setPreviewing(true);
@@ -47,7 +49,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
         setFeedsInfo(res.data);
       } catch (err) {
         console.error('Preview failed:', err);
-        enqueueSnackbar('Preview failed. Please check the URL.', {
+        enqueueSnackbar(t('settings:previewFailedCheckUrl'), {
           variant: 'error',
           anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
         });
@@ -62,7 +64,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
     setFollowing(true);
     try {
       await api.followFeedUsingPOST(feedsInfo.feedUrl);
-      enqueueSnackbar('Subscribed successfully!', {
+      enqueueSnackbar(t('settings:feedSubscribed'), {
         variant: 'success',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
       });
@@ -70,7 +72,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
       handleClose();
     } catch (err) {
       console.error('Follow failed:', err);
-      enqueueSnackbar('Failed to subscribe.', {
+      enqueueSnackbar(t('settings:feedSubscribeFailed'), {
         variant: 'error',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
       });
@@ -89,7 +91,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <RssFeedIcon sx={{ color: '#f97316' }} />
-        Subscribe to RSS
+        {t('navigation:subscribeToRss')}
       </DialogTitle>
       <DialogContent>
         <form onSubmit={formik.handleSubmit}>
@@ -97,7 +99,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
             fullWidth
             size="small"
             margin="normal"
-            label="RSS link"
+            label={t('settings:rssLink')}
             id="subscribeUrl"
             name="subscribeUrl"
             placeholder="https://example.com/feed.xml"
@@ -122,7 +124,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
             startIcon={previewing ? <CircularProgress size={16} /> : null}
             sx={{ mt: 1 }}
           >
-            {previewing ? 'Previewing...' : 'Preview'}
+            {previewing ? t('settings:previewingAction') : t('settings:preview')}
           </Button>
         </form>
 
@@ -169,7 +171,7 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
+        <Button onClick={handleClose}>{t('common:cancel')}</Button>
         {feedsInfo && !feedsInfo.subscribed && (
           <Button
             variant="contained"
@@ -178,12 +180,12 @@ const SubscribeFeedDialog: React.FC<SubscribeFeedDialogProps> = ({ open, onClose
             disabled={following}
             startIcon={following ? <CircularProgress size={16} /> : <RssFeedIcon />}
           >
-            {following ? 'Subscribing...' : 'Subscribe'}
+            {following ? t('settings:subscribingAction') : t('settings:followFeed')}
           </Button>
         )}
         {feedsInfo?.subscribed && (
           <Button variant="contained" disabled>
-            Already Subscribed
+            {t('settings:alreadySubscribed')}
           </Button>
         )}
       </DialogActions>

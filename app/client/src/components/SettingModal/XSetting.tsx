@@ -54,13 +54,13 @@ export const XSetting: React.FC = () => {
         autoSaveTweetMinLikes: minLikes,
       });
       originalMinLikesRef.current = minLikes;
-      enqueueSnackbar('Minimum likes setting saved.', {
+      enqueueSnackbar(t('settings:minLikesSaved'), {
         variant: 'success',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' }
       });
       refetchGlobalSetting();
     } catch (err) {
-      enqueueSnackbar('Failed to save minimum likes setting.', {
+      enqueueSnackbar(t('settings:minLikesSaveFailed'), {
         variant: 'error',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' }
       });

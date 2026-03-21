@@ -3,6 +3,7 @@ import { Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/materi
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ConnectorItem } from '../../../api';
+import { useTranslation } from 'react-i18next';
 
 type FeedContextMenuProps = {
   contextMenu: {
@@ -21,6 +22,7 @@ const FeedContextMenu: React.FC<FeedContextMenuProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t } = useTranslation(['common']);
   if (!contextMenu) {
     return null;
   }
@@ -31,7 +33,7 @@ const FeedContextMenu: React.FC<FeedContextMenuProps> = ({
       onClose={onClose}
       anchorReference="anchorPosition"
       anchorPosition={
-        contextMenu !== null
+        contextMenu
           ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
           : undefined
       }
@@ -68,7 +70,7 @@ const FeedContextMenu: React.FC<FeedContextMenuProps> = ({
           <EditIcon sx={{ fontSize: 18, color: '#64748b' }} />
         </ListItemIcon>
         <ListItemText
-          primary="Edit"
+          primary={t('common:edit')}
           primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
         />
       </MenuItem>
@@ -96,7 +98,7 @@ const FeedContextMenu: React.FC<FeedContextMenuProps> = ({
           <DeleteIcon sx={{ fontSize: 18, color: '#dc2626' }} />
         </ListItemIcon>
         <ListItemText
-          primary="Delete"
+          primary={t('common:delete')}
           primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
         />
       </MenuItem>

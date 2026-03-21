@@ -7,9 +7,7 @@ import {
   IconButton,
   InputAdornment,
   List,
-  ListItem,
   ListItemAvatar,
-  ListItemButton,
   ListItemText,
   Switch,
   Tab,
@@ -50,7 +48,7 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
+function TabPanel(props: Readonly<TabPanelProps>) {
   const { children, value, index, ...other } = props;
   return (
     <div
@@ -83,7 +81,7 @@ export const FeedsSetting = () => {
   return (
     <div>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="feeds settings tabs">
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label={t('settings:feeds')}>
           <Tab icon={<RssFeedIcon />} iconPosition="start" label={t('settings:feeds')} {...a11yProps(0)} sx={{ minHeight: 48 }} />
           <Tab icon={<FolderIcon />} iconPosition="start" label={t('settings:folder')} {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
@@ -99,7 +97,7 @@ export const FeedsSetting = () => {
 };
 
 function FeedsTabContent() {
-  const { t } = useTranslation(['settings']);
+  const { t } = useTranslation(['settings', 'common']);
   const [file, setFile] = useState<File>();
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -120,14 +118,15 @@ function FeedsTabContent() {
       globalSetting.markReadOnScroll = newValue;
       await api.saveGlobalSettingUsingPOST(globalSetting);
 
-      enqueueSnackbar('Setting saved.', {
+      enqueueSnackbar(t('settings:settingSaved'), {
         variant: "success",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     } catch (err) {
       // Revert on error
       setMarkReadOnScroll(!newValue);
-      enqueueSnackbar('Failed to save setting. Error: ' + err, {
+      console.error('Failed to save setting', err);
+      enqueueSnackbar(t('settings:settingSaveFailed'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
@@ -140,12 +139,12 @@ function FeedsTabContent() {
     }
     setImporting(true);
     api.importOpmlUsingPOST(file).then(() => {
-      enqueueSnackbar('Import success.', {
+      enqueueSnackbar(t('settings:importSuccess'), {
         variant: "success",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
-    }).catch((err) => {
-      enqueueSnackbar('Import failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:importFailed'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
@@ -162,18 +161,18 @@ function FeedsTabContent() {
     api.exportOpmlUsingPOST(options).then((response) => {
       if (response.status === 200) {
         const blob = new Blob([response.data as BlobPart], { type: 'application/octet-stream' });
-        const url = window.URL.createObjectURL(blob);
+        const url = globalThis.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = 'huntly.opml';
         document.body.appendChild(link);
         link.click();
 
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        link.remove();
+        globalThis.URL.revokeObjectURL(url);
       }
-    }).catch((err) => {
-      enqueueSnackbar('export failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:exportFailed'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
@@ -194,14 +193,14 @@ function FeedsTabContent() {
       subscribeUrl: ''
     },
     validationSchema: yup.object({
-      subscribeUrl: yup.string().required('RSS link is required.')
+      subscribeUrl: yup.string().url(t('settings:invalidUrl')).required(t('settings:rssLinkRequired'))
     }),
     onSubmit: (values) => {
       setFeedsInfo(null);
       api.previewFeedsUsingGET(values.subscribeUrl).then((res) => {
         setFeedsInfo(res.data);
-      }).catch((err) => {
-        enqueueSnackbar('Preview failed. Error: ' + err, {
+      }).catch(() => {
+        enqueueSnackbar(t('settings:previewFailedCheckUrl'), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -212,12 +211,12 @@ function FeedsTabContent() {
   function followFeeds() {
     if (feedsInfo) {
       api.followFeedUsingPOST(feedsInfo?.feedUrl).then(() => {
-        enqueueSnackbar('Follow success.', {
+        enqueueSnackbar(t('settings:feedSubscribed'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
-      }).catch((err) => {
-        enqueueSnackbar('Follow failed. Error: ' + err, {
+      }).catch(() => {
+        enqueueSnackbar(t('settings:feedSubscribeFailed'), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -286,11 +285,11 @@ function FeedsTabContent() {
             <div className={'flex items-center mr-4'}>
               {
                 feedsInfo.subscribed &&
-                <Button color={'info'} variant={'contained'} size={'medium'} disabled={true}>following</Button>
+                <Button color={'info'} variant={'contained'} size={'medium'} disabled={true}>{t('settings:followingFeed')}</Button>
               }
               {
                 !feedsInfo.subscribed &&
-                <Button color={'primary'} variant={'contained'} size={'medium'} onClick={followFeeds}>follow</Button>
+                <Button color={'primary'} variant={'contained'} size={'medium'} onClick={followFeeds}>{t('settings:followFeed')}</Button>
               }
             </div>
           </Card>}
@@ -337,7 +336,7 @@ const ListWrapper = styled('div')(({ theme }) => ({
 }));
 
 function FoldersTabContent() {
-  const { t } = useTranslation(['settings']);
+  const { t } = useTranslation(['settings', 'common']);
   const api = SettingControllerApiFactory();
   const [folderId, setFolderId] = React.useState<number>(0);
   const [editFolderId, setEditFolderId] = React.useState<number>(null);
@@ -360,12 +359,12 @@ function FoldersTabContent() {
     const reorderConnectors = reorder(connectors, source.index, destination.index);
     queryClient.setQueryData(["folder_connectors", folderId], reorderConnectors);
     api.resortConnectorsUsingPOST(reorderConnectors.map((c) => c.id)).then(() => {
-      enqueueSnackbar('Feeds display sequence changed.', {
+      enqueueSnackbar(t('settings:feedsOrderChanged'), {
         variant: "success",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
-    }).catch((err) => {
-      enqueueSnackbar('Feeds display sequence change failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:feedsOrderChangeFailed'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
@@ -379,12 +378,12 @@ function FoldersTabContent() {
     const reorderFolders = reorder(folders, source.index, destination.index);
     queryClient.setQueryData(["sorted_folders"], reorderFolders);
     api.resortFoldersUsingPOST(reorderFolders.map((c) => c.id)).then(() => {
-      enqueueSnackbar('Folders display sequence changed.', {
+      enqueueSnackbar(t('settings:foldersOrderChanged'), {
         variant: "success",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
-    }).catch((err) => {
-      enqueueSnackbar('Folders display sequence change failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:foldersOrderChangeFailed'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
@@ -458,7 +457,7 @@ function FoldersTabContent() {
                                         secondary={!folder.id && t('settings:noFolder')}
                                       />
                                     </Box>
-                                    <IconButton edge="end" aria-label="edit" disabled={!folder.id} onClick={() => {
+                                    <IconButton edge="end" aria-label={t('common:edit')} disabled={!folder.id} onClick={() => {
                                       setEditFolderId(folder.id)
                                     }}>
                                       <EditIcon />
@@ -527,7 +526,7 @@ function FoldersTabContent() {
                                       primary={conn.name}
                                       sx={{ color: conn.enabled ? '#000' : '#999' }}
                                     />
-                                    <IconButton edge="end" aria-label="edit" onClick={() => {
+                                    <IconButton edge="end" aria-label={t('common:edit')} onClick={() => {
                                       setEditFeedsId(conn.id)
                                     }}>
                                       <EditIcon />

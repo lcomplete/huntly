@@ -4,6 +4,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 import { CollectionVO } from '../../../api/collectionApi';
+import { useTranslation } from 'react-i18next';
 
 type CollectionContextMenuProps = {
     contextMenu: {
@@ -24,6 +25,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
     onDelete,
     onAddSubCollection,
 }) => {
+    const { t } = useTranslation(['navigation', 'common']);
     if (!contextMenu) {
         return null;
     }
@@ -34,7 +36,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
             onClose={onClose}
             anchorReference="anchorPosition"
             anchorPosition={
-                contextMenu !== null
+                contextMenu
                     ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
                     : undefined
             }
@@ -68,7 +70,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
                     <EditIcon sx={{ fontSize: 18, color: '#64748b' }} />
                 </ListItemIcon>
                 <ListItemText
-                    primary="Edit"
+                    primary={t('common:edit')}
                     primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
                 />
             </MenuItem>
@@ -90,7 +92,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
                     <CreateNewFolderIcon sx={{ fontSize: 18, color: '#64748b' }} />
                 </ListItemIcon>
                 <ListItemText
-                    primary="Add Sub-collection"
+                    primary={t('navigation:addSubCollection')}
                     primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
                 />
             </MenuItem>
@@ -115,7 +117,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
                     <DeleteIcon sx={{ fontSize: 18, color: '#dc2626' }} />
                 </ListItemIcon>
                 <ListItemText
-                    primary="Delete"
+                    primary={t('common:delete')}
                     primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
                 />
             </MenuItem>

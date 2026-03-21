@@ -4,13 +4,15 @@ import navLabels from "../components/Navigation/shared/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";
+import { useTranslation } from "react-i18next";
 
 const MyList = () => {
+  const { t } = useTranslation(['page']);
   const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>({
     defaultSortValue: 'STARRED_AT',
     sortFields: [{
       value: 'STARRED_AT',
-      label: 'Recently starred'
+      label: t('page:sortByStarred')
     }],
     asc: false,
     includeArchived: false,

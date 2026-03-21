@@ -10,10 +10,12 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import {useQuery} from "@tanstack/react-query";
 import {PageControllerApiFactory} from "../api";
 import {PageQueryKey} from "../domain/pageQueryKey";
+import { useTranslation } from "react-i18next";
 
 const Page = () => {
   const {id} = useParams<"id">();
   const {enqueueSnackbar} = useSnackbar();
+  const { t } = useTranslation(['page']);
   const pageId = safeInt(id);
 
   // Fetch page detail to get title
@@ -25,7 +27,7 @@ const Page = () => {
 
   function operateSuccess(event) {
     if (event.operation === PageOperation.delete) {
-      enqueueSnackbar('Page deleted.', {
+      enqueueSnackbar(t('page:pageDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -33,7 +35,7 @@ const Page = () => {
   }
 
   const articleNavLabel = {
-    labelText: detail?.page?.title || 'Article',
+    labelText: detail?.page?.title || t('page:article'),
     labelIcon: ArticleOutlinedIcon,
   };
 

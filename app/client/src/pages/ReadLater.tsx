@@ -4,13 +4,15 @@ import navLabels from "../components/Navigation/shared/NavLabels";
 import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";
+import { useTranslation } from "react-i18next";
 
 const MyList = () => {
+  const { t } = useTranslation(['page']);
   const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>({
     defaultSortValue: 'READ_LATER_AT',
     sortFields: [{
       value: 'READ_LATER_AT',
-      label: 'Recently saved'
+      label: t('page:sortByReadLater')
     }],
     asc: false,
     includeArchived: false,

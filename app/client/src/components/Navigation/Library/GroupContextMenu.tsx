@@ -5,6 +5,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 import AddIcon from '@mui/icons-material/Add';
 import { CollectionGroupVO } from '../../../api/collectionApi';
+import { useTranslation } from 'react-i18next';
 
 type GroupContextMenuProps = {
     contextMenu: {
@@ -27,6 +28,7 @@ const GroupContextMenu: React.FC<GroupContextMenuProps> = ({
     onAddCollection,
     onAddGroup,
 }) => {
+    const { t } = useTranslation(['navigation']);
     if (!contextMenu) {
         return null;
     }
@@ -39,7 +41,7 @@ const GroupContextMenu: React.FC<GroupContextMenuProps> = ({
             onClose={onClose}
             anchorReference="anchorPosition"
             anchorPosition={
-                contextMenu !== null
+                contextMenu
                     ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
                     : undefined
             }
@@ -73,7 +75,7 @@ const GroupContextMenu: React.FC<GroupContextMenuProps> = ({
                     <CreateNewFolderIcon sx={{ fontSize: 18, color: '#64748b' }} />
                 </ListItemIcon>
                 <ListItemText
-                    primary="Add Collection"
+                    primary={t('navigation:addCollection')}
                     primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
                 />
             </MenuItem>
@@ -99,7 +101,7 @@ const GroupContextMenu: React.FC<GroupContextMenuProps> = ({
                         <AddIcon sx={{ fontSize: 18, color: '#64748b' }} />
                     </ListItemIcon>
                     <ListItemText
-                        primary="Add Group"
+                        primary={t('navigation:addGroup')}
                         primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
                     />
                 </MenuItem>
@@ -124,7 +126,7 @@ const GroupContextMenu: React.FC<GroupContextMenuProps> = ({
                     <EditIcon sx={{ fontSize: 18, color: '#64748b' }} />
                 </ListItemIcon>
                 <ListItemText
-                    primary="Rename Group"
+                    primary={t('navigation:editGroup')}
                     primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
                 />
             </MenuItem>
@@ -151,7 +153,7 @@ const GroupContextMenu: React.FC<GroupContextMenuProps> = ({
                     <DeleteIcon sx={{ fontSize: 18, color: hasCollections ? '#9ca3af' : '#dc2626' }} />
                 </ListItemIcon>
                 <ListItemText
-                    primary={hasCollections ? "Delete (remove collections first)" : "Delete Group"}
+                    primary={hasCollections ? t('navigation:deleteGroupDisabled') : t('navigation:deleteGroup')}
                     primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
                 />
             </MenuItem>

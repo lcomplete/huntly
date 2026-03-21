@@ -1,5 +1,6 @@
 {
   "save": "Save",
+  "export": "Export",
   "cancel": "Cancel",
   "delete": "Delete",
   "edit": "Edit",
@@ -9,6 +10,7 @@
   "saveChanges": "Save Changes",
   "change": "Change",
   "enable": "Enable",
+  "icon": "Icon",
   "loading": "Loading...",
   "error": "Error",
   "success": "Success",

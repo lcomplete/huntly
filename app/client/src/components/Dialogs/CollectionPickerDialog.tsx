@@ -19,6 +19,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CheckIcon from '@mui/icons-material/Check';
 import { Icon } from '@iconify/react';
 import { CollectionApi, CollectionTreeVO, CollectionVO } from '../../api/collectionApi';
+import { useTranslation } from 'react-i18next';
 
 interface CollectionPickerDialogProps {
     open: boolean;
@@ -46,6 +47,7 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
     onClose,
     onSelect,
 }) => {
+    const { t } = useTranslation(['navigation', 'page']);
     const [treeData, setTreeData] = useState<CollectionTreeVO | null>(null);
     const [loading, setLoading] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
@@ -82,7 +84,8 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
 
     const renderCollection = (collection: CollectionVO, level: number = 0, isLast: boolean = false) => {
         const isSelected = currentCollectionId === collection.id;
-        const hasChildren = collection.children && collection.children.length > 0;
+        const children = collection.children ?? [];
+        const hasChildren = children.length > 0;
         const isExpanded = expandedCollections[collection.id];
 
         return (
@@ -124,18 +127,18 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
                             py: 0.875,
                             borderRadius: '10px',
                             flex: 1,
-                            bgcolor: isSelected 
+                            bgcolor: isSelected
                                 ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)'
                                 : 'transparent',
-                            background: isSelected 
+                            background: isSelected
                                 ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)'
                                 : 'transparent',
                             boxShadow: isSelected ? '0 1px 3px rgba(59, 130, 246, 0.1)' : 'none',
-                            '&:hover': { 
-                                bgcolor: isSelected 
+                            '&:hover': {
+                                bgcolor: isSelected
                                     ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%)'
                                     : 'rgba(0, 0, 0, 0.04)',
-                                background: isSelected 
+                                background: isSelected
                                     ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%)'
                                     : 'rgba(0, 0, 0, 0.04)',
                             },
@@ -216,8 +219,8 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
                 </Box>
                 {hasChildren && (
                     <Collapse in={isExpanded}>
-                        {collection.children!.map((child, idx) => 
-                            renderCollection(child, level + 1, idx === collection.children!.length - 1)
+                        {children.map((child, idx) => 
+                            renderCollection(child, level + 1, idx === children.length - 1)
                         )}
                     </Collapse>
                 )}
@@ -243,7 +246,7 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
         >
             <DialogTitle sx={{ pb: 1, pt: 2.5, px: 2.5 }}>
                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#111827', letterSpacing: '-0.01em' }}>
-                    Move to Collection
+                    {t('page:moveToCollection')}
                 </Typography>
             </DialogTitle>
             <DialogContent sx={{ pt: 1, pb: 2.5, px: 1.5 }}>
@@ -293,7 +296,7 @@ const CollectionPickerDialog: React.FC<CollectionPickerDialogProps> = ({
                                 </Box>
                             </ListItemIcon>
                             <ListItemText
-                                primary="Unsorted"
+                                primary={t('navigation:unsorted')}
                                 primaryTypographyProps={{
                                     fontSize: '13.5px',
                                     fontWeight: currentCollectionId === null ? 600 : 500,
