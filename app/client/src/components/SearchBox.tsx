@@ -19,6 +19,31 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import HistoryIcon from '@mui/icons-material/History';
 import {SearchControllerApiFactory} from "../api";
 import {useQuery} from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+
+type SearchOption = {
+  keyword: string;
+  label: string,
+  type: 'Recent' | 'Type' | 'Library' | 'Options' | 'Advanced'
+}
+
+const defaultSearchOptions: SearchOption[] = [
+  {keyword: 'url:', label: 'url:{url}', type: 'Advanced'},
+  {keyword: 'author:', label: 'author:{author}', type: 'Advanced'},
+  {keyword: 'collection:', label: 'collection:{name}', type: 'Advanced'},
+  {keyword: 'tweet', label: 'Tweet', type: 'Type'},
+  {keyword: 'github', label: 'Github Repository', type: 'Type'},
+  {keyword: 'browser', label: 'Browser History', type: 'Type'},
+  {keyword: 'feeds', label: 'Feeds', type: 'Type'},
+  {keyword: 'list', label: 'My List', type: 'Library'},
+  {keyword: 'highlights', label: 'Highlights', type: 'Library'},
+  {keyword: 'starred', label: 'Starred', type: 'Library'},
+  {keyword: 'later', label: 'Read Later', type: 'Library'},
+  {keyword: 'archive', label: 'Archive', type: 'Library'},
+  {keyword: 'unsorted', label: 'Unsorted', type: 'Library'},
+  {keyword: 'read', label: 'Already Read', type: 'Options'},
+  {keyword: 'title', label: 'Only Search Title', type: 'Options'},
+];
 
 type SearchBoxProps = {
   variant?: 'default' | 'large';
@@ -42,6 +67,7 @@ export default function SearchBox({
   const [focus, setFocus] = useState(false);
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation(['page']);
   const isLarge = variant === 'large';
   const isControlled = value !== undefined;
   const isOptionsControlled = selectedKeywords !== undefined;
@@ -59,7 +85,7 @@ export default function SearchBox({
     if (!isOptionsControlled) {
       setSearchOptions(defaultSearchOptions.filter(option => queryOp.indexOf(option.keyword) >= 0));
     }
-  }, [params, isControlled, isOptionsControlled]);
+  }, [params, isControlled, isOptionsControlled, queryOp]);
 
   useEffect(() => {
     if (isControlled) {
@@ -124,6 +150,24 @@ export default function SearchBox({
       })}`
     });
   }
+
+  const getLocalizedLabel = (option: SearchOption) => {
+    switch (option.keyword) {
+      case 'tweet': return t('page:tweet');
+      case 'github': return t('page:githubRepository');
+      case 'browser': return t('page:browserHistory');
+      case 'feeds': return t('page:feeds');
+      case 'list': return t('page:myList');
+      case 'highlights': return t('page:highlights');
+      case 'starred': return t('page:starred');
+      case 'later': return t('page:readLater');
+      case 'archive': return t('page:archive');
+      case 'unsorted': return t('page:unsorted');
+      case 'read': return t('page:alreadyRead');
+      case 'title': return t('page:onlySearchTitle');
+      default: return option.label;
+    }
+  };
 
   let allSearchOptions = defaultSearchOptions;
   const {
@@ -218,7 +262,7 @@ export default function SearchBox({
     const filtered = rawFilterOptions(options, state);
     filteringOptions.current = filtered;
     return filtered;
-  }, []);
+  }, [rawFilterOptions]);
 
   const largeHeight = 52;
   const inputValue = isControlled ? (value || '') : searchText;
@@ -311,7 +355,7 @@ export default function SearchBox({
                   {option.type === 'Options' && <Box component={FilterAltIcon} color={'gray'}>
                   </Box>}
                   <span className={'ml-2'}>
-                  {option.label}
+                  {getLocalizedLabel(option)}
                 </span>
                 </div>
               </li>
@@ -328,7 +372,7 @@ export default function SearchBox({
             renderInput={(params) => {
               const {InputLabelProps, InputProps, ...rest} = params;
               // <TextField {...params} name={'q'} placeholder={'Search'} size={"small"} variant={'standard'} fullWidth={true} />
-              return <InputBase {...params.InputProps} {...rest} name={'q'} placeholder={isLarge ? 'Search everything in Huntly...' : 'Search'} type={'text'}
+              return <InputBase {...params.InputProps} {...rest} name={'q'} placeholder={isLarge ? t('page:searchEverythingPlaceholder') : t('page:searchLabel')} type={'text'}
                                 onKeyDown={inputKeyDown} onKeyUp={inputKeyUp}
                                 inputRef={inputRef}
                                 sx={{
@@ -356,29 +400,6 @@ export default function SearchBox({
 }
 
 
-type SearchOption = {
-  keyword: string;
-  label: string,
-  type: 'Recent' | 'Type' | 'Library' | 'Options' | 'Advanced'
-}
-
-const defaultSearchOptions: SearchOption[] = [
-  {keyword: 'url:', label: 'url:{url}', type: 'Advanced'},
-  {keyword: 'author:', label: 'author:{author}', type: 'Advanced'},
-  {keyword: 'collection:', label: 'collection:{name}', type: 'Advanced'},
-  {keyword: 'tweet', label: 'Tweet', type: 'Type'},
-  {keyword: 'github', label: 'Github Repository', type: 'Type'},
-  {keyword: 'browser', label: 'Browser History', type: 'Type'},
-  {keyword: 'feeds', label: 'Feeds', type: 'Type'},
-  {keyword: 'list', label: 'My List', type: 'Library'},
-  {keyword: 'highlights', label: 'Highlights', type: 'Library'},
-  {keyword: 'starred', label: 'Starred', type: 'Library'},
-  {keyword: 'later', label: 'Read Later', type: 'Library'},
-  {keyword: 'archive', label: 'Archive', type: 'Library'},
-  {keyword: 'unsorted', label: 'Unsorted', type: 'Library'},
-  {keyword: 'read', label: 'Already Read', type: 'Options'},
-  {keyword: 'title', label: 'Only Search Title', type: 'Options'},
-];
 
 const CustomPaper = (props) => {
   return <Paper elevation={14} {...props} />;

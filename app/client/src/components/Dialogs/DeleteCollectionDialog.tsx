@@ -11,6 +11,7 @@ import {
     FormControlLabel,
 } from '@mui/material';
 import { CollectionVO, CollectionApi } from '../../api/collectionApi';
+import { useTranslation } from 'react-i18next';
 
 interface DeleteCollectionDialogProps {
     open: boolean;
@@ -25,6 +26,7 @@ const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
     onClose,
     onConfirm,
 }) => {
+    const { t } = useTranslation(['navigation', 'common']);
     const [deletePages, setDeletePages] = useState(false);
     const [pageCount, setPageCount] = useState<number>(0);
     const [loading, setLoading] = useState(false);
@@ -64,12 +66,12 @@ const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
         >
             <DialogTitle sx={{ pb: 1.5, pt: 2.5 }}>
                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>
-                    Delete Collection
+                    {t('navigation:deleteCollection')}
                 </Typography>
             </DialogTitle>
             <DialogContent sx={{ pt: 1.5, pb: 2 }}>
                 <Typography sx={{ color: '#4b5563', fontSize: '14px', mb: 2 }}>
-                    Are you sure you want to delete <strong>"{collection.name}"</strong>?
+                    {t('navigation:deleteCollectionConfirm', { name: collection.name })}
                 </Typography>
 
                 {pageCount > 0 && (
@@ -83,7 +85,7 @@ const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
                         }}
                     >
                         <Typography sx={{ fontSize: '13px', color: '#92400e', fontWeight: 500 }}>
-                            This collection contains {pageCount} page{pageCount !== 1 ? 's' : ''}.
+                            {t('navigation:collectionContainsPages', { count: pageCount })}
                         </Typography>
                     </Box>
                 )}
@@ -102,14 +104,14 @@ const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
                     }
                     label={
                         <Typography sx={{ fontSize: '13px', color: '#4b5563' }}>
-                            Also delete all pages in this collection
+                            {t('navigation:deletePagesInCollection')}
                         </Typography>
                     }
                 />
 
                 {!deletePages && pageCount > 0 && (
                     <Typography sx={{ fontSize: '12px', color: '#9ca3af', mt: 0.5, ml: 3.5 }}>
-                        Pages will be moved to "Unsorted"
+                        {t('navigation:pagesMoveToUnsorted', { name: t('navigation:unsorted') })}
                     </Typography>
                 )}
             </DialogContent>
@@ -129,7 +131,7 @@ const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
                         },
                     }}
                 >
-                    Cancel
+                    {t('common:cancel')}
                 </Button>
                 <Button
                     onClick={handleConfirm}
@@ -154,7 +156,7 @@ const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
                         },
                     }}
                 >
-                    Delete
+                    {t('common:delete')}
                 </Button>
             </DialogActions>
         </Dialog>

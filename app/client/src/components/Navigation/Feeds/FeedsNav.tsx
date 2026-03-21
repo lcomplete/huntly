@@ -15,6 +15,7 @@ import FolderFormDialog from "../../SettingModal/FolderFormDialog";
 import FeedsFormDialog from "../../SettingModal/FeedsFormDialog";
 import DeleteConfirmDialog from "../../DeleteConfirmDialog";
 import SubscribeFeedDialog from "./SubscribeFeedDialog";
+import { useTranslation } from "react-i18next";
 
 // Storage key for unread filter state
 const STORAGE_KEY_UNREAD_FILTER = 'huntly-feeds-unread-filter';
@@ -25,6 +26,7 @@ function sumInboxCount(connectorItems: Array<ConnectorItem> | undefined) {
 }
 
 const FeedsNav: React.FC = () => {
+  const { t } = useTranslation(['navigation', 'common', 'settings']);
   const location = useLocation();
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
@@ -120,39 +122,39 @@ const FeedsNav: React.FC = () => {
     if (!deleteFolderConfirm?.id) return;
     try {
       await api.deleteFolderUsingPOST(deleteFolderConfirm.id);
-      enqueueSnackbar('Folder deleted.', {
+      enqueueSnackbar(t('settings:folderDeleted', 'Folder deleted.'), {
         variant: 'success',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
       });
       queryClient.invalidateQueries(['folder-connector-view']);
     } catch (err) {
       console.error('Failed to delete folder:', err);
-      enqueueSnackbar('Failed to delete folder.', {
+      enqueueSnackbar(t('settings:folderDeleteFailed', 'Failed to delete folder.'), {
         variant: 'error',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
       });
     }
     setDeleteFolderConfirm(null);
-  }, [deleteFolderConfirm, api, enqueueSnackbar, queryClient]);
+  }, [deleteFolderConfirm, api, enqueueSnackbar, queryClient, t]);
 
   const confirmDeleteFeed = useCallback(async () => {
     if (!deleteFeedConfirm?.id) return;
     try {
       await api.deleteFeedUsingPOST(deleteFeedConfirm.id);
-      enqueueSnackbar('Feed deleted.', {
+      enqueueSnackbar(t('settings:feedDeleted', 'Feed deleted.'), {
         variant: 'success',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
       });
       queryClient.invalidateQueries(['folder-connector-view']);
     } catch (err) {
       console.error('Failed to delete feed:', err);
-      enqueueSnackbar('Failed to delete feed.', {
+      enqueueSnackbar(t('settings:feedDeleteFailed', 'Failed to delete feed.'), {
         variant: 'error',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
       });
     }
     setDeleteFeedConfirm(null);
-  }, [deleteFeedConfirm, api, enqueueSnackbar, queryClient]);
+  }, [deleteFeedConfirm, api, enqueueSnackbar, queryClient, t]);
 
   // Calculate all inbox count
   const allInboxCount = view?.folderFeedConnectors?.reduce(
@@ -186,11 +188,11 @@ const FeedsNav: React.FC = () => {
   return (
     <>
       <SidebarHeader
-        title="Feeds"
+        title={t('navigation:feeds')}
         actionLink="/settings/feeds"
         extraActions={
           <>
-            <Tooltip title={showUnreadOnly ? "Show All" : "Show Unread Only"}>
+            <Tooltip title={showUnreadOnly ? t('navigation:showAll') : t('navigation:showUnreadOnly')}>
               <IconButton
                 size="small"
                 onClick={toggleUnreadFilter}
@@ -202,12 +204,12 @@ const FeedsNav: React.FC = () => {
                 <FilterListIcon sx={{ fontSize: 17 }} />
               </IconButton>
             </Tooltip>
-            <Tooltip title="New Folder">
+            <Tooltip title={t('navigation:newFolder', 'New Folder')}>
               <IconButton size="small" onClick={handleCreateFolder} sx={iconButtonStyle}>
                 <CreateNewFolderOutlinedIcon sx={{ fontSize: 17 }} />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Subscribe to RSS">
+            <Tooltip title={t('navigation:subscribeToRss', 'Subscribe to RSS')}>
               <IconButton size="small" onClick={handleOpenSubscribe} sx={iconButtonStyle}>
                 <AddIcon sx={{ fontSize: 17 }} />
               </IconButton>
@@ -263,15 +265,15 @@ const FeedsNav: React.FC = () => {
       {/* Delete confirmation dialogs */}
       <DeleteConfirmDialog
         open={deleteFolderConfirm !== null}
-        title="Delete Folder"
-        content={`Feeds under folder "${deleteFolderConfirm?.name}" will move to root folder. Do you want to delete it?`}
+        title={t('settings:deleteFolder')}
+        content={t('settings:deleteFolderConfirmDesc', `Feeds under folder "${deleteFolderConfirm?.name}" will move to root folder. Do you want to delete it?`, {name: deleteFolderConfirm?.name})}
         onConfirm={confirmDeleteFolder}
         onCancel={() => setDeleteFolderConfirm(null)}
       />
       <DeleteConfirmDialog
         open={deleteFeedConfirm !== null}
-        title="Delete Feed"
-        content={`Articles in library will not be deleted. Do you want to delete this feed "${deleteFeedConfirm?.name}"?`}
+        title={t('settings:deleteFeed')}
+        content={t('settings:deleteFeedConfirmDesc', `Articles in library will not be deleted. Do you want to delete this feed "${deleteFeedConfirm?.name}"?`, {name: deleteFeedConfirm?.name})}
         onConfirm={confirmDeleteFeed}
         onCancel={() => setDeleteFeedConfirm(null)}
       />

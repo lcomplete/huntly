@@ -29,13 +29,9 @@ import {
 import { CollectionApi, CollectionTreeVO, CollectionVO } from "../../api/collectionApi";
 import BatchOrganizeDialog from "../Dialogs/BatchOrganizeDialog";
 import BatchPageItemList from "../BatchPageItemList";
+import { Trans, useTranslation } from 'react-i18next';
 
-const CONTENT_TYPE_OPTIONS: { value: ContentTypeFilter; label: string }[] = [
-  { value: "ALL", label: "All" },
-  { value: "ARTICLE", label: "Article" },
-  { value: "TWEET", label: "Tweet" },
-  { value: "SNIPPET", label: "Snippet" },
-];
+const CONTENT_TYPE_OPTIONS: ContentTypeFilter[] = ["ALL", "ARTICLE", "TWEET", "SNIPPET"];
 
 // Helper type for tree structure
 interface CollectionOption {
@@ -46,6 +42,7 @@ interface CollectionOption {
 }
 
 export default function BatchOrganizeSetting() {
+  const { t } = useTranslation(['settings', 'navigation', 'common', 'page']);
   const { enqueueSnackbar } = useSnackbar();
 
   // Filter state
@@ -88,6 +85,28 @@ export default function BatchOrganizeSetting() {
 
   const collectionOptions = buildCollectionOptions(collections);
 
+  const getContentTypeLabel = useCallback((value: ContentTypeFilter) => {
+    switch (value) {
+      case "ALL":
+        return t('common:all');
+      case "ARTICLE":
+        return t('page:article');
+      case "TWEET":
+        return t('page:tweet');
+      case "SNIPPET":
+        return t('page:snippet');
+      default:
+        return value;
+    }
+  }, [t]);
+
+  const batchPageLabels = {
+    openOriginal: t('page:openOriginal'),
+    author: t('settings:author'),
+    collected: t('page:sortByCollected'),
+    published: t('page:published'),
+  };
+
   const buildQuery = useCallback((): BatchFilterQuery => {
     return {
       saveStatus: saveStatus === "ALL" ? undefined : saveStatus,
@@ -109,12 +128,13 @@ export default function BatchOrganizeSetting() {
     try {
       const result = await filterPages(buildQuery());
       setFilterResult(result);
-    } catch (error: any) {
-      enqueueSnackbar(error.message || "Failed to filter pages", { variant: "error" });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "";
+      enqueueSnackbar(errorMessage || t('settings:filterPagesFailed'), { variant: "error" });
     } finally {
       setIsLoading(false);
     }
-  }, [buildQuery, enqueueSnackbar]);
+  }, [buildQuery, enqueueSnackbar, t]);
 
   const handleViewMore = useCallback(() => {
     setDialogOpen(true);
@@ -134,19 +154,19 @@ export default function BatchOrganizeSetting() {
         targetCollectionId: dialogTargetCollectionId,
         collectedAtMode: dialogCollectedAtMode,
       });
-      enqueueSnackbar(`Successfully moved ${result.successCount} pages`, { variant: "success" });
+      enqueueSnackbar(t('settings:batchMoveSuccess', { count: result.successCount }), { variant: "success" });
       setDialogOpen(false);
       handleFilter(); // Refresh preview
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to move pages";
-      enqueueSnackbar(errorMessage, { variant: "error" });
+      const errorMessage = error instanceof Error ? error.message : "";
+      enqueueSnackbar(errorMessage || t('settings:batchMoveFailed'), { variant: "error" });
     }
-  }, [buildQuery, enqueueSnackbar, handleFilter]);
+  }, [buildQuery, enqueueSnackbar, handleFilter, t]);
 
   return (
     <div>
-      <SettingSectionTitle first icon={DriveFileMoveIcon} description="Filter and batch move pages to collections.">
-        Batch Organize
+      <SettingSectionTitle first icon={DriveFileMoveIcon} description={t('settings:batchOrganizeDesc')}>
+        {t('settings:batchOrganize')}
       </SettingSectionTitle>
 
       {/* Filter Form */}
@@ -154,10 +174,10 @@ export default function BatchOrganizeSetting() {
         {/* Row 1: Collection, Library, Type */}
         <Box className="flex gap-3 items-center flex-wrap">
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Collection</InputLabel>
+            <InputLabel>{t('navigation:collections')}</InputLabel>
             <Select
               value={collectionId === "UNSORTED" ? "UNSORTED" : (collectionId ?? "")}
-              label="Collection"
+              label={t('navigation:collections')}
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === "") setCollectionId(null);
@@ -165,15 +185,15 @@ export default function BatchOrganizeSetting() {
                 else setCollectionId(Number(val));
               }}
             >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="UNSORTED">Unsorted</MenuItem>
-              {collectionOptions.map((c, idx) =>
+              <MenuItem value="">{t('common:all')}</MenuItem>
+              <MenuItem value="UNSORTED">{t('navigation:unsorted')}</MenuItem>
+              {collectionOptions.map((c) =>
                 c.isGroup ? (
-                  <ListSubheader key={`group-${idx}`} sx={{ lineHeight: "32px", fontWeight: 600 }}>
+                  <ListSubheader key={`group-${c.name}`} sx={{ lineHeight: "32px", fontWeight: 600 }}>
                     {c.name}
                   </ListSubheader>
                 ) : (
-                  <MenuItem key={c.id} value={c.id!} sx={{ pl: 2 + (c.depth || 0) * 2 }}>
+                  <MenuItem key={c.id} value={c.id} sx={{ pl: 2 + (c.depth || 0) * 2 }}>
                     {c.name}
                   </MenuItem>
                 )
@@ -182,23 +202,23 @@ export default function BatchOrganizeSetting() {
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>Library</InputLabel>
-            <Select value={saveStatus} label="Library" onChange={(e) => setSaveStatus(e.target.value as "ALL" | "SAVED" | "ARCHIVED")}>
-              <MenuItem value="ALL">All</MenuItem>
-              <MenuItem value="SAVED">My List</MenuItem>
-              <MenuItem value="ARCHIVED">Archive</MenuItem>
+            <InputLabel>{t('settings:library')}</InputLabel>
+            <Select value={saveStatus} label={t('settings:library')} onChange={(e) => setSaveStatus(e.target.value as "ALL" | "SAVED" | "ARCHIVED")}>
+              <MenuItem value="ALL">{t('settings:libraryStatus')}</MenuItem>
+              <MenuItem value="SAVED">{t('settings:myList')}</MenuItem>
+              <MenuItem value="ARCHIVED">{t('settings:archive')}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>Type</InputLabel>
+            <InputLabel>{t('settings:type')}</InputLabel>
             <Select
               value={contentType}
-              label="Type"
+              label={t('settings:type')}
               onChange={(e) => setContentType(e.target.value as ContentTypeFilter)}
             >
               {CONTENT_TYPE_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                <MenuItem key={opt} value={opt}>{getContentTypeLabel(opt)}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -209,7 +229,7 @@ export default function BatchOrganizeSetting() {
           <TextField
             size="small"
             type="date"
-            label="From"
+            label={t('settings:from')}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
@@ -218,7 +238,7 @@ export default function BatchOrganizeSetting() {
           <TextField
             size="small"
             type="date"
-            label="To"
+            label={t('settings:to')}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
@@ -228,16 +248,16 @@ export default function BatchOrganizeSetting() {
 
         {/* Row 3: Starred, Read Later */}
         <Box className="flex gap-3 items-center">
-          <FormControlLabel control={<Checkbox checked={starred} onChange={(e) => setStarred(e.target.checked)} size="small" />} label="Starred" />
-          <FormControlLabel control={<Checkbox checked={readLater} onChange={(e) => setReadLater(e.target.checked)} size="small" />} label="Read Later" />
+          <FormControlLabel control={<Checkbox checked={starred} onChange={(e) => setStarred(e.target.checked)} size="small" />} label={t('settings:starred')} />
+          <FormControlLabel control={<Checkbox checked={readLater} onChange={(e) => setReadLater(e.target.checked)} size="small" />} label={t('settings:readLater')} />
         </Box>
 
         {/* Row 4: Author */}
         <Box>
           <TextField
             size="small"
-            label="Author"
-            placeholder="Filter by author..."
+            label={t('settings:author')}
+            placeholder={t('settings:filterDesc')}
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
             sx={{ width: 280 }}
@@ -247,7 +267,7 @@ export default function BatchOrganizeSetting() {
         {/* Row 5: Filter button */}
         <Box>
           <Button variant="contained" startIcon={isLoading ? <CircularProgress size={16} /> : <SearchIcon />} onClick={handleFilter} disabled={isLoading}>
-            Filter
+            {t('settings:filterBtn')}
           </Button>
         </Box>
 
@@ -257,15 +277,20 @@ export default function BatchOrganizeSetting() {
         {filterResult && (
           <Box className="space-y-3">
             <Alert severity="info">
-              Found <strong>{filterResult.totalCount}</strong> pages matching your criteria.
+              <Trans
+                i18nKey="settings:foundPages"
+                count={filterResult.totalCount}
+                values={{ count: filterResult.totalCount }}
+                components={{ strong: <strong /> }}
+              />
             </Alert>
             {filterResult.items.length > 0 && (
               <>
-                <BatchPageItemList items={filterResult.items.slice(0, 5)} />
+                <BatchPageItemList items={filterResult.items.slice(0, 5)} labels={batchPageLabels} />
                 <Button variant="outlined" size="small" onClick={handleViewMore}>
                   {filterResult.totalCount === 1
-                    ? "Organize (1)"
-                    : `Batch Organize (${filterResult.totalCount})`}
+                    ? t('settings:organizeBtn')
+                    : `${t('settings:batchOrganizeBtn')} (${filterResult.totalCount})`}
                 </Button>
               </>
             )}

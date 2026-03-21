@@ -23,6 +23,7 @@ import {ContentType, SORT_VALUE} from "../model";
 import PageDetailModal from "./PageDetailModal";
 import Alert from "@mui/material/Alert";
 import { useGlobalSettings } from "../contexts/GlobalSettingsContext";
+import { useTranslation } from "react-i18next";
 
 export type PageListFilter = {
   asc?: boolean,
@@ -79,6 +80,7 @@ const PageList = (props: PageListProps) => {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const { markReadOnScroll } = useGlobalSettings();
+  const { t } = useTranslation(['page']);
 
   // ============ Basic State ============
   const selectedPageId = safeInt(params.get("p"));
@@ -320,7 +322,7 @@ const PageList = (props: PageListProps) => {
 
   function handleMarkReadResult(res: AxiosResponse<ApiResultOfint>) {
     if (res && res.data && res.data.code === 0) {
-      enqueueSnackbar('Marked ' + res.data.data + ' pages as read.', {
+      enqueueSnackbar(t('page:markedPagesAsRead', { count: res.data.data }), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -390,7 +392,7 @@ const PageList = (props: PageListProps) => {
         pages: oldData.pages.map(pages => pages.filter(curPage => curPage.id !== event.rawPageStatus.id))
       }));
       closePageDetail();
-      enqueueSnackbar('Page deleted.', {
+      enqueueSnackbar(t('page:pageDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -461,18 +463,18 @@ const PageList = (props: PageListProps) => {
           <div className={'page-list w-full max-w-[720px] flex flex-col items-center min-h-[400px]'} ref={pageListRef}>
             {showDoneTip && <div className={'w-full'}>
                 <TransitionAlert severity="info">
-                    You've read all articles in this section.
+                    {t('page:readAllArticles')}
                 </TransitionAlert>
-                <div className="separator pt-2 pb-2"><ExpandMoreIcon/> Older articles</div>
+                <div className="separator pt-2 pb-2"><ExpandMoreIcon/> {t('page:olderArticles')}</div>
             </div>}
             {isLoading && <Loading/>}
-            {error && <p>Oops, something was broken. <div>{error.toString()}</div></p>}
+            {error && <p>{t('page:loadError')} <div>{error.toString()}</div></p>}
             {!isLoading && !error && data &&
                 <>
                   {
                     (data.pages.length === 0 || data.pages[0].length === 0) && <div className={'w-full'}>
                           <Alert severity="info">
-                              No articles found in this section.
+                              {t('page:noArticlesFound')}
                           </Alert>
                       </div>
                   }
@@ -498,7 +500,7 @@ const PageList = (props: PageListProps) => {
                       {isFetchingNextPage
                         ? <Loading/>
                         : hasNextPage
-                          ? <Button variant="text" ref={inViewRef}>Load More</Button>
+                          ? <Button variant="text" ref={inViewRef}>{t('page:loadMore')}</Button>
                           : <div></div>
                       }
                     </div>

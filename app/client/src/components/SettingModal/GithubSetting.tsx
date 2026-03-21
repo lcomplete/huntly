@@ -15,8 +15,10 @@ import { useQuery } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import GitHubIcon from '@mui/icons-material/GitHub';
 import SettingSectionTitle from "./SettingSectionTitle";
+import { useTranslation } from 'react-i18next';
 
 export const GithubSetting = () => {
+  const { t } = useTranslation(['settings', 'common']);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
@@ -90,15 +92,15 @@ export const GithubSetting = () => {
 
   return (
     <div>
-      <SettingSectionTitle first icon={GitHubIcon}>GitHub Integration</SettingSectionTitle>
+      <SettingSectionTitle first icon={GitHubIcon}>{t('settings:githubIntegration')}</SettingSectionTitle>
       <form onSubmit={formikGithub.handleSubmit}>
         {
           githubSetting && githubSetting.tokenSet && <div className={'mt-4'}>
-            <Alert severity={'info'}>Token has been set.</Alert>
+            <Alert severity={'info'}>{t('settings:tokenSet')}</Alert>
           </div>
         }
         <TextField fullWidth={true} size={'small'} margin={'dense'}
-          label={'Fine-grained personal access tokens'}
+          label={t('settings:apiToken')}
           id={'apiToken'} name={'apiToken'}
           value={formikGithub.values.apiToken || ''}
           onChange={formikGithub.handleChange}
@@ -108,7 +110,7 @@ export const GithubSetting = () => {
         <div className={'flex flex-wrap items-center gap-2 mb-2 mt-1'}>
           <TextField size={'small'} margin={'dense'}
             className={'w-full sm:w-[200px]'}
-            label={'Display name'}
+            label={t('settings:displayName')}
             id={'name'} name={'name'}
             value={formikGithub.values.name || ''}
             onChange={formikGithub.handleChange}
@@ -119,7 +121,7 @@ export const GithubSetting = () => {
             margin="dense"
             className={'w-[calc(50%-4px)] sm:w-[180px]'}
             id="fetchIntervalMinutes"
-            label="Fetch interval minutes"
+            label={t('settings:fetchInterval')}
             value={formikGithub.values.fetchIntervalMinutes || 0}
             onChange={formikGithub.handleChange}
             error={formikGithub.touched.fetchIntervalMinutes && Boolean(formikGithub.errors.fetchIntervalMinutes)}
@@ -132,7 +134,7 @@ export const GithubSetting = () => {
             margin="dense"
             className={'w-[calc(50%-4px)] sm:w-[180px]'}
             id="fetchPageSize"
-            label="Fetch page size"
+            label={t('settings:fetchPageSize')}
             value={formikGithub.values.fetchPageSize || 0}
             onChange={formikGithub.handleChange}
             error={formikGithub.touched.fetchPageSize && Boolean(formikGithub.errors.fetchPageSize)}
@@ -145,14 +147,14 @@ export const GithubSetting = () => {
             control={<Checkbox value={true} name={'enabled'} onChange={formikGithub.handleChange}
               checked={!!formikGithub.values.enabled} />
             }
-            label="Enable" />
+            label={t('common:enable')} />
         </div>
 
-        <Button color={'primary'} variant={'contained'} size={'medium'} type={'submit'}>Save</Button>
+        <Button color={'primary'} variant={'contained'} size={'medium'} type={'submit'}>{t('common:save')}</Button>
         {
           githubSetting && githubSetting.tokenSet &&
           <Button color={'warning'} variant={'contained'} size={'medium'} type={'button'} sx={{ ml: 2 }}
-            onClick={showDeleteDialog}>Delete Token</Button>
+            onClick={showDeleteDialog}>{t('settings:deleteToken')}</Button>
         }
         <Dialog
           open={openDeleteDialog}
@@ -161,12 +163,12 @@ export const GithubSetting = () => {
           aria-describedby="alert-dialog-description"
         >
           <DialogTitle id="alert-dialog-title">
-            {"Are you sure you want to delete token?"}
+            {t('settings:deleteTokenConfirm', 'Are you sure you want to delete token?')}
           </DialogTitle>
           <DialogActions>
-            <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+            <Button onClick={handleCloseDeleteDialog}>{t('common:cancel')}</Button>
             <Button onClick={deleteToken} autoFocus color={'warning'}>
-              Delete
+              {t('common:delete')}
             </Button>
           </DialogActions>
         </Dialog>

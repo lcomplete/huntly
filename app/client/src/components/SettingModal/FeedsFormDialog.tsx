@@ -16,9 +16,11 @@ import {useSnackbar} from "notistack";
 import {useFormik} from "formik";
 import * as yup from "yup";
 import {useQuery} from "@tanstack/react-query";
+import { useTranslation } from 'react-i18next';
 
-export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, onClose: () => void }) {
+export default function FeedsFormDialog({feedsId, onClose}: Readonly<{ feedsId: number, onClose: () => void }>) {
   const [open, setOpen] = React.useState(true);
+  const { t } = useTranslation(['settings', 'common']);
   const [feedsSetting, setFeedsSetting] = React.useState<FeedsSetting>({
     connectorId: 0,
     name: '',
@@ -29,14 +31,14 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
   });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const {enqueueSnackbar} = useSnackbar();
-  const api = SettingControllerApiFactory();
+  const api = React.useMemo(() => SettingControllerApiFactory(), []);
   useEffect(() => {
     if (feedsId > 0) {
       api.getFeedsSettingUsingGET(feedsId).then((response) => {
         setFeedsSetting(response.data);
       });
     }
-  }, [feedsId]);
+  }, [api, feedsId]);
   const {
     data: folders
   } = useQuery(["selecting-folders"], async () => (await api.getSortedFoldersUsingGET()).data);
@@ -52,22 +54,22 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
       ...feedsSetting
     },
     validationSchema: yup.object({
-      name: yup.string().required('Feed name is required.'),
+      name: yup.string().required(t('settings:feedNameRequired')),
       enabled: yup.boolean().nullable(),
       crawlFullContent: yup.boolean().nullable(),
       folderId: yup.number().nullable(),
-      subscribeUrl: yup.string().required('Subscribe URL is required.'),
-      fetchIntervalMinutes: yup.number().min(1,"Fetch interval can't less than 1.").required('Fetch interval is required.')
+      subscribeUrl: yup.string().required(t('settings:rssLinkRequired')),
+      fetchIntervalMinutes: yup.number().min(1, t('settings:fetchIntervalMin')).required(t('settings:fetchIntervalRequired'))
     }),
     onSubmit: (values) => {
       api.updateFeedsSettingUsingPOST(values).then(() => {
-        enqueueSnackbar('Update feed success.', {
+        enqueueSnackbar(t('settings:feedUpdated'), {
           variant: "success",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
         handleClose();
-      }).catch((err) => {
-        enqueueSnackbar('Update feed failed. Error: ' + err, {
+      }).catch(() => {
+        enqueueSnackbar(t('settings:feedUpdateFailed'), {
           variant: "error",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
@@ -85,13 +87,13 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
 
   function handleDelete() {
     api.deleteFeedUsingPOST(feedsId).then(() => {
-      enqueueSnackbar('Delete feed success.', {
+      enqueueSnackbar(t('settings:feedDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
       handleClose();
-    }).catch((err) => {
-      enqueueSnackbar('Delete feed failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:feedDeleteFailed'), {
         variant: "error",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -101,7 +103,7 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
   return <React.Fragment>
     <Dialog open={open} onClose={handleClose}>
       <form onSubmit={formikFeeds.handleSubmit} className={'w-[500px]'}>
-        <DialogTitle>{feedsId === null || feedsId === 0 ? "Create New Feed" : "Manage Feed"}</DialogTitle>
+        <DialogTitle>{feedsId === null || feedsId === 0 ? t('settings:addFeed') : t('settings:editFeed')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
             {formikFeeds.values.subscribeUrl}
@@ -110,7 +112,7 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
             autoFocus
             margin="dense"
             id="name"
-            label="Feed name"
+            label={t('settings:feedName')}
             value={formikFeeds.values.name}
             onChange={formikFeeds.handleChange}
             error={formikFeeds.touched.name && Boolean(formikFeeds.errors.name)}
@@ -123,7 +125,7 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
             <TextField
               margin="dense"
               id="fetchIntervalMinutes"
-              label="Fetch interval minutes"
+              label={t('settings:fetchInterval')}
               value={formikFeeds.values.fetchIntervalMinutes}
               onChange={formikFeeds.handleChange}
               error={formikFeeds.touched.fetchIntervalMinutes && Boolean(formikFeeds.errors.fetchIntervalMinutes)}
@@ -132,19 +134,19 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
               variant="standard"
             />
             <FormControl className={'w-[200px]'} margin={"normal"}>
-              <InputLabel size={'small'}>Folder</InputLabel>
+              <InputLabel size={'small'}>{t('settings:folder')}</InputLabel>
               {
                 folders && <Select
                       name={"folderId"}
                       value={formikFeeds.values.folderId || 0}
-                      label="Folder"
+                      label={t('settings:folder')}
                       onChange={formikFeeds.handleChange}
                       size={'small'}
                   >
                   {
                     folders.map((folder) => {
                       return <MenuItem key={folder.id || 0} value={folder.id || 0}
-                                       sx={{color:folder.name ? '#000' : '#666'}}>{folder.name || 'Root Folder'}</MenuItem>;
+                                       sx={{color:folder.name ? '#000' : '#666'}}>{folder.name || t('settings:noFolder')}</MenuItem>;
                     })
                   }
                   </Select>
@@ -155,21 +157,21 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
                             control={<Checkbox value={true} name={'enabled'} onChange={formikFeeds.handleChange}
                                                checked={!!formikFeeds.values.enabled}/>
                             }
-                            label="Enable"/>
+                            label={t('common:enable')}/>
           <FormControlLabel className={''}
                             control={<Checkbox value={true} name={'crawlFullContent'}
                                                onChange={formikFeeds.handleChange}
                                                checked={!!formikFeeds.values.crawlFullContent}/>
                             }
-                            label="Auto fetch full content"/>
+                            label={t('settings:feedCrawlFullContent')}/>
         </DialogContent>
         <DialogActions>
           {
             feedsId > 0 &&
-              <Button color={"warning"} onClick={showDeleteDialog}>Delete</Button>
+              <Button color={"warning"} onClick={showDeleteDialog}>{t('common:delete')}</Button>
           }
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type={'submit'}>Submit</Button>
+          <Button onClick={handleClose}>{t('common:cancel')}</Button>
+          <Button type={'submit'}>{t('common:save')}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -180,12 +182,12 @@ export default function FeedsFormDialog({feedsId, onClose}: { feedsId: number, o
       aria-describedby="alert-dialog-description"
     >
       <DialogTitle id="alert-dialog-title">
-        {"Article in library will not delete, do you want to delete this feed?"}
+        {t('settings:deleteFeedConfirm')}
       </DialogTitle>
       <DialogActions>
-        <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+        <Button onClick={handleCloseDeleteDialog}>{t('common:cancel')}</Button>
         <Button onClick={handleDelete} autoFocus color={'warning'}>
-          Delete
+          {t('common:delete')}
         </Button>
       </DialogActions>
     </Dialog>

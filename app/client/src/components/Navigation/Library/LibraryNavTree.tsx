@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import navLabels, { NavLabel } from "../shared/NavLabels";
+import navLabels, { NavLabel, getTranslatedLabel } from "../shared/NavLabels";
 import NavListItem from "../shared/NavListItem";
 
 const libraryItems: NavLabel[] = [
@@ -27,7 +27,7 @@ export default function LibraryNavTree({ selectedNodeId, readLaterCount }: Libra
             key={item.linkTo}
             to={item.linkTo || '/'}
             icon={item.labelIcon}
-            label={item.labelText}
+            label={getTranslatedLabel(item)}
             isSelected={selectedNodeId === item.linkTo}
             count={count}
           />

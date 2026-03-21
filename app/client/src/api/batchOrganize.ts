@@ -83,20 +83,58 @@ type ApiResult<T> = {
   data: T;
 };
 
+type ErrorResponse = {
+  message?: string;
+  error?: {
+    message?: string;
+  };
+};
+
+function redirectToSignIn() {
+  const from = `${globalThis.location.pathname}${globalThis.location.search}`;
+  globalThis.location.href = `/signin?from=${encodeURIComponent(from)}`;
+}
+
+function normalizeApiError(error: unknown, fallbackMessage: string): Error {
+  if (axios.isAxiosError(error)) {
+    if (error.response?.status === 401) {
+      redirectToSignIn();
+      return new Error("Unauthorized");
+    }
+    const responseData = error.response?.data as ErrorResponse | undefined;
+    return new Error(
+      responseData?.message ||
+      responseData?.error?.message ||
+      error.message ||
+      fallbackMessage
+    );
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(fallbackMessage);
+}
+
 /**
  * Filter pages with pagination for batch operations.
  */
 export async function filterPages(
   query: BatchFilterQuery
 ): Promise<BatchFilterResult> {
-  const res = await axios.post<ApiResult<BatchFilterResult>>(
-    "/api/page/batch/filter",
-    query
-  );
-  if (res.data.code !== 0) {
-    throw new Error(res.data.message || "Failed to filter pages.");
+  try {
+    const res = await axios.post<ApiResult<BatchFilterResult>>(
+      "/api/page/batch/filter",
+      query
+    );
+    if (res.data.code !== 0) {
+      throw new Error(res.data.message || "Failed to filter pages.");
+    }
+    return res.data.data;
+  } catch (error) {
+    throw normalizeApiError(error, "Failed to filter pages.");
   }
-  return res.data.data;
 }
 
 /**
@@ -105,21 +143,22 @@ export async function filterPages(
 export async function batchMoveToCollection(
   request: BatchMoveRequest
 ): Promise<BatchMoveResult> {
-  const res = await axios.post<ApiResult<BatchMoveResult>>(
-    "/api/page/batch/moveToCollection",
-    request
-  );
-  if (res.data.code !== 0) {
-    throw new Error(res.data.message || "Failed to move pages.");
+  try {
+    const res = await axios.post<ApiResult<BatchMoveResult>>(
+      "/api/page/batch/moveToCollection",
+      request
+    );
+    if (res.data.code !== 0) {
+      throw new Error(res.data.message || "Failed to move pages.");
+    }
+    return res.data.data;
+  } catch (error) {
+    throw normalizeApiError(error, "Failed to move pages.");
   }
-  return res.data.data;
 }
 
 /**
- * Collected time mode options with labels for UI.
+ * Collected time mode values for UI.
  */
-export const COLLECTED_AT_MODE_OPTIONS: { value: CollectedAtMode; label: string }[] = [
-  { value: "KEEP", label: "Keep Original" },
-  { value: "USE_PUBLISH_TIME", label: "Use Publish Time" },
-];
+export const COLLECTED_AT_MODES: CollectedAtMode[] = ["KEEP", "USE_PUBLISH_TIME"];
 

@@ -6,8 +6,10 @@ import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";
 import {useSearchParams} from "react-router-dom";
 import {ContentType, SORT_VALUE} from "../model";
+import { useTranslation } from "react-i18next";
 
 export default function Twitter() {
+  const { t } = useTranslation(['page']);
   const [searchParams] = useSearchParams();
 
   // Read URL parameters for hot tweets filtering
@@ -20,16 +22,16 @@ export default function Twitter() {
     defaultSortValue: urlSort || 'LAST_READ_AT',
     sortFields: [{
       value: 'LAST_READ_AT',
-      label: 'Recently read'
+      label: t('page:sortByLastRead')
     }, {
       value: 'VOTE_SCORE',
-      label: 'Most popular'
+      label: t('page:sortByVoteScore')
     }, {
       value: 'CONNECTED_AT',
-      label: 'Recently tweeted'
+      label: t('page:sortByConnected')
     }, {
       value: 'CREATED_AT',
-      label: 'Recently hunted'
+      label: t('page:sortByCreated')
     }],
     asc: false,
     hideContentTypeFilter: true,

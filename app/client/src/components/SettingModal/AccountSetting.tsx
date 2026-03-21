@@ -7,9 +7,19 @@ import { useQuery } from "@tanstack/react-query";
 import { AuthControllerApiFactory, SettingControllerApiFactory } from "../../api";
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
-import SettingSectionTitle from "./SettingSectionTitle";
+import { useTranslation } from 'react-i18next';
+
+function redirectToSignIn() {
+  globalThis.location.href = '/signin';
+}
+
+async function signOutUser() {
+  await AuthControllerApiFactory().singOutUsingPOST();
+  redirectToSignIn();
+}
 
 export default function AccountSetting() {
+  const { t } = useTranslation(['settings', 'auth', 'common']);
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
 
@@ -24,39 +34,32 @@ export default function AccountSetting() {
       password: ''
     },
     validationSchema: yup.object({
-      username: yup.string().required('Username is required.'),
-      password: yup.string().required('Password is required'),
+      username: yup.string().required(t('auth:usernameRequired')),
+      password: yup.string().required(t('auth:passwordRequired')),
     }),
     onSubmit: async (values) => {
-      api.updateLoginUserUsingPOST("", values).then((res) => {
-        if (values.username !== currentUser.username) {
-          enqueueSnackbar('Username has been changed, please sign in again.', {
+      try {
+        await api.updateLoginUserUsingPOST("", values);
+        if (values.username === currentUser?.username) {
+          enqueueSnackbar(t('settings:accountUpdateSuccess'), {
             variant: "success",
             anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
-          setTimeout(function () {
-            window.location.href = '/signin';
-          }, 3000);
         } else {
-          enqueueSnackbar('Update admin user success.', {
+          enqueueSnackbar(t('settings:accountUsernameChangedRelogin'), {
             variant: "success",
             anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
+          setTimeout(redirectToSignIn, 3000);
         }
-      }).catch((err) => {
-        enqueueSnackbar('Update admin user success failed. Error: ' + err, {
+      } catch (error) {
+        enqueueSnackbar(t('settings:accountUpdateFailed', { error: String(error) }), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
-      })
+      }
     }
   })
-
-  function signOut() {
-    AuthControllerApiFactory().singOutUsingPOST().then((res) => {
-      window.location.href = '/signin';
-    });
-  }
 
   return <div className="settings-form-group">
     <div className="flex justify-between items-center gap-4 pb-3 mb-4 border-b-2 border-transparent"
@@ -66,12 +69,14 @@ export default function AccountSetting() {
           style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)' }}>
           <PersonIcon sx={{ fontSize: 20, color: '#fff' }} />
         </div>
-        <span className="font-semibold text-[#1e293b] text-[1.0625rem]">Account Settings</span>
+        <span className="font-semibold text-[#1e293b] text-[1.0625rem]">{t('settings:account')}</span>
       </div>
       <Button
         variant="outlined"
         startIcon={<LogoutIcon />}
-        onClick={signOut}
+        onClick={() => {
+          void signOutUser();
+        }}
         size="small"
         sx={{
           borderRadius: '10px',
@@ -87,7 +92,7 @@ export default function AccountSetting() {
           },
         }}
       >
-        Sign out
+        {t('settings:signOut')}
       </Button>
     </div>
     <form onSubmit={formikUpdateLogin.handleSubmit}>
@@ -98,7 +103,7 @@ export default function AccountSetting() {
           size="small"
           className="w-full max-w-[320px]"
           id="username"
-          label="Username"
+          label={t('settings:accountUsername')}
           value={formikUpdateLogin.values.username}
           onChange={formikUpdateLogin.handleChange}
           error={formikUpdateLogin.touched.username && Boolean(formikUpdateLogin.errors.username)}
@@ -111,7 +116,7 @@ export default function AccountSetting() {
           size="small"
           className="w-full max-w-[320px]"
           id="password"
-          label="New Password"
+          label={t('settings:accountNewPassword')}
           value={formikUpdateLogin.values.password}
           onChange={formikUpdateLogin.handleChange}
           error={formikUpdateLogin.touched.password && Boolean(formikUpdateLogin.errors.password)}
@@ -130,7 +135,7 @@ export default function AccountSetting() {
           variant="contained"
           size="medium"
         >
-          Update Account
+          {t('settings:updateAccount')}
         </Button>
       </div>
     </form>

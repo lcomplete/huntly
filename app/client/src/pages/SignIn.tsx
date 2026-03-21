@@ -6,6 +6,7 @@ import {
 import React, {useEffect, useState} from "react";
 import {useFormik} from "formik";
 import * as yup from "yup";
+import { useTranslation } from 'react-i18next';
 
 import {setDocTitle} from "../common/docUtils";
 import {AuthControllerApiFactory} from "../api";
@@ -13,7 +14,8 @@ import {useSearchParams} from "react-router-dom";
 import {useSnackbar} from "notistack";
 
 export default function SignIn() {
-  setDocTitle("Sign in");
+  const { t } = useTranslation('auth');
+  setDocTitle(t('signIn'));
   const [isUserSet, setIsUserSet] = useState(true);
   const {enqueueSnackbar} = useSnackbar();
   const api = AuthControllerApiFactory();
@@ -33,8 +35,8 @@ export default function SignIn() {
       password: ''
     },
     validationSchema: yup.object({
-      username: yup.string().required('Username is required.'),
-      password: yup.string().required('Password is required'),
+      username: yup.string().required(t('usernameRequired')),
+      password: yup.string().required(t('passwordRequired')),
     }),
     onSubmit: async (values) => {
       let canLogin = true;
@@ -44,7 +46,7 @@ export default function SignIn() {
         if (signupRes.data.code === 0) {
           canLogin = true;
           setIsUserSet(true);
-          enqueueSnackbar('Create user success.', {
+          enqueueSnackbar(t('createUserSuccess'), {
             variant: "success",
             anchorOrigin: {vertical: "bottom", horizontal: "center"}
           });
@@ -61,7 +63,7 @@ export default function SignIn() {
             }
           }
         }).catch((err)=>{
-          enqueueSnackbar('Login failed. Error: ' + err, {
+          enqueueSnackbar(t('loginFailed', { error: err }), {
             variant: "error",
             anchorOrigin: {vertical: "bottom", horizontal: "center"}
           });
@@ -78,7 +80,7 @@ export default function SignIn() {
             <img src="/android-chrome-192x192.png" alt="Huntly" className="h-[50px] w-[50px]" />
           </div>
           <div className={'flex justify-center'}>
-            <h1 className="text-xl sm:text-2xl">Sign In</h1>
+            <h1 className="text-xl sm:text-2xl">{t('signIn')}</h1>
           </div>
 
           <div>
@@ -86,7 +88,7 @@ export default function SignIn() {
               autoFocus
               margin="dense"
               id="username"
-              label="Username"
+              label={t('username')}
               value={formikLogin.values.username}
               onChange={formikLogin.handleChange}
               error={formikLogin.touched.username && Boolean(formikLogin.errors.username)}
@@ -101,7 +103,7 @@ export default function SignIn() {
             <TextField
               margin="dense"
               id="password"
-              label="Password"
+              label={t('password')}
               value={formikLogin.values.password}
               onChange={formikLogin.handleChange}
               error={formikLogin.touched.password && Boolean(formikLogin.errors.password)}
@@ -122,7 +124,7 @@ export default function SignIn() {
                     size="large"
                     sx={{ py: { xs: 1.5, sm: 1 } }}
                 >
-                    sign in
+                    {t('signInButton')}
                 </Button>
             }
             {
@@ -134,7 +136,7 @@ export default function SignIn() {
                     size="large"
                     sx={{ py: { xs: 1.5, sm: 1 } }}
                 >
-                    create admin user
+                    {t('createAdminUser')}
                 </Button>
             }
           </div>

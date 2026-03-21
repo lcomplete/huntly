@@ -4,9 +4,11 @@ import {Folder, FolderControllerApiFactory, SettingControllerApiFactory} from ".
 import {useFormik} from "formik";
 import * as yup from "yup";
 import {useSnackbar} from "notistack";
+import { useTranslation } from 'react-i18next';
 
-export default function FolderFormDialog({folderId, onClose}: { folderId: number, onClose: () => void }) {
+export default function FolderFormDialog({folderId, onClose}: Readonly<{ folderId: number, onClose: () => void }>) {
   const [open, setOpen] = React.useState(true);
+  const { t } = useTranslation(['settings', 'common']);
   const [folder, setFolder] = React.useState<Folder>(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const {enqueueSnackbar} = useSnackbar();
@@ -30,17 +32,17 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
       id: folder?.id || null
     },
     validationSchema: yup.object({
-      name: yup.string().required('Folder name is required.')
+      name: yup.string().required(t('settings:folderNameRequired'))
     }),
     onSubmit: (values) => {
       SettingControllerApiFactory().saveFolderUsingPOST(values).then(() => {
-        enqueueSnackbar('Save folder success.', {
+        enqueueSnackbar(t('settings:folderSaved'), {
           variant: "success",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
         handleClose();
-      }).catch((err) => {
-        enqueueSnackbar('Save folder failed. Error: ' + err, {
+      }).catch(() => {
+        enqueueSnackbar(t('settings:folderSaveFailed'), {
           variant: "error",
           anchorOrigin: {vertical: "bottom", horizontal: "center"}
         });
@@ -58,13 +60,13 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
 
   function handleDelete() {
     SettingControllerApiFactory().deleteFolderUsingPOST(folderId).then(() => {
-      enqueueSnackbar('Delete folder success.', {
+      enqueueSnackbar(t('settings:folderDeleted'), {
         variant: "success",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
       handleClose();
-    }).catch((err) => {
-      enqueueSnackbar('Delete folder failed. Error: ' + err, {
+    }).catch(() => {
+      enqueueSnackbar(t('settings:folderDeleteFailed'), {
         variant: "error",
         anchorOrigin: {vertical: "bottom", horizontal: "center"}
       });
@@ -74,16 +76,16 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
   return <React.Fragment>
     <Dialog open={open} onClose={handleClose}>
       <form onSubmit={formikFolder.handleSubmit}>
-        <DialogTitle>{folderId === null || folderId === 0 ? "Create New Folder" : "Edit Folder"}</DialogTitle>
+        <DialogTitle>{folderId === null || folderId === 0 ? t('settings:addFolder') : t('settings:editFolder')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Group your feeds into a private folder by topic, type, or project.
+            {t('settings:folderDescription')}
           </DialogContentText>
           <TextField
             autoFocus
             margin="dense"
             id="name"
-            label="Folder name"
+            label={t('settings:folderName')}
             value={formikFolder.values.name}
             onChange={formikFolder.handleChange}
             error={formikFolder.touched.name && Boolean(formikFolder.errors.name)}
@@ -96,10 +98,10 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
         <DialogActions>
           {
             folderId > 0 &&
-              <Button color={"warning"} onClick={showDeleteDialog}>Delete</Button>
+              <Button color={"warning"} onClick={showDeleteDialog}>{t('common:delete')}</Button>
           }
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type={'submit'}>Submit</Button>
+          <Button onClick={handleClose}>{t('common:cancel')}</Button>
+          <Button type={'submit'}>{t('common:save')}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -110,12 +112,12 @@ export default function FolderFormDialog({folderId, onClose}: { folderId: number
       aria-describedby="alert-dialog-description"
     >
       <DialogTitle id="alert-dialog-title">
-        {"Feeds under folder will move to root folder, do you want to delete it?"}
+        {t('settings:deleteFolder')}
       </DialogTitle>
       <DialogActions>
-        <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+        <Button onClick={handleCloseDeleteDialog}>{t('common:cancel')}</Button>
         <Button onClick={handleDelete} autoFocus color={'warning'}>
-          Delete
+          {t('common:delete')}
         </Button>
       </DialogActions>
     </Dialog>

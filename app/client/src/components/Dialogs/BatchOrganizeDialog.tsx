@@ -25,10 +25,11 @@ import {
   BatchFilterQuery,
   BatchFilterResult,
   CollectedAtMode,
-  COLLECTED_AT_MODE_OPTIONS,
+  COLLECTED_AT_MODES,
   filterPages,
 } from "../../api/batchOrganize";
 import BatchPageItemList from "../BatchPageItemList";
+import { useTranslation } from "react-i18next";
 
 interface CollectionOption {
   readonly id: number | null;
@@ -59,6 +60,7 @@ export default function BatchOrganizeDialog({
   onMove,
 }: BatchOrganizeDialogProps) {
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation(["settings", "common"]);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<BatchFilterResult | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -87,16 +89,35 @@ export default function BatchOrganizeDialog({
       try {
         const data = await filterPages({ ...filterQuery, page: currentPage, size: PAGE_SIZE });
         setResult(data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to load pages:", error);
         setResult(null);
-        enqueueSnackbar("Failed to load pages. Please try again.", { variant: "error" });
+        const errorMessage = error instanceof Error ? error.message : "";
+        enqueueSnackbar(errorMessage || t('settings:loadPagesFailed'), { variant: "error" });
       } finally {
         setIsLoading(false);
       }
     };
     loadData();
-  }, [open, filterQuery, currentPage, enqueueSnackbar]);
+  }, [open, filterQuery, currentPage, enqueueSnackbar, t]);
+
+  const getCollectedAtModeLabel = useCallback((value: CollectedAtMode) => {
+    switch (value) {
+      case "KEEP":
+        return t('settings:keepOriginal');
+      case "USE_PUBLISH_TIME":
+        return t('settings:usePublishTime');
+      default:
+        return value;
+    }
+  }, [t]);
+
+  const batchPageLabels = {
+    openOriginal: t('page:openOriginal', { ns: 'page' }),
+    author: t('settings:author'),
+    collected: t('page:sortByCollected', { ns: 'page' }),
+    published: t('page:published', { ns: 'page' }),
+  };
 
   const handleSelectItem = useCallback((id: number, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -139,7 +160,7 @@ export default function BatchOrganizeDialog({
     // Validate target collection is selected
     if (targetCollectionId === null) {
       setShowCollectionError(true);
-      enqueueSnackbar("Please select a target collection", { variant: "warning" });
+      enqueueSnackbar(t('settings:selectCollectionRequired'), { variant: "warning" });
       return;
     }
     setShowCollectionError(false);
@@ -148,7 +169,7 @@ export default function BatchOrganizeDialog({
     } else {
       onMove(false, Array.from(selectedIds), targetCollectionId, collectedAtMode);
     }
-  }, [selectAll, selectedIds, onMove, targetCollectionId, collectedAtMode, enqueueSnackbar]);
+  }, [selectAll, selectedIds, onMove, targetCollectionId, collectedAtMode, enqueueSnackbar, t]);
 
   const allOnPageSelected = result?.items.every((item) => selectedIds.has(item.id)) ?? false;
   const someOnPageSelected = result?.items.some((item) => selectedIds.has(item.id)) ?? false;
@@ -156,17 +177,17 @@ export default function BatchOrganizeDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: "80vh" } }}>
-      <DialogTitle>Batch Organize Pages</DialogTitle>
+      <DialogTitle>{t('settings:batchOrganizePages')}</DialogTitle>
       <DialogContent dividers>
         {/* Selection controls */}
         <Box className="flex items-center gap-4 mb-4">
           <FormControlLabel
             control={<Checkbox checked={selectAll} onChange={(e) => handleSelectAllGlobal(e.target.checked)} />}
-            label={`Select all ${result?.totalCount ?? 0} pages`}
+            label={t('settings:selectAllPages', { count: result?.totalCount ?? 0 })}
           />
           {!selectAll && selectedIds.size > 0 && (
             <Typography variant="body2" color="text.secondary">
-              {selectedIds.size} selected
+              {t('settings:selectedCount', { count: selectedIds.size })}
             </Typography>
           )}
         </Box>
@@ -191,7 +212,7 @@ export default function BatchOrganizeDialog({
                 disabled={selectAll}
                 sx={{ ml: -0.5 }}
               />
-              <Typography variant="body2">Select all on this page</Typography>
+              <Typography variant="body2">{t('settings:selectAllOnPage')}</Typography>
             </Box>
 
             {/* Page items list */}
@@ -202,6 +223,7 @@ export default function BatchOrganizeDialog({
                 selectedIds={selectedIds}
                 selectAll={selectAll}
                 onSelectItem={handleSelectItem}
+                labels={batchPageLabels}
               />
             </Box>
 
@@ -223,47 +245,47 @@ export default function BatchOrganizeDialog({
       {/* Move Options and Actions - all in one row */}
       <Divider />
       <DialogActions sx={{ justifyContent: "space-between", flexWrap: "wrap", gap: 2, p: 2 }}>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common:cancel')}</Button>
 
         <Box className="flex gap-3 items-center flex-wrap">
           <FormControl size="small" sx={{ minWidth: 200 }} error={showCollectionError}>
-            <InputLabel>Target Collection</InputLabel>
+            <InputLabel>{t('settings:targetCollection')}</InputLabel>
             <Select
               value={targetCollectionId ?? ""}
-              label="Target Collection"
+              label={t('settings:targetCollection')}
               onChange={(e) => {
                 const val = e.target.value;
                 setTargetCollectionId(val === "" ? null : Number(val));
                 if (val !== "") setShowCollectionError(false);
               }}
             >
-              <MenuItem value="" disabled><em>Select a collection...</em></MenuItem>
+              <MenuItem value="" disabled><em>{t('settings:selectCollection')}</em></MenuItem>
               {collectionOptions.map((c, idx) =>
                 c.isGroup ? (
-                  <ListSubheader key={`group-${idx}`} sx={{ lineHeight: "32px", fontWeight: 600 }}>
+                  <ListSubheader key={`group-${c.name}`} sx={{ lineHeight: "32px", fontWeight: 600 }}>
                     {c.name}
                   </ListSubheader>
                 ) : (
-                  <MenuItem key={c.id} value={c.id!} sx={{ pl: 2 + (c.depth || 0) * 2 }}>
+                  <MenuItem key={c.id} value={c.id} sx={{ pl: 2 + (c.depth || 0) * 2 }}>
                     {c.name}
                   </MenuItem>
                 )
               )}
             </Select>
-            {showCollectionError && <FormHelperText>Please select a collection</FormHelperText>}
+            {showCollectionError && <FormHelperText>{t('settings:selectCollectionRequired')}</FormHelperText>}
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Collected Time</InputLabel>
-            <Select value={collectedAtMode} label="Collected Time" onChange={(e) => setCollectedAtMode(e.target.value as CollectedAtMode)}>
-              {COLLECTED_AT_MODE_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+            <InputLabel>{t('settings:collectedTime')}</InputLabel>
+            <Select value={collectedAtMode} label={t('settings:collectedTime')} onChange={(e) => setCollectedAtMode(e.target.value as CollectedAtMode)}>
+              {COLLECTED_AT_MODES.map((opt) => (
+                <MenuItem key={opt} value={opt}>{getCollectedAtModeLabel(opt)}</MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <Button variant="contained" startIcon={<DriveFileMoveIcon />} onClick={handleMove} disabled={selectionCount === 0}>
-            Move {selectionCount} Pages
+            {t('settings:movePages', { count: selectionCount })}
           </Button>
         </Box>
       </DialogActions>

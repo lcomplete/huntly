@@ -4,14 +4,16 @@ import navLabels from "../components/Navigation/shared/NavLabels";
 import React, {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";
+import { useTranslation } from "react-i18next";
 
 
 const RecentlyRead = () => {
+  const { t } = useTranslation(['page']);
   const [pageFilterOptions, setPageFilterOptions] = useState<PageFilterOptions>({
     defaultSortValue: 'LAST_READ_AT',
     sortFields: [{
       value: 'LAST_READ_AT',
-      label: 'Recently read'
+      label: t('page:sortByLastRead')
     }],
     asc: false,
   })

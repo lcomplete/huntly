@@ -32,6 +32,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 // 引入 TurndownService
 import TurndownService from 'turndown';
+import { useTranslation } from "react-i18next";
 
 const PageDetailArea = ({
                            id,
@@ -52,6 +53,7 @@ const PageDetailArea = ({
   const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
   const [highlightMode, setHighlightMode] = useState(true);
   const [showToc, setShowToc] = useState(true);
+  const { t } = useTranslation(['page']);
   
   // AI操作菜单状态
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -148,7 +150,7 @@ const PageDetailArea = ({
     // 重置处理结果状态
     setShowProcessedSection(false);
     setProcessedContent("");
-    setProcessedTitle("AI Processing Result");
+    setProcessedTitle(t('page:aiProcessingResult'));
     setProcessingError("");
 
     // 重置自动滚动状态
@@ -244,7 +246,7 @@ const PageDetailArea = ({
         
         // 只有在连接状态不是CLOSED且没有接收到数据时才认为是真正的错误
         if (eventSource.readyState !== EventSource.CLOSED && !hasReceivedData) {
-          setProcessingError('Failed to connect to server, please try again later.');
+          setProcessingError(t('page:connectFailed'));
         }
         
         setIsProcessingContent(false);
@@ -257,9 +259,9 @@ const PageDetailArea = ({
         if ((event as any).data) {
           try {
             const errorData = JSON.parse((event as any).data);
-            setProcessingError(`Processing failed: ${errorData.message || 'Unknown error'}`);
+            setProcessingError(t('page:processingFailed', { message: errorData.message || 'Unknown error' }));
           } catch (e) {
-            setProcessingError('Unknown error occurred during processing.');
+            setProcessingError(t('page:unknownError'));
           }
         }
         setIsProcessingContent(false);
@@ -271,7 +273,7 @@ const PageDetailArea = ({
         if (eventSource.readyState !== EventSource.CLOSED) {
           console.warn('SSE connection timeout');
           setIsProcessingContent(false);
-          setProcessingError('Processing timeout, please try again later.');
+          setProcessingError(t('page:processingTimeout'));
           eventSource.close();
         }
       }, 300000); // 5 minutes timeout
@@ -285,7 +287,7 @@ const PageDetailArea = ({
     } catch (error) {
       console.error(`Error processing with shortcut ${shortcutName}:`, error);
       setIsProcessingContent(false);
-      setProcessingError('Connection failed, please check your network connection.');
+      setProcessingError(t('page:connectionFailed'));
     }
   }
 
@@ -408,13 +410,13 @@ const PageDetailArea = ({
     // 复制到剪贴板
     navigator.clipboard.writeText(markdownContent)
       .then(() => {
-        enqueueSnackbar("Markdown content copied to clipboard", {
+        enqueueSnackbar(t('page:markdownCopied'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       })
       .catch(err => {
-        enqueueSnackbar("Failed to copy, please copy manually", {
+        enqueueSnackbar(t('page:markdownCopyFailed'), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -433,7 +435,7 @@ const PageDetailArea = ({
 
   const handleHighlightDeleted = (highlightId: number) => {
     refetchHighlights();
-    setSnackbarMessage("Highlight deleted successfully");
+    setSnackbarMessage(t('page:highlightDeleted'));
     setSnackbarOpen(true);
   };
 
@@ -460,10 +462,10 @@ const PageDetailArea = ({
   const handleHighlightClick = (highlight: PageHighlightDto) => {
     if (highlight.id) {
       scrollToHighlightById(highlight.id);
-      setSnackbarMessage(`Jump to highlight: "${highlight.highlightedText?.substring(0, 20)}..."`);
+      setSnackbarMessage(t('page:jumpToHighlight', { text: highlight.highlightedText?.substring(0, 20) }));
       setSnackbarOpen(true);
     } else {
-      setSnackbarMessage("Unable to locate this highlight position");
+      setSnackbarMessage(t('page:cannotLocateHighlight'));
       setSnackbarOpen(true);
     }
   };
@@ -490,7 +492,7 @@ const PageDetailArea = ({
               <Box className={"flex items-center justify-between"}>
                 {/* Left side: Tool buttons */}
                 <div className={'page-detail-tools flex items-center gap-0.5'}>
-                  <Tooltip title={'Load full content'} placement={"bottom"}>
+                  <Tooltip title={t('page:loadFullContent')} placement={"bottom"}>
                     {
                       isFullContent ? <IconButton size="small" onClick={switchRawContent}>
                         <ScreenSearchDesktopRoundedIcon fontSize={"small"}/>
@@ -500,25 +502,25 @@ const PageDetailArea = ({
                     }
                   </Tooltip>
 
-                  <Tooltip title={'Export to Markdown'} placement={"bottom"}>
+                  <Tooltip title={t('page:exportMarkdown')} placement={"bottom"}>
                     <IconButton size="small" onClick={exportToMarkdown}>
                       <SaveAltIcon fontSize={"small"} />
                     </IconButton>
                   </Tooltip>
 
-                  <Tooltip title={'Copy Markdown content'} placement={"bottom"}>
+                  <Tooltip title={t('page:copyMarkdown')} placement={"bottom"}>
                     <IconButton size="small" onClick={copyMarkdownToClipboard}>
                       <ContentCopyIcon fontSize={"small"} />
                     </IconButton>
                   </Tooltip>
 
-                  <Tooltip title={highlightMode ? 'Disable text highlighting selection tool' : 'Enable text highlighting selection tool'} placement={"bottom"}>
+                  <Tooltip title={highlightMode ? t('page:disableHighlight') : t('page:enableHighlight')} placement={"bottom"}>
                     <IconButton size="small" onClick={() => setHighlightMode(!highlightMode)}>
                       <FormatQuoteIcon fontSize={"small"} sx={{ color: highlightMode ? "#f59e0b" : "#9e9e9e" }} />
                     </IconButton>
                   </Tooltip>
 
-                  <Tooltip title={showToc ? 'Hide outline' : 'Show outline'} placement={"bottom"}>
+                  <Tooltip title={showToc ? t('page:hideOutline') : t('page:showOutline')} placement={"bottom"}>
                     <IconButton size="small" onClick={() => setShowToc(!showToc)}>
                       <ListIcon fontSize={"small"} sx={{ color: showToc ? "#3b82f6" : "#9e9e9e" }} />
                     </IconButton>
@@ -533,7 +535,7 @@ const PageDetailArea = ({
                           <stop offset="100%" stopColor="#fbc2eb" />
                         </linearGradient>
                       </svg>
-                      <Tooltip title={'AI operations'} placement={"bottom"}>
+                      <Tooltip title={t('page:aiOperations')} placement={"bottom"}>
                         <IconButton
                           size="small"
                           onClick={handleAIMenuClick}
@@ -592,7 +594,7 @@ const PageDetailArea = ({
                 {detail.page.contentType === 4 && (
                   <Chip
                     icon={<TextSnippetOutlinedIcon style={{fontSize: 16}} />}
-                    label="Snippet"
+                    label={t('page:snippet')}
                     size="small"
                     variant="outlined"
                     sx={{

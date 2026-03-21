@@ -9,6 +9,7 @@ import { Icon } from '@iconify/react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useQueryClient } from '@tanstack/react-query';
 import { CollectionTreeVO, CollectionVO, CollectionGroupVO, CollectionApi } from '../../../api/collectionApi';
+import { useTranslation } from "react-i18next";
 
 // Storage keys for persisting expanded state
 const STORAGE_KEY_GROUPS = 'huntly-collection-groups-expanded';
@@ -117,6 +118,7 @@ const UnsortedItem: React.FC<{
   selectedNodeId: string;
   count: number;
 }> = ({ selectedNodeId, count }) => {
+  const { t } = useTranslation(['navigation']);
   const linkTo = '/collection/unsorted';
   const isSelected = selectedNodeId === linkTo;
 
@@ -160,7 +162,7 @@ const UnsortedItem: React.FC<{
             flexGrow: 1,
           }}
         >
-          Unsorted
+          {t('navigation:unsorted', 'Unsorted')}
         </Typography>
         {count > 0 && (
           <Box
@@ -504,6 +506,7 @@ export default function CollectionTree({
   onGroupContextMenu,
   onAddGroup,
 }: CollectionTreeProps) {
+  const { t } = useTranslation(['navigation']);
   const queryClient = useQueryClient();
 
   // State for expanded groups - persisted to localStorage
@@ -679,7 +682,7 @@ export default function CollectionTree({
             pb: 1, // Increased spacing below title
           }}
         >
-          Collections
+          {t('navigation:collections', 'Collections')}
         </Typography>
 
         {/* Unsorted item with spacing */}
@@ -706,7 +709,7 @@ export default function CollectionTree({
                     },
                   }}
                 >
-                  + Add Group
+                  + {t('navigation:addGroup', 'Add Group')}
                 </Typography>
               )}
               {treeData.groups.map((group, groupIndex) => {
@@ -752,7 +755,7 @@ export default function CollectionTree({
                                       py: 0.75,
                                     }}
                                   >
-                                    Empty
+                                    {t('navigation:empty', 'Empty')}
                                   </Typography>
                                 ) : (
                                   group.collections.map((collection, collIndex) => (

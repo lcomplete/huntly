@@ -10,6 +10,7 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import { Icon } from "@iconify/react";
 import { Box, SvgIconProps } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 // Custom icon component for collections that can display emoji, iconify icons, or default folder
 const CollectionIconComponent = React.forwardRef<SVGSVGElement, SvgIconProps & { collectionIcon?: string | null }>(
@@ -36,6 +37,7 @@ const CollectionIconComponent = React.forwardRef<SVGSVGElement, SvgIconProps & {
 CollectionIconComponent.displayName = 'CollectionIconComponent';
 
 const CollectionList = () => {
+    const { t } = useTranslation(['page', 'navigation']);
     const { id } = useParams<{ id: string }>();
     const [collection, setCollection] = useState<Collection | null>(null);
     const isUnsorted = id === 'unsorted';
@@ -45,7 +47,7 @@ const CollectionList = () => {
         defaultSortValue: isUnsorted ? 'UNSORTED_SAVED_AT' : 'COLLECTED_AT',
         sortFields: [{
             value: isUnsorted ? 'UNSORTED_SAVED_AT' : 'COLLECTED_AT',
-            label: isUnsorted ? 'Recently saved' : 'Recently collected'
+            label: isUnsorted ? t('page:sortByUnsortedSaved') : t('page:sortByCollected')
         }],
         asc: false,
         includeArchived: true,
@@ -54,10 +56,10 @@ const CollectionList = () => {
 
     useEffect(() => {
         if (isUnsorted) {
-            setCollection({ id: 0, name: "Unsorted", groupId: 0, displaySequence: 0 });
+            setCollection({ id: 0, name: t('page:unsorted'), groupId: 0, displaySequence: 0 });
             setPageFilterOptions({
                 defaultSortValue: 'UNSORTED_SAVED_AT',
-                sortFields: [{ value: 'UNSORTED_SAVED_AT', label: 'Recently saved' }],
+                sortFields: [{ value: 'UNSORTED_SAVED_AT', label: t('page:sortByUnsortedSaved') }],
                 asc: false,
                 includeArchived: true,
                 includeArchivedOption: true,
@@ -65,16 +67,16 @@ const CollectionList = () => {
         } else if (id) {
             CollectionApi.getCollection(Number.parseInt(id))
                 .then(coll => setCollection(coll))
-                .catch(() => setCollection({ id: Number.parseInt(id), name: "Collection", groupId: 0, displaySequence: 0 }));
+                .catch(() => setCollection({ id: Number.parseInt(id), name: t('navigation:collection'), groupId: 0, displaySequence: 0 }));
             setPageFilterOptions({
                 defaultSortValue: 'COLLECTED_AT',
-                sortFields: [{ value: 'COLLECTED_AT', label: 'Recently collected' }],
+                sortFields: [{ value: 'COLLECTED_AT', label: t('page:sortByCollected') }],
                 asc: false,
                 includeArchived: true,
                 includeArchivedOption: true,
             });
         }
-    }, [id, isUnsorted]);
+    }, [id, isUnsorted, t]);
 
     function handleFilterChange(options: PageFilterOptions) {
         setPageFilterOptions(options);
@@ -91,7 +93,7 @@ const CollectionList = () => {
     }, [isUnsorted, collection?.icon]);
 
     const navLabel: NavLabel = {
-        labelText: collection?.name || "Collection",
+        labelText: collection?.name || t('navigation:collection'),
         labelIcon: IconComponent,
         linkTo: isUnsorted ? "/collection/unsorted" : `/collection/${id}`,
     };

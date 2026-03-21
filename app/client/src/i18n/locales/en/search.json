@@ -1,0 +1,17 @@
+{
+  "searchInTitles": "Search in titles only",
+  "twitterContent": "Twitter/X content",
+  "githubRepos": "GitHub repositories",
+  "starredItems": "Your starred items",
+  "readLaterList": "Read later list",
+  "searchEverything": "Search everything in Huntly",
+  "searchDesc": "Find articles, tweets, highlights, feeds, and more across all your hunted content.",
+  "trySearchingFor": "Try searching for:",
+  "results": "results",
+  "loadMore": "Load More",
+  "noMoreResults": "No more results",
+  "noResultsFor": "No results found for \"{{query}}\"",
+  "adjustSearchTerms": "Try adjusting your search terms",
+  "searchError": "Oops, something went wrong. Please try again.",
+  "pageDeleted": "Page deleted."
+}

@@ -52,10 +52,11 @@ import ArrowDownwardOutlinedIcon from '@mui/icons-material/ArrowDownwardOutlined
 import CheckIcon from '@mui/icons-material/Check';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
+import { useTranslation } from "react-i18next";
 
 export type SortField = {
   value: SORT_VALUE,
-  label: string
+  label?: string
 }
 
 export type PageFilterOptions = {
@@ -88,101 +89,6 @@ function parseDateTimeString(dateStr: string | undefined) {
 }
 
 // Custom static ranges
-const customStaticRanges = [
-  {
-    label: 'Last 30 Min',
-    range: () => ({ startDate: addMinutes(new Date(), -30), endDate: new Date() }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      return isSameMinute(range.startDate, addMinutes(new Date(), -30)) && isSameMinute(range.endDate, new Date());
-    },
-  },
-  {
-    label: 'Last 1 Hour',
-    range: () => ({ startDate: addHours(new Date(), -1), endDate: new Date() }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      return isSameMinute(range.startDate, addHours(new Date(), -1)) && isSameMinute(range.endDate, new Date());
-    },
-  },
-  {
-    label: 'Last 3 Hours',
-    range: () => ({ startDate: addHours(new Date(), -3), endDate: new Date() }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      return isSameMinute(range.startDate, addHours(new Date(), -3)) && isSameMinute(range.endDate, new Date());
-    },
-  },
-  {
-    label: 'Last 6 Hours',
-    range: () => ({ startDate: addHours(new Date(), -6), endDate: new Date() }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      return isSameMinute(range.startDate, addHours(new Date(), -6)) && isSameMinute(range.endDate, new Date());
-    },
-  },
-  {
-    label: 'Today',
-    range: () => ({ startDate: startOfDay(new Date()), endDate: endOfDay(new Date()) }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      const todayStart = startOfDay(new Date());
-      const todayEnd = endOfDay(new Date());
-      // Must match exactly: start at 00:00 and end at 23:59
-      return isSameMinute(range.startDate, todayStart) && isSameMinute(range.endDate, todayEnd);
-    },
-  },
-  {
-    label: 'Yesterday',
-    range: () => ({ startDate: startOfDay(addDays(new Date(), -1)), endDate: endOfDay(addDays(new Date(), -1)) }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      const yesterdayStart = startOfDay(addDays(new Date(), -1));
-      const yesterdayEnd = endOfDay(addDays(new Date(), -1));
-      return isSameMinute(range.startDate, yesterdayStart) && isSameMinute(range.endDate, yesterdayEnd);
-    },
-  },
-  {
-    label: 'Last 7 Days',
-    range: () => ({ startDate: startOfDay(addDays(new Date(), -6)), endDate: endOfDay(new Date()) }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      const start = startOfDay(addDays(new Date(), -6));
-      const end = endOfDay(new Date());
-      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
-    },
-  },
-  {
-    label: 'This Week',
-    range: () => ({ startDate: startOfWeek(new Date()), endDate: endOfWeek(new Date()) }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      const start = startOfWeek(new Date());
-      const end = endOfWeek(new Date());
-      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
-    },
-  },
-  {
-    label: 'This Month',
-    range: () => ({ startDate: startOfMonth(new Date()), endDate: endOfMonth(new Date()) }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      const start = startOfMonth(new Date());
-      const end = endOfMonth(new Date());
-      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
-    },
-  },
-  {
-    label: 'Last 30 Days',
-    range: () => ({ startDate: startOfDay(addDays(new Date(), -29)), endDate: endOfDay(new Date()) }),
-    isSelected: (range: { startDate?: Date; endDate?: Date }) => {
-      if (!range.startDate || !range.endDate) return false;
-      const start = startOfDay(addDays(new Date(), -29));
-      const end = endOfDay(new Date());
-      return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
-    },
-  },
-];
 
 export default function PageFilters(props: PageFilterProps) {
   const {options, onChange} = props;
@@ -194,21 +100,133 @@ export default function PageFilters(props: PageFilterProps) {
   const [tempEndDate, setTempEndDate] = React.useState<Date | undefined>(parsedEnd.date);
   const [startTime, setStartTime] = React.useState(parsedStart.time);
   const [endTime, setEndTime] = React.useState(parsedEnd.time === '00:00' ? '23:59' : parsedEnd.time);
+  const { t } = useTranslation(['page', 'common']);
   const initialOptionsRef = React.useRef<PageFilterOptions>(options);
   const hasDateRange = Boolean(tempStartDate && tempEndDate);
   const isPhone = useMediaQuery('(max-width: 720px)');
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [contentAnchorEl, setContentAnchorEl] = React.useState<HTMLElement | null>(null);
   const [sortAnchorEl, setSortAnchorEl] = React.useState<HTMLElement | null>(null);
+
+  const customStaticRanges = [
+    {
+      label: t('page:last30Min'),
+      range: () => ({ startDate: addMinutes(new Date(), -30), endDate: new Date() }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        return isSameMinute(range.startDate, addMinutes(new Date(), -30)) && isSameMinute(range.endDate, new Date());
+      },
+    },
+    {
+      label: t('page:last1Hour'),
+      range: () => ({ startDate: addHours(new Date(), -1), endDate: new Date() }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        return isSameMinute(range.startDate, addHours(new Date(), -1)) && isSameMinute(range.endDate, new Date());
+      },
+    },
+    {
+      label: t('page:last3Hours'),
+      range: () => ({ startDate: addHours(new Date(), -3), endDate: new Date() }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        return isSameMinute(range.startDate, addHours(new Date(), -3)) && isSameMinute(range.endDate, new Date());
+      },
+    },
+    {
+      label: t('page:last6Hours'),
+      range: () => ({ startDate: addHours(new Date(), -6), endDate: new Date() }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        return isSameMinute(range.startDate, addHours(new Date(), -6)) && isSameMinute(range.endDate, new Date());
+      },
+    },
+    {
+      label: t('page:today'),
+      range: () => ({ startDate: startOfDay(new Date()), endDate: endOfDay(new Date()) }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        const todayStart = startOfDay(new Date());
+        const todayEnd = endOfDay(new Date());
+        return isSameMinute(range.startDate, todayStart) && isSameMinute(range.endDate, todayEnd);
+      },
+    },
+    {
+      label: t('page:yesterday'),
+      range: () => ({ startDate: startOfDay(addDays(new Date(), -1)), endDate: endOfDay(addDays(new Date(), -1)) }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        const yesterdayStart = startOfDay(addDays(new Date(), -1));
+        const yesterdayEnd = endOfDay(addDays(new Date(), -1));
+        return isSameMinute(range.startDate, yesterdayStart) && isSameMinute(range.endDate, yesterdayEnd);
+      },
+    },
+    {
+      label: t('page:last7Days'),
+      range: () => ({ startDate: startOfDay(addDays(new Date(), -6)), endDate: endOfDay(new Date()) }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        const start = startOfDay(addDays(new Date(), -6));
+        const end = endOfDay(new Date());
+        return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+      },
+    },
+    {
+      label: t('page:thisWeek'),
+      range: () => ({ startDate: startOfWeek(new Date()), endDate: endOfWeek(new Date()) }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        const start = startOfWeek(new Date());
+        const end = endOfWeek(new Date());
+        return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+      },
+    },
+    {
+      label: t('page:thisMonth'),
+      range: () => ({ startDate: startOfMonth(new Date()), endDate: endOfMonth(new Date()) }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        const start = startOfMonth(new Date());
+        const end = endOfMonth(new Date());
+        return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+      },
+    },
+    {
+      label: t('page:last30Days'),
+      range: () => ({ startDate: startOfDay(addDays(new Date(), -29)), endDate: endOfDay(new Date()) }),
+      isSelected: (range: { startDate?: Date; endDate?: Date }) => {
+        if (!range.startDate || !range.endDate) return false;
+        const start = startOfDay(addDays(new Date(), -29));
+        const end = endOfDay(new Date());
+        return isSameMinute(range.startDate, start) && isSameMinute(range.endDate, end);
+      },
+    },
+  ];
+
   const contentLabelMap = {
-    0: 'All',
-    1: 'Article',
-    4: 'Snippet',
-    2: 'Tweet'
+    0: t('page:allContent'),
+    1: t('page:article'),
+    4: t('page:snippet'),
+    2: t('page:tweet')
+  };
+  const getSortLabel = (value: SORT_VALUE) => {
+    switch (value) {
+      case 'ARCHIVED_AT': return t('page:sortByArchived');
+      case 'COLLECTED_AT': return t('page:sortByCollected');
+      case 'CONNECTED_AT': return t('page:sortByConnected');
+      case 'CREATED_AT': return t('page:sortByCreated');
+      case 'LAST_READ_AT': return t('page:sortByLastRead');
+      case 'READ_LATER_AT': return t('page:sortByReadLater');
+      case 'SAVED_AT': return t('page:sortBySaved');
+      case 'STARRED_AT': return t('page:sortByStarred');
+      case 'UNSORTED_SAVED_AT': return t('page:sortByUnsortedSaved');
+      case 'VOTE_SCORE': return t('page:sortByVoteScore');
+      default: return 'Sort';
+    }
   };
   const contentLabel = contentLabelMap[contentFilterType || 0];
-  const sortLabel = sortFields.find((field) => field.value === defaultSortValue)?.label || 'Sort';
-  const orderLabel = asc ? 'Oldest' : 'Newest';
+  const sortLabel = getSortLabel(defaultSortValue);
+  const orderLabel = asc ? t('page:sortOldest') : t('page:sortNewest');
   const showSort = sortFields.length > 1 || isPhone;
   const showOrder = defaultSortValue !== 'VOTE_SCORE';
   const hasFilterChanges = !isDeepEqual(initialOptionsRef.current, options);
@@ -338,7 +356,7 @@ export default function PageFilters(props: PageFilterProps) {
         startIcon={<TuneIcon fontSize="small" />}
         onClick={() => setMobileOpen((prev) => !prev)}
       >
-        Filters
+        {t('page:filtersLabel')}
       </Button>
     )}
 
@@ -371,12 +389,12 @@ export default function PageFilters(props: PageFilterProps) {
               startIcon={showAllArticles ? <GridViewOutlinedIcon fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
               onClick={handleShowAllArticlesToggle}
             >
-              {showAllArticles ? 'All' : 'Unread'}
+              {showAllArticles ? t('page:allContent') : t('page:unread')}
             </Button>
           )}
 
           {includeArchivedOption && (
-            <Tooltip title={includeArchived ? "Including archived items" : "Click to include archived items"} arrow>
+            <Tooltip title={includeArchived ? t('page:includeArchived') : t('page:clickToIncludeArchived')} arrow>
               <span
                 className={`page-filters-archive-toggle ${includeArchived ? 'is-active' : ''}`}
                 onClick={handleIncludeArchivedToggle}
@@ -424,7 +442,7 @@ export default function PageFilters(props: PageFilterProps) {
                       handleClearDate();
                     }
                   }}
-                  aria-label="Clear date range"
+                    aria-label={t('page:clearDateRange')}
                 >
                   <ClearIcon fontSize="small" />
                 </span>
@@ -467,12 +485,12 @@ export default function PageFilters(props: PageFilterProps) {
             startIcon={showAllArticles ? <GridViewOutlinedIcon fontSize="small" /> : <MarkEmailUnreadOutlined fontSize="small" />}
             onClick={handleShowAllArticlesToggle}
           >
-            {showAllArticles ? 'All' : 'Unread'}
+            {showAllArticles ? t('page:allContent') : t('page:unread')}
           </Button>
         )}
 
         {includeArchivedOption && (
-          <Tooltip title={includeArchived ? "Including archived items" : "Click to include archived items"} arrow>
+          <Tooltip title={includeArchived ? t('page:includeArchived') : t('page:clickToIncludeArchived')} arrow>
             <span
               className={`page-filters-archive-toggle ${includeArchived ? 'is-active' : ''}`}
               onClick={handleIncludeArchivedToggle}
@@ -520,7 +538,7 @@ export default function PageFilters(props: PageFilterProps) {
                     handleClearDate();
                   }
                 }}
-                aria-label="Clear date range"
+                aria-label={t('page:clearDateRange')}
               >
                 <ClearIcon fontSize="small" />
               </span>
@@ -554,7 +572,7 @@ export default function PageFilters(props: PageFilterProps) {
         onClick={() => { handleContentFilterChange(null, '0'); setContentAnchorEl(null); }}
       >
         <ListItemIcon>{contentIconMap[0]}</ListItemIcon>
-        All
+        {t('page:allContent')}
         {(contentFilterType === 0 || !contentFilterType) && <CheckIcon fontSize="small" className="page-filters-check" />}
       </MenuItem>
       <MenuItem
@@ -562,7 +580,7 @@ export default function PageFilters(props: PageFilterProps) {
         onClick={() => { handleContentFilterChange(null, '1'); setContentAnchorEl(null); }}
       >
         <ListItemIcon>{contentIconMap[1]}</ListItemIcon>
-        Article
+        {t('page:article')}
         {contentFilterType === 1 && <CheckIcon fontSize="small" className="page-filters-check" />}
       </MenuItem>
       <MenuItem
@@ -570,7 +588,7 @@ export default function PageFilters(props: PageFilterProps) {
         onClick={() => { handleContentFilterChange(null, '4'); setContentAnchorEl(null); }}
       >
         <ListItemIcon>{contentIconMap[4]}</ListItemIcon>
-        Snippet
+        {t('page:snippet')}
         {contentFilterType === 4 && <CheckIcon fontSize="small" className="page-filters-check" />}
       </MenuItem>
       <MenuItem
@@ -578,7 +596,7 @@ export default function PageFilters(props: PageFilterProps) {
         onClick={() => { handleContentFilterChange(null, '2'); setContentAnchorEl(null); }}
       >
         <ListItemIcon>{contentIconMap[2]}</ListItemIcon>
-        Tweet
+        {t('page:tweet')}
         {contentFilterType === 2 && <CheckIcon fontSize="small" className="page-filters-check" />}
       </MenuItem>
     </Menu>
@@ -599,7 +617,7 @@ export default function PageFilters(props: PageFilterProps) {
             onClick={() => { handleSortByChange(null, field.value); setSortAnchorEl(null); }}
           >
             <ListItemIcon>{sortIconMap[field.value]}</ListItemIcon>
-            {field.label}
+            {getSortLabel(field.value)}
             {defaultSortValue === field.value && <CheckIcon fontSize="small" className="page-filters-check" />}
           </MenuItem>
         ))}

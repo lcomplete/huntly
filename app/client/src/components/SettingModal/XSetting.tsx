@@ -12,8 +12,10 @@ import { useQuery } from "@tanstack/react-query";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import SettingSectionTitle from "./SettingSectionTitle";
 import { TwitterSaveRulesSetting } from "./TwitterSaveRulesSetting";
+import { useTranslation } from 'react-i18next';
 
 export const XSetting: React.FC = () => {
+  const { t } = useTranslation(['settings']);
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
   const [minLikes, setMinLikes] = useState<number>(0);
@@ -52,13 +54,13 @@ export const XSetting: React.FC = () => {
         autoSaveTweetMinLikes: minLikes,
       });
       originalMinLikesRef.current = minLikes;
-      enqueueSnackbar('Minimum likes setting saved.', {
+      enqueueSnackbar(t('settings:minLikesSaved'), {
         variant: 'success',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' }
       });
       refetchGlobalSetting();
     } catch (err) {
-      enqueueSnackbar('Failed to save minimum likes setting.', {
+      enqueueSnackbar(t('settings:minLikesSaveFailed'), {
         variant: 'error',
         anchorOrigin: { vertical: 'bottom', horizontal: 'center' }
       });
@@ -70,9 +72,9 @@ export const XSetting: React.FC = () => {
       <SettingSectionTitle
         first
         icon={FilterAltIcon}
-        description="Filter tweets by minimum likes before saving."
+        description={t('settings:globalFilterDesc')}
       >
-        Global Filter
+        {t('settings:globalFilter')}
       </SettingSectionTitle>
 
       <Box sx={{ mt: 2 }}>
@@ -87,7 +89,7 @@ export const XSetting: React.FC = () => {
             <TextField
               type="number"
               size="small"
-              label="Minimum likes"
+              label={t('settings:minLikes')}
               value={minLikes}
               onChange={(e) => setMinLikes(Math.max(0, parseInt(e.target.value) || 0))}
               onBlur={handleMinLikesSave}
@@ -97,7 +99,7 @@ export const XSetting: React.FC = () => {
             />
             <Alert severity="info" sx={{ flex: 1, py: 0.5 }}>
               <Typography variant="body2">
-                Set to 0 to save all tweets. This global filter doesn't affect user rules.
+                {t('settings:minLikesHint')}
               </Typography>
             </Alert>
           </Box>

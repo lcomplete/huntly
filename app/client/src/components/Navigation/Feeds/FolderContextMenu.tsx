@@ -3,6 +3,7 @@ import { Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/materi
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Folder } from '../../../api';
+import { useTranslation } from 'react-i18next';
 
 type FolderContextMenuProps = {
   contextMenu: {
@@ -21,6 +22,7 @@ const FolderContextMenu: React.FC<FolderContextMenuProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t } = useTranslation(['common']);
   if (!contextMenu) {
     return null;
   }
@@ -31,7 +33,7 @@ const FolderContextMenu: React.FC<FolderContextMenuProps> = ({
       onClose={onClose}
       anchorReference="anchorPosition"
       anchorPosition={
-        contextMenu !== null
+        contextMenu
           ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
           : undefined
       }
@@ -68,7 +70,7 @@ const FolderContextMenu: React.FC<FolderContextMenuProps> = ({
           <EditIcon sx={{ fontSize: 18, color: '#64748b' }} />
         </ListItemIcon>
         <ListItemText
-          primary="Edit"
+          primary={t('common:edit')}
           primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
         />
       </MenuItem>
@@ -96,7 +98,7 @@ const FolderContextMenu: React.FC<FolderContextMenuProps> = ({
           <DeleteIcon sx={{ fontSize: 18, color: '#dc2626' }} />
         </ListItemIcon>
         <ListItemText
-          primary="Delete"
+          primary={t('common:delete')}
           primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}
         />
       </MenuItem>

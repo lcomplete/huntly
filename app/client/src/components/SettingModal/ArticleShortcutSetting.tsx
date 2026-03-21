@@ -30,8 +30,10 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { ArticleShortcut, ArticleShortcutControllerApiFactory } from "../../api";
 import BoltIcon from '@mui/icons-material/Bolt';
 import SettingSectionTitle from "./SettingSectionTitle";
+import { useTranslation } from 'react-i18next';
 
 const ArticleShortcutSetting = () => {
+  const { t } = useTranslation(['settings', 'common', 'auth']);
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const [editShortcut, setEditShortcut] = useState<ArticleShortcut | null>(null);
@@ -87,13 +89,13 @@ const ArticleShortcutSetting = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
         setIsEditModalOpen(false);
-        enqueueSnackbar('Shortcut saved successfully', {
+        enqueueSnackbar(t('settings:shortcutSaved'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error: any) => {
-        const errorMessage = error.message || "Failed to save shortcut";
+        const errorMessage = error.message || t('settings:failedToSaveShortcut');
         enqueueSnackbar(errorMessage, {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
@@ -110,7 +112,7 @@ const ArticleShortcutSetting = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
-        enqueueSnackbar('Shortcut deleted successfully', {
+        enqueueSnackbar(t('settings:shortcutDeleted'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -134,13 +136,13 @@ const ArticleShortcutSetting = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
         setIsImportModalOpen(false);
-        enqueueSnackbar('Default shortcuts imported successfully', {
+        enqueueSnackbar(t('settings:shortcutsImported'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
-        enqueueSnackbar(`Failed to import shortcuts: ${error}`, {
+        enqueueSnackbar(t('settings:failedToImportShortcuts', {error}), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -160,13 +162,13 @@ const ArticleShortcutSetting = () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
         setIsImportModalOpen(false);
         setSelectedShortcuts([]);
-        enqueueSnackbar('Selected shortcuts imported successfully', {
+        enqueueSnackbar(t('settings:shortcutsImported'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
-        enqueueSnackbar(`Failed to import shortcuts: ${error}`, {
+        enqueueSnackbar(t('settings:failedToImportShortcuts', {error}), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -193,7 +195,7 @@ const ArticleShortcutSetting = () => {
         queryClient.invalidateQueries(["article-shortcuts"]);
       },
       onError: (error: any) => {
-        const errorMessage = error.message || "Failed to update shortcut order";
+        const errorMessage = error.message || t('settings:failedToUpdateShortcutOrder');
         enqueueSnackbar(errorMessage, {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
@@ -214,14 +216,14 @@ const ArticleShortcutSetting = () => {
     {
       onSuccess: (data) => {
         queryClient.invalidateQueries(["article-shortcuts"]);
-        const statusText = data.enabled ? "enabled" : "disabled";
-        enqueueSnackbar(`Shortcut "${data.name}" ${statusText} successfully`, {
+        const statusText = data.enabled ? t('settings:enabledText') : t('settings:disabledText');
+        enqueueSnackbar(t('settings:shortcutStatusUpdated', {name: data.name, status: statusText}), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
       },
       onError: (error) => {
-        enqueueSnackbar(`Failed to update shortcut: ${error}`, {
+        enqueueSnackbar(t('settings:failedToUpdateShortcut', {error}), {
           variant: "error",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
         });
@@ -246,14 +248,14 @@ const ArticleShortcutSetting = () => {
   };
 
   const handleDeleteShortcut = (id: number) => {
-    if (window.confirm("Are you sure you want to delete this shortcut?")) {
+    if (window.confirm(t('settings:confirmDeleteShortcut'))) {
       deleteShortcutMutation.mutate(id);
     }
   };
 
   const handleSaveShortcut = () => {
     if (!editShortcut || !editShortcut.name || !editShortcut.content) {
-      enqueueSnackbar('Name and content are required', {
+      enqueueSnackbar(t('settings:nameAndContentRequired'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
@@ -323,9 +325,9 @@ const ArticleShortcutSetting = () => {
       <SettingSectionTitle
         first
         icon={BoltIcon}
-        description="Create AI-powered shortcuts to quickly process article content with custom prompts."
+        description={t('settings:articleShortcutsDesc')}
       >
-        Article AI Shortcuts
+        {t('settings:articleShortcuts')}
       </SettingSectionTitle>
 
       {/* Action Buttons */}
@@ -349,7 +351,7 @@ const ArticleShortcutSetting = () => {
             }
           }}
         >
-          Import Presets
+          {t('settings:importPresets')}
         </Button>
         <Button
           startIcon={<AddIcon />}
@@ -369,7 +371,7 @@ const ArticleShortcutSetting = () => {
             }
           }}
         >
-          Add Shortcut
+          {t('settings:addShortcut')}
         </Button>
       </Box>
 
@@ -429,7 +431,7 @@ const ArticleShortcutSetting = () => {
                         </Box>
 
                         {/* Toggle Switch */}
-                        <Tooltip title={shortcut.enabled ? "Disable shortcut" : "Enable shortcut"} arrow>
+                        <Tooltip title={shortcut.enabled ? t('settings:disableShortcut') : t('settings:enableShortcut')} arrow>
                           <Switch
                             size="small"
                             checked={shortcut.enabled}
@@ -480,7 +482,7 @@ const ArticleShortcutSetting = () => {
 
                         {/* Actions */}
                         <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <Tooltip title="Edit shortcut" arrow>
+                          <Tooltip title={t('settings:editShortcut')} arrow>
                             <IconButton
                               size="small"
                               onClick={() => handleEditShortcut(shortcut)}
@@ -495,7 +497,7 @@ const ArticleShortcutSetting = () => {
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete shortcut" arrow>
+                          <Tooltip title={t('settings:deleteShortcut')} arrow>
                             <IconButton
                               size="small"
                               onClick={() => shortcut.id && handleDeleteShortcut(shortcut.id)}
@@ -538,10 +540,10 @@ const ArticleShortcutSetting = () => {
         >
           <BoltIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
           <Typography variant="body1" sx={{ color: '#64748b', fontWeight: 500, mb: 1 }}>
-            No shortcuts configured
+            {t('settings:noShortcuts')}
           </Typography>
           <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3 }}>
-            Create custom AI shortcuts or import preset templates to get started.
+            {t('settings:noShortcutsDesc')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center' }}>
             <Button
@@ -555,7 +557,7 @@ const ArticleShortcutSetting = () => {
                 fontWeight: 500
               }}
             >
-              Import Presets
+              {t('settings:importPresets')}
             </Button>
             <Button
               startIcon={<AddIcon />}
@@ -573,7 +575,7 @@ const ArticleShortcutSetting = () => {
                 }
               }}
             >
-              Add Shortcut
+              {t('settings:addShortcut')}
             </Button>
           </Box>
         </Box>
@@ -608,7 +610,7 @@ const ArticleShortcutSetting = () => {
               {editShortcut?.id ? <EditIcon sx={{ color: '#fff', fontSize: 20 }} /> : <AddIcon sx={{ color: '#fff', fontSize: 20 }} />}
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-              {editShortcut?.id ? "Edit Shortcut" : "Create New Shortcut"}
+              {editShortcut?.id ? t('settings:editShortcut') : t('settings:createShortcut')}
             </Typography>
           </Box>
         </DialogTitle>
@@ -616,7 +618,7 @@ const ArticleShortcutSetting = () => {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
             <TextField
               fullWidth
-              label="Name"
+              label={t('settings:shortcutName')}
               value={editShortcut?.name || ""}
               onChange={(e) => setEditShortcut({ ...editShortcut!, name: e.target.value })}
               required
@@ -629,11 +631,11 @@ const ArticleShortcutSetting = () => {
             />
             <TextField
               fullWidth
-              label="Description"
+              label={t('settings:mcpToolDescription')}
               value={editShortcut?.description || ""}
               onChange={(e) => setEditShortcut({ ...editShortcut!, description: e.target.value })}
               size="small"
-              placeholder="Brief description of what this shortcut does"
+              placeholder={t('settings:shortcutDescriptionPlaceholder')}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
@@ -642,13 +644,13 @@ const ArticleShortcutSetting = () => {
             />
             <TextField
               fullWidth
-              label="Prompt Content"
+              label={t('settings:shortcutPrompt')}
               value={editShortcut?.content || ""}
               onChange={(e) => setEditShortcut({ ...editShortcut!, content: e.target.value })}
               multiline
               rows={10}
               required
-              placeholder="Enter the AI prompt that will be used to process article content..."
+              placeholder={t('settings:shortcutPromptPlaceholder')}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
@@ -669,7 +671,7 @@ const ArticleShortcutSetting = () => {
                 }}
               />
               <Typography variant="body2" sx={{ color: '#64748b' }}>
-                Enable this shortcut
+                {t('settings:shortcutEnableDesc')}
               </Typography>
             </Box>
           </Box>
@@ -684,7 +686,7 @@ const ArticleShortcutSetting = () => {
               px: 3
             }}
           >
-            Cancel
+            {t('common:cancel')}
           </Button>
           <Button
             onClick={handleSaveShortcut}
@@ -701,7 +703,7 @@ const ArticleShortcutSetting = () => {
               }
             }}
           >
-            {editShortcut?.id ? "Save Changes" : "Create Shortcut"}
+            {editShortcut?.id ? t('common:save') : t('settings:createShortcut')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -735,7 +737,7 @@ const ArticleShortcutSetting = () => {
               <DownloadIcon sx={{ color: '#fff', fontSize: 20 }} />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-              Import Preset Shortcuts
+              {t('settings:importPresetTitle')}
             </Typography>
           </Box>
         </DialogTitle>
@@ -753,7 +755,7 @@ const ArticleShortcutSetting = () => {
                 bgcolor: '#f8fafc'
               }}>
                 <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
-                  {selectedShortcuts.length} of {importableShortcuts.length} selected
+                  {t('settings:shortcutsSelected', { count: selectedShortcuts.length, total: importableShortcuts.length })}
                 </Typography>
                 <Button
                   size="small"
@@ -764,7 +766,7 @@ const ArticleShortcutSetting = () => {
                     color: '#3b82f6'
                   }}
                 >
-                  {selectedShortcuts.length === importableShortcuts.length ? 'Deselect All' : 'Select All'}
+                  {selectedShortcuts.length === importableShortcuts.length ? t('settings:deselectAll') : t('settings:selectAll')}
                 </Button>
               </Box>
               <List sx={{ py: 0 }}>
@@ -840,7 +842,7 @@ const ArticleShortcutSetting = () => {
               px: 3
             }}
           >
-            Cancel
+            {t('common:cancel')}
           </Button>
           <Button
             onClick={handleImportDefaults}

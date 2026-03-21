@@ -13,6 +13,7 @@ import {
 import BatchOrganizeSetting from "./BatchOrganizeSetting";
 import DownloadIcon from '@mui/icons-material/Download';
 import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
+import { useTranslation } from 'react-i18next';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -36,7 +37,7 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
+function TabPanel(props: Readonly<TabPanelProps>) {
   const { children, value, index, ...other } = props;
 
   return (
@@ -65,6 +66,7 @@ function a11yProps(index: number) {
 
 function ExportSetting() {
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation(['settings', 'common']);
   const [exportInfo, setExportInfo] = useState<LibraryExportInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const lastStatusRef = useRef<LibraryExportStatus | undefined>(undefined);
@@ -76,14 +78,15 @@ function ExportSetting() {
       setExportInfo(info);
       lastStatusRef.current = info?.status;
     } catch (error) {
-      enqueueSnackbar("Failed to load export status. Please try again.", {
+      console.error('Failed to load export status', error);
+      enqueueSnackbar(t('settings:exportStatusLoadFailed'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     } finally {
       setIsLoading(false);
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, t]);
 
   useEffect(() => {
     loadLatest();
@@ -97,9 +100,10 @@ function ExportSetting() {
       return;
     }
     let isMounted = true;
+    const fileName = exportInfo.fileName;
     const poll = async () => {
       try {
-        const info = await fetchLibraryExportStatus(exportInfo.fileName as string);
+        const info = await fetchLibraryExportStatus(fileName);
         if (!isMounted) {
           return;
         }
@@ -107,20 +111,21 @@ function ExportSetting() {
         lastStatusRef.current = info?.status;
         setExportInfo(info);
         if (previousStatus === "IN_PROGRESS" && info?.status === "READY") {
-          enqueueSnackbar("Export ready. Download it below.", {
+          enqueueSnackbar(t('settings:exportReadySnackbar'), {
             variant: "success",
             anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
         if (previousStatus === "IN_PROGRESS" && info?.status === "FAILED") {
-          enqueueSnackbar("Export failed. Please try again.", {
+          enqueueSnackbar(t('settings:exportFailedRetry'), {
             variant: "error",
             anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
         }
       } catch (error) {
+        console.error('Failed to refresh export status', error);
         if (isMounted) {
-          enqueueSnackbar("Failed to refresh export status.", {
+          enqueueSnackbar(t('settings:exportStatusRefreshFailed'), {
             variant: "warning",
             anchorOrigin: { vertical: "bottom", horizontal: "center" }
           });
@@ -133,24 +138,25 @@ function ExportSetting() {
       isMounted = false;
       clearInterval(timer);
     };
-  }, [enqueueSnackbar, exportInfo?.fileName, isPreparing]);
+  }, [enqueueSnackbar, exportInfo?.fileName, isPreparing, t]);
 
   const handleExport = useCallback(async () => {
     try {
       const info = await startLibraryExport();
       setExportInfo(info);
       lastStatusRef.current = info?.status;
-      enqueueSnackbar("Export started. We will notify you when it is ready.", {
+      enqueueSnackbar(t('settings:exportStarted'), {
         variant: "info",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     } catch (error) {
-      enqueueSnackbar("Failed to start export. Please try again.", {
+      console.error('Failed to start export', error);
+      enqueueSnackbar(t('settings:exportStartFailed'), {
         variant: "error",
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, t]);
 
   const completedAtLabel = useMemo(() => {
     if (!exportInfo?.completedAt) {
@@ -164,9 +170,9 @@ function ExportSetting() {
       <SettingSectionTitle
         first
         icon={DownloadIcon}
-        description="Export your Library entries as Markdown files packaged in a ZIP archive. Files will be organized according to your Collection folder structure."
+        description={t('settings:libraryExportDesc')}
       >
-        Library Export
+        {t('settings:libraryExport')}
       </SettingSectionTitle>
 
       <div className="mt-4 flex items-center gap-3">
@@ -175,11 +181,11 @@ function ExportSetting() {
           onClick={handleExport}
           disabled={isPreparing || isLoading}
         >
-          Export Library
+          {t('settings:exportLibraryBtn')}
         </Button>
         {isPreparing && (
           <Typography variant="body2" className="text-gray-600">
-            Preparing your export...
+            {t('settings:preparingExport')}
           </Typography>
         )}
       </div>
@@ -187,21 +193,21 @@ function ExportSetting() {
       <div className="mt-4">
         {!isLoading && exportInfo?.status === "FAILED" && (
           <Alert severity="error">
-            {exportInfo?.message || "Export failed. Please try again."}
+            {exportInfo?.message || t('settings:exportFailedRetry')}
           </Alert>
         )}
         {!isLoading && exportInfo?.status === "IN_PROGRESS" && (
           <Alert severity="info">
-            Your export is being generated. This page will update automatically.
+            {t('settings:exportInProgressNotice')}
           </Alert>
         )}
-        {!isLoading && hasReadyFile && (
+        {!isLoading && hasReadyFile && exportInfo.fileName && (
           <Alert severity="success">
             <div className="flex flex-col gap-1">
-              <div>Export ready for download.</div>
+              <div>{t('settings:exportReady')}</div>
               <div>
                 <Link
-                  href={getLibraryExportDownloadUrl(exportInfo.fileName as string)}
+                  href={getLibraryExportDownloadUrl(exportInfo.fileName)}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -216,12 +222,12 @@ function ExportSetting() {
         )}
         {!isLoading && !hasReadyFile && exportInfo?.status === "EMPTY" && (
           <Alert severity="info">
-            No export has been generated yet.
+            {t('settings:exportEmpty')}
           </Alert>
         )}
         {!isLoading && exportInfo?.status === "MISSING" && (
           <Alert severity="warning">
-            The last export file is no longer available. Please run a new export.
+            {t('settings:exportMissing')}
           </Alert>
         )}
       </div>
@@ -231,6 +237,7 @@ function ExportSetting() {
 
 export default function LibrarySetting() {
   const [tabValue, setTabValue] = useState(0);
+  const { t } = useTranslation(['settings', 'common']);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -239,9 +246,9 @@ export default function LibrarySetting() {
   return (
     <div>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="library settings tabs">
-          <Tab icon={<DriveFileMoveIcon />} iconPosition="start" label="Batch Organize" {...a11yProps(0)} sx={{ minHeight: 48 }} />
-          <Tab icon={<DownloadIcon />} iconPosition="start" label="Export" {...a11yProps(1)} sx={{ minHeight: 48 }} />
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label={t('settings:librarySettings')}>
+          <Tab icon={<DriveFileMoveIcon />} iconPosition="start" label={t('settings:batchOrganize')} {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<DownloadIcon />} iconPosition="start" label={t('common:export', 'Export')} {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>
