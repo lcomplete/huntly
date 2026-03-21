@@ -1,6 +1,7 @@
 import SearchIcon from "@mui/icons-material/Search";
 import "./SearchBox.css";
 import React, {useCallback, useEffect, useRef, useState} from "react";
+import type {AutocompleteInputChangeReason} from "@mui/material/Autocomplete";
 import {
   Autocomplete,
   Box,
@@ -27,6 +28,16 @@ type SearchOption = {
   type: 'Recent' | 'Type' | 'Library' | 'Options' | 'Advanced'
 }
 
+type SearchBoxProps = Readonly<{
+  variant?: 'default' | 'large';
+  value?: string;
+  onValueChange?: (value: string) => void;
+  selectedKeywords?: string[];
+  onSelectedKeywordsChange?: (keywords: string[]) => void;
+  focusSignal?: number;
+  defaultSearchText?: string;
+}>;
+
 const defaultSearchOptions: SearchOption[] = [
   {keyword: 'url:', label: 'url:{url}', type: 'Advanced'},
   {keyword: 'author:', label: 'author:{author}', type: 'Advanced'},
@@ -45,14 +56,48 @@ const defaultSearchOptions: SearchOption[] = [
   {keyword: 'title', label: 'Only Search Title', type: 'Options'},
 ];
 
-type SearchBoxProps = {
-  variant?: 'default' | 'large';
-  value?: string;
-  onValueChange?: (value: string) => void;
-  selectedKeywords?: string[];
-  onSelectedKeywordsChange?: (keywords: string[]) => void;
-  focusSignal?: number;
-  defaultSearchText?: string;
+const rawFilterOptions = createFilterOptions<SearchOption>();
+const defaultSearchOptionKeywords = new Set(defaultSearchOptions.map((option) => option.keyword));
+
+function getSearchOptionsByKeywords(keywords: string[]) {
+  return defaultSearchOptions.filter((option) => keywords.includes(option.keyword));
+}
+
+function buildNextSearchState(options: Array<SearchOption | string>) {
+  const groupedOptions: Partial<Record<SearchOption['type'], SearchOption[]>> = {};
+  let shouldClearText = true;
+  let nextSearchText: string | null = null;
+
+  for (const option of options) {
+    if (typeof option === 'string') {
+      shouldClearText = false;
+      continue;
+    }
+
+    if (!option.keyword) {
+      shouldClearText = false;
+      nextSearchText = option.label;
+      continue;
+    }
+
+    if (option.type === 'Advanced') {
+      shouldClearText = false;
+      nextSearchText = option.keyword;
+      continue;
+    }
+
+    if (option.type === 'Options') {
+      groupedOptions[option.type] = [...(groupedOptions[option.type] || []), option];
+      continue;
+    }
+
+    groupedOptions[option.type] = [option];
+  }
+
+  return {
+    nextSearchOptions: Object.values(groupedOptions).flat(),
+    nextSearchText: shouldClearText ? '' : nextSearchText,
+  };
 }
 
 export default function SearchBox({
@@ -70,22 +115,32 @@ export default function SearchBox({
   const { t } = useTranslation(['page']);
   const isLarge = variant === 'large';
   const isControlled = value !== undefined;
-  const isOptionsControlled = selectedKeywords !== undefined;
+  const hasSelectedKeywords = selectedKeywords !== undefined;
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const queryOp = params.get('op') ? params.get('op').split(',') : [];
-  const queryOptions = defaultSearchOptions.filter(option => queryOp.indexOf(option.keyword) >= 0);
-  const [searchText, setSearchText] = useState('');
-  const [searchOptions, setSearchOptions] = React.useState<SearchOption[]>(queryOptions);
+  const queryText = params.get('q') || '';
+  const queryOpParam = params.get('op') || '';
+  const queryOp = React.useMemo(() => (queryOpParam ? queryOpParam.split(',') : []), [queryOpParam]);
+  const queryOptions = React.useMemo(() => getSearchOptionsByKeywords(queryOp), [queryOp]);
+  const selectedKeywordSignature = selectedKeywords?.join(',') || '';
+  const selectedOptionsFromProps = React.useMemo(
+    () => getSearchOptionsByKeywords(selectedKeywordSignature ? selectedKeywordSignature.split(',') : []),
+    [selectedKeywordSignature]
+  );
+  const [searchText, setSearchText] = useState(() => queryText || defaultSearchText || '');
+  const [searchOptions, setSearchOptions] = React.useState<SearchOption[]>(() => {
+    if (hasSelectedKeywords) {
+      return getSearchOptionsByKeywords(selectedKeywords);
+    }
+
+    return queryOptions;
+  });
 
   useEffect(() => {
     if (!isControlled) {
-      setSearchText(params.get('q') || '');
+      setSearchText(queryText || defaultSearchText || '');
     }
-    if (!isOptionsControlled) {
-      setSearchOptions(defaultSearchOptions.filter(option => queryOp.indexOf(option.keyword) >= 0));
-    }
-  }, [params, isControlled, isOptionsControlled, queryOp]);
+  }, [defaultSearchText, isControlled, queryText]);
 
   useEffect(() => {
     if (isControlled) {
@@ -94,20 +149,13 @@ export default function SearchBox({
   }, [value, isControlled]);
 
   useEffect(() => {
-    if (isOptionsControlled) {
-      const keywords = selectedKeywords || [];
-      setSearchOptions(defaultSearchOptions.filter(option => keywords.includes(option.keyword)));
+    if (hasSelectedKeywords) {
+      setSearchOptions(selectedOptionsFromProps);
+      return;
     }
-  }, [selectedKeywords, isOptionsControlled]);
 
-  // Set default search text for advanced search like collection:name
-  // Clear search text when defaultSearchText becomes undefined (e.g., navigating to unsorted page)
-  // Only apply when not on search page (no q param in URL)
-  useEffect(() => {
-    if (!isControlled && !params.get('q')) {
-      setSearchText(defaultSearchText || '');
-    }
-  }, [defaultSearchText, isControlled, params]);
+    setSearchOptions(queryOptions);
+  }, [hasSelectedKeywords, queryOptions, selectedOptionsFromProps]);
 
   useEffect(() => {
     if (focusSignal && inputRef.current) {
@@ -131,43 +179,33 @@ export default function SearchBox({
     setSearchText(nextValue);
   }
 
-  function inputChange(e) {
-    setSearchTextValue(e.target.value || '');
+  function inputChange(_event: React.SyntheticEvent, nextValue: string, reason: AutocompleteInputChangeReason) {
+    if (reason === 'reset') {
+      return;
+    }
+
+    setSearchTextValue(nextValue);
   }
 
-  function searchSubmit(e) {
+  function searchSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const submitText = (isControlled ? (value || '') : searchText).trim();
     if (!submitText && searchOptions.length === 0) {
       return;
     }
+
     // use set search params
     navigate({
       pathname: "/search",
       search: `?${createSearchParams({
         'q': submitText,
-        'op': searchOptions.filter(option => defaultSearchOptions.map(def => def.keyword).indexOf(option.keyword) >= 0).map(option => option.keyword).join(',')
+        'op': searchOptions
+          .filter((option) => defaultSearchOptionKeywords.has(option.keyword))
+          .map((option) => option.keyword)
+          .join(',')
       })}`
     });
   }
-
-  const getLocalizedLabel = (option: SearchOption) => {
-    switch (option.keyword) {
-      case 'tweet': return t('page:tweet');
-      case 'github': return t('page:githubRepository');
-      case 'browser': return t('page:browserHistory');
-      case 'feeds': return t('page:feeds');
-      case 'list': return t('page:myList');
-      case 'highlights': return t('page:highlights');
-      case 'starred': return t('page:starred');
-      case 'later': return t('page:readLater');
-      case 'archive': return t('page:archive');
-      case 'unsorted': return t('page:unsorted');
-      case 'read': return t('page:alreadyRead');
-      case 'title': return t('page:onlySearchTitle');
-      default: return option.label;
-    }
-  };
 
   let allSearchOptions = defaultSearchOptions;
   const {
@@ -185,107 +223,78 @@ export default function SearchBox({
     allSearchOptions = [...recentSearchOptions, ...defaultSearchOptions];
   }
 
-  function handleChangeOptions(options: SearchOption[]) {
-    const results = [];
-    const mapResults = {};
-    let clearText = true;
-    for (const option of options) {
-      if (typeof option === 'string') {
-        clearText = false;
-        continue;
-      }
-      if (!option.keyword) {
-        clearText = false;
-        setSearchTextValue(option.label);
-        continue;
-      }
-      if(option.type === 'Advanced'){
-        clearText = false;
-        setSearchTextValue(option.keyword);
-        continue;
-      }
-      if (!mapResults[option.type]) {
-        mapResults[option.type] = [];
-      }
-      if (option.type !== 'Options') {
-        mapResults[option.type] = [option];
-      } else {
-        mapResults[option.type].push(option);
-      }
+  function handleChangeOptions(options: Array<SearchOption | string>) {
+    const {nextSearchOptions, nextSearchText} = buildNextSearchState(options);
+
+    if (nextSearchText !== null) {
+      setSearchTextValue(nextSearchText);
     }
-    if (clearText) {
-      setSearchTextValue("");
-    }
-    for (const key in mapResults) {
-      results.push(...mapResults[key]);
-    }
-    setSearchOptions(results);
-    if (isOptionsControlled) {
-      const nextKeywords = results
-        .map(option => option.keyword)
-        .filter(keyword => keyword);
+
+    setSearchOptions(nextSearchOptions);
+
+    if (onSelectedKeywordsChange) {
+      const nextKeywords = nextSearchOptions
+        .map((option) => option.keyword)
+        .filter(Boolean);
+
       onSelectedKeywordsChange?.(nextKeywords);
     }
   }
 
-  function inputKeyDown(event) {
-    switch (event.key) {
-      case "Tab": {
-        if (event.target.value.trim() !== '') {
-          if (filteringOptions.current.length > 0) {
-            handleChangeOptions([
-              ...searchOptions,
-              filteringOptions.current[0]
-            ]);
-            event.preventDefault();
-          }
-        }
-        break;
-      }
+  function inputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Tab') {
+      return;
     }
+
+    if (!event.currentTarget.value.trim() || filteringOptions.current.length === 0) {
+      return;
+    }
+
+    handleChangeOptions([
+      ...searchOptions,
+      filteringOptions.current[0]
+    ]);
+    event.preventDefault();
   }
 
-  function inputKeyUp(event) {
-    switch (event.key) {
-      case "Enter": {
-        event.preventDefault()
-        searchSubmit(event);
-        break;
-      }
+  function inputKeyUp(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter') {
+      return;
     }
+
+    event.preventDefault();
+    searchSubmit(event);
   }
 
-  const rawFilterOptions = createFilterOptions<SearchOption>();
-  let filteringOptions = useRef<SearchOption[]>([]);
+  const filteringOptions = useRef<SearchOption[]>([]);
 
   const filterOptions = useCallback((options: SearchOption[], state: FilterOptionsState<SearchOption>) => {
     const filtered = rawFilterOptions(options, state);
     filteringOptions.current = filtered;
     return filtered;
-  }, [rawFilterOptions]);
+  }, []);
 
   const largeHeight = 52;
   const inputValue = isControlled ? (value || '') : searchText;
+  const focusClassName = isLarge
+    ? (focus ? 'bg-white border-slate-300 shadow-lg' : 'bg-white border-slate-300 shadow-sm')
+    : (focus ? 'bg-white border-slate-300 shadow-md' : 'bg-white border-slate-200');
+  const searchBoxBaseClassName = isLarge
+    ? 'search-box w-full text-xs leading-6 text-slate-500 rounded-xl pl-2 pr-2 border-2 border-solid transition-all duration-200'
+    : 'search-box w-full md:w-4/12 md:min-w-[700px] text-xs leading-6 text-slate-500 rounded-md pl-1 pr-1 border border-solid';
+  const searchBoxClassName = `${searchBoxBaseClassName} ${focusClassName}`;
 
   return (
     <div className={'search-wrapper'}>
       <div
-        className={
-          isLarge
-            ? `search-box w-full text-xs leading-6 text-slate-500 rounded-xl pl-2 pr-2 border-2 border-solid transition-all duration-200 ${focus ? "bg-white border-slate-300 shadow-lg" : "bg-white border-slate-300 shadow-sm"}`
-            : `search-box w-full md:w-4/12 md:min-w-[700px] text-xs leading-6 text-slate-500 rounded-md pl-1 pr-1 border border-solid ${focus ? "bg-white border-slate-300 shadow-md" : "bg-white border-slate-200"}`
-        }
+        className={searchBoxClassName}
         style={isLarge ? { minHeight: `${largeHeight}px` } : {}}
       >
         <form action={'/search'} className={'flex grow items-center'} style={isLarge ? { minHeight: `${largeHeight}px` } : {}} onSubmit={searchSubmit}>
           <IconButton aria-label={"search"} type={"submit"} className={''}>
             <SearchIcon fontSize={isLarge ? "medium" : "small"}/>
           </IconButton>
-          {/*<InputBase name={'q'} type={"text"} className={"w-full peer"} placeholder={'Search'} onFocus={inputFocus}*/}
-          {/*           onChange={inputChange}*/}
-          {/*           onBlur={inputBlur} value={searchText}*/}
-          {/*/>*/}
-          <Autocomplete
+          <Autocomplete<SearchOption, true, false, true>
             PaperComponent={CustomPaper}
             className={'grow'}
             sx={{
@@ -320,7 +329,7 @@ export default function SearchBox({
             onOpen={() => {
               refetchRecentSearches()
             }}
-            onChange={(event, newValue: SearchOption[]) => {
+            onChange={(_event, newValue) => {
               handleChangeOptions([
                 ...newValue
               ]);
@@ -333,7 +342,7 @@ export default function SearchBox({
             onFocus={inputFocus}
             onBlur={inputBlur}
             options={allSearchOptions}
-            getOptionLabel={(option: SearchOption) => option.label}
+            getOptionLabel={(option) => typeof option === 'string' ? option : option.label}
             groupBy={(option: SearchOption) => option.type}
             renderGroup={(params) => (
               <li key={params.key}>
@@ -355,7 +364,7 @@ export default function SearchBox({
                   {option.type === 'Options' && <Box component={FilterAltIcon} color={'gray'}>
                   </Box>}
                   <span className={'ml-2'}>
-                  {getLocalizedLabel(option)}
+                  {option.label}
                 </span>
                 </div>
               </li>
@@ -371,7 +380,6 @@ export default function SearchBox({
             }
             renderInput={(params) => {
               const {InputLabelProps, InputProps, ...rest} = params;
-              // <TextField {...params} name={'q'} placeholder={'Search'} size={"small"} variant={'standard'} fullWidth={true} />
               return <InputBase {...params.InputProps} {...rest} name={'q'} placeholder={isLarge ? t('page:searchEverythingPlaceholder') : t('page:searchLabel')} type={'text'}
                                 onKeyDown={inputKeyDown} onKeyUp={inputKeyUp}
                                 inputRef={inputRef}
@@ -386,14 +394,6 @@ export default function SearchBox({
             popupIcon={<TuneIcon fontSize={isLarge ? 'medium' : 'small'} />}
           />
         </form>
-        {/*{*/}
-        {/*  searchText && <IconButton aria-label={'close button'} onClick={clearInput}>*/}
-        {/*    <CloseIcon fontSize={'small'}/>*/}
-        {/*  </IconButton>*/}
-        {/*}*/}
-        {/*<IconButton aria-label={'search filter'}>*/}
-        {/*  <TuneIcon fontSize={'small'}/>*/}
-        {/*</IconButton>*/}
       </div>
     </div>
   )
