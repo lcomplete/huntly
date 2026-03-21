@@ -29,6 +29,7 @@ import {
 import { CollectionApi, CollectionTreeVO, CollectionVO } from "../../api/collectionApi";
 import BatchOrganizeDialog from "../Dialogs/BatchOrganizeDialog";
 import BatchPageItemList from "../BatchPageItemList";
+import { useTranslation } from 'react-i18next';
 
 const CONTENT_TYPE_OPTIONS: { value: ContentTypeFilter; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -46,6 +47,7 @@ interface CollectionOption {
 }
 
 export default function BatchOrganizeSetting() {
+  const { t } = useTranslation(['settings', 'navigation', 'common']);
   const { enqueueSnackbar } = useSnackbar();
 
   // Filter state
@@ -145,8 +147,8 @@ export default function BatchOrganizeSetting() {
 
   return (
     <div>
-      <SettingSectionTitle first icon={DriveFileMoveIcon} description="Filter and batch move pages to collections.">
-        Batch Organize
+      <SettingSectionTitle first icon={DriveFileMoveIcon} description={t('settings:batchOrganizeDesc')}>
+        {t('settings:batchOrganize')}
       </SettingSectionTitle>
 
       {/* Filter Form */}
@@ -154,10 +156,10 @@ export default function BatchOrganizeSetting() {
         {/* Row 1: Collection, Library, Type */}
         <Box className="flex gap-3 items-center flex-wrap">
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Collection</InputLabel>
+            <InputLabel>{t('navigation:collections')}</InputLabel>
             <Select
               value={collectionId === "UNSORTED" ? "UNSORTED" : (collectionId ?? "")}
-              label="Collection"
+              label={t('navigation:collections')}
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === "") setCollectionId(null);
@@ -182,19 +184,19 @@ export default function BatchOrganizeSetting() {
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>Library</InputLabel>
-            <Select value={saveStatus} label="Library" onChange={(e) => setSaveStatus(e.target.value as "ALL" | "SAVED" | "ARCHIVED")}>
-              <MenuItem value="ALL">All</MenuItem>
-              <MenuItem value="SAVED">My List</MenuItem>
-              <MenuItem value="ARCHIVED">Archive</MenuItem>
+            <InputLabel>{t('settings:library')}</InputLabel>
+            <Select value={saveStatus} label={t('settings:library')} onChange={(e) => setSaveStatus(e.target.value as "ALL" | "SAVED" | "ARCHIVED")}>
+              <MenuItem value="ALL">{t('settings:libraryStatus')}</MenuItem>
+              <MenuItem value="SAVED">{t('settings:myList')}</MenuItem>
+              <MenuItem value="ARCHIVED">{t('settings:archive')}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>Type</InputLabel>
+            <InputLabel>{t('settings:type')}</InputLabel>
             <Select
               value={contentType}
-              label="Type"
+              label={t('settings:type')}
               onChange={(e) => setContentType(e.target.value as ContentTypeFilter)}
             >
               {CONTENT_TYPE_OPTIONS.map((opt) => (
@@ -209,7 +211,7 @@ export default function BatchOrganizeSetting() {
           <TextField
             size="small"
             type="date"
-            label="From"
+            label={t('settings:from')}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
@@ -218,7 +220,7 @@ export default function BatchOrganizeSetting() {
           <TextField
             size="small"
             type="date"
-            label="To"
+            label={t('settings:to')}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
@@ -228,16 +230,16 @@ export default function BatchOrganizeSetting() {
 
         {/* Row 3: Starred, Read Later */}
         <Box className="flex gap-3 items-center">
-          <FormControlLabel control={<Checkbox checked={starred} onChange={(e) => setStarred(e.target.checked)} size="small" />} label="Starred" />
-          <FormControlLabel control={<Checkbox checked={readLater} onChange={(e) => setReadLater(e.target.checked)} size="small" />} label="Read Later" />
+          <FormControlLabel control={<Checkbox checked={starred} onChange={(e) => setStarred(e.target.checked)} size="small" />} label={t('settings:starred')} />
+          <FormControlLabel control={<Checkbox checked={readLater} onChange={(e) => setReadLater(e.target.checked)} size="small" />} label={t('settings:readLater')} />
         </Box>
 
         {/* Row 4: Author */}
         <Box>
           <TextField
             size="small"
-            label="Author"
-            placeholder="Filter by author..."
+            label={t('settings:author')}
+            placeholder={t('settings:filterDesc')}
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
             sx={{ width: 280 }}
@@ -256,16 +258,14 @@ export default function BatchOrganizeSetting() {
         {/* Filter Result Preview */}
         {filterResult && (
           <Box className="space-y-3">
-            <Alert severity="info">
-              Found <strong>{filterResult.totalCount}</strong> pages matching your criteria.
-            </Alert>
+            <Alert severity="info" dangerouslySetInnerHTML={{ __html: t('settings:foundPages', { count: filterResult.totalCount }).replace(filterResult.totalCount.toString(), `<strong>${filterResult.totalCount}</strong>`) }} />
             {filterResult.items.length > 0 && (
               <>
                 <BatchPageItemList items={filterResult.items.slice(0, 5)} />
                 <Button variant="outlined" size="small" onClick={handleViewMore}>
                   {filterResult.totalCount === 1
-                    ? "Organize (1)"
-                    : `Batch Organize (${filterResult.totalCount})`}
+                    ? t('settings:organizeBtn')
+                    : `${t('settings:batchOrganizeBtn')} (${filterResult.totalCount})`}
                 </Button>
               </>
             )}

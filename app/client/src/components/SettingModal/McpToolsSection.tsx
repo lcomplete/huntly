@@ -18,6 +18,7 @@ import BuildIcon from "@mui/icons-material/Build";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { styled } from "@mui/material/styles";
 import { useSnackbar } from "notistack";
+import { useTranslation } from 'react-i18next';
 
 const StyledAccordion = styled(Accordion)(({ theme }) => ({
     border: `1px solid ${theme.palette.divider}`,
@@ -179,6 +180,7 @@ interface ToolTestState {
 }
 
 export default function McpToolsSection() {
+    const { t } = useTranslation(['settings']);
     const { enqueueSnackbar } = useSnackbar();
     const [expanded, setExpanded] = useState<string | false>(false);
     const [testStates, setTestStates] = useState<Record<string, ToolTestState>>({});
@@ -284,7 +286,7 @@ export default function McpToolsSection() {
         <Box sx={{ mt: 3 }}>
             <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                 <BuildIcon fontSize="small" />
-                Available Tools ({tools.length})
+                {t('settings:mcpAvailableTools')} ({tools.length})
             </Typography>
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -307,7 +309,7 @@ export default function McpToolsSection() {
                                     {/* Description */}
                                     <Box>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                                            Description
+                                            {t('settings:mcpToolDescription')}
                                         </Typography>
                                         <Typography variant="body2" color="textSecondary">
                                             {tool.description}
@@ -318,7 +320,7 @@ export default function McpToolsSection() {
                                     {Object.keys(properties).length > 0 && (
                                         <Box>
                                             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                                                Parameters
+                                                {t('settings:mcpToolParameters')}
                                             </Typography>
                                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                                                 {Object.entries(properties).map(([paramName, param]) => (
@@ -379,7 +381,7 @@ export default function McpToolsSection() {
                                             onClick={() => toggleTest(tool.name, tool)}
                                             sx={{ mb: 1 }}
                                         >
-                                            {testState.showTest ? "Hide Test" : "Test Tool"}
+                                            {testState.showTest ? t('settings:mcpToolHideTest') : t('settings:mcpToolTest')}
                                         </Button>
 
                                         <Collapse in={testState.showTest}>
@@ -417,7 +419,7 @@ export default function McpToolsSection() {
                                                     }
                                                     sx={{ alignSelf: "flex-start" }}
                                                 >
-                                                    {testState.loading ? "Running..." : "Run"}
+                                                    {testState.loading ? t('settings:mcpToolRunning') : t('settings:mcpToolRun')}
                                                 </Button>
 
                                                 {testState.result && (

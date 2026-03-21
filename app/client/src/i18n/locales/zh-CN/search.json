@@ -1,0 +1,17 @@
+{
+  "searchInTitles": "仅搜索标题",
+  "twitterContent": "Twitter/X 内容",
+  "githubRepos": "GitHub 仓库",
+  "starredItems": "已加星标的内容",
+  "readLaterList": "稍后阅读列表",
+  "searchEverything": "全站搜索",
+  "searchDesc": "搜索包含文章、推文、高亮笔记、订阅等在内的所有收藏内容。",
+  "trySearchingFor": "尝试搜索：",
+  "results": "条结果",
+  "loadMore": "加载更多",
+  "noMoreResults": "没有更多结果了",
+  "noResultsFor": "未找到与 \"{{query}}\" 相关的结果",
+  "adjustSearchTerms": "请尝试调整您的搜索词",
+  "searchError": "糟糕，出了点问题，请重试。",
+  "pageDeleted": "页面已删除。"
+}

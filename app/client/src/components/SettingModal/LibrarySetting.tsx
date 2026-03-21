@@ -13,6 +13,7 @@ import {
 import BatchOrganizeSetting from "./BatchOrganizeSetting";
 import DownloadIcon from '@mui/icons-material/Download';
 import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
+import { useTranslation } from 'react-i18next';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -65,6 +66,7 @@ function a11yProps(index: number) {
 
 function ExportSetting() {
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation(['settings', 'common']);
   const [exportInfo, setExportInfo] = useState<LibraryExportInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const lastStatusRef = useRef<LibraryExportStatus | undefined>(undefined);
@@ -164,9 +166,9 @@ function ExportSetting() {
       <SettingSectionTitle
         first
         icon={DownloadIcon}
-        description="Export your Library entries as Markdown files packaged in a ZIP archive. Files will be organized according to your Collection folder structure."
+        description={t('settings:libraryExportDesc')}
       >
-        Library Export
+        {t('settings:libraryExport')}
       </SettingSectionTitle>
 
       <div className="mt-4 flex items-center gap-3">
@@ -175,11 +177,11 @@ function ExportSetting() {
           onClick={handleExport}
           disabled={isPreparing || isLoading}
         >
-          Export Library
+          {t('settings:exportLibraryBtn')}
         </Button>
         {isPreparing && (
           <Typography variant="body2" className="text-gray-600">
-            Preparing your export...
+            {t('settings:preparingExport')}
           </Typography>
         )}
       </div>
@@ -198,7 +200,7 @@ function ExportSetting() {
         {!isLoading && hasReadyFile && (
           <Alert severity="success">
             <div className="flex flex-col gap-1">
-              <div>Export ready for download.</div>
+              <div>{t('settings:exportReady')}</div>
               <div>
                 <Link
                   href={getLibraryExportDownloadUrl(exportInfo.fileName as string)}
@@ -216,7 +218,7 @@ function ExportSetting() {
         )}
         {!isLoading && !hasReadyFile && exportInfo?.status === "EMPTY" && (
           <Alert severity="info">
-            No export has been generated yet.
+            {t('settings:exportEmpty')}
           </Alert>
         )}
         {!isLoading && exportInfo?.status === "MISSING" && (
@@ -231,6 +233,7 @@ function ExportSetting() {
 
 export default function LibrarySetting() {
   const [tabValue, setTabValue] = useState(0);
+  const { t } = useTranslation(['settings', 'common']);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -240,8 +243,8 @@ export default function LibrarySetting() {
     <div>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="library settings tabs">
-          <Tab icon={<DriveFileMoveIcon />} iconPosition="start" label="Batch Organize" {...a11yProps(0)} sx={{ minHeight: 48 }} />
-          <Tab icon={<DownloadIcon />} iconPosition="start" label="Export" {...a11yProps(1)} sx={{ minHeight: 48 }} />
+          <Tab icon={<DriveFileMoveIcon />} iconPosition="start" label={t('settings:batchOrganize')} {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<DownloadIcon />} iconPosition="start" label={t('common:export', 'Export')} {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>

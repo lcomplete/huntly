@@ -23,19 +23,9 @@ import StarOutlineIcon from '@mui/icons-material/StarOutline';
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import {SORT_VALUE} from "../model";
+import { useTranslation } from "react-i18next";
 
-const sortLabelMap: Record<SORT_VALUE, string> = {
-  'CREATED_AT': 'Created',
-  'ARCHIVED_AT': 'Archived',
-  'LAST_READ_AT': 'Read',
-  'READ_LATER_AT': 'Read later',
-  'SAVED_AT': 'Saved',
-  'STARRED_AT': 'Starred',
-  'CONNECTED_AT': 'Published',
-  'VOTE_SCORE': 'Created',
-  'COLLECTED_AT': 'Collected',
-  'UNSORTED_SAVED_AT': 'Created',
-};
+
 
 type MagazineItemProps = {
   page: PageItem,
@@ -60,6 +50,23 @@ export default function MagazineItem({
   const isSnippet = page.contentType === 4;
   const isGithub = page.connectorType === ConnectorType.GITHUB;
   const isMobile = useMediaQuery('(max-width:600px)');
+  const { t } = useTranslation(['page']);
+
+  const getSortLabel = (value: SORT_VALUE) => {
+    switch(value) {
+      case 'ARCHIVED_AT': return t('page:sortByArchived');
+      case 'COLLECTED_AT': return t('page:sortByCollected');
+      case 'CONNECTED_AT': return t('page:published');
+      case 'CREATED_AT': return t('page:sortByCreated');
+      case 'LAST_READ_AT': return t('page:alreadyRead');
+      case 'READ_LATER_AT': return t('page:readLater');
+      case 'SAVED_AT': return t('page:sortBySaved');
+      case 'STARRED_AT': return t('page:sortByStarred');
+      case 'VOTE_SCORE': return t('page:sortByCreated');
+      case 'UNSORTED_SAVED_AT': return t('page:sortByCreated');
+      default: return '';
+    }
+  };
 
   const handleFaviconError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     event.currentTarget.onerror = null;
@@ -123,7 +130,7 @@ export default function MagazineItem({
 
           <Box sx={{}} className={"flex items-center mt-1 text-[15px] magazine-item-meta"}>
             <div className={'flex text-gray-500 items-center min-w-0 flex-1'}>
-              <a href={page.url} target={"_blank"} className={'hover:underline min-w-0'}>
+              <a href={page.url} target={"_blank"} rel="noopener noreferrer" className={'hover:underline min-w-0'}>
                 <div className={"flex items-center flex-wrap"}>
                   {page.faviconUrl &&
                     <span className={"mr-2 flex-shrink-0"}>
@@ -166,7 +173,7 @@ export default function MagazineItem({
                     </Typography>
                   </React.Fragment>
                   }
-                  <SmartMoment dt={page.recordAt} timeTypeLabel={pageListSort ? sortLabelMap[pageListSort] : undefined}></SmartMoment>
+                  <SmartMoment dt={page.recordAt} timeTypeLabel={pageListSort ? getSortLabel(pageListSort) : undefined}></SmartMoment>
                 </div>
               </a>
 
@@ -240,7 +247,7 @@ export default function MagazineItem({
             <Box className={'page-item-thumb flex flex-col items-center justify-center bg-gray-50'} sx={{width: 160, height: 120, flexShrink: 0, marginLeft: 2, borderRadius: 2}}>
               <TextSnippetOutlinedIcon sx={{ fontSize: 28, color: 'text.secondary' }} />
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: 12 }}>
-                snippet
+                {t('page:snippet')}
               </Typography>
             </Box>
           </Link>

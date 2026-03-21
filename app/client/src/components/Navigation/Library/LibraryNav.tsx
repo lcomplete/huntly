@@ -12,6 +12,7 @@ import GroupEditDialog from '../../Dialogs/GroupEditDialog';
 import CollectionContextMenu from './CollectionContextMenu';
 import GroupContextMenu from './GroupContextMenu';
 import { useCollectionDialogs } from './hooks';
+import { useTranslation } from "react-i18next";
 
 // Helper to find sibling collection names
 function findSiblingNames(
@@ -44,6 +45,7 @@ function findSiblingNames(
 }
 
 const LibraryNav: React.FC = () => {
+  const { t } = useTranslation(['navigation']);
   const location = useLocation();
   const dialogs = useCollectionDialogs();
 
@@ -67,7 +69,7 @@ const LibraryNav: React.FC = () => {
 
   return (
     <>
-      <SidebarHeader title="Library" />
+      <SidebarHeader title={t('navigation:library', 'Library')} />
       <LibraryNavTree
         selectedNodeId={location.pathname}
         readLaterCount={readLaterCountData?.data}

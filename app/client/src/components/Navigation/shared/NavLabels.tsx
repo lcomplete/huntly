@@ -13,6 +13,7 @@ import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import SearchIcon from '@mui/icons-material/Search';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
+import i18n from '../../../i18n';
 
 // X (Twitter) Icon Component
 function XIcon(props: SvgIconProps) {
@@ -29,49 +30,46 @@ export type NavLabel = {
   iconColor?: string,
   linkTo?: string,
   iconUrl?: string,
-  showLabel?: boolean
+  showLabel?: boolean,
+  i18nKey?: string
 }
 
-export type NavLabels = {
-  home: NavLabel,
-  recently: NavLabel,
-  myList: NavLabel,
-  starred: NavLabel,
-  readLater: NavLabel,
-  archive: NavLabel,
-  github: NavLabel,
-  allFeeds: NavLabel,
-  twitter: NavLabel,
-  highlights: NavLabel,
-  folder: NavLabel,
-  search: NavLabel,
-  unsorted: NavLabel
-}
+export type NavLabelKey = 'home' | 'recently' | 'myList' | 'starred' | 'readLater' | 'archive' | 'github' | 'allFeeds' | 'twitter' | 'highlights' | 'folder' | 'search' | 'unsorted';
 
-export function navLabel(labelText: string, labelIcon: React.ElementType<SvgIconProps>, linkTo?: string, iconColor?: string, showLabel: boolean = true): NavLabel {
+export type NavLabels = Record<NavLabelKey, NavLabel>;
+
+export function navLabel(labelText: string, labelIcon: React.ElementType<SvgIconProps>, linkTo?: string, iconColor?: string, showLabel: boolean = true, i18nKey?: string): NavLabel {
   return {
     labelText,
     labelIcon,
     linkTo,
     iconColor,
-    showLabel
+    showLabel,
+    i18nKey
   };
 }
 
+export function getTranslatedLabel(label: NavLabel): string {
+  if (label.i18nKey) {
+    return i18n.t(label.i18nKey, { ns: 'navigation' });
+  }
+  return label.labelText;
+}
+
 const navLabels: NavLabels = {
-  home: navLabel('Home', HomeOutlinedIcon, '/'),
-  recently: navLabel('Recently Read', AccessTimeIcon, '/recently-read'),
-  myList: navLabel('My List', FormatListBulletedIcon, '/list'),
-  starred: navLabel('Starred', AutoAwesomeOutlinedIcon, '/starred'),
-  readLater: navLabel('Read Later', BookmarksOutlinedIcon, '/later'),
-  archive: navLabel('Archive', ArchiveOutlinedIcon, '/archive'),
-  github: navLabel('GitHub', GitHubIcon),
-  allFeeds: navLabel('All Feeds', BallotOutlinedIcon, '/feeds'),
-  twitter: navLabel('X', XIcon, '/twitter', undefined, false),
-  highlights: navLabel('Highlights', FormatQuoteIcon, '/highlights'),
+  home: navLabel('Home', HomeOutlinedIcon, '/', undefined, true, 'home'),
+  recently: navLabel('Recently Read', AccessTimeIcon, '/recently-read', undefined, true, 'recentlyRead'),
+  myList: navLabel('My List', FormatListBulletedIcon, '/list', undefined, true, 'myList'),
+  starred: navLabel('Starred', AutoAwesomeOutlinedIcon, '/starred', undefined, true, 'starred'),
+  readLater: navLabel('Read Later', BookmarksOutlinedIcon, '/later', undefined, true, 'readLater'),
+  archive: navLabel('Archive', ArchiveOutlinedIcon, '/archive', undefined, true, 'archive'),
+  github: navLabel('GitHub', GitHubIcon, undefined, undefined, true, 'github'),
+  allFeeds: navLabel('All Feeds', BallotOutlinedIcon, '/feeds', undefined, true, 'allFeeds'),
+  twitter: navLabel('X', XIcon, '/twitter', undefined, false, 'x'),
+  highlights: navLabel('Highlights', FormatQuoteIcon, '/highlights', undefined, true, 'highlights'),
   folder: navLabel('', FolderOpenIcon),
-  search: navLabel('Search', SearchIcon, '/search'),
-  unsorted: navLabel('Unsorted', InboxOutlinedIcon, '/collection/unsorted')
+  search: navLabel('Search', SearchIcon, '/search', undefined, true, 'search'),
+  unsorted: navLabel('Unsorted', InboxOutlinedIcon, '/collection/unsorted', undefined, true, 'unsorted')
 }
 
 export default navLabels;

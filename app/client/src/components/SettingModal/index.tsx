@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from 'react-i18next';
 import "./SettingModal.css";
 import {
   Box,
@@ -28,6 +29,7 @@ type SettingModalProps = {
 }
 
 export default function SettingModal(props: SettingModalProps) {
+  const { t } = useTranslation('settings');
   const [selectedIndex, setSelectedIndex] = React.useState(props.defaultIndex || 0);
 
   const handleListItemClick = (
@@ -64,7 +66,7 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <SettingsApplicationsIcon/>
               </ListItemIcon>
-              <ListItemText primary="General"/>
+              <ListItemText primary={t('general')}/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 1}
@@ -73,7 +75,7 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <AutoAwesomeIcon sx={{ fill: "url(#geminiGradientSettings)" }} />
               </ListItemIcon>
-              <ListItemText primary="Huntly AI"/>
+              <ListItemText primary={t('huntlyAI')}/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 2}
@@ -82,7 +84,7 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <LibraryBooksIcon/>
               </ListItemIcon>
-              <ListItemText primary="Library"/>
+              <ListItemText primary={t('librarySettings')}/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 3}
@@ -91,7 +93,7 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <RssFeedIcon/>
               </ListItemIcon>
-              <ListItemText primary="Feeds"/>
+              <ListItemText primary={t('feeds')}/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 4}
@@ -100,7 +102,7 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <GitHubIcon/>
               </ListItemIcon>
-              <ListItemText primary="GitHub"/>
+              <ListItemText primary={t('github', 'GitHub')}/>
             </ListItemButton>
             <ListItemButton
               selected={selectedIndex === 5}
@@ -109,7 +111,7 @@ export default function SettingModal(props: SettingModalProps) {
               <ListItemIcon>
                 <AccountBoxIcon/>
               </ListItemIcon>
-              <ListItemText primary="Account"/>
+              <ListItemText primary={t('account')}/>
             </ListItemButton>
           </List>
         </div>

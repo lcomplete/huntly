@@ -4,6 +4,7 @@ import ArticleShortcutSetting from "./ArticleShortcutSetting";
 import McpSetting from "./McpSetting";
 import BoltIcon from '@mui/icons-material/Bolt';
 import HubIcon from '@mui/icons-material/Hub';
+import { useTranslation } from 'react-i18next';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -39,6 +40,7 @@ function a11yProps(index: number) {
 }
 
 export default function HuntlyAISetting() {
+  const { t } = useTranslation(['settings']);
   const [tabValue, setTabValue] = useState(0);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -49,8 +51,8 @@ export default function HuntlyAISetting() {
     <div>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="huntly ai settings tabs">
-          <Tab icon={<BoltIcon />} iconPosition="start" label="AI Shortcuts" {...a11yProps(0)} sx={{ minHeight: 48 }} />
-          <Tab icon={<HubIcon />} iconPosition="start" label="MCP Server" {...a11yProps(1)} sx={{ minHeight: 48 }} />
+          <Tab icon={<BoltIcon />} iconPosition="start" label={t('settings:articleShortcuts')} {...a11yProps(0)} sx={{ minHeight: 48 }} />
+          <Tab icon={<HubIcon />} iconPosition="start" label={t('settings:mcpSettings')} {...a11yProps(1)} sx={{ minHeight: 48 }} />
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>

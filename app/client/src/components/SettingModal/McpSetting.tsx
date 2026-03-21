@@ -20,8 +20,10 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import HubIcon from '@mui/icons-material/Hub';
 import McpToolsSection from "./McpToolsSection";
+import { useTranslation } from 'react-i18next';
 
 export default function McpSetting() {
+    const { t } = useTranslation(['settings', 'common']);
     const { enqueueSnackbar } = useSnackbar();
     const api = SettingControllerApiFactory();
     const [showToken, setShowToken] = useState(false);
@@ -123,7 +125,7 @@ export default function McpSetting() {
 
     return (
         <div>
-            <SettingSectionTitle first icon={HubIcon}>MCP Server</SettingSectionTitle>
+            <SettingSectionTitle first icon={HubIcon}>{t('settings:mcpSettings')}</SettingSectionTitle>
 
             <div>
                 <div className={'flex items-start gap-4 flex-col'}>
@@ -133,7 +135,7 @@ export default function McpSetting() {
                             size={"small"}
                             fullWidth={true}
                             id="mcpToken"
-                            label="MCP Token"
+                            label={t('settings:mcpToken')}
                             value={showToken ? (globalSetting?.mcpToken || "") : getMaskedToken(globalSetting?.mcpToken)}
                             InputProps={{
                                 readOnly: true,
@@ -159,14 +161,14 @@ export default function McpSetting() {
                             color="primary"
                             onClick={handleGenerateClick}
                         >
-                            {globalSetting?.mcpToken ? 'Reset Token' : 'Generate Token'}
+                            {globalSetting?.mcpToken ? t('settings:mcpTokenReset') : t('settings:mcpTokenGenerate')}
                         </Button>
                         <Button
                             variant="outlined"
                             disabled={!globalSetting?.mcpToken}
                             onClick={handleCopyToken}
                         >
-                            Copy Token
+                            {t('settings:mcpTokenCopy')}
                         </Button>
                         <Button
                             variant="outlined"
@@ -174,18 +176,18 @@ export default function McpSetting() {
                             disabled={!globalSetting?.mcpToken}
                             onClick={handleClearClick}
                         >
-                            Clear Token
+                            {t('settings:mcpTokenClear')}
                         </Button>
                     </div>
                 </div>
 
                 <div className="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200">
                     <Typography variant="subtitle2" className="font-bold mb-2">
-                        How to configure
+                        {t('settings:mcpConfigGuide')}
                     </Typography>
                     <div className="text-sm text-gray-600 space-y-4">
                         <div>
-                            <p className="font-semibold mb-1">1. Endpoint URL:</p>
+                            <p className="font-semibold mb-1">1. {t('settings:mcpConfigEndpoint')}:</p>
                             <code className="bg-white px-2 py-1 rounded border border-gray-200 select-all block w-full overflow-x-auto whitespace-nowrap">
                                 {window.location.origin}/api/mcp/sse
                             </code>
@@ -246,7 +248,7 @@ export default function McpSetting() {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+                    <Button onClick={() => setConfirmOpen(false)}>{t('common:cancel')}</Button>
                     <Button onClick={handleConfirm} color={confirmConfig?.buttonColor} autoFocus>
                         {confirmConfig?.buttonText}
                     </Button>

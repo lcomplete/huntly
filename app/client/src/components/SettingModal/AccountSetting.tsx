@@ -8,8 +8,10 @@ import { AuthControllerApiFactory, SettingControllerApiFactory } from "../../api
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import SettingSectionTitle from "./SettingSectionTitle";
+import { useTranslation } from 'react-i18next';
 
 export default function AccountSetting() {
+  const { t } = useTranslation(['settings', 'auth', 'common']);
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
 
@@ -24,8 +26,8 @@ export default function AccountSetting() {
       password: ''
     },
     validationSchema: yup.object({
-      username: yup.string().required('Username is required.'),
-      password: yup.string().required('Password is required'),
+      username: yup.string().required(t('auth:usernameRequired')),
+      password: yup.string().required(t('auth:passwordRequired')),
     }),
     onSubmit: async (values) => {
       api.updateLoginUserUsingPOST("", values).then((res) => {
@@ -66,7 +68,7 @@ export default function AccountSetting() {
           style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)' }}>
           <PersonIcon sx={{ fontSize: 20, color: '#fff' }} />
         </div>
-        <span className="font-semibold text-[#1e293b] text-[1.0625rem]">Account Settings</span>
+        <span className="font-semibold text-[#1e293b] text-[1.0625rem]">{t('settings:account')}</span>
       </div>
       <Button
         variant="outlined"
@@ -98,7 +100,7 @@ export default function AccountSetting() {
           size="small"
           className="w-full max-w-[320px]"
           id="username"
-          label="Username"
+          label={t('settings:accountUsername')}
           value={formikUpdateLogin.values.username}
           onChange={formikUpdateLogin.handleChange}
           error={formikUpdateLogin.touched.username && Boolean(formikUpdateLogin.errors.username)}
@@ -111,7 +113,7 @@ export default function AccountSetting() {
           size="small"
           className="w-full max-w-[320px]"
           id="password"
-          label="New Password"
+          label={t('settings:accountNewPassword')}
           value={formikUpdateLogin.values.password}
           onChange={formikUpdateLogin.handleChange}
           error={formikUpdateLogin.touched.password && Boolean(formikUpdateLogin.errors.password)}
