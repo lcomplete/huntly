@@ -35,12 +35,14 @@ import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import SettingsIcon from '@mui/icons-material/Settings';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { styled } from "@mui/material/styles";
 import FolderFormDialog from "./FolderFormDialog";
 import FeedsFormDialog from "./FeedsFormDialog";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { reorder } from "../../common/arrayUtils";
 import { useTranslation } from 'react-i18next';
+import DeleteConfirmDialog from "../DeleteConfirmDialog";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -341,6 +343,8 @@ function FoldersTabContent() {
   const [folderId, setFolderId] = React.useState<number>(0);
   const [editFolderId, setEditFolderId] = React.useState<number>(null);
   const [editFeedsId, setEditFeedsId] = React.useState<number>(null);
+  const [deleteFolderFeedsConfirmOpen, setDeleteFolderFeedsConfirmOpen] = React.useState(false);
+  const [deletingFolderFeeds, setDeletingFolderFeeds] = React.useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const {
     data: folders,
@@ -351,6 +355,9 @@ function FoldersTabContent() {
     refetch: refetchConnectors
   } = useQuery(["folder_connectors", folderId], async () => (await api.getSortedConnectorsByFolderIdUsingGET(folderId)).data);
   const queryClient = useQueryClient();
+  const selectedFolder = folders?.find((folder) => (folder.id || 0) === folderId);
+  const folderFeedsCount = connectors?.length || 0;
+  const canDeleteFolderFeeds = Boolean(selectedFolder) && folderFeedsCount > 0;
 
   function connectorDragEnd({ source, destination }: DropResult) {
     if (!destination || !source || destination.index === source.index) {
@@ -388,6 +395,61 @@ function FoldersTabContent() {
         anchorOrigin: { vertical: "bottom", horizontal: "center" }
       });
     });
+  }
+
+  async function handleDeleteFolderFeeds() {
+    if (!selectedFolder) {
+      setDeleteFolderFeedsConfirmOpen(false);
+      return;
+    }
+
+    const targetFolderName = selectedFolder.name || t('settings:noFolder');
+    const deletableConnectors = (connectors || []).filter((connector) => connector.id != null);
+
+    setDeleteFolderFeedsConfirmOpen(false);
+
+    if (deletableConnectors.length === 0) {
+      return;
+    }
+
+    setDeletingFolderFeeds(true);
+
+    try {
+      const results = await Promise.allSettled(
+        deletableConnectors.map((connector) => api.deleteFeedUsingPOST(connector.id))
+      );
+      const successCount = results.filter((result) => result.status === 'fulfilled').length;
+      const failedCount = results.length - successCount;
+
+      if (failedCount === 0) {
+        enqueueSnackbar(t('settings:folderFeedsDeleted', {
+          count: successCount,
+          name: targetFolderName
+        }), {
+          variant: "success",
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+        });
+      } else if (successCount > 0) {
+        enqueueSnackbar(t('settings:folderFeedsPartiallyDeleted', {
+          successCount,
+          failedCount,
+          name: targetFolderName
+        }), {
+          variant: "warning",
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+        });
+      } else {
+        enqueueSnackbar(t('settings:folderFeedsDeleteFailed', {
+          name: targetFolderName
+        }), {
+          variant: "error",
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+        });
+      }
+    } finally {
+      await Promise.all([refetchConnectors(), refetchFolders()]);
+      setDeletingFolderFeeds(false);
+    }
   }
 
   return (
@@ -546,6 +608,20 @@ function FoldersTabContent() {
               </Droppable>
             </DragDropContext>
           }
+          {
+            canDeleteFolderFeeds && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <Button
+                  color="warning"
+                  startIcon={<DeleteSweepIcon />}
+                  onClick={() => setDeleteFolderFeedsConfirmOpen(true)}
+                  disabled={deletingFolderFeeds || folderFeedsCount === 0}
+                >
+                  {t('settings:deleteFolderFeeds')}
+                </Button>
+              </Box>
+            )
+          }
         </div>
       </div>
 
@@ -561,6 +637,16 @@ function FoldersTabContent() {
           refetchConnectors();
         }} />
       }
+      <DeleteConfirmDialog
+        open={deleteFolderFeedsConfirmOpen}
+        title={t('settings:deleteFolderFeeds')}
+        content={t('settings:deleteFolderFeedsConfirmDesc', {
+          count: folderFeedsCount,
+          name: selectedFolder?.name || t('settings:noFolder')
+        })}
+        onConfirm={handleDeleteFolderFeeds}
+        onCancel={() => setDeleteFolderFeedsConfirmOpen(false)}
+      />
     </div>
   );
 }

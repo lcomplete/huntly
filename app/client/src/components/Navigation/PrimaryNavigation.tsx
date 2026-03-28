@@ -170,37 +170,37 @@ const MobileFeedsContent: React.FC<{ selectedNodeId: string }> = ({ selectedNode
     const items: NavTreeViewItem[] = [];
 
     view.folderFeedConnectors.forEach(folder => {
-      if (folder.connectorItems && folder.connectorItems.length > 0) {
-        const folderInboxCount = folder.connectorItems.reduce(
+      const connectorItems = folder.connectorItems || [];
+
+      if (folder.name) {
+        const folderInboxCount = connectorItems.reduce(
           (sum, item) => sum + (item.inboxCount || 0),
           0
         );
         allInboxCount += folderInboxCount;
 
-        if (folder.name) {
-          const folderItem: NavTreeViewItem = {
-            labelText: folder.name,
-            labelIcon: FolderOpenIcon,
-            linkTo: `/folder/${folder.id}`,
-            inboxCount: folderInboxCount,
-            childItems: folder.connectorItems.map(item => ({
-              labelText: item.name || '',
-              labelIcon: RssFeedIcon,
-              linkTo: `/connector/${item.id}`,
-              inboxCount: item.inboxCount,
-            })),
-          };
-          items.push(folderItem);
-        } else {
-          folder.connectorItems.forEach(item => {
-            items.push({
-              labelText: item.name || '',
-              labelIcon: RssFeedIcon,
-              linkTo: `/connector/${item.id}`,
-              inboxCount: item.inboxCount,
-            });
+        const folderItem: NavTreeViewItem = {
+          labelText: folder.name,
+          labelIcon: FolderOpenIcon,
+          linkTo: `/folder/${folder.id}`,
+          inboxCount: folderInboxCount,
+          childItems: connectorItems.map(item => ({
+            labelText: item.name || '',
+            labelIcon: RssFeedIcon,
+            linkTo: `/connector/${item.id}`,
+            inboxCount: item.inboxCount,
+          })),
+        };
+        items.push(folderItem);
+      } else {
+        connectorItems.forEach(item => {
+          items.push({
+            labelText: item.name || '',
+            labelIcon: RssFeedIcon,
+            linkTo: `/connector/${item.id}`,
+            inboxCount: item.inboxCount,
           });
-        }
+        });
       }
     });
 
