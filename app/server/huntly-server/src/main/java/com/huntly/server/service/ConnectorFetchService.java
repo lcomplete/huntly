@@ -237,7 +237,7 @@ public class ConnectorFetchService {
             return false;
         }
         Integer fetchIntervalSeconds = ObjectUtils.defaultIfNull(connector.getFetchIntervalSeconds(),
-                huntlyProperties.getDefaultFeedFetchIntervalSeconds());
+                globalSettingService.getDefaultFeedFetchIntervalSeconds());
         return connector.getLastFetchBeginAt() == null
                 || connector.getLastFetchBeginAt().plusSeconds(fetchIntervalSeconds).isBefore(Instant.now());
     }

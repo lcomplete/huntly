@@ -36,6 +36,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import ScheduleIcon from '@mui/icons-material/Schedule';
 import { styled } from "@mui/material/styles";
 import FolderFormDialog from "./FolderFormDialog";
 import FeedsFormDialog from "./FeedsFormDialog";
@@ -106,6 +107,68 @@ function FeedsTabContent() {
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
   const { markReadOnScroll, setMarkReadOnScroll } = useGlobalSettings();
+  const {
+    data: globalSetting,
+    refetch: refetchGlobalSetting
+  } = useQuery(["global-setting-for-feeds"], async () => (await api.getGlobalSettingUsingGET()).data);
+
+  const formikDefaultFeedSetting = useFormik({
+    enableReinitialize: true,
+    initialValues: {
+      defaultFeedFetchIntervalMinutes: globalSetting?.defaultFeedFetchIntervalMinutes || 10
+    },
+    validationSchema: yup.object({
+      defaultFeedFetchIntervalMinutes: yup.number()
+        .typeError(t('settings:defaultFeedFetchIntervalRequired'))
+        .required(t('settings:defaultFeedFetchIntervalRequired'))
+        .min(1, t('settings:defaultFeedFetchIntervalMin'))
+    }),
+    onSubmit: async (values) => {
+      if (!globalSetting) {
+        return;
+      }
+
+      try {
+        await api.saveGlobalSettingUsingPOST({
+          ...globalSetting,
+          defaultFeedFetchIntervalMinutes: values.defaultFeedFetchIntervalMinutes
+        });
+        await refetchGlobalSetting();
+        enqueueSnackbar(t('settings:defaultFeedFetchIntervalSaved'), {
+          variant: "success",
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+        });
+      } catch (err) {
+        enqueueSnackbar(t('settings:defaultFeedFetchIntervalSaveFailed'), {
+          variant: "error",
+          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+        });
+      }
+    }
+  });
+
+  async function handleDefaultFeedFetchIntervalBlur(event: React.FocusEvent<HTMLInputElement>) {
+    formikDefaultFeedSetting.handleBlur(event);
+
+    if (!globalSetting || !formikDefaultFeedSetting.dirty) {
+      return;
+    }
+
+    const errors = await formikDefaultFeedSetting.validateForm();
+    if (errors.defaultFeedFetchIntervalMinutes) {
+      return;
+    }
+
+    await formikDefaultFeedSetting.submitForm();
+  }
+
+  function handleDefaultFeedFetchIntervalChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const value = event.target.value;
+    formikDefaultFeedSetting.setFieldValue(
+      'defaultFeedFetchIntervalMinutes',
+      value === '' ? '' : Number(value)
+    );
+  }
 
   async function handleMarkReadOnScrollChange(event: React.ChangeEvent<HTMLInputElement>) {
     const newValue = event.target.checked;
@@ -229,7 +292,39 @@ function FeedsTabContent() {
   return (
     <div>
       <div>
-        <SettingSectionTitle first icon={RssFeedIcon}>{t('settings:feeds')}</SettingSectionTitle>
+        <SettingSectionTitle
+          first
+          icon={ScheduleIcon}
+        >
+          {t('settings:globalSettings')}
+        </SettingSectionTitle>
+        <form onSubmit={formikDefaultFeedSetting.handleSubmit}>
+          <div className="flex flex-wrap items-start gap-3">
+            <TextField
+              size={'small'}
+              margin={'normal'}
+              id={'defaultFeedFetchIntervalMinutes'}
+              name={'defaultFeedFetchIntervalMinutes'}
+              label={t('settings:defaultUpdateInterval')}
+              value={formikDefaultFeedSetting.values.defaultFeedFetchIntervalMinutes ?? ''}
+              onChange={handleDefaultFeedFetchIntervalChange}
+              onBlur={handleDefaultFeedFetchIntervalBlur}
+              error={formikDefaultFeedSetting.touched.defaultFeedFetchIntervalMinutes && Boolean(formikDefaultFeedSetting.errors.defaultFeedFetchIntervalMinutes)}
+              helperText={formikDefaultFeedSetting.touched.defaultFeedFetchIntervalMinutes && formikDefaultFeedSetting.errors.defaultFeedFetchIntervalMinutes}
+              type={'number'}
+              variant={'outlined'}
+              inputProps={{ min: 1, step: 1 }}
+              InputProps={{
+                endAdornment: <InputAdornment position="end">{t('settings:minutesUnit')}</InputAdornment>,
+              }}
+              className="w-full sm:w-[260px]"
+              disabled={!globalSetting || formikDefaultFeedSetting.isSubmitting}
+            />
+          </div>
+        </form>
+      </div>
+      <div>
+        <SettingSectionTitle icon={RssFeedIcon}>{t('settings:feeds')}</SettingSectionTitle>
         <form onSubmit={formikFeeds.handleSubmit}>
           <TextField fullWidth={true} size={'small'} margin={'normal'}
             label={t('settings:rssLink')}

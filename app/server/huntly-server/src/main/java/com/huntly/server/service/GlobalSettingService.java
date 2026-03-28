@@ -3,6 +3,7 @@ package com.huntly.server.service;
 import com.huntly.server.domain.constant.AppConstants;
 import com.huntly.server.domain.entity.GlobalSetting;
 import com.huntly.server.domain.model.ProxySetting;
+import com.huntly.server.config.HuntlyProperties;
 import com.huntly.server.repository.GlobalSettingRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class GlobalSettingService {
     private final GlobalSettingRepository settingRepository;
+    private final HuntlyProperties huntlyProperties;
 
     /**
      * Cache for autoSaveTweetMinLikes value to avoid frequent database reads.
@@ -24,17 +26,23 @@ public class GlobalSettingService {
      */
     private final AtomicReference<Integer> cachedAutoSaveTweetMinLikes = new AtomicReference<>(null);
 
-    public GlobalSettingService(GlobalSettingRepository settingRepository) {
+    public GlobalSettingService(GlobalSettingRepository settingRepository, HuntlyProperties huntlyProperties) {
         this.settingRepository = settingRepository;
+        this.huntlyProperties = huntlyProperties;
     }
 
     public GlobalSetting getGlobalSetting() {
+        int defaultFeedFetchIntervalMinutes = Math.max(1, huntlyProperties.getDefaultFeedFetchIntervalSeconds() / 60);
         var defaultSetting = new GlobalSetting();
         defaultSetting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
         defaultSetting.setArticleSummaryPrompt(getDefaultArticleSummaryPrompt());
+        defaultSetting.setDefaultFeedFetchIntervalMinutes(defaultFeedFetchIntervalMinutes);
         var setting = settingRepository.findAll().stream().findFirst().orElse(defaultSetting);
         if (setting.getColdDataKeepDays() == null || setting.getColdDataKeepDays() <= 0) {
             setting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
+        }
+        if (setting.getDefaultFeedFetchIntervalMinutes() == null || setting.getDefaultFeedFetchIntervalMinutes() <= 0) {
+            setting.setDefaultFeedFetchIntervalMinutes(defaultFeedFetchIntervalMinutes);
         }
         // API key masking has been moved to controller layer
         // set default article summary prompt if not set
@@ -42,6 +50,14 @@ public class GlobalSettingService {
             setting.setArticleSummaryPrompt(getDefaultArticleSummaryPrompt());
         }
         return setting;
+    }
+
+    public int getDefaultFeedFetchIntervalMinutes() {
+        return getGlobalSetting().getDefaultFeedFetchIntervalMinutes();
+    }
+
+    public int getDefaultFeedFetchIntervalSeconds() {
+        return getDefaultFeedFetchIntervalMinutes() * 60;
     }
 
     /**
@@ -118,6 +134,7 @@ public class GlobalSettingService {
         dbSetting.setOpenApiModel(globalSetting.getOpenApiModel());
         dbSetting.setArticleSummaryPrompt(globalSetting.getArticleSummaryPrompt());
         dbSetting.setMarkReadOnScroll(globalSetting.getMarkReadOnScroll());
+        dbSetting.setDefaultFeedFetchIntervalMinutes(globalSetting.getDefaultFeedFetchIntervalMinutes());
         if (Boolean.TRUE.equals(globalSetting.getChangedOpenApiKey())) {
             dbSetting.setOpenApiKey(globalSetting.getOpenApiKey());
         }
