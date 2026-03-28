@@ -19,10 +19,9 @@ import com.huntly.server.repository.PageRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
-
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -157,11 +156,14 @@ public class ConnectorService {
 
     private void fillFolderConnectors(List<FolderConnectors> folderConnectorsList, Folder folder,
             List<Connector> childConnectors) {
-        if (!CollectionUtils.isEmpty(childConnectors)) {
+        boolean isPersistedFolder = folder.getId() != null;
+        if (isPersistedFolder || !childConnectors.isEmpty()) {
             FolderConnectors folderConnectors = new FolderConnectors();
             folderConnectors.setId(folder.getId());
             folderConnectors.setName(folder.getName());
-            folderConnectors.setConnectorItems(toConnectorItems(childConnectors));
+            folderConnectors.setConnectorItems(childConnectors.isEmpty()
+                    ? Collections.emptyList()
+                    : toConnectorItems(childConnectors));
             folderConnectorsList.add(folderConnectors);
         }
     }

@@ -7,6 +7,7 @@ import {
   DialogContentText,
   DialogTitle
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -23,6 +24,8 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   onConfirm,
   onCancel
 }) => {
+  const { t } = useTranslation(['common']);
+
   return (
     <Dialog
       open={open}
@@ -38,9 +41,9 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
         </DialogContent>
       )}
       <DialogActions>
-        <Button onClick={onCancel}>Cancel</Button>
+        <Button onClick={onCancel}>{t('common:cancel')}</Button>
         <Button onClick={onConfirm} autoFocus color="warning">
-          Delete
+          {t('common:delete')}
         </Button>
       </DialogActions>
     </Dialog>
