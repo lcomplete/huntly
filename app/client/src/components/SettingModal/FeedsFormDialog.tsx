@@ -5,7 +5,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent, DialogContentText,
-  DialogTitle, FormControl, FormControlLabel, InputLabel, MenuItem, Select,
+  DialogTitle, FormControl, FormControlLabel, InputAdornment, InputLabel, MenuItem, Select,
   TextField
 } from "@mui/material";
 import {
@@ -26,7 +26,7 @@ export default function FeedsFormDialog({feedsId, onClose}: Readonly<{ feedsId: 
     name: '',
     enabled: false,
     crawlFullContent: false,
-    fetchIntervalMinutes: 0,
+    fetchIntervalMinutes: undefined,
     folderId: 0
   });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -59,7 +59,10 @@ export default function FeedsFormDialog({feedsId, onClose}: Readonly<{ feedsId: 
       crawlFullContent: yup.boolean().nullable(),
       folderId: yup.number().nullable(),
       subscribeUrl: yup.string().required(t('settings:rssLinkRequired')),
-      fetchIntervalMinutes: yup.number().min(1, t('settings:fetchIntervalMin')).required(t('settings:fetchIntervalRequired'))
+      fetchIntervalMinutes: yup.number()
+        .transform((value, originalValue) => originalValue === '' || Number.isNaN(value) ? null : value)
+        .nullable()
+        .min(1, t('settings:fetchIntervalMin'))
     }),
     onSubmit: (values) => {
       api.updateFeedsSettingUsingPOST(values).then(() => {
@@ -75,7 +78,18 @@ export default function FeedsFormDialog({feedsId, onClose}: Readonly<{ feedsId: 
         });
       });
     }
-  })
+  });
+
+  const fetchIntervalHelperText = formikFeeds.touched.fetchIntervalMinutes && formikFeeds.errors.fetchIntervalMinutes
+    ? formikFeeds.errors.fetchIntervalMinutes
+    : feedsSetting.defaultFetchIntervalMinutes == null
+      ? t('settings:feedFetchIntervalHintGeneric')
+      : t('settings:feedFetchIntervalHint', {minutes: feedsSetting.defaultFetchIntervalMinutes});
+
+  function handleFetchIntervalChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const value = event.target.value;
+    formikFeeds.setFieldValue('fetchIntervalMinutes', value === '' ? undefined : Number(value));
+  }
 
   function handleCloseDeleteDialog() {
     setOpenDeleteDialog(false);
@@ -126,12 +140,18 @@ export default function FeedsFormDialog({feedsId, onClose}: Readonly<{ feedsId: 
               margin="dense"
               id="fetchIntervalMinutes"
               label={t('settings:fetchInterval')}
-              value={formikFeeds.values.fetchIntervalMinutes}
-              onChange={formikFeeds.handleChange}
+              value={formikFeeds.values.fetchIntervalMinutes ?? ''}
+              onChange={handleFetchIntervalChange}
+              onBlur={formikFeeds.handleBlur}
               error={formikFeeds.touched.fetchIntervalMinutes && Boolean(formikFeeds.errors.fetchIntervalMinutes)}
-              helperText={formikFeeds.touched.fetchIntervalMinutes && formikFeeds.errors.fetchIntervalMinutes}
+              helperText={fetchIntervalHelperText}
               type="number"
               variant="standard"
+              placeholder={feedsSetting.defaultFetchIntervalMinutes?.toString()}
+              inputProps={{min: 1, step: 1}}
+              InputProps={{
+                endAdornment: <InputAdornment position="end">{t('settings:minutesUnit')}</InputAdornment>
+              }}
             />
             <FormControl className={'w-[200px]'} margin={"normal"}>
               <InputLabel size={'small'}>{t('settings:folder')}</InputLabel>
