@@ -113,7 +113,7 @@ public class FeedsService {
         connector.setEnabled(feedsSetting.getEnabled());
         connector.setSubscribeUrl(feedsSetting.getSubscribeUrl());
         connector.setFolderId(feedsSetting.getFolderId() == null || feedsSetting.getFolderId().equals(0) ? null : feedsSetting.getFolderId());
-        connector.setFetchIntervalSeconds(feedsSetting.getFetchIntervalMinutes() * 60);
+        connector.setFetchIntervalSeconds(feedsSetting.getFetchIntervalMinutes() == null ? null : feedsSetting.getFetchIntervalMinutes() * 60);
         var result = connectorRepository.save(connector);
         if (!Objects.equals(rawFolderId, connector.getFolderId())) {
             pageRepository.updateFolderIdByConnectorId(connector.getId(), connector.getFolderId());
@@ -136,11 +136,8 @@ public class FeedsService {
         feedsSetting.setEnabled(connector.getEnabled());
         feedsSetting.setFolderId(connector.getFolderId());
         feedsSetting.setSubscribeUrl(connector.getSubscribeUrl());
-        int fetchIntervalMinutes = huntlyProperties.getDefaultFeedFetchIntervalSeconds() / 60;
-        if (connector.getFetchIntervalSeconds() != null) {
-            fetchIntervalMinutes = connector.getFetchIntervalSeconds() / 60;
-        }
-        feedsSetting.setFetchIntervalMinutes(fetchIntervalMinutes);
+        feedsSetting.setDefaultFetchIntervalMinutes(globalSettingService.getDefaultFeedFetchIntervalMinutes());
+        feedsSetting.setFetchIntervalMinutes(connector.getFetchIntervalSeconds() == null ? null : connector.getFetchIntervalSeconds() / 60);
         return feedsSetting;
     }
 }

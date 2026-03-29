@@ -52,6 +52,9 @@ public class GlobalSetting implements Serializable {
     @Column(name = "mark_read_on_scroll")
     private Boolean markReadOnScroll;
 
+    @Column(name = "default_feed_fetch_interval_minutes")
+    private Integer defaultFeedFetchIntervalMinutes;
+
     @Column(name = "mcp_token")
     private String mcpToken;
 
