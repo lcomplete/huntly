@@ -19,6 +19,8 @@ public class FeedsSetting {
     
     private String subscribeUrl;
 
+    private Integer defaultFetchIntervalMinutes;
+
     private Integer fetchIntervalMinutes;
     
     private Boolean enabled;
