@@ -135,19 +135,19 @@ public class McpServerController {
      * 1. Accept the message and return 202 Accepted immediately
      * 2. Send the actual JSON-RPC response via the SSE channel
      */
-    @PostMapping(value = "/message", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> handleMessage(
+    @PostMapping(value = "/message", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> handleMessage(
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestParam(required = false) String sessionId,
             @RequestBody Map<String, Object> request) {
 
         if (!validateToken(authorization)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid MCP token");
+            return ResponseEntity.status(401).build();
         }
 
         // Validate session exists
         if (sessionId == null || !sessions.containsKey(sessionId)) {
-            return ResponseEntity.status(400).body("Invalid or missing session ID");
+            return ResponseEntity.status(400).build();
         }
 
         String method = (String) request.get("method");
@@ -175,11 +175,13 @@ public class McpServerController {
             sendEvent(sessions.get(sessionId), "message", response);
         } catch (IOException e) {
             log.error("Failed to send SSE response", e);
-            return ResponseEntity.status(500).body("Failed to send response via SSE");
+            return ResponseEntity.status(500).build();
         }
 
-        // Return 202 Accepted with simple text body per MCP SSE specification
-        return ResponseEntity.accepted().body("Accepted");
+        // Return an empty 202 response so clients advertising
+        // "Accept: application/json, text/event-stream" do not hit
+        // Spring content negotiation failures on a text/plain response.
+        return ResponseEntity.accepted().build();
     }
 
     private Object handleMethod(String method, Map<String, Object> params) {
