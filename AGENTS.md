@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+
+
 ## Project Structure & Module Organization
 `app/server/` contains the Spring Boot parent with `huntly-server`, `huntly-jpa`, `huntly-common`, and `huntly-interfaces`. `app/client/` serves the React SPA, `app/extension/` holds the Chrome/Firefox browser extension, and `app/tauri/` ships the desktop app built with Tauri + Vite. Shared static assets live in `static/`; container manifests sit in `Dockerfile*` and `docker-compose.yml`.
 
@@ -29,3 +31,7 @@ When updating the project's README, ensure all language versions are updated con
 
 ## UI Language Guidelines
 All user interface text must be written in English. This applies to button labels, menu items, tooltips, error messages, notifications, form labels, and any user-facing strings across all clients (browser extension, web client, desktop app).
+
+## Agent Guidelines
+
+使用与用户发送的消息相同的语言进行回复。
