@@ -11,10 +11,12 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import ArticleIcon from '@mui/icons-material/Article';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 import { ServerSettings } from './ServerSettings';
 import { AIProvidersSettings } from './AIProvidersSettings';
 import { ParserSettings } from './ParserSettings';
 import { PromptsSettings } from './PromptsSettings';
+import { SponsorSettings } from './SponsorSettings';
 
 interface MenuItem {
   id: string;
@@ -27,7 +29,7 @@ export const SettingsPage: React.FC = () => {
   // Read initial tab from URL hash (e.g., options.html#ai-providers)
   const getInitialTab = () => {
     const hash = window.location.hash.slice(1); // Remove '#'
-    const validTabs = ['server', 'ai-providers', 'prompts', 'parser'];
+    const validTabs = ['server', 'ai-providers', 'prompts', 'parser', 'sponsor'];
     return validTabs.includes(hash) ? hash : 'server';
   };
 
@@ -57,6 +59,12 @@ export const SettingsPage: React.FC = () => {
       label: 'Content Parser',
       icon: <ArticleIcon />,
       component: <ParserSettings />,
+    },
+    {
+      id: 'sponsor',
+      label: 'Sponsor',
+      icon: <FavoriteIcon />,
+      component: <SponsorSettings />,
     },
   ];
 

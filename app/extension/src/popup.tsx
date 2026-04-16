@@ -176,6 +176,7 @@ const Popup = () => {
       return new Promise((resolve) => {
         chrome.tabs.sendMessage(tabId, message, (response) => {
           if (chrome.runtime.lastError) {
+            log("[Huntly] sendMessageToTab error:", chrome.runtime.lastError.message, "type:", message.type);
             resolve({ ok: false });
             return;
           }
@@ -237,6 +238,10 @@ const Popup = () => {
 
     setParsingArticle(false);
 
+    if (!ok) {
+      log("[Huntly] parse_doc: content script not reachable (ok=false)");
+    }
+
     const parseResponse = ok ? response as ParseDocResponse : null;
     if (parseResponse) {
       setIsHuntlySite(parseResponse.isHuntlySite === true);
@@ -247,6 +252,7 @@ const Popup = () => {
         }
         return parseResponse;
       }
+      log("[Huntly] parse_doc: content script responded but page is empty");
     }
 
     if (!keepPageOnFail) {

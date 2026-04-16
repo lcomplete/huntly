@@ -515,227 +515,222 @@ async function startProcessingWithVercelAI(task: any) {
   }
 }
 
-chrome.runtime.onMessage.addListener(function (
-  msg: Message,
-  sender,
-  sendResponse
-) {
-  if (msg.type === "auto_save_clipper") {
-    autoSaveArticle(msg.payload).then(handleSaveArticleResponse);
-  } else if (msg.type === "save_clipper") {
-    saveArticle(msg.payload);
-  } else if (msg.type === "auto_save_tweets") {
-    readSyncStorageSettings().then((settings) => {
-      if (settings.autoSaveTweet) {
-        sendData("tweet/saveTweets", msg.payload);
-      }
-    });
-  } else if (msg.type === "read_tweet") {
-    sendData("tweet/trackRead", msg.payload);
-  } else if (msg.type === "shortcuts_process") {
-    const selectedModel = msg.payload.selectedModel;
-    const isHuntlyServer = selectedModel?.provider === "huntly-server";
-
-    if (isHuntlyServer) {
-      // Use Huntly Server SSE API
-      const task = {
-        tabId: msg.payload.tabId || sender.tab?.id,
-        taskId: msg.payload.taskId,
-        shortcutId: msg.payload.shortcutId,
-        shortcutName: msg.payload.shortcutName,
-        content: msg.payload.content,
-        url: msg.payload.url,
-        title: msg.payload.title || "",
-        contentType: msg.payload.contentType,
-      };
-      const shortcuts = msg.payload.shortcuts || [];
-      const skipPreview = msg.payload.skipPreview || false;
-      startProcessingWithShortcuts(task, shortcuts, skipPreview);
-    } else {
-      // Use Vercel AI SDK for other providers
-      const task = {
-        tabId: msg.payload.tabId || sender.tab?.id,
-        taskId: msg.payload.taskId,
-        shortcutName: msg.payload.shortcutName,
-        shortcutContent: msg.payload.shortcutContent, // The prompt content
-        content: msg.payload.content,
-        url: msg.payload.url,
-        title: msg.payload.title || "",
-        contentType: msg.payload.contentType,
-        selectedModel: selectedModel,
-        thinkingModeEnabled: Boolean(msg.payload.thinkingModeEnabled),
-      };
-      startProcessingWithVercelAI(task);
-    }
-  } else if (msg.type === "shortcuts_cancel") {
-    // 根据 taskId 取消处理任务
-    const taskId = msg.payload.taskId;
-    // Try to cancel SSE task (Huntly server) or Vercel AI task
-    const sseCancelled = sseRequestManager.cancelTask(taskId);
-    const vercelCancelled = cancelVercelAITask(taskId);
-    if (sseCancelled || vercelCancelled) {
-      log("Processing cancelled for task:", taskId);
-    }
-  } else if (msg.type === "get_huntly_shortcuts") {
-    // Fetch huntly shortcuts from the server (for content script use)
-    fetchEnabledShortcuts()
-      .then((shortcuts) => {
-        sendResponse({ success: true, shortcuts: shortcuts || [] });
-      })
-      .catch((error) => {
-        console.error("Failed to fetch huntly shortcuts:", error);
-        sendResponse({ success: false, shortcuts: [], error: error.message });
-      });
-    return true; // Keep the message channel open for async response
-  } else if (msg.type === "get_ai_toolbar_data") {
-    // Get all AI toolbar data for content script use (shortcuts + models)
-    getAIToolbarData()
-      .then((data) => {
-        sendResponse({ success: true, ...data });
-      })
-      .catch((error) => {
-        console.error("Failed to get AI toolbar data:", error);
-        sendResponse({ success: false, error: error.message });
-      });
-    return true; // Keep the message channel open for async response
-  } else if ((msg as any).type === "open_tab") {
-    // Open a new tab (for content script context where chrome.tabs.create is not available)
-    const openTabMsg = msg as Message & { url?: string };
-    const url = openTabMsg.url || openTabMsg.payload?.url;
-    if (url) {
-      chrome.tabs.create({ url });
-    }
-  } else if ((msg as any).type === "fetch_image") {
-    // Fetch a cross-origin image from the background (privileged context)
-    // and return it as a data URL for export.
-    const imageUrl = msg.payload?.url;
-    if (!imageUrl) {
-      sendResponse({ success: false, error: "No URL provided" });
-      return;
-    }
-    (async () => {
-      try {
-        const response = await fetch(imageUrl, { credentials: "omit" });
-        if (!response.ok) {
-          sendResponse({ success: false, error: `HTTP ${response.status}` });
-          return;
+export function initBackground(): void {
+  chrome.runtime.onMessage.addListener(function (
+    msg: Message,
+    sender,
+    sendResponse
+  ) {
+    if (msg.type === "auto_save_clipper") {
+      autoSaveArticle(msg.payload).then(handleSaveArticleResponse);
+    } else if (msg.type === "save_clipper") {
+      saveArticle(msg.payload);
+    } else if (msg.type === "auto_save_tweets") {
+      readSyncStorageSettings().then((settings) => {
+        if (settings.autoSaveTweet) {
+          sendData("tweet/saveTweets", msg.payload);
         }
-        const contentType = response.headers.get("content-type") || "";
-        if (!contentType.startsWith("image/")) {
-          sendResponse({ success: false, error: "Not an image" });
-          return;
-        }
-        const blob = await response.blob();
-        const dataUrl = await blobToDataUrl(blob);
-        sendResponse({ success: true, dataUrl });
-      } catch (error) {
-        sendResponse({ success: false, error: (error as Error)?.message || "Fetch failed" });
-      }
-    })();
-    return true; // Keep the message channel open for async response
-  } else if ((msg as any).type === "badge_refresh") {
-    // Refresh badge for a specific tab after manual save/delete from popup
-    const tabId = msg.payload?.tabId;
-    const url = msg.payload?.url;
-    if (tabId && url) {
-      updateBadgeForTab(tabId, url, true);
-    } else {
-      refreshBadgeForActiveTab();
-    }
-  } else if ((msg as any).type === "http_proxy") {
-    const { method, baseUrl, url, data } = msg.payload || {};
-    if (!baseUrl || !url) {
-      sendResponse({ success: false, error: "Invalid proxy request." });
-      return;
-    }
+      });
+    } else if (msg.type === "read_tweet") {
+      sendData("tweet/trackRead", msg.payload);
+    } else if (msg.type === "shortcuts_process") {
+      const selectedModel = msg.payload.selectedModel;
+      const isHuntlyServer = selectedModel?.provider === "huntly-server";
 
-    (async () => {
-      try {
-        const fullUrl = combineUrl(baseUrl, url);
-        const init: RequestInit = {
-          method: method || "GET",
-          cache: "no-cache",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
+      if (isHuntlyServer) {
+        const task = {
+          tabId: msg.payload.tabId || sender.tab?.id,
+          taskId: msg.payload.taskId,
+          shortcutId: msg.payload.shortcutId,
+          shortcutName: msg.payload.shortcutName,
+          content: msg.payload.content,
+          url: msg.payload.url,
+          title: msg.payload.title || "",
+          contentType: msg.payload.contentType,
         };
-        if (data !== undefined && method !== "GET" && method !== "DELETE") {
-          init.body = JSON.stringify(data);
-        }
-
-        const response = await fetch(fullUrl, init);
-        const text = await response.text();
-        sendResponse({ success: true, data: text, status: response.status });
-      } catch (error) {
-        sendResponse({
-          success: false,
-          error: (error as Error)?.message || "http_proxy failed",
-        });
+        const shortcuts = msg.payload.shortcuts || [];
+        const skipPreview = msg.payload.skipPreview || false;
+        startProcessingWithShortcuts(task, shortcuts, skipPreview);
+      } else {
+        const task = {
+          tabId: msg.payload.tabId || sender.tab?.id,
+          taskId: msg.payload.taskId,
+          shortcutName: msg.payload.shortcutName,
+          shortcutContent: msg.payload.shortcutContent,
+          content: msg.payload.content,
+          url: msg.payload.url,
+          title: msg.payload.title || "",
+          contentType: msg.payload.contentType,
+          selectedModel: selectedModel,
+          thinkingModeEnabled: Boolean(msg.payload.thinkingModeEnabled),
+        };
+        startProcessingWithVercelAI(task);
       }
-    })();
-    return true;
-  } else if ((msg as any).type === "save_detail_init") {
-    const { data } = msg.payload || {};
-    const inputPage = data?.page as PageModel | undefined;
-    if (!inputPage?.url) {
-      sendResponse({
-        success: false,
-        error: "Invalid page data for save detail initialization.",
-      });
-      return;
-    }
-
-    (async () => {
-      try {
-        const resp = await saveArticle(inputPage);
-        if (!resp) {
-          sendResponse({ success: false, error: "Failed to save page." });
-          return;
+    } else if (msg.type === "shortcuts_cancel") {
+      const taskId = msg.payload.taskId;
+      const sseCancelled = sseRequestManager.cancelTask(taskId);
+      const vercelCancelled = cancelVercelAITask(taskId);
+      if (sseCancelled || vercelCancelled) {
+        log("Processing cancelled for task:", taskId);
+      }
+    } else if (msg.type === "get_huntly_shortcuts") {
+      fetchEnabledShortcuts()
+        .then((shortcuts) => {
+          sendResponse({ success: true, shortcuts: shortcuts || [] });
+        })
+        .catch((error) => {
+          console.error("Failed to fetch huntly shortcuts:", error);
+          sendResponse({ success: false, shortcuts: [], error: error.message });
+        });
+      return true;
+    } else if (msg.type === "get_ai_toolbar_data") {
+      getAIToolbarData()
+        .then((data) => {
+          sendResponse({ success: true, ...data });
+        })
+        .catch((error) => {
+          console.error("Failed to get AI toolbar data:", error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+    } else if ((msg as any).type === "open_tab") {
+      const openTabMsg = msg as Message & { url?: string };
+      const url = openTabMsg.url || openTabMsg.payload?.url;
+      if (url) {
+        chrome.tabs.create({ url });
+      }
+    } else if ((msg as any).type === "open_side_panel") {
+      openSidePanelForContextMenuClick(sender.tab);
+    } else if ((msg as any).type === "fetch_image") {
+      const imageUrl = msg.payload?.url;
+      if (!imageUrl) {
+        sendResponse({ success: false, error: "No URL provided" });
+        return;
+      }
+      (async () => {
+        try {
+          const response = await fetch(imageUrl, { credentials: "omit" });
+          if (!response.ok) {
+            sendResponse({ success: false, error: `HTTP ${response.status}` });
+            return;
+          }
+          const contentType = response.headers.get("content-type") || "";
+          if (!contentType.startsWith("image/")) {
+            sendResponse({ success: false, error: "Not an image" });
+            return;
+          }
+          const blob = await response.blob();
+          const dataUrl = await blobToDataUrl(blob);
+          sendResponse({ success: true, dataUrl });
+        } catch (error) {
+          sendResponse({ success: false, error: (error as Error)?.message || "Fetch failed" });
         }
-        const json = JSON.parse(resp);
-        const pageId = json?.data as number;
-        if (!pageId || pageId <= 0) {
+      })();
+      return true;
+    } else if ((msg as any).type === "badge_refresh") {
+      const tabId = msg.payload?.tabId;
+      const url = msg.payload?.url;
+      if (tabId && url) {
+        updateBadgeForTab(tabId, url, true);
+      } else {
+        refreshBadgeForActiveTab();
+      }
+    } else if ((msg as any).type === "http_proxy") {
+      const { method, baseUrl, url, data } = msg.payload || {};
+      if (!baseUrl || !url) {
+        sendResponse({ success: false, error: "Invalid proxy request." });
+        return;
+      }
+
+      (async () => {
+        try {
+          const fullUrl = combineUrl(baseUrl, url);
+          const init: RequestInit = {
+            method: method || "GET",
+            cache: "no-cache",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          };
+          if (data !== undefined && method !== "GET" && method !== "DELETE") {
+            init.body = JSON.stringify(data);
+          }
+
+          const response = await fetch(fullUrl, init);
+          const text = await response.text();
+          sendResponse({ success: true, data: text, status: response.status });
+        } catch (error) {
           sendResponse({
             success: false,
-            error: "Invalid page id from save API.",
+            error: (error as Error)?.message || "http_proxy failed",
           });
-          return;
         }
-
-        const operateResult = await savePageToLibrary(pageId);
-        const detail = await getPageDetail(pageId);
-        const dbPage = detail?.page || {};
-        // Also fetch collection tree for the SaveDetailPanel
-        const collectionTree = await getCollectionTree();
-
-        sendResponse({
-          success: true,
-          data: {
-            pageId,
-            operateResult,
-            collectionTree,
-            page: {
-              ...inputPage,
-              title: dbPage.title || inputPage.title,
-              description: dbPage.description || inputPage.description,
-              url: dbPage.url || inputPage.url,
-              domain: dbPage.domain || inputPage.domain,
-              faviconUrl: dbPage.faviconUrl || inputPage.faviconUrl,
-              thumbUrl: dbPage.thumbUrl || inputPage.thumbUrl,
-            },
-          },
-        });
-      } catch (error) {
+      })();
+      return true;
+    } else if ((msg as any).type === "save_detail_init") {
+      const { data } = msg.payload || {};
+      const inputPage = data?.page as PageModel | undefined;
+      if (!inputPage?.url) {
         sendResponse({
           success: false,
-          error: (error as Error)?.message || "save_detail_init failed",
+          error: "Invalid page data for save detail initialization.",
         });
+        return;
       }
-    })();
-    return true;
-  }
-});
+
+      (async () => {
+        try {
+          const resp = await saveArticle(inputPage);
+          if (!resp) {
+            sendResponse({ success: false, error: "Failed to save page." });
+            return;
+          }
+          const json = JSON.parse(resp);
+          const pageId = json?.data as number;
+          if (!pageId || pageId <= 0) {
+            sendResponse({
+              success: false,
+              error: "Invalid page id from save API.",
+            });
+            return;
+          }
+
+          const operateResult = await savePageToLibrary(pageId);
+          const detail = await getPageDetail(pageId);
+          const dbPage = detail?.page || {};
+          const collectionTree = await getCollectionTree();
+
+          sendResponse({
+            success: true,
+            data: {
+              pageId,
+              operateResult,
+              collectionTree,
+              page: {
+                ...inputPage,
+                title: dbPage.title || inputPage.title,
+                description: dbPage.description || inputPage.description,
+                url: dbPage.url || inputPage.url,
+                domain: dbPage.domain || inputPage.domain,
+                faviconUrl: dbPage.faviconUrl || inputPage.faviconUrl,
+                thumbUrl: dbPage.thumbUrl || inputPage.thumbUrl,
+              },
+            },
+          });
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: (error as Error)?.message || "save_detail_init failed",
+          });
+        }
+      })();
+      return true;
+    }
+  });
+
+  registerBackgroundUiListeners();
+}
 
 // Helper function to get all AI toolbar data
 async function getAIToolbarData() {
@@ -851,123 +846,204 @@ function refreshBadgeForActiveTab() {
   });
 }
 
-chrome.tabs.onUpdated.addListener(function (tabId: number, changeInfo, tab) {
-  if (changeInfo.status == "complete") {
-    chrome.tabs.sendMessage<Message>(tabId, {
-      type: "tab_complete",
-    });
-
-    // Update badge when page finishes loading
-    if (tab.url) {
-      updateBadgeForTab(tabId, tab.url);
-    }
-  }
-
-  // Also handle URL changes (SPA navigation) without waiting for "complete"
-  if (changeInfo.url) {
-    // Clear cache for this tab since URL changed
-    badgeCache.delete(tabId);
-    updateBadgeForTab(tabId, changeInfo.url);
-  }
-});
-
-// Listen for tab activation (user switches tabs)
-chrome.tabs.onActivated.addListener(function (activeInfo) {
-  // Update badge when user switches to a different tab
-  chrome.tabs.get(activeInfo.tabId, function (tab) {
-    if (tab.url) {
-      updateBadgeForTab(activeInfo.tabId, tab.url);
-    }
-  });
-});
-
-// 监听标签页关闭事件
-chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
-  // 取消该标签页的所有处理任务
-  const cancelledCount = sseRequestManager.cancelTasksByTabId(tabId);
-
-  if (cancelledCount > 0) {
-    log(
-      `Processing cancelled for ${cancelledCount} tasks due to tab ${tabId} close`
-    );
-  }
-
-  // Clean up badge cache for this tab
-  badgeCache.delete(tabId);
-});
-
-// Create context menu for Reading Mode
+const CONTEXT_MENU_HUNTLY_ROOT = "huntly_root";
 const CONTEXT_MENU_READING_MODE_PAGE = "huntly_reading_mode_page";
-const CONTEXT_MENU_READING_MODE_SELECTION = "huntly_reading_mode_selection";
+const CONTEXT_MENU_SIDE_PANEL_PAGE = "huntly_side_panel_page";
 const CONTEXT_MENU_READING_MODE_ACTION = "huntly_reading_mode_action";
+const CONTEXT_MENU_SIDE_PANEL_ACTION = "huntly_side_panel_action";
+const CONTEXT_MENU_PAGE_CONTEXTS = ["page", "selection"];
+const CONTEXT_MENU_ACTION_CONTEXTS = ["action"];
 
-// Add DEV flag to menu title in development mode
-const READING_MODE_TITLE = isDebugging
-  ? "Huntly Reading Mode [DEV]"
-  : "Huntly Reading Mode";
+const HUNTLY_MENU_TITLE = isDebugging ? "Huntly [DEV]" : "Huntly";
+const READING_MODE_TITLE = "Reading Mode";
+const SIDE_PANEL_TITLE = "Chat";
 
-chrome.runtime.onInstalled.addListener(() => {
-  // Context menu for page (no selection)
-  chrome.contextMenus.create({
-    id: CONTEXT_MENU_READING_MODE_PAGE,
-    title: READING_MODE_TITLE,
-    contexts: ["page"],
+function createContextMenuItem(
+  properties: chrome.contextMenus.CreateProperties
+) {
+  chrome.contextMenus.create(properties, () => {
+    if (chrome.runtime.lastError) {
+      log("Failed to create context menu item:", chrome.runtime.lastError);
+    }
   });
+}
 
-  // Context menu for selection (snippet mode)
-  chrome.contextMenus.create({
-    id: CONTEXT_MENU_READING_MODE_SELECTION,
-    title: READING_MODE_TITLE,
-    contexts: ["selection"],
-  });
+function setupContextMenus() {
+  chrome.contextMenus.removeAll(() => {
+    if (chrome.runtime.lastError) {
+      log("Failed to reset context menus:", chrome.runtime.lastError);
+    }
 
-  // Context menu for extension icon (action)
-  chrome.contextMenus.create({
-    id: CONTEXT_MENU_READING_MODE_ACTION,
-    title: READING_MODE_TITLE,
-    contexts: ["action"],
-  });
-});
-
-// Handle context menu click
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (!tab?.id) return;
-
-  const isSelectionMode =
-    info.menuItemId === CONTEXT_MENU_READING_MODE_SELECTION;
-  const isReadingModeMenu =
-    info.menuItemId === CONTEXT_MENU_READING_MODE_PAGE ||
-    info.menuItemId === CONTEXT_MENU_READING_MODE_SELECTION ||
-    info.menuItemId === CONTEXT_MENU_READING_MODE_ACTION;
-
-  if (!isReadingModeMenu) return;
-
-  if (isSelectionMode) {
-    // Get selection content from content script and open snippet reading mode
-    chrome.tabs.sendMessage(tab.id, { type: "get_selection" }, (response) => {
-      if (chrome.runtime.lastError) {
-        log("Failed to get selection:", chrome.runtime.lastError);
-        return;
-      }
-
-      const page = response?.page;
-      if (page) {
-        // Open reading mode with snippet
-        chrome.tabs.sendMessage(tab.id!, {
-          type: "shortcuts_preview",
-          payload: {
-            page: page,
-          },
-        });
-      }
+    createContextMenuItem({
+      id: CONTEXT_MENU_HUNTLY_ROOT,
+      title: HUNTLY_MENU_TITLE,
+      contexts: CONTEXT_MENU_PAGE_CONTEXTS,
     });
+
+    createContextMenuItem({
+      id: CONTEXT_MENU_READING_MODE_PAGE,
+      parentId: CONTEXT_MENU_HUNTLY_ROOT,
+      title: READING_MODE_TITLE,
+      contexts: CONTEXT_MENU_PAGE_CONTEXTS,
+    });
+
+    createContextMenuItem({
+      id: CONTEXT_MENU_SIDE_PANEL_PAGE,
+      parentId: CONTEXT_MENU_HUNTLY_ROOT,
+      title: SIDE_PANEL_TITLE,
+      contexts: CONTEXT_MENU_PAGE_CONTEXTS,
+    });
+
+    createContextMenuItem({
+      id: CONTEXT_MENU_READING_MODE_ACTION,
+      title: READING_MODE_TITLE,
+      contexts: CONTEXT_MENU_ACTION_CONTEXTS,
+    });
+
+    createContextMenuItem({
+      id: CONTEXT_MENU_SIDE_PANEL_ACTION,
+      title: SIDE_PANEL_TITLE,
+      contexts: CONTEXT_MENU_ACTION_CONTEXTS,
+    });
+  });
+}
+
+async function getCurrentActiveTab(): Promise<chrome.tabs.Tab | undefined> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab;
+}
+
+async function resolveContextMenuTab(
+  tab?: chrome.tabs.Tab
+): Promise<chrome.tabs.Tab | undefined> {
+  if (tab?.id) {
+    return tab;
+  }
+
+  return getCurrentActiveTab();
+}
+
+function openSidePanelForContextMenuClick(tab?: chrome.tabs.Tab): void {
+  const sidePanelApi = (chrome as any).sidePanel;
+  if (!sidePanelApi?.open) {
+    return;
+  }
+
+  if (typeof tab?.windowId !== "number") {
+    log("Failed to open side panel: missing windowId from context menu tab");
+    return;
+  }
+
+  void sidePanelApi.open({ windowId: tab.windowId }).catch((error: unknown) => {
+    log("Failed to open side panel:", error);
+  });
+}
+
+function isReadingModeMenuItem(menuItemId: string | number): boolean {
+  return (
+    menuItemId === CONTEXT_MENU_READING_MODE_PAGE ||
+    menuItemId === CONTEXT_MENU_READING_MODE_ACTION
+  );
+}
+
+function isSidePanelMenuItem(menuItemId: string | number): boolean {
+  return (
+    menuItemId === CONTEXT_MENU_SIDE_PANEL_PAGE ||
+    menuItemId === CONTEXT_MENU_SIDE_PANEL_ACTION
+  );
+}
+
+async function handleReadingModeContextMenuClick(
+  info: chrome.contextMenus.OnClickData,
+  tab?: chrome.tabs.Tab
+): Promise<void> {
+  const targetTab = await resolveContextMenuTab(tab);
+
+  if (!targetTab?.id) return;
+
+  if (info.selectionText?.trim()) {
+    // Get selection content from content script and open snippet reading mode
+    chrome.tabs.sendMessage(
+      targetTab.id,
+      { type: "get_selection" },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          log("Failed to get selection:", chrome.runtime.lastError);
+          return;
+        }
+
+        const page = response?.page;
+        if (page) {
+          // Open reading mode with snippet
+          chrome.tabs.sendMessage(targetTab.id, {
+            type: "shortcuts_preview",
+            payload: {
+              page: page,
+            },
+          });
+        }
+      }
+    );
   } else {
     // Open full page reading mode
-    chrome.tabs.sendMessage(tab.id, {
+    chrome.tabs.sendMessage(targetTab.id, {
       type: "shortcuts_preview",
       payload: {
         page: null, // null means content script will parse the current page
       },
     });
   }
-});
+}
+
+function registerBackgroundUiListeners(): void {
+  chrome.tabs.onUpdated.addListener(function (tabId: number, changeInfo, tab) {
+    if (changeInfo.status == "complete") {
+      chrome.tabs.sendMessage<Message>(tabId, {
+        type: "tab_complete",
+      });
+
+      if (tab.url) {
+        updateBadgeForTab(tabId, tab.url);
+      }
+    }
+
+    if (changeInfo.url) {
+      badgeCache.delete(tabId);
+      updateBadgeForTab(tabId, changeInfo.url);
+    }
+  });
+
+  chrome.tabs.onActivated.addListener(function (activeInfo) {
+    chrome.tabs.get(activeInfo.tabId, function (tab) {
+      if (tab.url) {
+        updateBadgeForTab(activeInfo.tabId, tab.url);
+      }
+    });
+  });
+
+  chrome.tabs.onRemoved.addListener(function (tabId) {
+    const cancelledCount = sseRequestManager.cancelTasksByTabId(tabId);
+
+    if (cancelledCount > 0) {
+      log(
+        `Processing cancelled for ${cancelledCount} tasks due to tab ${tabId} close`
+      );
+    }
+
+    badgeCache.delete(tabId);
+  });
+
+  chrome.runtime.onInstalled.addListener(setupContextMenus);
+  chrome.runtime.onStartup.addListener(setupContextMenus);
+
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (isSidePanelMenuItem(info.menuItemId)) {
+      openSidePanelForContextMenuClick(tab);
+      return;
+    }
+
+    if (!isReadingModeMenuItem(info.menuItemId)) return;
+
+    void handleReadingModeContextMenuClick(info, tab);
+  });
+}

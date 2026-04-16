@@ -20,7 +20,7 @@
   "blacklistLabel": "黑名单（每行一个，支持正则表达式）",
   "saveSuccess": "常规设置保存成功。",
   "saveFailed": "常规设置保存失败。错误：{{error}}",
-  "feeds": "订阅",
+  "feeds": "RSS",
   "feedName": "订阅名称",
   "feedUrl": "订阅 URL",
   "feedCrawlFullContent": "抓取全文",

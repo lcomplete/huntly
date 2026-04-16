@@ -141,5 +141,6 @@ function handleResponse(responseText: string, responseUrl: string) {
   matchedSetting.setting.handler(responseText, responseUrl, matchedSetting.category);
 }
 
-interceptTwitterSite();
-
+export function initTweetInterceptor() {
+  interceptTwitterSite();
+}

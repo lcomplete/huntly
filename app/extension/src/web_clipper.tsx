@@ -7,8 +7,6 @@ import React from "react";
 import {ShadowDomPreview} from "./components/ShadowDomPreview";
 import {createRoot} from "react-dom/client";
 
-log("web clipper script loaded");
-
 let root: ReturnType<typeof createRoot> | null = null;
 // Store last snippet for current page (page-specific, not persisted)
 let lastSnippetPage: PageModel | null = null;
@@ -17,159 +15,160 @@ let cachedParserType: ContentParserType = "readability";
 // Preview root element reference
 let previewRootEl: HTMLDivElement | null = null;
 
-// Load parser setting on script load
-readSyncStorageSettings().then((settings) => {
-  cachedParserType = settings.contentParser;
-});
+export function initWebClipper(): void {
+  log("[Huntly] initWebClipper called - content script starting");
+  log("web clipper script loaded");
 
-// Listen for storage changes to update cached parser type
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "sync" && changes.contentParser) {
-    cachedParserType = changes.contentParser.newValue;
-  }
-});
+  readSyncStorageSettings().then((settings) => {
+    cachedParserType = settings.contentParser;
+  });
 
-chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
-  if (msg.type === "parse_doc") {
-    // Use parser type from message if provided, otherwise use cached setting
-    const parserType = msg.payload?.parserType || cachedParserType;
-    const webClipper = new WebClipper(parserType);
-    const page = webClipper.parseDoc(document.cloneNode(true) as Document);
-    const isHuntlySite = webClipper.hasHuntlyMeta(document);
-    sendResponse({page, parserType, isHuntlySite});
-    return;
-  } else if (msg.type === 'shortcuts_preview') {
-    let page = msg.payload?.page;
-    // Use parserType from message if provided, otherwise use cached setting
-    const parserType = msg.payload?.parserType || cachedParserType;
-    log('[Huntly] shortcuts_preview - received parserType:', msg.payload?.parserType, 'using:', parserType);
-    if (!page) {
-      const webClipper = new WebClipper(parserType);
-      page = webClipper.parseDoc(document.cloneNode(true) as Document);
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "sync" && changes.contentParser) {
+      cachedParserType = changes.contentParser.newValue;
     }
-    const rootId = "huntly_preview_unique_root";
-    let elRoot = document.getElementById(rootId) as HTMLDivElement | null;
-    if (!elRoot) {
-      elRoot = document.createElement("div");
-      elRoot.id = rootId;
-      document.body.append(elRoot);
-    }
+  });
 
-    // Save original scroll state - don't modify it, just track for cleanup
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalHtmlOverflow = document.documentElement.style.overflow;
-
-    // Close handler to clean up the preview
-    const handleClose = () => {
-      if (previewRootEl) {
-        delete previewRootEl.dataset.preview;
+  chrome.runtime.onMessage.addListener(function (msg: Message, sender, sendResponse) {
+    if (msg.type === "parse_doc") {
+      try {
+        const parserType = msg.payload?.parserType || cachedParserType;
+        log("[Huntly] parse_doc received, parserType:", parserType, "url:", location.href);
+        const webClipper = new WebClipper(parserType);
+        const page = webClipper.parseDoc(document.cloneNode(true) as Document);
+        const isHuntlySite = webClipper.hasHuntlyMeta(document);
+        log("[Huntly] parse_doc result: page?", !!page, "isHuntlySite:", isHuntlySite);
+        sendResponse({page, parserType, isHuntlySite});
+      } catch (error) {
+        console.error("[Huntly] parse_doc error:", error);
+        sendResponse({page: null, parserType: cachedParserType, isHuntlySite: false});
       }
+      return;
+    } else if (msg.type === 'shortcuts_preview') {
+      let page = msg.payload?.page;
+      const parserType = msg.payload?.parserType || cachedParserType;
+      log('[Huntly] shortcuts_preview - received parserType:', msg.payload?.parserType, 'using:', parserType);
+      if (!page) {
+        const webClipper = new WebClipper(parserType);
+        page = webClipper.parseDoc(document.cloneNode(true) as Document);
+      }
+      const rootId = "huntly_preview_unique_root";
+      let elRoot = document.getElementById(rootId) as HTMLDivElement | null;
+      if (!elRoot) {
+        elRoot = document.createElement("div");
+        elRoot.id = rootId;
+        document.body.append(elRoot);
+      }
+
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+
+      const handleClose = () => {
+        if (previewRootEl) {
+          delete previewRootEl.dataset.preview;
+        }
+        if (root) {
+          root.unmount();
+          root = null;
+        }
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+      };
+
       if (root) {
         root.unmount();
-        root = null;
       }
-      // Restore original scroll state
-      document.body.style.overflow = originalBodyOverflow;
-      document.documentElement.style.overflow = originalHtmlOverflow;
-    };
 
-    // Always re-render (unmount first if already mounted)
-    if (root) {
-      root.unmount();
-    }
-
-    elRoot.dataset.preview = "1";
-    previewRootEl = elRoot;
-    root = createRoot(elRoot);
-    root.render(
-      <ShadowDomPreview
-        page={page}
-        initialParserType={parserType}
-        onClose={handleClose}
-        externalShortcuts={msg.payload?.externalShortcuts}
-        externalModels={msg.payload?.externalModels}
-        autoExecuteShortcut={msg.payload?.autoExecuteShortcut}
-        autoSelectedModel={msg.payload?.autoSelectedModel}
-        initialThinkingModeEnabled={msg.payload?.initialThinkingModeEnabled}
-      />
-    );
-    return;
-  } else if (msg.type === "get_selection") {
-    const webClipper = new WebClipper();
-    const selection = window.getSelection();
-    let content = "";
-    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-      const range = selection.getRangeAt(0);
-      const div = document.createElement('div');
-      div.appendChild(range.cloneContents());
-      content = div.innerHTML;
-    }
-    
-    if (!content) {
-      // No new selection, return last snippet if exists (with isRestored flag)
-      if (lastSnippetPage) {
-        sendResponse({page: lastSnippetPage, isRestored: true});
-      } else {
-        sendResponse({page: null});
+      elRoot.dataset.preview = "1";
+      previewRootEl = elRoot;
+      root = createRoot(elRoot);
+      root.render(
+        <ShadowDomPreview
+          page={page}
+          initialParserType={parserType}
+          onClose={handleClose}
+          externalShortcuts={msg.payload?.externalShortcuts}
+          externalModels={msg.payload?.externalModels}
+          autoExecuteShortcut={msg.payload?.autoExecuteShortcut}
+          autoSelectedModel={msg.payload?.autoSelectedModel}
+          initialThinkingModeEnabled={msg.payload?.initialThinkingModeEnabled}
+        />
+      );
+      return;
+    } else if (msg.type === "get_selection") {
+      const webClipper = new WebClipper();
+      const selection = window.getSelection();
+      let content = "";
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        const range = selection.getRangeAt(0);
+        const div = document.createElement('div');
+        div.appendChild(range.cloneContents());
+        content = div.innerHTML;
       }
+      
+      if (!content) {
+        if (lastSnippetPage) {
+          sendResponse({page: lastSnippetPage, isRestored: true});
+        } else {
+          sendResponse({page: null});
+        }
+        return;
+      }
+
+      const doc = document.cloneNode(true) as Document;
+      
+      const baseURI = getBaseURI(doc);
+      const documentURI = doc.documentURI;
+      const ogTitle = doc.querySelector("meta[property='og:title']");
+      const title = ogTitle ? ogTitle.getAttribute("content") : doc.title;
+      
+      const ogImage = doc.querySelector("meta[property='og:image']");
+      let thumbUrl = ogImage ? ogImage.getAttribute("content") : null;
+      if (thumbUrl) {
+        thumbUrl = toAbsoluteURI(thumbUrl, baseURI, documentURI);
+      }
+      
+      const ogSiteName = doc.querySelector("meta[property='og:site_name']");
+      const siteName = ogSiteName ? ogSiteName.getAttribute("content") : "";
+      
+      let faviconUrl = findSmallestFaviconUrl(doc);
+      
+      const page: PageModel = {
+        title: title || "",
+        content: content,
+        url: location.href,
+        thumbUrl: thumbUrl || "",
+        description: selection.toString(),
+        author: "",
+        siteName: siteName,
+        language: "",
+        category: "",
+        isLiked: false,
+        isFavorite: false,
+        domain: document.domain,
+        faviconUrl: faviconUrl || "",
+        contentType: 4
+      };
+      
+      lastSnippetPage = page;
+      
+      sendResponse({page, isRestored: false});
       return;
     }
 
-    const doc = document.cloneNode(true) as Document;
-    
-    // Extract metadata without Readability
-    const baseURI = getBaseURI(doc);
-    const documentURI = doc.documentURI;
-    const ogTitle = doc.querySelector("meta[property='og:title']");
-    const title = ogTitle ? ogTitle.getAttribute("content") : doc.title;
-    
-    const ogImage = doc.querySelector("meta[property='og:image']");
-    let thumbUrl = ogImage ? ogImage.getAttribute("content") : null;
-    if (thumbUrl) {
-      thumbUrl = toAbsoluteURI(thumbUrl, baseURI, documentURI);
+    if (document.domain === "twitter.com" || document.domain === "x.com") {
+      return;
     }
-    
-    const ogSiteName = doc.querySelector("meta[property='og:site_name']");
-    const siteName = ogSiteName ? ogSiteName.getAttribute("content") : "";
-    
-    let faviconUrl = findSmallestFaviconUrl(doc);
-    
-    const page: PageModel = {
-      title: title || "",
-      content: content,
-      url: location.href,
-      thumbUrl: thumbUrl || "",
-      description: selection.toString(),
-      author: "", // Could try to find author meta tag
-      siteName: siteName,
-      language: "",
-      category: "",
-      isLiked: false,
-      isFavorite: false,
-      domain: document.domain,
-      faviconUrl: faviconUrl || "",
-      contentType: 4 // SNIPPET
-    };
-    
-    // Save as last snippet for this page
-    lastSnippetPage = page;
-    
-    sendResponse({page, isRestored: false});
-    return;
-  }
-
-  if (document.domain === "twitter.com" || document.domain === "x.com") {
-    return;
-  }
-  if (msg.type !== "tab_complete") {
-    return;
-  }
-  readSyncStorageSettings().then((settings) => {
-    if (settings.autoSaveEnabled) {
-      timeoutSavePureRead();
+    if (msg.type !== "tab_complete") {
+      return;
     }
+    readSyncStorageSettings().then((settings) => {
+      if (settings.autoSaveEnabled) {
+        timeoutSavePureRead();
+      }
+    });
   });
-});
+}
 
 function timeoutSavePureRead() {
   setTimeout(() => {
@@ -261,7 +260,15 @@ export class WebClipper {
 
       if (this.verifyPage(page)) {
         return page;
+      } else {
+        log("[Huntly] parseDoc: verifyPage failed.",
+          "title:", isNotBlank(page.title), `"${page.title?.substring(0, 30)}"`,
+          "content:", isNotBlank(page.content), `len=${page.content?.length}`,
+          "url:", isNotBlank(page.url), `"${page.url}"`,
+          "desc:", isNotBlank(page.description), `"${page.description?.substring(0, 50)}"`);
       }
+    } else {
+      log("[Huntly] parseDoc: parseDocument returned null/undefined");
     }
   }
 

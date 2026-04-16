@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "./.jest-cache",
+    "paths": {
+      "ai": ["./node_modules/ai/dist/index.js"]
+    }
+  }
+}

@@ -1,198 +1,99 @@
-# CLAUDE.md
+# Repository Guidelines
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-## Project Overview
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-Huntly is a self-hosted AI-powered information management tool with multiple client options. It provides AI content processing, RSS feeds, web page archiving, Twitter content saving, full-text search, and integrations with external services like GitHub.
+## 1. Think Before Coding
 
-The project consists of:
-- **Backend**: Java Spring Boot application (`app/server/`)
-- **Web Client**: React TypeScript application (`app/client/`)
-- **Browser Extension**: Chrome/Firefox extension with Manifest V3 (`app/extension/`)
-- **Desktop App**: Tauri application with Vite + React frontend (`app/tauri/`)
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-## Development Commands
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-### Backend (Spring Boot)
-```bash
-# Navigate to server directory
-cd app/server
+## 2. Simplicity First
 
-# Run server in dev mode (Primary Development Mode)
-# Checks dependencies and rebuilds if necessary, then runs the server
-# Options:
-#   --task  : Enable connector tasks (default: disabled)
-#   --sql   : Show SQL logs (default: disabled)
-./start-dev.sh
+**Minimum code that solves the problem. Nothing speculative.**
 
-# Build with Maven wrapper
-./mvnw clean install
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
 
-# Run server via Maven directly
-./mvnw spring-boot:run -pl huntly-server -am
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-# Or run the built JAR
-java -Xms128m -Xmx1024m -jar huntly-server/target/huntly-server.jar
+## 3. Surgical Changes
 
-# Run with custom port
-java -Xms128m -Xmx1024m -jar huntly-server/target/huntly-server.jar --server.port=80
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
 ```
 
-### Web Client (React)
-```bash
-# Navigate to client directory
-cd app/client
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-# Install dependencies
-yarn install
+---
 
-# Start development server (proxies to localhost:8080)
-yarn start
-# or
-yarn dev
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
-# Build for production
-yarn build
+## Project Structure & Module Organization
+`app/server/` contains the Spring Boot parent with `huntly-server`, `huntly-jpa`, `huntly-common`, and `huntly-interfaces`. `app/client/` serves the React SPA, `app/extension/` holds the Chrome/Firefox browser extension, and `app/tauri/` ships the desktop app built with Tauri + Vite. Shared static assets live in `static/`; container manifests sit in `Dockerfile*` and `docker-compose.yml`.
 
-# Run tests
-yarn test
+## Build, Test, and Development Commands
+- Server: `cd app/server` and use `./start-dev.sh` (primary dev mode, supports `--task` to enable connectors and `--sql` to show SQL); `./mvnw clean verify` builds everything; direct maven run: `./mvnw spring-boot:run -pl huntly-server -am` serves `localhost:8080`.
+- Web client: `cd app/client && yarn install && yarn start`; use `yarn build` for production assets and `yarn test` for the Jest suite.
+- Browser extension: `cd app/extension && yarn install && yarn dev`; guard releases with `yarn build` and `yarn test`.
+- Desktop app (Tauri): `cd app/tauri && yarn install && yarn tauri dev`; `yarn build` compiles frontend and `yarn tauri build` bundles the desktop app.
+- Containers: `docker-compose up -d` runs the published image; `docker build -t huntly-local -f Dockerfile .` produces a workspace-aware image.
 
-# Generate API client from OpenAPI
-yarn api-generate
-```
+## Coding Style & Naming Conventions
+Java code uses four-space indentation, `com.huntly.*` packages, and Lombok DTOs; keep controllers in `huntly-server` and persistence code in `huntly-jpa`. TypeScript components and hooks are PascalCase files with camelCase props and co-located Tailwind styles. The React app follows `react-scripts` ESLint defaults, and the extension formats with `yarn style`. Name static assets and env samples in kebab-case to match the existing tree.
 
-### Browser Extension
-```bash
-# Navigate to extension directory
-cd app/extension
+## Testing Guidelines
+Java modules rely on JUnit 5 and AssertJ; place tests beside new code under `src/test/java` and run `./mvnw test` (or module-targeted variants) before pushing. The React client uses React Testing Library through `yarn test`; name files `<Component>.test.tsx`. Extension suites run with ts-jest via `yarn test`; provide deterministic fixtures for new parsers or DOM mutations.
 
-# Install dependencies
-yarn install
+## Commit & Pull Request Guidelines
+Follow Conventional Commits (`feat:`, `fix:`, optional scopes) in imperative voice, keeping subjects ≤72 characters. PRs should link issues, describe impact, attach UI captures when relevant, and confirm `./mvnw clean verify`, `yarn test` (client), and `yarn test` (extension) succeed. Flag schema, Docker, or configuration changes explicitly for reviewers.
 
-# Development build with watch
-yarn dev
-yarn watch
-
-# Production build
-yarn build
-
-# Run tests
-yarn test
-
-# Code formatting
-yarn style
-```
-
-### Desktop Application (Tauri)
-```bash
-cd app/tauri
-yarn install
-
-# Development mode (runs Vite + Tauri)
-yarn tauri dev
-
-# Build frontend only
-yarn build
-
-# Build desktop application
-yarn tauri build
-```
-
-### Docker
-```bash
-# Run with docker-compose (recommended)
-docker-compose up -d
-
-# Build local image
-docker build -t huntly-local -f Dockerfile .
-```
-
-## Architecture
-
-### Backend Architecture
-- **Spring Boot 2.6** application with modular Maven structure
-- **Java 11** minimum requirement
-- **Multi-module project**: huntly-server, huntly-interfaces, huntly-common, huntly-jpa
-- **Database**: SQLite with JPA/Hibernate
-- **Search**: Apache Lucene 9.4 with IK Analyzer for Chinese text tokenization
-- **RSS Processing**: Rome library for feed parsing
-- **Content Extraction**: Boilerpipe and Mozilla Readability for article content extraction
-- **API Documentation**: Springfox/Swagger/OpenAPI
-
-Key modules:
-- `huntly-server/`: Main Spring Boot application with controllers and services
-- `huntly-interfaces/`: DTOs and API interfaces
-- `huntly-common/`: Shared utilities and base classes
-- `huntly-jpa/`: JPA entities, repositories, and custom specifications
-
-### Frontend Architecture
-- **React 18** with TypeScript
-- **Material-UI (MUI) v5** for UI components
-- **TanStack Query v4** for API state management
-- **React Router v6** for navigation
-- **Tailwind CSS** for styling
-- **OpenAPI Generator** for backend API client generation
-- **react-markdown** with remark-gfm for Markdown rendering
-
-### Browser Extension Architecture
-- **Manifest V3** Chrome/Firefox extension
-- **TypeScript** with Webpack bundling
-- **React 18** for popup and options pages
-- **Mozilla Readability** for content extraction
-- **Content Scripts** for page interaction
-- **Background Service Worker** for message handling
-- **Auto-save functionality** for web pages and Twitter/X content
-
-### Desktop App Architecture (Tauri)
-- **Tauri** for native desktop wrapper
-- **Vite** for frontend bundling
-- **React 18** with TypeScript
-- **System tray** integration
-- **Embedded JRE** for running the Spring Boot server locally
-
-### Key Features
-- **AI Content Processing**: Streaming content processing with configurable shortcuts for summarization, translation, etc.
-- **Article Preview**: Real-time preview during AI processing
-- **Tweet Saving**: Special handling for Twitter/X with thread reconstruction
-- **Full-text Search**: Lucene-based search with Chinese tokenization support
-- **RSS Feeds**: Automated feed fetching with file-based caching
-- **External Connectors**: GitHub integration for syncing starred repositories
-
-## Database & Data Storage
-- **Primary DB**: SQLite (`app/server/huntly-server/db.sqlite`)
-- **Feed Cache**: File-based caching (`app/server/huntly-server/feed_cache/`)
-- **Lucene Index**: Full-text search index (`app/server/huntly-server/lucene/`)
-
-## Configuration Files
-- **Spring Boot**: `application.yml` in `app/server/huntly-server/src/main/resources/`
-- **AI Shortcuts**: `config/default-shortcuts.json` for AI processing shortcuts
-- **TypeScript**: Multiple `tsconfig.json` files for different modules
-- **Webpack**: Separate configs in `app/extension/webpack/` for dev/prod builds
-- **Tailwind**: Individual configs in client, extension, and tauri apps
-- **Tauri**: `src-tauri/tauri.conf.json` for desktop app configuration
-
-## Testing
-- **Backend**: Maven Surefire plugin with JUnit 5 and AssertJ
-- **Extension**: Jest with ts-jest for TypeScript support
-- **Client**: React Testing Library with Jest (via react-scripts)
+## Security & Configuration Tips
+Avoid committing SQLite artifacts in `app/server/huntly-server/db.sqlite*`; persist data through the `/data` volume when containerised. Store secrets in environment variables or Tauri keychains. Expose the API over HTTPS and review CORS settings before distributing new browser builds.
 
 ## Documentation Guidelines
 When updating the project's README, ensure all language versions are updated consistently:
 - `README.md` (English)
 - `README.zh.md` (Chinese)
 
-## Common Patterns
-- **API Controllers**: REST endpoints in `controller/` package
-- **Service Layer**: Business logic in `service/` package
-- **Repository Pattern**: JPA repositories with custom specifications in `huntly-jpa`
-- **DTO Mapping**: MapStruct for entity-DTO conversion
-- **Event-Driven**: Application events for decoupled processing
-- **Streaming**: Server-Sent Events for real-time AI content processing
-
 ## UI Language Guidelines
-All user interface text must be written in English. This applies to:
-- Button labels, menu items, and tooltips
-- Error messages and notifications
-- Form labels and placeholder text
-- Any user-facing strings in the browser extension, web client, and desktop app
+All user interface text must be written in English. This applies to button labels, menu items, tooltips, error messages, notifications, form labels, and any user-facing strings across all clients (browser extension, web client, desktop app).
+
+## Reply Guidelines
+
+使用与用户发送的消息相同的语言进行回复。

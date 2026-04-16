@@ -1,74 +1,48 @@
-# Chrome Extension TypeScript Starter
+# Huntly Browser Extension
 
-![build](https://github.com/chibat/chrome-extension-typescript-starter/workflows/build/badge.svg)
-
-Chrome Extension, TypeScript and Visual Studio Code
+Browser extension for Huntly, built with WXT, React, and TypeScript.
 
 ## Prerequisites
 
-* [node + yarn](https://nodejs.org/) (Current Version)
+- Node.js
+- Yarn
 
-## Option
+## Install
 
-* [Visual Studio Code](https://code.visualstudio.com/)
-
-## Includes the following
-
-* TypeScript
-* Webpack
-* React
-* Jest
-* Example Code
-    * Chrome Storage
-    * Options Version 2
-    * content script
-    * count up badge number
-    * background
-
-## Project Structure
-
-* src/typescript: TypeScript source files
-* src/assets: static files
-* dist: Chrome Extension directory
-* dist/js: Generated JavaScript files
-
-## Setup
-
-```
-yarn
+```sh
+yarn install
 ```
 
-## Import as Visual Studio Code project
+## Development
 
-...
+```sh
+yarn dev
+```
+
+This starts the WXT development server and writes the extension build to `dist/`.
 
 ## Build
 
-```
+```sh
 yarn build
 ```
 
-## Build in watch mode
-
-### terminal
-
-```
-yarn watch
-```
-
-### Visual Studio Code
-
-Run watch mode.
-
-type `Ctrl + Shift + B`
-
-## Load extension to chrome
-
-Load `dist` directory
-
-## Test
-`npx jest` or `npm run test`
+## Package
 
 ```sh
-export NODE_OPTIONS=--openssl-legacy-provider
+yarn zip
 ```
+
+## Test
+
+```sh
+yarn test
+yarn typecheck
+```
+
+## Load the extension
+
+1. Run `yarn build` or `yarn dev`.
+2. Open the browser extension management page.
+3. Enable developer mode.
+4. Load the `dist/` directory as an unpacked extension.

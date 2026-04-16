@@ -1,0 +1,239 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================================
+   Huntly AI Sidepanel
+   ========================================================================= */
+
+/* --- Preflight resets (Tailwind preflight is disabled for MUI compat) --- */
+*,
+*::before,
+*::after {
+  border-width: 0;
+  border-style: solid;
+  border-color: hsl(var(--border));
+}
+
+button,
+input[type="button"],
+input[type="reset"],
+input[type="submit"] {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+  cursor: pointer;
+}
+
+img,
+svg,
+video {
+  display: block;
+  vertical-align: middle;
+}
+
+textarea {
+  resize: vertical;
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+/* --- End preflight resets --- */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #f7f3ea;
+  color: #2f261f;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================================================
+   Design tokens
+   ========================================================================= */
+:root {
+  --background: 37 44% 94%;
+  --foreground: 26 25% 15%;
+  --card: 38 100% 98%;
+  --card-foreground: 26 25% 15%;
+  --popover: 38 100% 98%;
+  --popover-foreground: 26 25% 15%;
+  --primary: 20 64% 56%;
+  --primary-foreground: 38 100% 98%;
+  --secondary: 37 38% 89%;
+  --secondary-foreground: 26 25% 15%;
+  --muted: 37 38% 89%;
+  --muted-foreground: 32 14% 44%;
+  --accent: 35 43% 85%;
+  --accent-foreground: 26 25% 15%;
+  --destructive: 12 67% 38%;
+  --destructive-foreground: 38 100% 98%;
+  --border: 35 33% 84%;
+  --input: 35 33% 84%;
+  --ring: 20 64% 56%;
+  --radius: 8px;
+}
+
+/* =========================================================================
+   Animations
+   ========================================================================= */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dotBounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0);
+  }
+}
+
+/* =========================================================================
+   App shell
+   ========================================================================= */
+
+.claude-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #8a7e70;
+  animation: dotBounce 1s infinite ease-in-out;
+}
+
+.claude-markdown > *:first-child {
+  margin-top: 0;
+}
+
+.claude-markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.claude-markdown p {
+  margin: 0 0 0.75rem;
+}
+
+.claude-markdown ul,
+.claude-markdown ol {
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.claude-markdown li {
+  margin: 0.25rem 0;
+}
+
+.claude-markdown a {
+  color: #9a4f2c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.claude-markdown blockquote {
+  margin: 0.75rem 0;
+  border-left: 3px solid #d8b18d;
+  padding-left: 0.9rem;
+  color: #6f6254;
+}
+
+.claude-markdown code {
+  border-radius: 6px;
+  background: #eee7dc;
+  padding: 0.1rem 0.28rem;
+  font-size: 0.9em;
+}
+
+.claude-markdown pre {
+  overflow: auto;
+  border-radius: 8px;
+  background: #2f261f;
+  color: #fffaf4;
+  padding: 0.9rem;
+}
+
+.claude-markdown pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
