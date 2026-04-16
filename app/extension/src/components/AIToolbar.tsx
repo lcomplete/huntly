@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Button,
   Menu,
@@ -17,6 +17,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import {
   Prompt,
   getPromptsSettings,
@@ -118,6 +119,35 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   thinkingModeEnabled = false,
   onThinkingModeToggle,
 }) => {
+  // Side panel (chat) availability
+  const [canOpenSidePanel, setCanOpenSidePanel] = useState(false);
+  useEffect(() => {
+    try {
+      const manifest = chrome.runtime.getManifest() as any;
+      const sidePanelApi = (chrome as any).sidePanel;
+      setCanOpenSidePanel(Boolean(manifest.side_panel && sidePanelApi?.open));
+    } catch {
+      setCanOpenSidePanel(false);
+    }
+  }, []);
+
+  const handleOpenChat = useCallback(async () => {
+    try {
+      const sidePanelApi = (chrome as any).sidePanel;
+      if (!sidePanelApi?.open) return;
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.windowId != null) {
+        await sidePanelApi.open({ windowId: tab.windowId });
+      } else {
+        const currentWindow = await chrome.windows.getCurrent();
+        if (currentWindow?.id != null) {
+          await sidePanelApi.open({ windowId: currentWindow.id });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to open chat side panel:", error);
+    }
+  }, []);
   // Determine if using external data
   const useExternalShortcuts = !!externalShortcuts;
   const useExternalModels = !!externalModels;
@@ -728,6 +758,25 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
       >
         AI Shortcuts
       </Button>
+
+      {/* Open Chat Button */}
+      {canOpenSidePanel && (
+        <Tooltip title="Open chat" placement="top">
+          <IconButton
+            size="small"
+            onClick={handleOpenChat}
+            sx={{
+              color: "text.secondary",
+              "&:hover": {
+                color: "primary.main",
+                bgcolor: "action.hover",
+              },
+            }}
+          >
+            <ChatBubbleOutlineRoundedIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      )}
 
       {/* Stop Button - Circular with pulse animation */}
       {isProcessing && onStopClick && (

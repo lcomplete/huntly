@@ -31,7 +31,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModel;
+      return provider.chat(model) as LanguageModel;
     }
 
     case 'anthropic': {
@@ -73,7 +73,7 @@ export function createProviderModel(
         apiKey: config.apiKey || 'ollama',
         baseURL: getOllamaOpenAIBaseUrl(config.baseUrl),
       });
-      return provider(model) as LanguageModel;
+      return provider.chat(model) as LanguageModel;
     }
 
     case 'azure-openai':
@@ -92,7 +92,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModel;
+      return provider.chat(model) as LanguageModel;
     }
 
     case 'zhipu': {
@@ -101,7 +101,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModel;
+      return provider.chat(model) as LanguageModel;
     }
 
     case 'minimax': {
@@ -110,7 +110,7 @@ export function createProviderModel(
         apiKey: config.apiKey,
         baseURL: getOpenAICompatibleBaseUrl(config),
       });
-      return provider(model) as LanguageModel;
+      return provider.chat(model) as LanguageModel;
     }
 
     case 'huntly-server': {

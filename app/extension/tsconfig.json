@@ -1,19 +1,20 @@
 {
-    "compilerOptions": {
-        "strict": false,
-        "module": "ESNext",
-        "moduleResolution": "Node",
-        "target": "es6",
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "sourceMap": false,
-        "rootDir": "src",
-        "outDir": "dist/js",
-        "noEmitOnError": true,
-        "jsx": "react",
-        "typeRoots": [ "node_modules/@types" ]
-    },
-    "include": [
-        "src"
-    ]
+  "compilerOptions": {
+    "strict": false,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "es6",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": false,
+    "noEmitOnError": true,
+    "jsx": "react-jsx",
+    "typeRoots": ["node_modules/@types"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "entrypoints", "wxt.config.ts"],
+  "exclude": ["src/__tests__"]
 }

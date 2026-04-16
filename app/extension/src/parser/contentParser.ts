@@ -1,5 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import Defuddle from "defuddle";
+import { log } from "../logger";
 import { ContentParserType } from "../storage";
 
 export interface ParsedArticle {
@@ -49,19 +50,27 @@ function extractExcerptFromContent(html: string, maxLength: number = 200): strin
  * Parse document using Mozilla Readability
  */
 function parseWithReadability(doc: Document): ParsedArticle | null {
-  const article = new Readability(doc, { debug: false }).parse();
-  if (!article) {
+  try {
+    log("[Huntly] parseWithReadability: starting, doc.documentElement exists:", !!doc.documentElement);
+    const article = new Readability(doc, { debug: false }).parse();
+    if (!article) {
+      log("[Huntly] parseWithReadability: Readability returned null");
+      return null;
+    }
+    log("[Huntly] parseWithReadability: article found, title:", article.title, "contentLen:", article.content?.length, "excerpt:", article.excerpt?.substring(0, 50));
+    // Ensure excerpt has a fallback value from content
+    const excerpt = article.excerpt || extractExcerptFromContent(article.content || "");
+    return {
+      title: article.title || "",
+      content: article.content || "",
+      excerpt,
+      byline: article.byline || "",
+      siteName: article.siteName || "",
+    };
+  } catch (error) {
+    console.error("Readability parsing error:", error);
     return null;
   }
-  // Ensure excerpt has a fallback value from content
-  const excerpt = article.excerpt || extractExcerptFromContent(article.content || "");
-  return {
-    title: article.title || "",
-    content: article.content || "",
-    excerpt,
-    byline: article.byline || "",
-    siteName: article.siteName || "",
-  };
 }
 
 /**

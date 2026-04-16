@@ -18,6 +18,8 @@ export const STORAGE_ENABLED_SYSTEM_PROMPTS = "enabledSystemPrompts";  // IDs of
 export const STORAGE_HUNTLY_SHORTCUTS_ENABLED = "huntlyShortcutsEnabled";
 export const STORAGE_SELECTED_MODEL_ID = "selectedModelId";  // Remember last selected model
 export const STORAGE_THINKING_MODE_ENABLED = "thinkingModeEnabled";  // Remember last thinking mode state
+export const STORAGE_SIDEPANEL_SELECTED_MODEL_ID = "sidepanelSelectedModelId";
+export const STORAGE_SIDEPANEL_THINKING_MODE_ENABLED = "sidepanelThinkingModeEnabled";
 
 export type ServerUrlItem = {
   url: string,
@@ -212,6 +214,19 @@ export async function getSelectedModelId(): Promise<string | null> {
   return items[STORAGE_SELECTED_MODEL_ID];
 }
 
+export async function saveSidepanelSelectedModelId(
+  modelId: string,
+): Promise<void> {
+  await chrome.storage.sync.set({ [STORAGE_SIDEPANEL_SELECTED_MODEL_ID]: modelId });
+}
+
+export async function getSidepanelSelectedModelId(): Promise<string | null> {
+  const items = await chrome.storage.sync.get({
+    [STORAGE_SIDEPANEL_SELECTED_MODEL_ID]: null,
+  });
+  return items[STORAGE_SIDEPANEL_SELECTED_MODEL_ID];
+}
+
 export async function saveThinkingModeEnabled(enabled: boolean): Promise<void> {
   await chrome.storage.sync.set({ [STORAGE_THINKING_MODE_ENABLED]: enabled });
 }
@@ -221,4 +236,19 @@ export async function getThinkingModeEnabled(): Promise<boolean> {
     [STORAGE_THINKING_MODE_ENABLED]: false,
   });
   return Boolean(items[STORAGE_THINKING_MODE_ENABLED]);
+}
+
+export async function saveSidepanelThinkingModeEnabled(
+  enabled: boolean,
+): Promise<void> {
+  await chrome.storage.sync.set({
+    [STORAGE_SIDEPANEL_THINKING_MODE_ENABLED]: enabled,
+  });
+}
+
+export async function getSidepanelThinkingModeEnabled(): Promise<boolean> {
+  const items = await chrome.storage.sync.get({
+    [STORAGE_SIDEPANEL_THINKING_MODE_ENABLED]: false,
+  });
+  return Boolean(items[STORAGE_SIDEPANEL_THINKING_MODE_ENABLED]);
 }

@@ -1,10 +1,12 @@
-const RawRequest = {
-  originalOpen: XMLHttpRequest.prototype.open,
-}
+let originalOpen: XMLHttpRequest["open"] | null = null;
 
 export class RequestInterceptor {
 
   enable(responseHandler: (responseText: string, responseUrl: string) => void) {
+    if (!originalOpen) {
+      originalOpen = XMLHttpRequest.prototype.open;
+    }
+
     // 重写 XMLHttpRequest.prototype.open 方法
     XMLHttpRequest.prototype.open = function(method: string, url: string | URL, async?: boolean, user?: string | null, password?: string | null) {
       // 添加 load 监听器
@@ -28,13 +30,14 @@ export class RequestInterceptor {
       }, { once: true });
 
       // 调用原始的 open 方法
-      return RawRequest.originalOpen.apply(this, arguments);
+      return originalOpen!.apply(this, arguments);
     };
   }
 
   disable() {
     // 恢复原始的 open 方法
-    XMLHttpRequest.prototype.open = RawRequest.originalOpen;
+    if (originalOpen) {
+      XMLHttpRequest.prototype.open = originalOpen;
+    }
   }
 }
-

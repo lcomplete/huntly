@@ -7,5 +7,7 @@ tmp/
 yarn-error.log
 
 .output/
+.wxt/
 dist/
 dist_firefox/
+src/sidepanel.generated.css

@@ -4,14 +4,13 @@
   "description": "Huntly - Automatic saving browsed contents",
   "main": "index.js",
   "scripts": {
-    "dev": "rspack build --watch --mode development",
-    "watch": "rspack build --watch --mode development",
-    "watch:firefox": "cross-env BROWSER=firefox rspack build --watch --mode development",
-    "build": "rspack build --mode production",
-    "clean": "rimraf dist dist_firefox",
-    "test": "npx jest",
+    "dev": "node scripts/dev.mjs",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "clean": "wxt clean",
+    "test": "jest",
     "typecheck": "tsc --noEmit",
-    "style": "prettier --write \"src/**/*.{ts,tsx}\""
+    "style": "prettier --write \"{src,entrypoints}/**/*.{ts,tsx}\" \"wxt.config.ts\""
   },
   "author": "",
   "license": "MIT",
@@ -36,6 +35,8 @@
     "defuddle": "^0.6.6",
     "formik": "^2.2.9",
     "html2canvas": "^1.4.1",
+    "lucide-react": "^0.460.0",
+    "moment": "^2.29.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
@@ -46,26 +47,25 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.7.8",
-    "@rspack/core": "^1.7.8",
     "@types/chrome": "0.0.158",
     "@types/jest": "^27.0.2",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "@types/react-modal": "^3.16.0",
+    "@wxt-dev/module-react": "1.2.2",
     "autoprefixer": "^10.4.14",
-    "cross-env": "^7.0.3",
-    "css-loader": "^6.7.3",
-    "glob": "^7.1.6",
     "jest": "^27.2.1",
     "postcss": "^8.4.21",
-    "postcss-loader": "^7.1.0",
     "postcss-preset-env": "^8.0.1",
     "prettier": "^2.2.1",
-    "rimraf": "^3.0.2 ",
-    "style-loader": "^3.3.1",
-    "tailwindcss": "^3.3.2",
+    "tailwindcss": "^3.4.17",
     "ts-jest": "^27.0.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^8.0.8",
+    "wxt": "0.20.21"
+  },
+  "resolutions": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0"
   }
 }

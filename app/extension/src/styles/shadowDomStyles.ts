@@ -381,6 +381,32 @@ export const getShadowDomStyles = (): string => `
   height: 16px;
 }
 
+.huntly-toolbar-action-button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.huntly-toolbar-action-button:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.huntly-toolbar-action-button svg {
+  width: 18px;
+  height: 18px;
+  color: #666;
+}
+
 /* Parser selector */
 .huntly-parser-selector {
   display: flex;
