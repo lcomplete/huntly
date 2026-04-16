@@ -18,7 +18,7 @@ export function initContentScript(): void {
   }
 
   window.addEventListener("message", function (event: MessageEvent<Message>) {
-    if (event.data && typeof event.data.type === 'string' && !event.data.type.includes('wxt:')) {
+    if (event.data && typeof event.data.type === 'string') {
       chrome.runtime.sendMessage(event.data);
     }
   });
