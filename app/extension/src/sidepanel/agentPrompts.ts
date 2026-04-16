@@ -1,30 +1,30 @@
 /**
- * Slash-command system for the Huntly AI sidebar.
+ * Slash-prompt system for the Huntly AI sidebar.
  *
  * Loads local extension prompts (system + user), then exposes them as
- * /commands that users can type in the chat input. The user can append
- * additional instructions after the command name, e.g.
+ * slash prompts that users can type in the chat input. The user can append
+ * additional instructions after the prompt name, e.g.
  * "/summarize focus on the technical details".
  */
 
 import { getPromptsSettings, getLanguageNativeName } from "../storage";
-import type { SlashCommand } from "./types";
+import type { SlashPrompt } from "./types";
 
 interface ParsedInput {
-  command: SlashCommand | null;
+  prompt: SlashPrompt | null;
   userText: string;
   rawInput: string;
 }
 
 // ---------------------------------------------------------------------------
-// Loading commands
+// Loading prompts
 // ---------------------------------------------------------------------------
 
 /**
- * Load all available slash commands from local prompts.
+ * Load all available slash prompts from local prompts.
  */
-export async function loadSlashCommands(): Promise<SlashCommand[]> {
-  const commands: SlashCommand[] = [];
+export async function loadSlashPrompts(): Promise<SlashPrompt[]> {
+  const prompts: SlashPrompt[] = [];
 
   const promptsSettings = await getPromptsSettings();
   const targetLanguage = promptsSettings.defaultTargetLanguage || "English";
@@ -38,9 +38,9 @@ export async function loadSlashCommands(): Promise<SlashCommand[]> {
     const trigger = toTrigger(prompt.name);
     if (!trigger) continue;
 
-    if (commands.some((c) => c.trigger === trigger)) continue;
+    if (prompts.some((p) => p.trigger === trigger)) continue;
 
-    commands.push({
+    prompts.push({
       id: `local:${prompt.id}`,
       name: prompt.name,
       trigger,
@@ -49,7 +49,7 @@ export async function loadSlashCommands(): Promise<SlashCommand[]> {
     });
   }
 
-  return commands;
+  return prompts;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,73 +57,74 @@ export async function loadSlashCommands(): Promise<SlashCommand[]> {
 // ---------------------------------------------------------------------------
 
 /**
- * Parse the chat input to detect a /command at the beginning.
+ * Parse the chat input to detect a slash prompt at the beginning.
  */
-export function parseCommandInput(
+export function parsePromptInput(
   input: string,
-  commands: SlashCommand[]
+  prompts: SlashPrompt[]
 ): ParsedInput {
   const trimmed = input.trim();
 
   if (!trimmed.startsWith("/")) {
-    return { command: null, userText: trimmed, rawInput: input };
+    return { prompt: null, userText: trimmed, rawInput: input };
   }
 
-  // Extract the command word (first token after /)
+  // Extract the prompt word (first token after /)
   const match = trimmed.match(/^\/(\S+)\s*([\s\S]*)$/);
   if (!match) {
-    return { command: null, userText: trimmed, rawInput: input };
+    return { prompt: null, userText: trimmed, rawInput: input };
   }
 
-  const cmdWord = match[1].toLowerCase();
+  const promptWord = match[1].toLowerCase();
   const rest = match[2].trim();
 
-  // Find matching command
-  const command = commands.find((c) => c.trigger === cmdWord);
-  if (!command) {
-    return { command: null, userText: trimmed, rawInput: input };
+  // Find matching prompt
+  const prompt = prompts.find((p) => p.trigger === promptWord);
+  if (!prompt) {
+    return { prompt: null, userText: trimmed, rawInput: input };
   }
 
-  return { command, userText: rest, rawInput: input };
+  return { prompt, userText: rest, rawInput: input };
 }
 
 /**
- * Filter commands that match a partial input for autocomplete.
+ * Filter prompts that match a partial input for autocomplete.
  */
-export function filterCommands(
+export function filterPrompts(
   partialInput: string,
-  commands: SlashCommand[]
-): SlashCommand[] {
+  prompts: SlashPrompt[]
+): SlashPrompt[] {
   if (!partialInput.startsWith("/")) return [];
 
   const partial = partialInput.slice(1).toLowerCase();
-  if (!partial) return commands; // Show all when just "/" is typed
+  if (!partial) return prompts; // Show all when just "/" is typed
 
-  return commands.filter(
-    (c) =>
-      c.trigger.startsWith(partial) || c.name.toLowerCase().startsWith(partial)
+  return prompts.filter(
+    (prompt) =>
+      prompt.trigger.startsWith(partial) ||
+      prompt.name.toLowerCase().startsWith(partial)
   );
 }
 
 /**
  * Compose a single user message that instructs the agent to execute
- * a slash command. The system prompt tells the agent how to handle
- * the XML command wrapper.
+ * a slash prompt. The system prompt tells the agent how to handle
+ * the XML prompt wrapper.
  */
-export function composeCommandMessage(parsed: ParsedInput): string {
-  if (!parsed.command) return parsed.userText;
+export function composePromptMessage(parsed: ParsedInput): string {
+  if (!parsed.prompt) return parsed.userText;
 
-  const prompt = parsed.command.promptContent.trim();
-  const commandText = parsed.rawInput.trim();
+  const prompt = parsed.prompt.promptContent.trim();
+  const promptText = parsed.rawInput.trim();
   const body = [
-    commandText,
+    promptText,
     prompt,
     parsed.userText ? `User request:\n${parsed.userText}` : "",
   ]
     .filter(Boolean)
     .join("\n\n");
 
-  return ["<huntly-command>", body, "</huntly-command>"].join("\n");
+  return ["<huntly-prompts>", body, "</huntly-prompts>"].join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -131,7 +132,7 @@ export function composeCommandMessage(parsed: ParsedInput): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Convert a display name into a slash-command trigger.
+ * Convert a display name into a slash-prompt trigger.
  * e.g. "Summarize" → "summarize", "Key Points" → "key_points"
  */
 function toTrigger(name: string): string {

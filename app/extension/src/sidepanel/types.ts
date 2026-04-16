@@ -82,14 +82,12 @@ export interface SessionMetadata {
 }
 
 // ---------------------------------------------------------------------------
-// Slash commands
+// Slash prompts
 // ---------------------------------------------------------------------------
-export interface SlashCommand {
+export interface SlashPrompt {
   id: string;
   name: string;
   trigger: string;
   promptContent: string;
   source: "local";
 }
-
-

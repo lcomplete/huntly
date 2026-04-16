@@ -90,11 +90,11 @@ function getMessageText(parts: ChatMessage["parts"]): string {
 
 function getDisplayMessageText(parts: ChatMessage["parts"]): string {
   const text = getMessageText(parts);
-  const commandMatch = text.match(
-    /^\s*<huntly-command>\s*\n\s*(\/[^\n]+)[\s\S]*?\n\s*<\/huntly-command>\s*$/i
+  const promptMatch = text.match(
+    /^\s*<huntly-(?:prompts|command)>\s*\n\s*(\/[^\n]+)[\s\S]*?\n\s*<\/huntly-(?:prompts|command)>\s*$/i
   );
 
-  return commandMatch ? commandMatch[1].trim() : text;
+  return promptMatch ? promptMatch[1].trim() : text;
 }
 
 export function getMessageTextPreview(messages: ChatMessage[]): string {

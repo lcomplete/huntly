@@ -19,7 +19,6 @@ import {
   Brain,
   Check,
   ChevronDown,
-  Command,
   Copy,
   ExternalLink,
   Paperclip,
@@ -45,7 +44,7 @@ import type {
   HuntlyModelInfo,
   SessionData,
   SessionMetadata,
-  SlashCommand,
+  SlashPrompt,
 } from "./types";
 import { createLanguageModel } from "./modelBridge";
 import {
@@ -61,11 +60,11 @@ import {
   saveSession,
 } from "./sessionStorage";
 import {
-  composeCommandMessage,
-  filterCommands,
-  loadSlashCommands,
-  parseCommandInput,
-} from "./agentCommands";
+  composePromptMessage,
+  filterPrompts,
+  loadSlashPrompts,
+  parsePromptInput,
+} from "./agentPrompts";
 import {
   getSidepanelSelectedModelId,
   getSidepanelThinkingModeEnabled,
@@ -89,7 +88,7 @@ Guidelines:
 - If a user message includes an <attached-page-context> block, use that content for current-page requests and do not call get_page_content for that page unless the user asks to refresh it or inspect a different tab.
 - When the user asks about "this page", "the current page", or "this article", use get_page_content first unless attached page context is already provided.
 - When the user mentions "selected text" or "highlighted text", use get_page_selection.
-- When a user message contains a <huntly-command> XML block, treat it as a quick command. The first line inside the block is the original slash-command invocation. Use attached page context when present; otherwise use get_page_content first. Then apply the remaining command instructions to that page content. Treat any "User request" text inside the block as additional constraints.
+- When a user message contains a <huntly-prompts> XML block, treat it as a quick prompt. The first line inside the block is the original slash-prompt invocation. Use attached page context when present; otherwise use get_page_content first. Then apply the remaining prompt instructions to that page content. Treat any "User request" text inside the block as additional constraints.
 - Be concise and helpful.
 - When attachments are included, inspect them directly before answering.`;
 
@@ -352,60 +351,57 @@ function getDisplayMessageText(parts: ChatPart[]): string {
 
 function getDisplayMessage(parts: ChatPart[]): {
   text: string;
-  commandPrefix: string | null;
+  promptPrefix: string | null;
 } {
   const text = getMessageText(parts);
-  const commandMatch = text.match(
-    /^\s*<huntly-command>\s*\n\s*(\/[^\n]+)[\s\S]*?\n\s*<\/huntly-command>\s*$/i
+  const promptMatch = text.match(
+    /^\s*<huntly-(?:prompts|command)>\s*\n\s*(\/[^\n]+)[\s\S]*?\n\s*<\/huntly-(?:prompts|command)>\s*$/i
   );
 
-  if (!commandMatch) return { text, commandPrefix: null };
+  if (!promptMatch) return { text, promptPrefix: null };
 
-  const displayText = commandMatch[1].trim();
+  const displayText = promptMatch[1].trim();
   const prefix = displayText.match(/^\/\S+/)?.[0] || null;
-  return { text: displayText, commandPrefix: prefix };
+  return { text: displayText, promptPrefix: prefix };
 }
 
-function getTriggeredCommandPrefix(
+function getTriggeredPromptPrefix(
   inputText: string,
-  commands: SlashCommand[]
+  prompts: SlashPrompt[]
 ): string | null {
-  const parsed = parseCommandInput(inputText, commands);
-  return parsed.command ? `/${parsed.command.trigger}` : null;
+  const parsed = parsePromptInput(inputText, prompts);
+  return parsed.prompt ? `/${parsed.prompt.trigger}` : null;
 }
 
-function addSlashCommandToInput(
-  command: SlashCommand,
-  inputText: string
-): string {
+function addSlashPromptToInput(prompt: SlashPrompt, inputText: string): string {
   const remainingText = inputText.startsWith("/")
     ? inputText.replace(/^\/\S*\s*/, "")
     : inputText.trimStart();
 
-  return `/${command.trigger} ${remainingText}`;
+  return `/${prompt.trigger} ${remainingText}`;
 }
 
-interface HighlightedCommandTextProps {
+interface HighlightedPromptTextProps {
   text: string;
-  commandPrefix: string | null;
-  commandClassName: string;
+  promptPrefix: string | null;
+  promptClassName: string;
 }
 
-const HighlightedCommandText: FC<HighlightedCommandTextProps> = ({
+const HighlightedPromptText: FC<HighlightedPromptTextProps> = ({
   text,
-  commandPrefix,
-  commandClassName,
+  promptPrefix,
+  promptClassName,
 }) => {
   const prefixIndex = text.match(/^\s*/)?.[0].length || 0;
-  if (!commandPrefix || !text.startsWith(commandPrefix, prefixIndex)) {
+  if (!promptPrefix || !text.startsWith(promptPrefix, prefixIndex)) {
     return <>{text}</>;
   }
 
   return (
     <>
       {text.slice(0, prefixIndex)}
-      <span className={commandClassName}>{commandPrefix}</span>
-      {text.slice(prefixIndex + commandPrefix.length)}
+      <span className={promptClassName}>{promptPrefix}</span>
+      {text.slice(prefixIndex + promptPrefix.length)}
     </>
   );
 };
@@ -1103,15 +1099,15 @@ const ModelDropdown: FC<ModelDropdownProps> = ({
 };
 
 interface ComposerActionMenuProps {
-  commands: SlashCommand[];
+  prompts: SlashPrompt[];
   onUploadClick: () => void;
-  onCommandSelect: (command: SlashCommand) => void;
+  onPromptSelect: (prompt: SlashPrompt) => void;
 }
 
 const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
-  commands,
+  prompts,
   onUploadClick,
-  onCommandSelect,
+  onPromptSelect,
 }) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -1145,25 +1141,25 @@ const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
             </button>
           </div>
 
-          {commands.length > 0 && (
+          {prompts.length > 0 && (
             <div className="border-t border-[#e7ded0]">
               <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-[#9a8e7f]">
-                Commands
+                Prompts
               </div>
               <div className="max-h-52 overflow-y-auto py-1">
-                {commands.map((command) => (
+                {prompts.map((prompt) => (
                   <button
-                    key={command.id}
+                    key={prompt.id}
                     type="button"
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#3c3027] transition-colors hover:bg-[#f1e8da]"
                     onClick={() => {
-                      onCommandSelect(command);
+                      onPromptSelect(prompt);
                       setOpen(false);
                     }}
                   >
-                    <Command className="size-4 shrink-0 text-[#8a7e70]" />
+                    <Sparkles className="size-4 shrink-0 text-[#8a7e70]" />
                     <span className="font-semibold text-[#b15d35]">
-                      /{command.trigger}
+                      /{prompt.trigger}
                     </span>
                   </button>
                 ))}
@@ -1176,31 +1172,31 @@ const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
   );
 };
 
-interface SlashCommandMenuProps {
-  commands: SlashCommand[];
+interface SlashPromptMenuProps {
+  prompts: SlashPrompt[];
   inputText: string;
   selectedIndex: number;
-  onSelect: (command: SlashCommand) => void;
+  onSelect: (prompt: SlashPrompt) => void;
 }
 
-const SlashCommandMenu: FC<SlashCommandMenuProps> = ({
-  commands,
+const SlashPromptMenu: FC<SlashPromptMenuProps> = ({
+  prompts,
   inputText,
   selectedIndex,
   onSelect,
 }) => {
   const filtered = useMemo(
-    () => filterCommands(inputText, commands),
-    [commands, inputText]
+    () => filterPrompts(inputText, prompts),
+    [prompts, inputText]
   );
 
   if (!inputText.startsWith("/") || filtered.length === 0) return null;
 
   return (
     <div className="absolute bottom-full left-0 right-0 z-30 mb-2 overflow-hidden rounded-xl border border-[#d9cfbf] bg-[#fffaf4] shadow-[0_16px_42px_rgba(64,48,31,0.14)]">
-      {filtered.map((command, index) => (
+      {filtered.map((prompt, index) => (
         <button
-          key={command.id}
+          key={prompt.id}
           type="button"
           className={[
             "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors",
@@ -1208,10 +1204,10 @@ const SlashCommandMenu: FC<SlashCommandMenuProps> = ({
               ? "bg-[#e9dcc7] text-[#2f261f]"
               : "text-[#3c3027] hover:bg-[#f1e8da]",
           ].join(" ")}
-          onClick={() => onSelect(command)}
+          onClick={() => onSelect(prompt)}
         >
           <span className="font-semibold text-[#b15d35]">
-            /{command.trigger}
+            /{prompt.trigger}
           </span>
         </button>
       ))}
@@ -1237,8 +1233,8 @@ interface ComposerProps {
   contextLoading: boolean;
   inputText: string;
   attachments: ChatPart[];
-  slashIndex: number;
-  slashCommands: SlashCommand[];
+  slashPromptIndex: number;
+  slashPrompts: SlashPrompt[];
   isRunning: boolean;
   historyOpen: boolean;
   thinkingMode: boolean;
@@ -1251,7 +1247,7 @@ interface ComposerProps {
   onCancel?: () => void;
   onAttachContext: () => void;
   onDetachContext: () => void;
-  onSlashSelect: (command: SlashCommand) => void;
+  onSlashPromptSelect: (prompt: SlashPrompt) => void;
   onAttachmentFiles: (files: FileList) => void;
   onAttachmentRemove: (id: string) => void;
   onModelSelect: (model: HuntlyModelInfo) => void;
@@ -1268,8 +1264,8 @@ const Composer: FC<ComposerProps> = ({
   contextLoading,
   inputText,
   attachments,
-  slashIndex,
-  slashCommands,
+  slashPromptIndex,
+  slashPrompts,
   isRunning,
   historyOpen,
   thinkingMode,
@@ -1282,7 +1278,7 @@ const Composer: FC<ComposerProps> = ({
   onCancel,
   onAttachContext,
   onDetachContext,
-  onSlashSelect,
+  onSlashPromptSelect,
   onAttachmentFiles,
   onAttachmentRemove,
   onModelSelect,
@@ -1295,9 +1291,9 @@ const Composer: FC<ComposerProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const submitDisabled =
     (!inputText.trim() && attachments.length === 0) || isRunning;
-  const triggeredCommandPrefix = useMemo(
-    () => getTriggeredCommandPrefix(inputText, slashCommands),
-    [inputText, slashCommands]
+  const triggeredPromptPrefix = useMemo(
+    () => getTriggeredPromptPrefix(inputText, slashPrompts),
+    [inputText, slashPrompts]
   );
 
   return (
@@ -1339,11 +1335,11 @@ const Composer: FC<ComposerProps> = ({
             event.currentTarget.value = "";
           }}
         />
-        <SlashCommandMenu
-          commands={slashCommands}
+        <SlashPromptMenu
+          prompts={slashPrompts}
           inputText={inputText}
-          onSelect={onSlashSelect}
-          selectedIndex={slashIndex}
+          onSelect={onSlashPromptSelect}
+          selectedIndex={slashPromptIndex}
         />
 
         <div className="rounded-2xl border border-[#d8cfbf] bg-[#fffaf4] shadow-[0_16px_55px_rgba(64,48,31,0.10)]">
@@ -1412,14 +1408,14 @@ const Composer: FC<ComposerProps> = ({
           )}
 
           <div className="relative min-h-[84px]">
-            {triggeredCommandPrefix && inputText && (
+            {triggeredPromptPrefix && inputText && (
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 whitespace-pre-wrap break-words px-4 pt-4 text-[15px] leading-6 text-[#2f261f]"
               >
-                <HighlightedCommandText
-                  commandClassName="text-[#b15d35]"
-                  commandPrefix={triggeredCommandPrefix}
+                <HighlightedPromptText
+                  promptClassName="text-[#b15d35]"
+                  promptPrefix={triggeredPromptPrefix}
                   text={inputText}
                 />
               </div>
@@ -1430,7 +1426,7 @@ const Composer: FC<ComposerProps> = ({
               rows={1}
               className={[
                 "relative z-10 min-h-[84px] w-full resize-none bg-transparent px-4 pt-4 text-[15px] leading-6 outline-none placeholder:text-[#8a7e70]",
-                triggeredCommandPrefix
+                triggeredPromptPrefix
                   ? "text-transparent caret-[#2f261f]"
                   : "text-[#2f261f]",
               ].join(" ")}
@@ -1443,8 +1439,8 @@ const Composer: FC<ComposerProps> = ({
           <div className="flex min-h-12 items-center justify-between gap-2 px-2 pb-2">
             <div className="flex min-w-0 items-center gap-1">
               <ComposerActionMenu
-                commands={slashCommands}
-                onCommandSelect={onSlashSelect}
+                prompts={slashPrompts}
+                onPromptSelect={onSlashPromptSelect}
                 onUploadClick={() => fileInputRef.current?.click()}
               />
               <ModelDropdown
@@ -1812,9 +1808,9 @@ const UserMessage: FC<UserMessageProps> = ({ message }) => {
           <div className="max-w-full rounded-2xl bg-[#e9dcc7] px-4 py-3 text-[15px] leading-6 text-[#332a22] shadow-sm">
             {text && (
               <div className="whitespace-pre-wrap">
-                <HighlightedCommandText
-                  commandClassName="font-semibold text-[#a34020]"
-                  commandPrefix={display.commandPrefix}
+                <HighlightedPromptText
+                  promptClassName="font-semibold text-[#a34020]"
+                  promptPrefix={display.promptPrefix}
                   text={text}
                 />
               </div>
@@ -1903,7 +1899,7 @@ const MessageList: FC<MessageListProps> = ({
 export const SidepanelApp: FC = () => {
   const [models, setModels] = useState<HuntlyModelInfo[]>([]);
   const [currentModelId, setCurrentModelId] = useState<string | null>(null);
-  const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([]);
+  const [slashPrompts, setSlashPrompts] = useState<SlashPrompt[]>([]);
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionMetadata[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -1915,7 +1911,7 @@ export const SidepanelApp: FC = () => {
   const [contextError, setContextError] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
   const [attachments, setAttachments] = useState<ChatPart[]>([]);
-  const [slashIndex, setSlashIndex] = useState(0);
+  const [slashPromptIndex, setSlashPromptIndex] = useState(0);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   const currentModelRef = useRef<HuntlyModelInfo | null>(null);
@@ -2020,10 +2016,10 @@ export const SidepanelApp: FC = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [availableModels, commands, savedModelId, savedThinkingMode, tab] =
+      const [availableModels, prompts, savedModelId, savedThinkingMode, tab] =
         await Promise.all([
           loadModels(),
-          loadSlashCommands(),
+          loadSlashPrompts(),
           getSidepanelSelectedModelId(),
           getSidepanelThinkingModeEnabled(),
           getTabContext(),
@@ -2031,7 +2027,7 @@ export const SidepanelApp: FC = () => {
       if (cancelled) return;
 
       setModels(availableModels);
-      setSlashCommands(commands);
+      setSlashPrompts(prompts);
       setThinkingMode(savedThinkingMode);
       setTabContext(tab);
 
@@ -2095,12 +2091,12 @@ export const SidepanelApp: FC = () => {
 
   useEffect(() => {
     const unsubscribe = onConfigChange(async () => {
-      const [updatedModels, updatedCommands] = await Promise.all([
+      const [updatedModels, updatedPrompts] = await Promise.all([
         loadModels(),
-        loadSlashCommands(),
+        loadSlashPrompts(),
       ]);
       setModels(updatedModels);
-      setSlashCommands(updatedCommands);
+      setSlashPrompts(updatedPrompts);
     });
     return unsubscribe;
   }, []);
@@ -2109,10 +2105,10 @@ export const SidepanelApp: FC = () => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
   }, [messages, isRunning]);
 
-  const filteredCommands = useMemo(
+  const filteredPrompts = useMemo(
     () =>
-      inputText.startsWith("/") ? filterCommands(inputText, slashCommands) : [],
-    [inputText, slashCommands]
+      inputText.startsWith("/") ? filterPrompts(inputText, slashPrompts) : [],
+    [inputText, slashPrompts]
   );
 
   const handleModelSelect = useCallback(async (model: HuntlyModelInfo) => {
@@ -2208,7 +2204,7 @@ export const SidepanelApp: FC = () => {
     setContextError(null);
     setInputText("");
     setAttachments([]);
-    setSlashIndex(0);
+    setSlashPromptIndex(0);
     clearMessages();
     inputRef.current?.focus();
   }, [clearMessages]);
@@ -2266,8 +2262,8 @@ export const SidepanelApp: FC = () => {
 
       let finalText = trimmed;
       if (trimmed) {
-        const parsed = parseCommandInput(trimmed, slashCommands);
-        finalText = parsed.command ? composeCommandMessage(parsed) : trimmed;
+        const parsed = parsePromptInput(trimmed, slashPrompts);
+        finalText = parsed.prompt ? composePromptMessage(parsed) : trimmed;
       }
 
       const messageParts = attachedPageContext
@@ -2278,9 +2274,9 @@ export const SidepanelApp: FC = () => {
       setContextError(null);
       setInputText("");
       setAttachments([]);
-      setSlashIndex(0);
+      setSlashPromptIndex(0);
     },
-    [attachedPageContext, attachments, isRunning, sendMessage, slashCommands]
+    [attachedPageContext, attachments, isRunning, sendMessage, slashPrompts]
   );
 
   const handleSubmit = useCallback(
@@ -2294,17 +2290,17 @@ export const SidepanelApp: FC = () => {
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       setInputText(event.target.value);
-      setSlashIndex(0);
+      setSlashPromptIndex(0);
     },
     []
   );
 
-  const handleSlashSelect = useCallback(
-    (command: SlashCommand) => {
-      const nextInputText = addSlashCommandToInput(command, inputText);
+  const handleSlashPromptSelect = useCallback(
+    (prompt: SlashPrompt) => {
+      const nextInputText = addSlashPromptToInput(prompt, inputText);
 
       setInputText(nextInputText);
-      setSlashIndex(0);
+      setSlashPromptIndex(0);
       requestAnimationFrame(() => {
         const input = inputRef.current;
         if (!input) return;
@@ -2317,18 +2313,18 @@ export const SidepanelApp: FC = () => {
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (inputText.startsWith("/") && filteredCommands.length > 0) {
+      if (inputText.startsWith("/") && filteredPrompts.length > 0) {
         if (event.key === "ArrowDown") {
           event.preventDefault();
-          setSlashIndex((index) => (index + 1) % filteredCommands.length);
+          setSlashPromptIndex((index) => (index + 1) % filteredPrompts.length);
           return;
         }
 
         if (event.key === "ArrowUp") {
           event.preventDefault();
-          setSlashIndex(
+          setSlashPromptIndex(
             (index) =>
-              (index - 1 + filteredCommands.length) % filteredCommands.length
+              (index - 1 + filteredPrompts.length) % filteredPrompts.length
           );
           return;
         }
@@ -2339,7 +2335,7 @@ export const SidepanelApp: FC = () => {
           inputText === inputText.split(" ")[0]
         ) {
           event.preventDefault();
-          handleSlashSelect(filteredCommands[slashIndex]);
+          handleSlashPromptSelect(filteredPrompts[slashPromptIndex]);
           return;
         }
       }
@@ -2349,7 +2345,13 @@ export const SidepanelApp: FC = () => {
         sendText(inputText);
       }
     },
-    [filteredCommands, handleSlashSelect, inputText, sendText, slashIndex]
+    [
+      filteredPrompts,
+      handleSlashPromptSelect,
+      inputText,
+      sendText,
+      slashPromptIndex,
+    ]
   );
 
   const openModelSettings = useCallback(() => {
@@ -2423,12 +2425,12 @@ export const SidepanelApp: FC = () => {
             onModelSelect={handleModelSelect}
             onNewChat={handleNewChat}
             onOpenSettings={openModelSettings}
-            onSlashSelect={handleSlashSelect}
+            onSlashPromptSelect={handleSlashPromptSelect}
             onSubmit={handleSubmit}
             onThinkingModeToggle={handleThinkingModeToggle}
             onToggleHistory={handleToggleHistory}
-            slashCommands={slashCommands}
-            slashIndex={slashIndex}
+            slashPromptIndex={slashPromptIndex}
+            slashPrompts={slashPrompts}
             tabContext={composerTabContext}
             thinkingMode={thinkingMode}
           />
