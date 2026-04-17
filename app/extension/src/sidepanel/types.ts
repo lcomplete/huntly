@@ -27,6 +27,7 @@ export interface ChatPart {
   id?: string;
   text?: string;
   title?: string;
+  articleTitle?: string;
   url?: string;
   faviconUrl?: string;
   content?: string;

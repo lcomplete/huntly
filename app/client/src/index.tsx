@@ -6,8 +6,6 @@ import reportWebVitals from "./reportWebVitals";
 import "./styles/globals.css";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
-import moment from "moment";
-import 'moment/locale/zh-cn'
 import {SnackbarProvider} from "notistack";
 
 const queryClient = new QueryClient({
@@ -21,7 +19,6 @@ const queryClient = new QueryClient({
     }
   },
 });
-moment.locale('zh-cn');
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

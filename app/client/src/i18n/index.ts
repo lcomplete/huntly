@@ -1,6 +1,8 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import moment from 'moment';
+import 'moment/locale/zh-cn';
 
 import enCommon from './locales/en/common.json';
 import enNavigation from './locales/en/navigation.json';
@@ -59,5 +61,12 @@ i18n
       caches: ['localStorage'],
     },
   });
+
+const toMomentLocale = (lng?: string) => (lng?.startsWith('zh') ? 'zh-cn' : 'en');
+
+moment.locale(toMomentLocale(i18n.language));
+i18n.on('languageChanged', (lng) => {
+  moment.locale(toMomentLocale(lng));
+});
 
 export default i18n;

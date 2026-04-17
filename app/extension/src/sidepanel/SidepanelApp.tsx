@@ -212,9 +212,11 @@ async function createCurrentPageContextPart(): Promise<ChatPart> {
     throw new Error("Could not extract page content.");
   }
 
+  const tabTitle = tab.title || page.title || "Current tab";
+  const articleTitle = page.title;
   const pageContext: ParsedPageContext = {
     ...page,
-    title: page.title || tab.title || "Current tab",
+    title: articleTitle || tabTitle,
     url: page.url || tab.url,
     faviconUrl: page.faviconUrl || tab.favIconUrl,
   };
@@ -222,7 +224,8 @@ async function createCurrentPageContextPart(): Promise<ChatPart> {
   return {
     id: generateId(),
     type: "page-context",
-    title: pageContext.title,
+    title: tabTitle,
+    articleTitle,
     url: pageContext.url,
     faviconUrl: pageContext.faviconUrl,
     content: buildPageContextMarkdown(pageContext),
@@ -862,44 +865,14 @@ const ComposerContextBar: FC<ComposerContextBarProps> = ({
   onDetachContext,
 }) => {
   const label = contextError || tabContext?.title || "Current tab";
-
-  return (
-    <div
-      className={[
-        "mr-3 flex min-w-0 max-w-[min(360px,calc(100%-120px))] items-center gap-1.5 rounded-lg bg-[#fffaf4]/80 px-1.5 py-1 pr-3 shadow-[0_6px_18px_rgba(64,48,31,0.06)] transition-colors",
-        contextAttached
-          ? "border border-solid border-[#d8cfbf]"
-          : "border border-dashed border-[#d8b18d]",
-      ].join(" ")}
-    >
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center">
-        {contextAttached ? (
-          <button
-            type="button"
-            aria-label="Remove attached context"
-            title="Remove attached context"
-            className="flex h-6 w-6 items-center justify-center rounded-md text-[#75695b] transition-colors hover:bg-[#f1e8da] hover:text-[#2f261f]"
-            onClick={onDetachContext}
-          >
-            <X className="size-3.5" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            aria-label="Add current tab context"
-            title="Add current tab context"
-            disabled={contextLoading || !tabContext}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-[#8a7e70] transition-colors hover:bg-[#f1e8da] hover:text-[#2f261f] disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={onAttachContext}
-          >
-            {contextLoading ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Plus className="size-3.5" />
-            )}
-          </button>
-        )}
-      </div>
+  const containerClassName = [
+    "mr-3 flex min-w-0 max-w-[min(360px,calc(100%-120px))] items-center gap-1.5 rounded-lg bg-[#fffaf4]/80 px-1.5 py-1 pr-3 shadow-[0_6px_18px_rgba(64,48,31,0.06)] transition-colors",
+    contextAttached
+      ? "border border-solid border-[#d8cfbf]"
+      : "border border-dashed border-[#d8b18d]",
+  ].join(" ");
+  const tabContextDetails = (
+    <>
       <TabFavicon
         faviconUrl={tabContext?.faviconUrl}
         muted={!contextAttached}
@@ -917,6 +890,48 @@ const ComposerContextBar: FC<ComposerContextBarProps> = ({
       >
         {label}
       </span>
+    </>
+  );
+
+  if (!contextAttached) {
+    return (
+      <button
+        type="button"
+        aria-label="Add current tab context"
+        title="Add current tab context"
+        disabled={contextLoading || !tabContext}
+        className={[
+          containerClassName,
+          "cursor-pointer text-left hover:bg-[#fff5e8] disabled:cursor-not-allowed disabled:opacity-70",
+        ].join(" ")}
+        onClick={onAttachContext}
+      >
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#8a7e70]">
+          {contextLoading ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Plus className="size-3.5" />
+          )}
+        </div>
+        {tabContextDetails}
+      </button>
+    );
+  }
+
+  return (
+    <div className={containerClassName}>
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+        <button
+          type="button"
+          aria-label="Remove attached context"
+          title="Remove attached context"
+          className="flex h-6 w-6 items-center justify-center rounded-md text-[#75695b] transition-colors hover:bg-[#f1e8da] hover:text-[#2f261f]"
+          onClick={onDetachContext}
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+      {tabContextDetails}
     </div>
   );
 };
