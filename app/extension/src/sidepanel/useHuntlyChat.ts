@@ -188,7 +188,9 @@ function safeStringify(value: unknown): string {
 
 function formatPageContextForModel(part: ChatPart): string {
   const metadata: string[] = [];
-  if (part.title) metadata.push(`Title: ${part.title}`);
+  if (part.title) metadata.push(`Original page title: ${part.title}`);
+  if (part.articleTitle)
+    metadata.push(`Parsed article title: ${part.articleTitle}`);
   if (part.url) metadata.push(`URL: ${part.url}`);
 
   return [
