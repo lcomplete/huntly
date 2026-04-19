@@ -56,13 +56,12 @@
     "autoprefixer": "^10.4.14",
     "jest": "^27.2.1",
     "postcss": "^8.4.21",
-    "postcss-preset-env": "^8.0.1",
     "prettier": "^2.2.1",
     "tailwindcss": "^3.4.17",
     "ts-jest": "^27.0.5",
     "typescript": "^5.9.3",
     "vite": "^8.0.8",
-    "wxt": "0.20.21"
+    "wxt": "^0.20.23"
   },
   "resolutions": {
     "@types/react": "^18.3.0",

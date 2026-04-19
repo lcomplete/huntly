@@ -435,185 +435,6 @@
   resolved "https://registry.npmjs.org/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@csstools/cascade-layer-name-parser@^1.0.0":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@csstools/cascade-layer-name-parser/-/cascade-layer-name-parser-1.0.1.tgz"
-  integrity sha512-SAAi5DpgJJWkfTvWSaqkgyIsTawa83hMwKrktkj6ra2h+q6ZN57vOGZ6ySHq6RSo+CbP64fA3aPChPBRDDUgtw==
-
-"@csstools/color-helpers@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/@csstools/color-helpers/-/color-helpers-1.0.0.tgz"
-  integrity sha512-tgqtiV8sU/VaWYjOB3O7PWs7HR/MmOLl2kTYRW2qSsTSEniJq7xmyAYFB1LPpXvvQcE5u2ih2dK9fyc8BnrAGQ==
-
-"@csstools/css-calc@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/@csstools/css-calc/-/css-calc-1.0.0.tgz"
-  integrity sha512-Xw0b/Jr+vLGGYD8cxsGWPaY5n1GtVC6G4tcga+eZPXZzRjjZHorPwW739UgtXzL2Da1RLxNE73c0r/KvmizPsw==
-
-"@csstools/css-parser-algorithms@^2.0.0", "@csstools/css-parser-algorithms@^2.0.1":
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/@csstools/css-parser-algorithms/-/css-parser-algorithms-2.0.1.tgz"
-  integrity sha512-B9/8PmOtU6nBiibJg0glnNktQDZ3rZnGn/7UmDfrm2vMtrdlXO3p7ErE95N0up80IRk9YEtB5jyj/TmQ1WH3dw==
-
-"@csstools/css-tokenizer@^2.0.0", "@csstools/css-tokenizer@^2.0.1":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@csstools/css-tokenizer/-/css-tokenizer-2.1.0.tgz"
-  integrity sha512-dtqFyoJBHUxGi9zPZdpCKP1xk8tq6KPHJ/NY4qWXiYo6IcSGwzk3L8x2XzZbbyOyBs9xQARoGveU2AsgLj6D2A==
-
-"@csstools/media-query-list-parser@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/@csstools/media-query-list-parser/-/media-query-list-parser-2.0.1.tgz"
-  integrity sha512-X2/OuzEbjaxhzm97UJ+95GrMeT29d1Ib+Pu+paGLuRWZnWRK9sI9r3ikmKXPWGA1C4y4JEdBEFpp9jEqCvLeRA==
-
-"@csstools/postcss-cascade-layers@^3.0.0":
-  version "3.0.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-cascade-layers/-/postcss-cascade-layers-3.0.1.tgz"
-  integrity sha512-dD8W98dOYNOH/yX4V4HXOhfCOnvVAg8TtsL+qCGNoKXuq5z2C/d026wGWgySgC8cajXXo/wNezS31Glj5GcqrA==
-  dependencies:
-    "@csstools/selector-specificity" "^2.0.2"
-    postcss-selector-parser "^6.0.10"
-
-"@csstools/postcss-color-function@^2.0.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@csstools/postcss-color-function/-/postcss-color-function-2.1.0.tgz"
-  integrity sha512-XBoCClLyWchlYGHGlmMOa6M2UXZNrZm63HVfsvgD/z1RPm/s3+FhHyT6VkDo+OvEBPhCgn6xz4IeCu4pRctKDQ==
-  dependencies:
-    "@csstools/color-helpers" "^1.0.0"
-    "@csstools/postcss-progressive-custom-properties" "^2.0.0"
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-font-format-keywords@^2.0.0":
-  version "2.0.2"
-  resolved "https://registry.npmjs.org/@csstools/postcss-font-format-keywords/-/postcss-font-format-keywords-2.0.2.tgz"
-  integrity sha512-iKYZlIs6JsNT7NKyRjyIyezTCHLh4L4BBB3F5Nx7Dc4Z/QmBgX+YJFuUSar8IM6KclGiAUFGomXFdYxAwJydlA==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-hwb-function@^2.0.0":
-  version "2.1.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-hwb-function/-/postcss-hwb-function-2.1.1.tgz"
-  integrity sha512-XijKzdxBdH2hU6IcPWmnaU85FKEF1XE5hGy0d6dQC6XznFUIRu1T4uebL3krayX40m4xIcxfCBsQm5zphzVrtg==
-  dependencies:
-    "@csstools/color-helpers" "^1.0.0"
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-ic-unit@^2.0.0":
-  version "2.0.2"
-  resolved "https://registry.npmjs.org/@csstools/postcss-ic-unit/-/postcss-ic-unit-2.0.2.tgz"
-  integrity sha512-N84qGTJkfLTPj2qOG5P4CIqGjpZBbjOEMKMn+UjO5wlb9lcBTfBsxCF0lQsFdWJUzBHYFOz19dL66v71WF3Pig==
-  dependencies:
-    "@csstools/postcss-progressive-custom-properties" "^2.0.0"
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-is-pseudo-class@^3.0.0":
-  version "3.1.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-is-pseudo-class/-/postcss-is-pseudo-class-3.1.1.tgz"
-  integrity sha512-hhiacuby4YdUnnxfCYCRMBIobyJImozf0u+gHSbQ/tNOdwvmrZtVROvgW7zmfYuRkHVDNZJWZslq2v5jOU+j/A==
-  dependencies:
-    "@csstools/selector-specificity" "^2.0.0"
-    postcss-selector-parser "^6.0.10"
-
-"@csstools/postcss-logical-float-and-clear@^1.0.0":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-logical-float-and-clear/-/postcss-logical-float-and-clear-1.0.1.tgz"
-  integrity sha512-eO9z2sMLddvlfFEW5Fxbjyd03zaO7cJafDurK4rCqyRt9P7aaWwha0LcSzoROlcZrw1NBV2JAp2vMKfPMQO1xw==
-
-"@csstools/postcss-logical-resize@^1.0.0":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-logical-resize/-/postcss-logical-resize-1.0.1.tgz"
-  integrity sha512-x1ge74eCSvpBkDDWppl+7FuD2dL68WP+wwP2qvdUcKY17vJksz+XoE1ZRV38uJgS6FNUwC0AxrPW5gy3MxsDHQ==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-logical-viewport-units@^1.0.0":
-  version "1.0.2"
-  resolved "https://registry.npmjs.org/@csstools/postcss-logical-viewport-units/-/postcss-logical-viewport-units-1.0.2.tgz"
-  integrity sha512-nnKFywBqRMYjv5jyjSplD/nbAnboUEGFfdxKw1o34Y1nvycgqjQavhKkmxbORxroBBIDwC5y6SfgENcPPUcOxQ==
-  dependencies:
-    "@csstools/css-tokenizer" "^2.0.0"
-
-"@csstools/postcss-media-queries-aspect-ratio-number-values@^1.0.0":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-media-queries-aspect-ratio-number-values/-/postcss-media-queries-aspect-ratio-number-values-1.0.1.tgz"
-  integrity sha512-V9yQqXdje6OfqDf6EL5iGOpi6N0OEczwYK83rql9UapQwFEryXlAehR5AqH8QqLYb6+y31wUXK6vMxCp0920Zg==
-  dependencies:
-    "@csstools/css-parser-algorithms" "^2.0.0"
-    "@csstools/css-tokenizer" "^2.0.0"
-    "@csstools/media-query-list-parser" "^2.0.0"
-
-"@csstools/postcss-nested-calc@^2.0.0":
-  version "2.0.2"
-  resolved "https://registry.npmjs.org/@csstools/postcss-nested-calc/-/postcss-nested-calc-2.0.2.tgz"
-  integrity sha512-jbwrP8rN4e7LNaRcpx3xpMUjhtt34I9OV+zgbcsYAAk6k1+3kODXJBf95/JMYWhu9g1oif7r06QVUgfWsKxCFw==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-normalize-display-values@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-normalize-display-values/-/postcss-normalize-display-values-2.0.1.tgz"
-  integrity sha512-TQT5g3JQ5gPXC239YuRK8jFceXF9d25ZvBkyjzBGGoW5st5sPXFVQS8OjYb9IJ/K3CdfK4528y483cgS2DJR/w==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-oklab-function@^2.0.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@csstools/postcss-oklab-function/-/postcss-oklab-function-2.1.0.tgz"
-  integrity sha512-U/odSNjOVhagNRu+RDaNVbn8vaqA9GyCOoneQA2je7697KOrtRDc7/POrYsP7QioO2aaezDzKNX02wBzc99fkQ==
-  dependencies:
-    "@csstools/color-helpers" "^1.0.0"
-    "@csstools/postcss-progressive-custom-properties" "^2.0.0"
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-progressive-custom-properties@^2.0.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@csstools/postcss-progressive-custom-properties/-/postcss-progressive-custom-properties-2.1.0.tgz"
-  integrity sha512-tRX1rinsXajZlc4WiU7s9Y6O9EdSHScT997zDsvDUjQ1oZL2nvnL6Bt0s9KyQZZTdC3lrG2PIdBqdOIWXSEPlQ==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-scope-pseudo-class@^2.0.0":
-  version "2.0.2"
-  resolved "https://registry.npmjs.org/@csstools/postcss-scope-pseudo-class/-/postcss-scope-pseudo-class-2.0.2.tgz"
-  integrity sha512-6Pvo4uexUCXt+Hz5iUtemQAcIuCYnL+ePs1khFR6/xPgC92aQLJ0zGHonWoewiBE+I++4gXK3pr+R1rlOFHe5w==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-"@csstools/postcss-stepped-value-functions@^2.0.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@csstools/postcss-stepped-value-functions/-/postcss-stepped-value-functions-2.1.0.tgz"
-  integrity sha512-CkEo9BF8fQeMoXW3biXjlgTLY7PA4UFihn6leq7hPoRzIguLUI0WZIVgsITGXfX8LXmkhCSTjXO2DLYu/LUixQ==
-  dependencies:
-    "@csstools/css-calc" "^1.0.0"
-    "@csstools/css-parser-algorithms" "^2.0.1"
-    "@csstools/css-tokenizer" "^2.0.1"
-
-"@csstools/postcss-text-decoration-shorthand@^2.0.0":
-  version "2.2.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-text-decoration-shorthand/-/postcss-text-decoration-shorthand-2.2.1.tgz"
-  integrity sha512-Ow6/cWWdjjVvA83mkm3kLRvvWsbzoe1AbJCxkpC+c9ibUjyS8pifm+LpZslQUKcxRVQ69ztKHDBEbFGTDhNeUw==
-  dependencies:
-    "@csstools/color-helpers" "^1.0.0"
-    postcss-value-parser "^4.2.0"
-
-"@csstools/postcss-trigonometric-functions@^2.0.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@csstools/postcss-trigonometric-functions/-/postcss-trigonometric-functions-2.1.0.tgz"
-  integrity sha512-Ly7YczO+QdnByYeGqlppJoA2Tb2vsFfj5gSrszPTXJ+/4g3nnEZnG0VSeTK/WA8y7fzyL/qVNkkdEeOnruNWFQ==
-  dependencies:
-    "@csstools/css-calc" "^1.0.0"
-    "@csstools/css-parser-algorithms" "^2.0.1"
-    "@csstools/css-tokenizer" "^2.0.1"
-
-"@csstools/postcss-unset-value@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/@csstools/postcss-unset-value/-/postcss-unset-value-2.0.1.tgz"
-  integrity sha512-oJ9Xl29/yU8U7/pnMJRqAZd4YXNCfGEdcP4ywREuqm/xMqcgDNDppYRoCGDt40aaZQIEKBS79LytUDN/DHf0Ew==
-
-"@csstools/selector-specificity@^2.0.0", "@csstools/selector-specificity@^2.0.1", "@csstools/selector-specificity@^2.0.2":
-  version "2.2.0"
-  resolved "https://registry.npmjs.org/@csstools/selector-specificity/-/selector-specificity-2.2.0.tgz"
-  integrity sha512-+OJ9konv95ClSTOJCmMZqpd5+YGsB2S+x6w3E1oaM8UuR5j8nTNHYSz8c9BEPGDOCMQYIEEGlVPj/VY64iTbGw==
-
 "@devicefarmer/adbkit-logcat@^2.1.2":
   version "2.1.3"
   resolved "https://registry.npmmirror.com/@devicefarmer/adbkit-logcat/-/adbkit-logcat-2.1.3.tgz#c7a1fb58e500f5799711f32906a2210c0d1ac5ac"
@@ -1903,7 +1724,7 @@ atomically@^2.0.3:
     stubborn-fs "^2.0.0"
     when-exit "^2.1.4"
 
-autoprefixer@^10.4.13, autoprefixer@^10.4.14:
+autoprefixer@^10.4.14:
   version "10.4.14"
   resolved "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.14.tgz"
   integrity sha512-FQzyfOsTlwVzjHxKEqRIAdJx9niO6VCBCoEwax/VLSoQF29ggECcPuBqUMZ+u8jCZOPSy8b8/8KnuFbp0SaFZQ==
@@ -2056,7 +1877,7 @@ browser-process-hrtime@^1.0.0:
   resolved "https://registry.npmjs.org/browser-process-hrtime/-/browser-process-hrtime-1.0.0.tgz"
   integrity sha512-9o5UecI3GhkpM6DrXr69PblIuWxPKk9Y0jHBRhdocZ2y7YECBFCsHm79Pr3OyR2AvjhDkabFJaDJMYRazHgsow==
 
-browserslist@^4.21.3, browserslist@^4.21.4, browserslist@^4.21.5:
+browserslist@^4.21.3, browserslist@^4.21.5:
   version "4.21.5"
   resolved "https://registry.npmjs.org/browserslist/-/browserslist-4.21.5.tgz"
   integrity sha512-tUkiguQGW7S3IhB7N+c2MV/HZPSCPAAiYBZXLsBhFB/PCy6ZKKsZrmBayHV9fdGV/ARIfJ14NkxKzRDjvp7L6w==
@@ -2151,9 +1972,9 @@ camelcase@^8.0.0:
   integrity sha512-8WB3Jcas3swSvjIeA2yvCJ+Miyz5l1ZmB6HFb9R1317dt9LCQoswg/BGrmAmkWVEszSrrg4RwmO46qIm2OEnSA==
 
 caniuse-lite@^1.0.30001449, caniuse-lite@^1.0.30001464:
-  version "1.0.30001469"
-  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001469.tgz"
-  integrity sha512-Rcp7221ScNqQPP3W+lVOYDyjdR6dC+neEQCttoNr5bAyz54AboB4iwpnWgyi8P4YUsPybVzT4LgWiBbI3drL4g==
+  version "1.0.30001788"
+  resolved "https://registry.npmmirror.com/caniuse-lite/-/caniuse-lite-1.0.30001788.tgz"
+  integrity sha512-6q8HFp+lOQtcf7wBK+uEenxymVWkGKkjFpCvw5W25cmMwEDU45p1xQFBQv8JDlMMry7eNxyBaR+qxgmTUZkIRQ==
 
 ccount@^2.0.0:
   version "2.0.1"
@@ -2443,33 +2264,12 @@ cross-spawn@^7.0.3:
     shebang-command "^2.0.0"
     which "^2.0.1"
 
-css-blank-pseudo@^5.0.0:
-  version "5.0.2"
-  resolved "https://registry.npmjs.org/css-blank-pseudo/-/css-blank-pseudo-5.0.2.tgz"
-  integrity sha512-aCU4AZ7uEcVSUzagTlA9pHciz7aWPKA/YzrEkpdSopJ2pvhIxiQ5sYeMz1/KByxlIo4XBdvMNJAVKMg/GRnhfw==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-css-has-pseudo@^5.0.0:
-  version "5.0.2"
-  resolved "https://registry.npmjs.org/css-has-pseudo/-/css-has-pseudo-5.0.2.tgz"
-  integrity sha512-q+U+4QdwwB7T9VEW/LyO6CFrLAeLqOykC5mDqJXc7aKZAhDbq7BvGT13VGJe+IwBfdN2o3Xdw2kJ5IxwV1Sc9Q==
-  dependencies:
-    "@csstools/selector-specificity" "^2.0.1"
-    postcss-selector-parser "^6.0.10"
-    postcss-value-parser "^4.2.0"
-
 css-line-break@^2.1.0:
   version "2.1.0"
   resolved "https://registry.npmmirror.com/css-line-break/-/css-line-break-2.1.0.tgz#bfef660dfa6f5397ea54116bb3cb4873edbc4fa0"
   integrity sha512-FHcKFCZcAha3LwfVBhCQbW2nCNbkZXn7KVUJcsT5/P8YmfsVja0FMPJr0B903j/E69HUphKiV9iQArX8SDYA4w==
   dependencies:
     utrie "^1.0.2"
-
-css-prefers-color-scheme@^8.0.0:
-  version "8.0.2"
-  resolved "https://registry.npmjs.org/css-prefers-color-scheme/-/css-prefers-color-scheme-8.0.2.tgz"
-  integrity sha512-OvFghizHJ45x7nsJJUSYLyQNTzsCU8yWjxAc/nhPQg1pbs18LMoET8N3kOweFDPy0JV0OSXN2iqRFhPBHYOeMA==
 
 css-select@^5.1.0:
   version "5.2.2"
@@ -2486,11 +2286,6 @@ css-what@^6.1.0:
   version "6.2.2"
   resolved "https://registry.npmmirror.com/css-what/-/css-what-6.2.2.tgz#cdcc8f9b6977719fdfbd1de7aec24abf756b9dea"
   integrity sha512-u/O3vwbptzhMs3L1fQE82ZSLHQQfto5gyZzwteVIEyeaY5Fc7R4dapF/BvRoSYFeqfBk4m0V1Vafq5Pjv25wvA==
-
-cssdb@^7.4.0:
-  version "7.4.1"
-  resolved "https://registry.npmjs.org/cssdb/-/cssdb-7.4.1.tgz"
-  integrity sha512-0Q8NOMpXJ3iTDDbUv9grcmQAfdDx4qz+fN/+Md2FGbevT+6+bJNQ2LjB2YIUlLbpBTM32idU1Sb+tb/uGt6/XQ==
 
 cssesc@^3.0.0:
   version "3.0.0"
@@ -5517,117 +5312,6 @@ pkg-types@^2.3.0:
     exsolve "^1.0.7"
     pathe "^2.0.3"
 
-postcss-attribute-case-insensitive@^6.0.0:
-  version "6.0.2"
-  resolved "https://registry.npmjs.org/postcss-attribute-case-insensitive/-/postcss-attribute-case-insensitive-6.0.2.tgz"
-  integrity sha512-IRuCwwAAQbgaLhxQdQcIIK0dCVXg3XDUnzgKD8iwdiYdwU4rMWRWyl/W9/0nA4ihVpq5pyALiHB2veBJ0292pw==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-postcss-clamp@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.npmjs.org/postcss-clamp/-/postcss-clamp-4.1.0.tgz"
-  integrity sha512-ry4b1Llo/9zz+PKC+030KUnPITTJAHeOwjfAyyB60eT0AorGLdzp52s31OsPRHRf8NchkgFoG2y6fCfn1IV1Ow==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-postcss-color-functional-notation@^5.0.0:
-  version "5.0.2"
-  resolved "https://registry.npmjs.org/postcss-color-functional-notation/-/postcss-color-functional-notation-5.0.2.tgz"
-  integrity sha512-M6ygxWOyd6eWf3sd1Lv8xi4SeF4iBPfJvkfMU4ITh8ExJc1qhbvh/U8Cv/uOvBgUVOMDdScvCdlg8+hREQzs7w==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-postcss-color-hex-alpha@^9.0.0:
-  version "9.0.2"
-  resolved "https://registry.npmjs.org/postcss-color-hex-alpha/-/postcss-color-hex-alpha-9.0.2.tgz"
-  integrity sha512-SfPjgr//VQ/DOCf80STIAsdAs7sbIbxATvVmd+Ec7JvR8onz9pjawhq3BJM3Pie40EE3TyB0P6hft16D33Nlyg==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-postcss-color-rebeccapurple@^8.0.0:
-  version "8.0.2"
-  resolved "https://registry.npmjs.org/postcss-color-rebeccapurple/-/postcss-color-rebeccapurple-8.0.2.tgz"
-  integrity sha512-xWf/JmAxVoB5bltHpXk+uGRoGFwu4WDAR7210el+iyvTdqiKpDhtcT8N3edXMoVJY0WHFMrKMUieql/wRNiXkw==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-postcss-custom-media@^9.1.0:
-  version "9.1.2"
-  resolved "https://registry.npmjs.org/postcss-custom-media/-/postcss-custom-media-9.1.2.tgz"
-  integrity sha512-osM9g4UKq4XKimAC7RAXroqi3BXpxfwTswAJQiZdrBjWGFGEyxQrY5H2eDWI8F+MEvEUfYDxA8scqi3QWROCSw==
-  dependencies:
-    "@csstools/cascade-layer-name-parser" "^1.0.0"
-    "@csstools/css-parser-algorithms" "^2.0.0"
-    "@csstools/css-tokenizer" "^2.0.0"
-    "@csstools/media-query-list-parser" "^2.0.0"
-
-postcss-custom-properties@^13.1.0:
-  version "13.1.4"
-  resolved "https://registry.npmjs.org/postcss-custom-properties/-/postcss-custom-properties-13.1.4.tgz"
-  integrity sha512-iSAdaZrM3KMec8cOSzeTUNXPYDlhqsMJHpt62yrjwG6nAnMtRHPk5JdMzGosBJtqEahDolvD5LNbcq+EZ78o5g==
-  dependencies:
-    "@csstools/cascade-layer-name-parser" "^1.0.0"
-    "@csstools/css-parser-algorithms" "^2.0.0"
-    "@csstools/css-tokenizer" "^2.0.0"
-    postcss-value-parser "^4.2.0"
-
-postcss-custom-selectors@^7.1.0:
-  version "7.1.2"
-  resolved "https://registry.npmjs.org/postcss-custom-selectors/-/postcss-custom-selectors-7.1.2.tgz"
-  integrity sha512-jX7VlE3jrgfBIOfxiGNRFq81xUoHSZhvxhQurzE7ZFRv+bUmMwB7/XnA0nNlts2CwNtbXm4Ozy0ZAYKHlCRmBQ==
-  dependencies:
-    "@csstools/cascade-layer-name-parser" "^1.0.0"
-    "@csstools/css-parser-algorithms" "^2.0.0"
-    "@csstools/css-tokenizer" "^2.0.0"
-    postcss-selector-parser "^6.0.4"
-
-postcss-dir-pseudo-class@^7.0.0:
-  version "7.0.2"
-  resolved "https://registry.npmjs.org/postcss-dir-pseudo-class/-/postcss-dir-pseudo-class-7.0.2.tgz"
-  integrity sha512-cMnslilYxBf9k3qejnovrUONZx1rXeUZJw06fgIUBzABJe3D2LiLL5WAER7Imt3nrkaIgG05XZBztueLEf5P8w==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-postcss-double-position-gradients@^4.0.0:
-  version "4.0.2"
-  resolved "https://registry.npmjs.org/postcss-double-position-gradients/-/postcss-double-position-gradients-4.0.2.tgz"
-  integrity sha512-GXL1RmFREDK4Q9aYvI2RhVrA6a6qqSMQQ5ke8gSH1xgV6exsqbcJpIumC7AOgooH6/WIG3/K/T8xxAiVHy/tJg==
-  dependencies:
-    "@csstools/postcss-progressive-custom-properties" "^2.0.0"
-    postcss-value-parser "^4.2.0"
-
-postcss-focus-visible@^8.0.0:
-  version "8.0.2"
-  resolved "https://registry.npmjs.org/postcss-focus-visible/-/postcss-focus-visible-8.0.2.tgz"
-  integrity sha512-f/Vd+EC/GaKElknU59esVcRYr/Y3t1ZAQyL4u2xSOgkDy4bMCmG7VP5cGvj3+BTLNE9ETfEuz2nnt4qkZwTTeA==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-postcss-focus-within@^7.0.0:
-  version "7.0.2"
-  resolved "https://registry.npmjs.org/postcss-focus-within/-/postcss-focus-within-7.0.2.tgz"
-  integrity sha512-AHAJ89UQBcqBvFgQJE9XasGuwMNkKsGj4D/f9Uk60jFmEBHpAL14DrnSk3Rj+SwZTr/WUG+mh+Rvf8fid/346w==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-postcss-font-variant@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.npmjs.org/postcss-font-variant/-/postcss-font-variant-5.0.0.tgz"
-  integrity sha512-1fmkBaCALD72CK2a9i468mA/+tr9/1cBxRRMXOUaZqO43oWPR5imcyPjXwuv7PXbCid4ndlP5zWhidQVVa3hmA==
-
-postcss-gap-properties@^4.0.0:
-  version "4.0.1"
-  resolved "https://registry.npmjs.org/postcss-gap-properties/-/postcss-gap-properties-4.0.1.tgz"
-  integrity sha512-V5OuQGw4lBumPlwHWk/PRfMKjaq/LTGR4WDTemIMCaMevArVfCCA9wBJiL1VjDAd+rzuCIlkRoRvDsSiAaZ4Fg==
-
-postcss-image-set-function@^5.0.0:
-  version "5.0.2"
-  resolved "https://registry.npmjs.org/postcss-image-set-function/-/postcss-image-set-function-5.0.2.tgz"
-  integrity sha512-Sszjwo0ubETX0Fi5MvpYzsONwrsjeabjMoc5YqHvURFItXgIu3HdCjcVuVKGMPGzKRhgaknmdM5uVWInWPJmeg==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
 postcss-import@^15.1.0:
   version "15.1.0"
   resolved "https://registry.npmjs.org/postcss-import/-/postcss-import-15.1.0.tgz"
@@ -5637,26 +5321,12 @@ postcss-import@^15.1.0:
     read-cache "^1.0.0"
     resolve "^1.1.7"
 
-postcss-initial@^4.0.1:
-  version "4.0.1"
-  resolved "https://registry.npmjs.org/postcss-initial/-/postcss-initial-4.0.1.tgz"
-  integrity sha512-0ueD7rPqX8Pn1xJIjay0AZeIuDoF+V+VvMt/uOnn+4ezUKhZM/NokDeP6DwMNyIoYByuN/94IQnt5FEkaN59xQ==
-
 postcss-js@^4.0.1:
   version "4.0.1"
   resolved "https://registry.npmjs.org/postcss-js/-/postcss-js-4.0.1.tgz"
   integrity sha512-dDLF8pEO191hJMtlHFPRa8xsizHaM82MLfNkUHdUtVEV3tgTp5oj+8qbEqYM57SLfc74KSbw//4SeJma2LRVIw==
   dependencies:
     camelcase-css "^2.0.1"
-
-postcss-lab-function@^5.0.0:
-  version "5.1.0"
-  resolved "https://registry.npmjs.org/postcss-lab-function/-/postcss-lab-function-5.1.0.tgz"
-  integrity sha512-iZApRTNcpc71uTn7PkzjHtj5cmuZpvu6okX4jHnM5OFi2fG97sodjxkq6SpL65xhW0NviQrAMSX97ntyGVRV0w==
-  dependencies:
-    "@csstools/color-helpers" "^1.0.0"
-    "@csstools/postcss-progressive-custom-properties" "^2.0.0"
-    postcss-value-parser "^4.2.0"
 
 "postcss-load-config@^4.0.2 || ^5.0 || ^6.0":
   version "6.0.1"
@@ -5665,142 +5335,12 @@ postcss-lab-function@^5.0.0:
   dependencies:
     lilconfig "^3.1.1"
 
-postcss-logical@^6.0.0:
-  version "6.1.0"
-  resolved "https://registry.npmjs.org/postcss-logical/-/postcss-logical-6.1.0.tgz"
-  integrity sha512-qb1+LpClhYjxac8SfOcWotnY3unKZesDqIOm+jnGt8rTl7xaIWpE2bPGZHxflOip1E/4ETo79qlJyRL3yrHn1g==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-postcss-media-minmax@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.npmjs.org/postcss-media-minmax/-/postcss-media-minmax-5.0.0.tgz"
-  integrity sha512-yDUvFf9QdFZTuCUg0g0uNSHVlJ5X1lSzDZjPSFaiCWvjgsvu8vEVxtahPrLMinIDEEGnx6cBe6iqdx5YWz08wQ==
-
 postcss-nested@^6.2.0:
   version "6.2.0"
   resolved "https://registry.npmmirror.com/postcss-nested/-/postcss-nested-6.2.0.tgz#4c2d22ab5f20b9cb61e2c5c5915950784d068131"
   integrity sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==
   dependencies:
     postcss-selector-parser "^6.1.1"
-
-postcss-nesting@^11.0.0:
-  version "11.2.1"
-  resolved "https://registry.npmjs.org/postcss-nesting/-/postcss-nesting-11.2.1.tgz"
-  integrity sha512-E6Jq74Jo/PbRAtZioON54NPhUNJYxVWhwxbweYl1vAoBYuGlDIts5yhtKiZFLvkvwT73e/9nFrW3oMqAtgG+GQ==
-  dependencies:
-    "@csstools/selector-specificity" "^2.0.0"
-    postcss-selector-parser "^6.0.10"
-
-postcss-opacity-percentage@^1.1.3:
-  version "1.1.3"
-  resolved "https://registry.npmjs.org/postcss-opacity-percentage/-/postcss-opacity-percentage-1.1.3.tgz"
-  integrity sha512-An6Ba4pHBiDtyVpSLymUUERMo2cU7s+Obz6BTrS+gxkbnSBNKSuD0AVUc+CpBMrpVPKKfoVz0WQCX+Tnst0i4A==
-
-postcss-overflow-shorthand@^4.0.0:
-  version "4.0.1"
-  resolved "https://registry.npmjs.org/postcss-overflow-shorthand/-/postcss-overflow-shorthand-4.0.1.tgz"
-  integrity sha512-HQZ0qi/9iSYHW4w3ogNqVNr2J49DHJAl7r8O2p0Meip38jsdnRPgiDW7r/LlLrrMBMe3KHkvNtAV2UmRVxzLIg==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-postcss-page-break@^3.0.4:
-  version "3.0.4"
-  resolved "https://registry.npmjs.org/postcss-page-break/-/postcss-page-break-3.0.4.tgz"
-  integrity sha512-1JGu8oCjVXLa9q9rFTo4MbeeA5FMe00/9C7lN4va606Rdb+HkxXtXsmEDrIraQ11fGz/WvKWa8gMuCKkrXpTsQ==
-
-postcss-place@^8.0.0:
-  version "8.0.1"
-  resolved "https://registry.npmjs.org/postcss-place/-/postcss-place-8.0.1.tgz"
-  integrity sha512-Ow2LedN8sL4pq8ubukO77phSVt4QyCm35ZGCYXKvRFayAwcpgB0sjNJglDoTuRdUL32q/ZC1VkPBo0AOEr4Uiw==
-  dependencies:
-    postcss-value-parser "^4.2.0"
-
-postcss-preset-env@^8.0.1:
-  version "8.0.1"
-  resolved "https://registry.npmjs.org/postcss-preset-env/-/postcss-preset-env-8.0.1.tgz"
-  integrity sha512-IUbymw0JlUbyVG+I85963PNWgPp3KhnFa1sxU7M/2dGthxV8e297P0VV5W9XcyypoH4hirH2fp1c6fmqh6YnSg==
-  dependencies:
-    "@csstools/postcss-cascade-layers" "^3.0.0"
-    "@csstools/postcss-color-function" "^2.0.0"
-    "@csstools/postcss-font-format-keywords" "^2.0.0"
-    "@csstools/postcss-hwb-function" "^2.0.0"
-    "@csstools/postcss-ic-unit" "^2.0.0"
-    "@csstools/postcss-is-pseudo-class" "^3.0.0"
-    "@csstools/postcss-logical-float-and-clear" "^1.0.0"
-    "@csstools/postcss-logical-resize" "^1.0.0"
-    "@csstools/postcss-logical-viewport-units" "^1.0.0"
-    "@csstools/postcss-media-queries-aspect-ratio-number-values" "^1.0.0"
-    "@csstools/postcss-nested-calc" "^2.0.0"
-    "@csstools/postcss-normalize-display-values" "^2.0.0"
-    "@csstools/postcss-oklab-function" "^2.0.0"
-    "@csstools/postcss-progressive-custom-properties" "^2.0.0"
-    "@csstools/postcss-scope-pseudo-class" "^2.0.0"
-    "@csstools/postcss-stepped-value-functions" "^2.0.0"
-    "@csstools/postcss-text-decoration-shorthand" "^2.0.0"
-    "@csstools/postcss-trigonometric-functions" "^2.0.0"
-    "@csstools/postcss-unset-value" "^2.0.0"
-    autoprefixer "^10.4.13"
-    browserslist "^4.21.4"
-    css-blank-pseudo "^5.0.0"
-    css-has-pseudo "^5.0.0"
-    css-prefers-color-scheme "^8.0.0"
-    cssdb "^7.4.0"
-    postcss-attribute-case-insensitive "^6.0.0"
-    postcss-clamp "^4.1.0"
-    postcss-color-functional-notation "^5.0.0"
-    postcss-color-hex-alpha "^9.0.0"
-    postcss-color-rebeccapurple "^8.0.0"
-    postcss-custom-media "^9.1.0"
-    postcss-custom-properties "^13.1.0"
-    postcss-custom-selectors "^7.1.0"
-    postcss-dir-pseudo-class "^7.0.0"
-    postcss-double-position-gradients "^4.0.0"
-    postcss-focus-visible "^8.0.0"
-    postcss-focus-within "^7.0.0"
-    postcss-font-variant "^5.0.0"
-    postcss-gap-properties "^4.0.0"
-    postcss-image-set-function "^5.0.0"
-    postcss-initial "^4.0.1"
-    postcss-lab-function "^5.0.0"
-    postcss-logical "^6.0.0"
-    postcss-media-minmax "^5.0.0"
-    postcss-nesting "^11.0.0"
-    postcss-opacity-percentage "^1.1.3"
-    postcss-overflow-shorthand "^4.0.0"
-    postcss-page-break "^3.0.4"
-    postcss-place "^8.0.0"
-    postcss-pseudo-class-any-link "^8.0.0"
-    postcss-replace-overflow-wrap "^4.0.0"
-    postcss-selector-not "^7.0.0"
-    postcss-value-parser "^4.2.0"
-
-postcss-pseudo-class-any-link@^8.0.0:
-  version "8.0.2"
-  resolved "https://registry.npmjs.org/postcss-pseudo-class-any-link/-/postcss-pseudo-class-any-link-8.0.2.tgz"
-  integrity sha512-FYTIuRE07jZ2CW8POvctRgArQJ43yxhr5vLmImdKUvjFCkR09kh8pIdlCwdx/jbFm7MiW4QP58L4oOUv3grQYA==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-postcss-replace-overflow-wrap@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.npmjs.org/postcss-replace-overflow-wrap/-/postcss-replace-overflow-wrap-4.0.0.tgz"
-  integrity sha512-KmF7SBPphT4gPPcKZc7aDkweHiKEEO8cla/GjcBK+ckKxiZslIu3C4GCRW3DNfL0o7yW7kMQu9xlZ1kXRXLXtw==
-
-postcss-selector-not@^7.0.0:
-  version "7.0.1"
-  resolved "https://registry.npmjs.org/postcss-selector-not/-/postcss-selector-not-7.0.1.tgz"
-  integrity sha512-1zT5C27b/zeJhchN7fP0kBr16Cc61mu7Si9uWWLoA3Px/D9tIJPKchJCkUH3tPO5D0pCFmGeApAv8XpXBQJ8SQ==
-  dependencies:
-    postcss-selector-parser "^6.0.10"
-
-postcss-selector-parser@^6.0.10, postcss-selector-parser@^6.0.4:
-  version "6.0.11"
-  resolved "https://registry.npmjs.org/postcss-selector-parser/-/postcss-selector-parser-6.0.11.tgz"
-  integrity sha512-zbARubNdogI9j7WY4nQJBiNqQf3sLS3wCP4WfOidu+p28LofJqDH1tcXypGrcmMHhDk2t9wGhCsYe/+szLTy1g==
-  dependencies:
-    cssesc "^3.0.0"
-    util-deprecate "^1.0.2"
 
 postcss-selector-parser@^6.1.1, postcss-selector-parser@^6.1.2:
   version "6.1.2"
@@ -7329,10 +6869,10 @@ wsl-utils@^0.3.0:
     is-wsl "^3.1.0"
     powershell-utils "^0.1.0"
 
-wxt@0.20.21:
-  version "0.20.21"
-  resolved "https://registry.npmmirror.com/wxt/-/wxt-0.20.21.tgz#f3106d73058b6c7b9128726110c501649b2e5d8e"
-  integrity sha512-rDocJ9QEWKnGd7NTTTxKIJ5MsXwv9lXk4/ITFS9eeksTCYotshxzAiptkRPEHCgsJNiGMNY/UFNxVDyqWGe7Bw==
+wxt@^0.20.23:
+  version "0.20.23"
+  resolved "https://registry.npmmirror.com/wxt/-/wxt-0.20.23.tgz#db22fcb82195526971c7dff85a3141496c1447f6"
+  integrity sha512-CJIRHfgHSZPQGFFNW8LmvL6Cg0m70j5uyalS+G1iIhyxw9MYWIpUQHH4/U1PBJLtlPjQm6pwnJX/Y0IOcaHP5w==
   dependencies:
     "@1natsu/wait-element" "^4.1.2"
     "@aklinker1/rollup-plugin-visualizer" "5.12.0"
