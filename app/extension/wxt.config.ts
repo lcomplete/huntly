@@ -52,6 +52,9 @@ export default defineConfig({
     define: {
       __HUNTLY_DEV__: JSON.stringify(mode === "development"),
     },
+    build: {
+      chunkSizeWarningLimit: 1200,
+    },
     optimizeDeps: {
       entries: [
         "entrypoints/options/index.html",

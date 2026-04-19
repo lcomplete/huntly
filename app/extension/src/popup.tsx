@@ -57,7 +57,7 @@ import {
 } from "./services";
 import { LibrarySaveStatus } from "./model/librarySaveStatus";
 import { PageOperateResult } from "./model/pageOperateResult";
-import { detectRssFeed } from "./rss";
+import { detectRssFeed } from "./rss/rssDetection";
 import type { ShortcutItem, ModelItem } from "./components/AIToolbar";
 
 // Parser selector component - only shows the alternative parser option

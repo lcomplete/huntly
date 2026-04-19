@@ -31,9 +31,9 @@ export interface UseHuntlyChatOptions {
 export interface UseHuntlyChatReturn {
   messages: ChatMessage[];
   isRunning: boolean;
-  sendMessage: (text: string, attachments?: ChatPart[]) => void;
+  sendMessage: (text: string, attachments?: ChatPart[]) => boolean;
   regenerate: () => void;
-  cancelRun: () => void;
+  cancelRun: (options?: { discard?: boolean }) => void;
   setMessages: (messages: ChatMessage[]) => void;
   clearMessages: () => void;
 }
@@ -205,21 +205,6 @@ function formatPageContextForModel(part: ChatPart): string {
     .join("\n\n");
 }
 
-function getAgentToolsForMessages(chatMessages: ChatMessage[]) {
-  const latestUserMessage = [...chatMessages]
-    .reverse()
-    .find((message) => message.role === "user");
-  const hasAttachedPageContext = latestUserMessage?.parts.some(
-    (part) => part.type === "page-context"
-  );
-
-  if (!hasAttachedPageContext) return ALL_AGENT_TOOLS;
-
-  const { get_page_content: _getPageContent, ...toolsWithoutPageContent } =
-    ALL_AGENT_TOOLS;
-  return toolsWithoutPageContent;
-}
-
 // ---------------------------------------------------------------------------
 // Extract ChatPart[] from streaming fullStream events
 // ---------------------------------------------------------------------------
@@ -300,6 +285,8 @@ export function useHuntlyChat(
   const [messages, setMessagesState] = useState<ChatMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const activeRunIdRef = useRef(0);
+  const runningRef = useRef(false);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -312,12 +299,22 @@ export function useHuntlyChat(
     setMessages([]);
   }, [setMessages]);
 
-  const cancelRun = useCallback(() => {
+  const cancelRun = useCallback((options?: { discard?: boolean }) => {
+    if (options?.discard) {
+      activeRunIdRef.current += 1;
+      runningRef.current = false;
+      setIsRunning(false);
+    }
     abortRef.current?.abort();
+    if (options?.discard) {
+      abortRef.current = null;
+    }
   }, []);
 
   const runAgent = useCallback(
     async (allMessages: ChatMessage[]) => {
+      if (runningRef.current) return;
+
       const opts = optionsRef.current;
       const modelInfo = opts.getModelInfo();
       if (!modelInfo) {
@@ -338,6 +335,11 @@ export function useHuntlyChat(
 
       const thinkingEnabled = opts.getThinkingMode();
       const abortController = new AbortController();
+      const runId = activeRunIdRef.current + 1;
+      const isActiveRun = () => activeRunIdRef.current === runId;
+
+      activeRunIdRef.current = runId;
+      runningRef.current = true;
       abortRef.current = abortController;
       setIsRunning(true);
 
@@ -363,7 +365,7 @@ export function useHuntlyChat(
         const agent = new ToolLoopAgent({
           model: modelInfo.model,
           instructions: opts.systemPrompt,
-          tools: getAgentToolsForMessages(allMessages),
+          tools: ALL_AGENT_TOOLS,
           stopWhen: stepCountIs(5),
           providerOptions: thinkingEnabled
             ? buildThinkingProviderOptions(modelInfo.provider)
@@ -376,8 +378,10 @@ export function useHuntlyChat(
         });
 
         let lastSerialized = "";
+        let aborted = false;
 
         const yieldUpdate = () => {
+          if (!isActiveRun()) return;
           const parts = buildPartsFromState(state, thinkingEnabled);
           const serialized = safeStringify(parts);
           if (serialized !== lastSerialized) {
@@ -393,6 +397,11 @@ export function useHuntlyChat(
         };
 
         for await (const part of result.fullStream) {
+          if (!isActiveRun()) {
+            abortController.abort();
+            return;
+          }
+
           switch (part.type) {
             case "text-start":
               getOrCreateTextPart(state, part.id);
@@ -482,11 +491,22 @@ export function useHuntlyChat(
               );
               yieldUpdate();
               break;
+
+            case "abort":
+              aborted = true;
+              break;
           }
         }
 
+        if (!isActiveRun()) return;
+
         let finalParts = buildPartsFromState(state, thinkingEnabled);
         if (finalParts.length === 0) {
+          if (aborted) {
+            setMessages(allMessages);
+            return;
+          }
+
           try {
             finalParts = convertContentParts(
               await result.content,
@@ -509,10 +529,13 @@ export function useHuntlyChat(
         };
         setMessages([...allMessages, finalAssistant]);
       } catch (error: any) {
+        if (!isActiveRun()) return;
+
         if (error?.name === "AbortError") {
           const abortParts = buildPartsFromState(state, thinkingEnabled);
           if (abortParts.length === 0) {
-            abortParts.push({ type: "text", text: "" });
+            setMessages(allMessages);
+            return;
           }
           const abortedAssistant: ChatMessage = {
             id: assistantMsgId,
@@ -521,8 +544,6 @@ export function useHuntlyChat(
             status: "complete",
           };
           setMessages([...allMessages, abortedAssistant]);
-          setIsRunning(false);
-          abortRef.current = null;
           return;
         }
         const errorParts = buildPartsFromState(state, thinkingEnabled);
@@ -538,8 +559,11 @@ export function useHuntlyChat(
         };
         setMessages([...allMessages, errorAssistant]);
       } finally {
-        setIsRunning(false);
-        abortRef.current = null;
+        if (isActiveRun()) {
+          runningRef.current = false;
+          setIsRunning(false);
+          abortRef.current = null;
+        }
       }
     },
     [setMessages]
@@ -547,6 +571,8 @@ export function useHuntlyChat(
 
   const sendMessage = useCallback(
     (text: string, attachments: ChatPart[] = []) => {
+      if (runningRef.current) return false;
+
       const pageContextParts = attachments.filter(
         (part) =>
           part.type === "page-context" &&
@@ -560,7 +586,7 @@ export function useHuntlyChat(
         pageContextParts.length === 0 &&
         fileParts.length === 0
       ) {
-        return;
+        return false;
       }
 
       const parts: ChatPart[] = [...pageContextParts];
@@ -579,11 +605,13 @@ export function useHuntlyChat(
       const allMessages = [...messages, userMsg];
       setMessagesState(allMessages);
       runAgent(allMessages);
+      return true;
     },
     [messages, runAgent]
   );
 
   const regenerate = useCallback(() => {
+    if (runningRef.current) return;
     if (messages.length === 0) return;
 
     let lastUserIdx = -1;

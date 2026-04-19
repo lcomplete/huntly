@@ -82,6 +82,18 @@ body {
   background: rgba(100, 116, 139, 0.35);
 }
 
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #9a4f2c;
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -190,6 +202,11 @@ body {
   margin-bottom: 0;
 }
 
+.claude-markdown {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .claude-markdown p {
   margin: 0 0 0.75rem;
 }
@@ -225,6 +242,7 @@ body {
 }
 
 .claude-markdown pre {
+  max-width: 100%;
   overflow: auto;
   border-radius: 8px;
   background: #2f261f;
@@ -236,4 +254,41 @@ body {
   background: transparent;
   padding: 0;
   color: inherit;
+  word-break: normal;
+}
+
+.claude-markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.claude-markdown th,
+.claude-markdown td {
+  border: 1px solid #d8cfbf;
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+}
+
+.claude-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.reasoning-block > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reasoning-block > summary::marker {
+  content: "";
+}
+
+.reasoning-chevron {
+  transition: transform 160ms ease;
+}
+
+.reasoning-block[open] .reasoning-chevron {
+  transform: rotate(180deg);
 }
