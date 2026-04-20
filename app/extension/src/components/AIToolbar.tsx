@@ -125,12 +125,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
     try {
       const manifest = chrome.runtime.getManifest() as any;
       const sidePanelApi = (chrome as any).sidePanel;
-      setCanOpenSidePanel(
-        Boolean(
-          manifest.side_panel &&
-            (sidePanelApi?.open || chrome.runtime?.sendMessage)
-        )
-      );
+      setCanOpenSidePanel(Boolean(manifest.side_panel && sidePanelApi?.open));
     } catch {
       setCanOpenSidePanel(false);
     }
@@ -139,21 +134,8 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   const handleOpenChat = useCallback(async () => {
     try {
       const sidePanelApi = (chrome as any).sidePanel;
-      if (!sidePanelApi?.open) {
-        chrome.runtime?.sendMessage({ type: "open_side_panel" }, () => {
-          if (chrome.runtime.lastError) {
-            console.error(
-              "Failed to request chat side panel:",
-              chrome.runtime.lastError
-            );
-          }
-        });
-        return;
-      }
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
+      if (!sidePanelApi?.open) return;
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.windowId != null) {
         await sidePanelApi.open({ windowId: tab.windowId });
       } else {
@@ -779,14 +761,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
 
       {/* Open Chat Button */}
       {canOpenSidePanel && (
-        <Tooltip
-          title="Open chat"
-          placement="top"
-          PopperProps={{
-            container: menuContainer,
-            sx: { zIndex: menuZIndex },
-          }}
-        >
+        <Tooltip title="Open chat" placement="top">
           <IconButton
             size="small"
             onClick={handleOpenChat}
