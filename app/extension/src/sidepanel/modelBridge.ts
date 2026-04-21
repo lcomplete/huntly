@@ -1,8 +1,20 @@
 /**
  * Model bridge: create AI SDK LanguageModel instances from provider configurations.
  *
- * Maps Huntly's AIProviderConfig → AI SDK LanguageModelV3 so the
- * ToolLoopAgent can use any configured provider.
+ * Providers fall into one of three wire-format families:
+ *   - `openai`    : OpenAI Chat/Responses API and OpenAI-compatible endpoints
+ *                   (Ollama, Qwen, Zhipu, MiniMax, Azure AI …)
+ *   - `anthropic` : Anthropic Messages API (Claude, and third-party providers
+ *                   that expose an Anthropic-compatible endpoint)
+ *   - `google`    : Gemini API
+ *
+ * Providers with a dedicated AI SDK factory (OpenAI, Anthropic, Google,
+ * DeepSeek, Groq, Azure OpenAI) use it directly — the native SDK understands
+ * provider-specific quirks such as reasoning extraction and thinking flags,
+ * which plain @ai-sdk/openai does not handle for OpenAI-compatible endpoints.
+ * The remaining providers route through one of the two compatible formats,
+ * chosen via {@link getEffectiveApiFormat} (honours user override when the
+ * provider meta allows it).
  */
 
 import { createOpenAI } from "@ai-sdk/openai";
@@ -12,62 +24,34 @@ import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createGroq } from "@ai-sdk/groq";
 import { createAzure } from "@ai-sdk/azure";
 import type { LanguageModelV3 } from "@ai-sdk/provider";
-import type { HuntlyModelInfo } from "./types";
 import {
-  createQwenCompatibleFetch,
-  wrapQwenModelForReasoning,
-} from "./qwenCompatibility";
+  getEffectiveApiFormat,
+  PROVIDER_REGISTRY,
+  ProviderType,
+} from "../ai/types";
+import { getOllamaOpenAIBaseUrl } from "../ai/openAICompatibleProviders";
+import type { HuntlyModelInfo } from "./types";
 
-// ---------------------------------------------------------------------------
-// Provider type → AI SDK factory mapping
-// ---------------------------------------------------------------------------
-
-interface ProviderMapping {
-  factory:
-    | "openai"
-    | "anthropic"
-    | "google"
-    | "deepseek"
-    | "groq"
-    | "azure"
-    | "openai-compat";
-  defaultBaseUrl: string;
+export interface ProviderConfig {
+  type: string;
+  apiKey?: string;
+  baseUrl?: string;
+  enabledModels: string[];
+  enabled: boolean;
+  apiFormat?: "openai" | "anthropic";
 }
 
-const PROVIDER_MAP: Record<string, ProviderMapping> = {
-  openai: { factory: "openai", defaultBaseUrl: "https://api.openai.com/v1" },
-  anthropic: {
-    factory: "anthropic",
-    defaultBaseUrl: "https://api.anthropic.com/v1",
-  },
-  google: {
-    factory: "google",
-    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
-  },
-  deepseek: {
-    factory: "deepseek",
-    defaultBaseUrl: "https://api.deepseek.com/v1",
-  },
-  groq: { factory: "groq", defaultBaseUrl: "https://api.groq.com/openai/v1" },
-  ollama: {
-    factory: "openai-compat",
-    defaultBaseUrl: "http://localhost:11434/v1",
-  },
-  qwen: {
-    factory: "openai-compat",
-    defaultBaseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-  },
-  zhipu: {
-    factory: "openai-compat",
-    defaultBaseUrl: "https://open.bigmodel.cn/api/paas/v4",
-  },
-  minimax: {
-    factory: "openai-compat",
-    defaultBaseUrl: "https://api.minimax.chat/v1",
-  },
-  "azure-openai": { factory: "azure", defaultBaseUrl: "" },
-  "azure-ai": { factory: "openai-compat", defaultBaseUrl: "" },
+const ANTHROPIC_BROWSER_HEADERS = {
+  "anthropic-dangerous-direct-browser-access": "true",
 };
+
+function resolveBaseUrl(config: ProviderConfig): string {
+  const meta = PROVIDER_REGISTRY[config.type as ProviderType];
+  if (config.type === "ollama") {
+    return getOllamaOpenAIBaseUrl(config.baseUrl);
+  }
+  return config.baseUrl || meta?.defaultBaseUrl || "";
+}
 
 function isOfficialOpenAIBaseUrl(baseUrl: string): boolean {
   try {
@@ -77,16 +61,33 @@ function isOfficialOpenAIBaseUrl(baseUrl: string): boolean {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Create an AI SDK model from provider info
-// ---------------------------------------------------------------------------
+function createOpenAIFormatModel(
+  config: ProviderConfig,
+  modelId: string,
+  baseUrl: string
+): LanguageModelV3 | null {
+  if (!baseUrl) return null;
+  const provider = createOpenAI({
+    apiKey: config.apiKey || "placeholder",
+    baseURL: baseUrl,
+  });
+  // Only the official OpenAI endpoint supports the Responses API.
+  return config.type === "openai" && isOfficialOpenAIBaseUrl(baseUrl)
+    ? provider.responses(modelId)
+    : provider.chat(modelId);
+}
 
-export interface ProviderConfig {
-  type: string;
-  apiKey?: string;
-  baseUrl?: string;
-  enabledModels: string[];
-  enabled: boolean;
+function createAnthropicFormatModel(
+  config: ProviderConfig,
+  modelId: string,
+  baseUrl: string
+): LanguageModelV3 | null {
+  const provider = createAnthropic({
+    apiKey: config.apiKey || "",
+    baseURL: baseUrl || undefined,
+    headers: ANTHROPIC_BROWSER_HEADERS,
+  });
+  return provider(modelId);
 }
 
 /**
@@ -96,63 +97,59 @@ export function createLanguageModel(
   config: ProviderConfig,
   modelId: string
 ): LanguageModelV3 | null {
-  const mapping = PROVIDER_MAP[config.type];
-  if (!mapping) return null;
+  const meta = PROVIDER_REGISTRY[config.type as ProviderType];
+  if (!meta) return null;
 
-  const baseUrl = config.baseUrl || mapping.defaultBaseUrl;
-  if (
-    !baseUrl &&
-    (config.type === "azure-openai" || config.type === "azure-ai")
-  ) {
-    return null;
+  // Providers with dedicated SDK factories — format is fixed.
+  // Using the dedicated SDK is important for providers like DeepSeek/Groq
+  // because their SDK extracts `reasoning_content` into reasoning stream
+  // parts and honours `providerOptions.deepseek`/`providerOptions.groq`
+  // (thinking mode). Plain @ai-sdk/openai would silently drop both.
+  if (config.type === "google") {
+    const provider = createGoogleGenerativeAI({
+      apiKey: config.apiKey || "",
+      baseURL: config.baseUrl || meta.defaultBaseUrl || undefined,
+    });
+    return provider(modelId);
   }
 
-  const apiKey = config.apiKey || "";
-
-  switch (mapping.factory) {
-    case "openai": {
-      const provider = createOpenAI({ apiKey, baseURL: baseUrl });
-      return isOfficialOpenAIBaseUrl(baseUrl)
-        ? provider.responses(modelId)
-        : provider.chat(modelId);
-    }
-    case "anthropic": {
-      const provider = createAnthropic({
-        apiKey,
-        baseURL: baseUrl,
-        headers: { "anthropic-dangerous-direct-browser-access": "true" },
-      });
-      return provider(modelId);
-    }
-    case "google": {
-      const provider = createGoogleGenerativeAI({ apiKey, baseURL: baseUrl });
-      return provider(modelId);
-    }
-    case "deepseek": {
-      const provider = createDeepSeek({ apiKey, baseURL: baseUrl });
-      return provider(modelId);
-    }
-    case "groq": {
-      const provider = createGroq({ apiKey, baseURL: baseUrl });
-      return provider(modelId);
-    }
-    case "azure": {
-      const provider = createAzure({ apiKey, baseURL: baseUrl });
-      return provider(modelId);
-    }
-    case "openai-compat": {
-      // Use OpenAI provider for OpenAI-compatible endpoints
-      const provider = createOpenAI({
-        apiKey: apiKey || "placeholder",
-        baseURL: baseUrl,
-        fetch: config.type === "qwen" ? createQwenCompatibleFetch() : undefined,
-      });
-      const model = provider.chat(modelId);
-      return config.type === "qwen" ? wrapQwenModelForReasoning(model) : model;
-    }
-    default:
-      return null;
+  if (config.type === "deepseek") {
+    const provider = createDeepSeek({
+      apiKey: config.apiKey || "",
+      baseURL: config.baseUrl || undefined,
+    });
+    return provider(modelId);
   }
+
+  if (config.type === "groq") {
+    const provider = createGroq({
+      apiKey: config.apiKey || "",
+      baseURL: config.baseUrl || undefined,
+    });
+    return provider(modelId);
+  }
+
+  if (config.type === "azure-openai") {
+    if (!config.baseUrl) return null;
+    const provider = createAzure({
+      apiKey: config.apiKey || "",
+      baseURL: config.baseUrl,
+    });
+    return provider(modelId);
+  }
+
+  // Everything else routes through an OpenAI- or Anthropic-compatible wire
+  // format. The effective format comes from user choice (for flexible
+  // providers) or the provider's native format otherwise.
+  const format = getEffectiveApiFormat({
+    type: config.type as ProviderType,
+    apiFormat: config.apiFormat,
+  });
+  const baseUrl = resolveBaseUrl(config);
+
+  return format === "anthropic"
+    ? createAnthropicFormatModel(config, modelId, baseUrl)
+    : createOpenAIFormatModel(config, modelId, baseUrl);
 }
 
 /**

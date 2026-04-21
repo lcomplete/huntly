@@ -248,7 +248,14 @@ export async function saveSidepanelThinkingModeEnabled(
 
 export async function getSidepanelThinkingModeEnabled(): Promise<boolean> {
   const items = await chrome.storage.sync.get({
-    [STORAGE_SIDEPANEL_THINKING_MODE_ENABLED]: false,
+    [STORAGE_SIDEPANEL_THINKING_MODE_ENABLED]: null,
+    [STORAGE_THINKING_MODE_ENABLED]: false,
   });
-  return Boolean(items[STORAGE_SIDEPANEL_THINKING_MODE_ENABLED]);
+
+  const sidepanelValue = items[STORAGE_SIDEPANEL_THINKING_MODE_ENABLED];
+  if (typeof sidepanelValue === 'boolean') {
+    return sidepanelValue;
+  }
+
+  return Boolean(items[STORAGE_THINKING_MODE_ENABLED]);
 }

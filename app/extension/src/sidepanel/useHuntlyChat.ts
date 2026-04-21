@@ -17,6 +17,9 @@ import type { ProviderOptions } from "@ai-sdk/provider-utils";
 import type { HuntlyModelInfo, ChatMessage, ChatPart } from "./types";
 import { ALL_AGENT_TOOLS } from "./agentTools";
 
+const CHAT_MAX_OUTPUT_TOKENS = 8192;
+const ANTHROPIC_THINKING_BUDGET_TOKENS = 4000;
+
 // ---------------------------------------------------------------------------
 // Hook options
 // ---------------------------------------------------------------------------
@@ -42,23 +45,20 @@ export interface UseHuntlyChatReturn {
 // Provider options for thinking/reasoning
 // ---------------------------------------------------------------------------
 
-function buildBaseProviderOptions(provider?: string): ProviderOptions {
-  const options: ProviderOptions = {
+function buildBaseProviderOptions(_provider?: string): ProviderOptions {
+  return {
     openai: { systemMessageMode: "system" },
   };
-
-  if (provider === "qwen") {
-    options.qwen = { enableThinking: false };
-  }
-
-  return options;
 }
 
 function buildThinkingProviderOptions(provider?: string): ProviderOptions {
   const options = buildBaseProviderOptions(provider);
 
   options.anthropic = {
-    thinking: { type: "enabled", budgetTokens: 10000 },
+    thinking: {
+      type: "enabled",
+      budgetTokens: ANTHROPIC_THINKING_BUDGET_TOKENS,
+    },
   };
   options.deepseek = {
     thinking: { type: "enabled" },
@@ -66,20 +66,15 @@ function buildThinkingProviderOptions(provider?: string): ProviderOptions {
   options.google = {
     thinkingConfig: { thinkingLevel: "high", includeThoughts: true },
   };
-  if (provider !== "qwen") {
-    options.openai = {
-      ...options.openai,
-      reasoningEffort: "high",
-      reasoningSummary: "auto",
-      forceReasoning: true,
-    };
-  }
+  options.openai = {
+    ...options.openai,
+    reasoningEffort: "high",
+    reasoningSummary: "auto",
+    forceReasoning: true,
+  };
   options.groq = {
     reasoningEffort: "high",
   };
-  if (provider === "qwen") {
-    options.qwen = { enableThinking: true };
-  }
 
   return options;
 }
@@ -367,6 +362,7 @@ export function useHuntlyChat(
           instructions: opts.systemPrompt,
           tools: ALL_AGENT_TOOLS,
           stopWhen: stepCountIs(5),
+          maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
           providerOptions: thinkingEnabled
             ? buildThinkingProviderOptions(modelInfo.provider)
             : buildBaseProviderOptions(modelInfo.provider),

@@ -24,6 +24,7 @@ export async function loadModels(): Promise<HuntlyModelInfo[]> {
           baseUrl: config.baseUrl,
           enabledModels: config.enabledModels,
           enabled: config.enabled,
+          apiFormat: config.apiFormat,
         },
         modelId
       );

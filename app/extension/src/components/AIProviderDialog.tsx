@@ -8,12 +8,16 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   FormControlLabel,
   IconButton,
   InputAdornment,
+  InputLabel,
   List,
   ListItem,
   ListItemText,
+  MenuItem,
+  Select,
   Switch,
   TextField,
   Typography,
@@ -29,6 +33,7 @@ import {
   AIProviderConfig,
   ConnectionTestResult,
   ModelInfo,
+  ProviderApiFormat,
   ProviderType,
   PROVIDER_REGISTRY,
 } from '../ai/types';
@@ -54,6 +59,9 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
 
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
+  const [apiFormat, setApiFormat] = useState<ProviderApiFormat>(
+    meta.nativeApiFormat
+  );
   const [showApiKey, setShowApiKey] = useState(false);
   const [providerEnabled, setProviderEnabled] = useState(true);
   const [enabledModels, setEnabledModels] = useState<string[]>([]);
@@ -92,6 +100,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
       // Only set baseUrl if it was explicitly saved (not the default)
       configBaseUrl = config.baseUrl || '';
       setBaseUrl(configBaseUrl);
+      setApiFormat(config.apiFormat || meta.nativeApiFormat);
       setProviderEnabled(config.enabled);
       // Separate custom models from preset models
       const custom = config.enabledModels.filter((id) => !presetIds.has(id));
@@ -102,6 +111,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
       setApiKey('');
       // Use empty string - show default as placeholder instead
       setBaseUrl('');
+      setApiFormat(meta.nativeApiFormat);
       setProviderEnabled(true);
       // Select the first preset model by default
       setEnabledModels(defaultPresetModels.slice(0, 1).map((m) => m.id));
@@ -147,6 +157,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
           allModels.length > 0 ? allModels : [meta.defaultModels[0]?.id],
         enabled: true,
         updatedAt: Date.now(),
+        apiFormat: meta.supportsCustomApiFormat ? apiFormat : undefined,
       };
       const result = await testProviderConnection(config);
       setTestResult(result);
@@ -166,6 +177,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
         enabledModels: allModels,
         enabled: providerEnabled,
         updatedAt: Date.now(),
+        apiFormat: meta.supportsCustomApiFormat ? apiFormat : undefined,
       };
       await saveProviderConfig(providerType, config);
       onClose();
@@ -336,6 +348,32 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
               placeholder={meta.defaultBaseUrl || 'Custom API endpoint'}
               helperText={getApiUrlHelperText(providerType)}
             />
+          )}
+
+          {meta.supportsCustomApiFormat && (
+            <FormControl size="small" fullWidth>
+              <InputLabel id={`${providerType}-api-format-label`}>
+                API Format
+              </InputLabel>
+              <Select
+                labelId={`${providerType}-api-format-label`}
+                label="API Format"
+                value={apiFormat}
+                onChange={(e) =>
+                  setApiFormat(e.target.value as ProviderApiFormat)
+                }
+              >
+                <MenuItem value="openai">OpenAI compatible</MenuItem>
+                <MenuItem value="anthropic">Anthropic compatible</MenuItem>
+              </Select>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, ml: 1.5 }}
+              >
+                Pick the wire format this provider exposes for the selected base URL.
+              </Typography>
+            </FormControl>
           )}
 
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
