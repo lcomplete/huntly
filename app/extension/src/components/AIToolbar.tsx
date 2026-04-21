@@ -124,8 +124,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   useEffect(() => {
     try {
       const manifest = chrome.runtime.getManifest() as any;
-      const sidePanelApi = (chrome as any).sidePanel;
-      setCanOpenSidePanel(Boolean(manifest.side_panel && sidePanelApi?.open));
+      setCanOpenSidePanel(Boolean(manifest.side_panel));
     } catch {
       setCanOpenSidePanel(false);
     }
@@ -134,15 +133,20 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   const handleOpenChat = useCallback(async () => {
     try {
       const sidePanelApi = (chrome as any).sidePanel;
-      if (!sidePanelApi?.open) return;
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.windowId != null) {
-        await sidePanelApi.open({ windowId: tab.windowId });
-      } else {
-        const currentWindow = await chrome.windows.getCurrent();
-        if (currentWindow?.id != null) {
-          await sidePanelApi.open({ windowId: currentWindow.id });
+      if (sidePanelApi?.open) {
+        // Extension page context (popup, options) - open directly
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.windowId != null) {
+          await sidePanelApi.open({ windowId: tab.windowId });
+        } else {
+          const currentWindow = await chrome.windows.getCurrent();
+          if (currentWindow?.id != null) {
+            await sidePanelApi.open({ windowId: currentWindow.id });
+          }
         }
+      } else {
+        // Content script context - delegate to background
+        chrome.runtime.sendMessage({ type: "open_side_panel" });
       }
     } catch (error) {
       console.error("Failed to open chat side panel:", error);
