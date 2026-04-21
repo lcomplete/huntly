@@ -40,15 +40,20 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
         )}
 
         {message.parts.map((part, index) => {
+          if (part.type === "step-start") {
+            return index > 0 ? (
+              <div key={`${message.id}-${index}`} className="my-2">
+                <hr className="border-[#e7ded0]" />
+              </div>
+            ) : null;
+          }
           if (part.type === "reasoning") {
             if (!part.text?.trim()) return null;
 
             return (
               <ReasoningBlock
                 key={part.id || `${message.id}-${index}`}
-                streaming={
-                  isLast && isRunning && index === message.parts.length - 1
-                }
+                streaming={Boolean(part.streaming)}
                 text={part.text}
               />
             );

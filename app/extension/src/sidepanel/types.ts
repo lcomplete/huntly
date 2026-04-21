@@ -23,9 +23,16 @@ export interface HuntlyModelInfo {
 // ---------------------------------------------------------------------------
 
 export interface ChatPart {
-  type: "text" | "reasoning" | "tool-call" | "file" | "page-context";
+  type:
+    | "text"
+    | "reasoning"
+    | "tool-call"
+    | "file"
+    | "page-context"
+    | "step-start";
   id?: string;
   text?: string;
+  streaming?: boolean;
   title?: string;
   articleTitle?: string;
   url?: string;
@@ -42,7 +49,7 @@ export interface ChatPart {
   toolName?: string;
   args?: Record<string, unknown>;
   argsText?: string;
-  result?: string;
+  result?: unknown;
   isError?: boolean;
 }
 

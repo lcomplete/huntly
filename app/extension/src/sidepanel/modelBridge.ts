@@ -61,20 +61,131 @@ function isOfficialOpenAIBaseUrl(baseUrl: string): boolean {
   }
 }
 
+/**
+ * Rewrite each SSE `data:` line in a streaming Chat Completions response so
+ * that any `choices[].delta.reasoning` field (used by OpenRouter and a few
+ * other OpenAI-compatible providers) is exposed as `reasoning_content`
+ * instead — the field name that @ai-sdk/deepseek's chunk schema understands.
+ *
+ * Non-streaming responses and unrelated lines pass through unchanged.
+ */
+function rewriteReasoningFieldInSseLine(line: string): string {
+  if (!line.startsWith("data:")) return line;
+  const payload = line.slice(5).trim();
+  if (!payload || payload === "[DONE]") return line;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(payload);
+  } catch {
+    return line;
+  }
+
+  const choices = (parsed as { choices?: Array<{ delta?: Record<string, unknown> }> })
+    ?.choices;
+  if (!Array.isArray(choices)) return line;
+
+  let mutated = false;
+  for (const choice of choices) {
+    const delta = choice?.delta;
+    if (
+      delta &&
+      typeof delta === "object" &&
+      typeof delta.reasoning === "string" &&
+      typeof delta.reasoning_content !== "string"
+    ) {
+      delta.reasoning_content = delta.reasoning;
+      delete delta.reasoning;
+      mutated = true;
+    }
+  }
+
+  return mutated ? `data: ${JSON.stringify(parsed)}` : line;
+}
+
+/**
+ * Fetch wrapper that rewrites `reasoning` → `reasoning_content` in each SSE
+ * delta so providers like OpenRouter work with @ai-sdk/deepseek's chunk
+ * schema. Buffers across chunks to handle line boundaries safely.
+ */
+const openAICompatibleFetch: typeof fetch = async (input, init) => {
+  const response = await fetch(input, init);
+  const contentType = response.headers.get("content-type") || "";
+  if (!response.body || !contentType.includes("text/event-stream")) {
+    return response;
+  }
+
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  const transformed = response.body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        buffer += decoder.decode(chunk, { stream: true });
+        let newlineIndex = buffer.indexOf("\n");
+        while (newlineIndex !== -1) {
+          const rawLine = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
+          controller.enqueue(
+            encoder.encode(`${rewriteReasoningFieldInSseLine(line)}\n`)
+          );
+          newlineIndex = buffer.indexOf("\n");
+        }
+      },
+      flush(controller) {
+        if (buffer) {
+          controller.enqueue(
+            encoder.encode(rewriteReasoningFieldInSseLine(buffer))
+          );
+          buffer = "";
+        }
+      },
+    })
+  );
+
+  return new Response(transformed, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+};
+
 function createOpenAIFormatModel(
   config: ProviderConfig,
   modelId: string,
   baseUrl: string
 ): LanguageModelV3 | null {
   if (!baseUrl) return null;
-  const provider = createOpenAI({
+  // Only the official OpenAI endpoint supports the Responses API, which is
+  // where @ai-sdk/openai extracts reasoning summaries. For all other
+  // OpenAI-compatible endpoints (Zhipu, Qwen, MiniMax, Moonshot, OpenRouter
+  // via `openai` custom baseURL, Ollama, Azure AI, …), @ai-sdk/openai's
+  // Chat Completions path does NOT extract the non-standard
+  // `reasoning_content` / `reasoning` delta fields these providers use to
+  // stream thinking content — so the UI never sees any reasoning parts.
+  //
+  // Route those through DeepSeek's chat model instead: it speaks the same
+  // OpenAI Chat Completions wire format (POST /chat/completions with the
+  // same request body and Bearer auth), but additionally parses
+  // `reasoning_content` deltas into reasoning stream parts. A fetch wrapper
+  // normalises the `reasoning` field used by OpenRouter/others into
+  // `reasoning_content` so a single code path covers both conventions.
+  if (config.type === "openai" && isOfficialOpenAIBaseUrl(baseUrl)) {
+    const provider = createOpenAI({
+      apiKey: config.apiKey || "placeholder",
+      baseURL: baseUrl,
+    });
+    return provider.responses(modelId);
+  }
+
+  const provider = createDeepSeek({
     apiKey: config.apiKey || "placeholder",
     baseURL: baseUrl,
+    fetch: openAICompatibleFetch,
   });
-  // Only the official OpenAI endpoint supports the Responses API.
-  return config.type === "openai" && isOfficialOpenAIBaseUrl(baseUrl)
-    ? provider.responses(modelId)
-    : provider.chat(modelId);
+  return provider(modelId);
 }
 
 function createAnthropicFormatModel(
