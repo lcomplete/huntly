@@ -61,12 +61,19 @@ export interface ChatMessage {
   status: "complete" | "running" | "error";
 }
 
+export type SessionTitleGenerationStatus =
+  | "idle"
+  | "generated"
+  | "failed";
+
 // ---------------------------------------------------------------------------
 // Session persistence
 // ---------------------------------------------------------------------------
 export interface SessionData {
   id: string;
   title: string;
+  titleGenerationStatus?: SessionTitleGenerationStatus;
+  titleGeneratedAt?: string;
   currentModelId: string | null;
   thinkingEnabled: boolean;
   messages: ChatMessage[];
@@ -80,6 +87,8 @@ export interface SessionData {
 export interface SessionMetadata {
   id: string;
   title: string;
+  titleGenerationStatus?: SessionTitleGenerationStatus;
+  titleGeneratedAt?: string;
   createdAt: string;
   updatedAt: string;
   lastMessageAt?: string;

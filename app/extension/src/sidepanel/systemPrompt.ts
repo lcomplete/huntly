@@ -17,6 +17,17 @@ Guidelines:
 - Be concise and helpful.
 - When attachments are included, inspect them directly before answering.`;
 
+const SIDEPANEL_TITLE_GENERATION_SYSTEM_PROMPT = `You are Huntly AI generating conversation titles for the Huntly browser extension sidepanel.
+
+Rules:
+- Generate exactly one short conversation title.
+- Focus on the user's main intent or the primary page/article topic.
+- Prefer 4 to 8 words.
+- Use plain text only.
+- Do not use quotes, markdown, XML, numbering, prefixes, or explanations.
+- Do not mention Huntly unless the conversation is explicitly about Huntly.
+- If the conversation is ambiguous, choose the clearest concrete topic.`;
+
 export function buildSidepanelSystemPrompt(
   defaultTargetLanguage: string
 ): string {
@@ -30,7 +41,26 @@ Default response language:
 - This is a default preference, not a hard requirement; if the user explicitly asks for another response language, reply in the language the user requested.`;
 }
 
+export function buildSidepanelTitleGenerationSystemPrompt(
+  defaultTargetLanguage: string
+): string {
+  const defaultOutputLanguage = defaultTargetLanguage.trim() || "English";
+
+  return `${SIDEPANEL_TITLE_GENERATION_SYSTEM_PROMPT}
+
+Title language:
+- Generate the title in ${defaultOutputLanguage} by default.
+- If the conversation clearly requests another language, use that language instead.`;
+}
+
 export async function loadSidepanelSystemPrompt(): Promise<string> {
   const settings = await getPromptsSettings();
   return buildSidepanelSystemPrompt(settings.defaultTargetLanguage);
+}
+
+export async function loadSidepanelTitleGenerationSystemPrompt(): Promise<string> {
+  const settings = await getPromptsSettings();
+  return buildSidepanelTitleGenerationSystemPrompt(
+    settings.defaultTargetLanguage
+  );
 }

@@ -169,6 +169,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   const [huntlyShortcutsEnabled, setHuntlyShortcutsEnabled] = useState(
     externalShortcuts?.huntlyShortcutsEnabled ?? true
   );
+  const [huntlyShortcutsLoaded, setHuntlyShortcutsLoaded] = useState(
+    useExternalShortcuts
+  );
   const [loadingShortcuts, setLoadingShortcuts] = useState(
     !useExternalShortcuts
   );
@@ -227,61 +230,25 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   const [modelAnchorEl, setModelAnchorEl] = useState<null | HTMLElement>(null);
   const shortcutMenuOpen = Boolean(shortcutAnchorEl);
   const modelMenuOpen = Boolean(modelAnchorEl);
+  const modelMenuMaxHeight = compact
+    ? "min(280px, calc(100vh - 80px))"
+    : "min(340px, calc(100vh - 96px))";
 
-  // Load shortcuts (only if not using external data)
+  // Load prompts from storage (only if not using external data).
+  // Huntly shortcuts are fetched lazily when Huntly AI is actually used.
   useEffect(() => {
     if (useExternalShortcuts) return;
 
     async function loadShortcuts() {
       setLoadingShortcuts(true);
       try {
-        // Load prompts from storage
         const promptsSettings = await getPromptsSettings();
         const enabledPrompts = promptsSettings.prompts.filter((p) => p.enabled);
         setUserPrompts(enabledPrompts.filter((p) => !p.isSystem));
         setSystemPrompts(enabledPrompts.filter((p) => p.isSystem));
         setHuntlyShortcutsEnabled(promptsSettings.huntlyShortcutsEnabled);
-
-        // Check if server is configured
-        const baseUrl = await getApiBaseUrl();
-
-        // Load huntly shortcuts if enabled and server configured
-        if (baseUrl && promptsSettings.huntlyShortcutsEnabled) {
-          try {
-            // Try direct fetch first (works in popup/options),
-            // fall back to message passing for content scripts (CORS issues)
-            let shortcuts: any[] = [];
-            try {
-              shortcuts = await fetchEnabledShortcuts();
-            } catch (fetchError) {
-              // Direct fetch failed (likely CORS in content script), use message passing
-              const response = await new Promise<{
-                success: boolean;
-                shortcuts: any[];
-              }>((resolve) => {
-                chrome.runtime.sendMessage(
-                  { type: "get_huntly_shortcuts" },
-                  (resp) => {
-                    if (chrome.runtime.lastError) {
-                      console.error(
-                        "Message passing failed:",
-                        chrome.runtime.lastError
-                      );
-                      resolve({ success: false, shortcuts: [] });
-                    } else {
-                      resolve(resp || { success: false, shortcuts: [] });
-                    }
-                  }
-                );
-              });
-              shortcuts = response.shortcuts || [];
-            }
-            setHuntlyShortcuts(shortcuts);
-          } catch (error) {
-            console.error("Failed to load huntly shortcuts:", error);
-            setHuntlyShortcuts([]);
-          }
-        }
+        setHuntlyShortcuts([]);
+        setHuntlyShortcutsLoaded(!promptsSettings.huntlyShortcutsEnabled);
       } catch (error) {
         console.error("Failed to load shortcuts:", error);
       } finally {
@@ -290,6 +257,82 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
     }
     loadShortcuts();
   }, [useExternalShortcuts]);
+
+  useEffect(() => {
+    if (useExternalShortcuts) return;
+    if (!shortcutMenuOpen || !selectedModel) return;
+    if (selectedModel.provider !== "huntly-server") return;
+    if (!huntlyShortcutsEnabled || huntlyShortcutsLoaded) return;
+
+    let cancelled = false;
+
+    async function loadHuntlyShortcuts() {
+      setLoadingShortcuts(true);
+      try {
+        const baseUrl = await getApiBaseUrl();
+        if (!baseUrl) {
+          if (!cancelled) {
+            setHuntlyShortcuts([]);
+            setHuntlyShortcutsLoaded(true);
+          }
+          return;
+        }
+
+        let shortcuts: any[] = [];
+        try {
+          shortcuts = await fetchEnabledShortcuts();
+        } catch (_fetchError) {
+          const response = await new Promise<{
+            success: boolean;
+            shortcuts: any[];
+          }>((resolve) => {
+            chrome.runtime.sendMessage(
+              { type: "get_huntly_shortcuts" },
+              (resp) => {
+                if (chrome.runtime.lastError) {
+                  console.error(
+                    "Message passing failed:",
+                    chrome.runtime.lastError
+                  );
+                  resolve({ success: false, shortcuts: [] });
+                } else {
+                  resolve(resp || { success: false, shortcuts: [] });
+                }
+              }
+            );
+          });
+          shortcuts = response.shortcuts || [];
+        }
+
+        if (!cancelled) {
+          setHuntlyShortcuts(shortcuts);
+          setHuntlyShortcutsLoaded(true);
+        }
+      } catch (error) {
+        console.error("Failed to load huntly shortcuts:", error);
+        if (!cancelled) {
+          setHuntlyShortcuts([]);
+          setHuntlyShortcutsLoaded(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingShortcuts(false);
+        }
+      }
+    }
+
+    void loadHuntlyShortcuts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    huntlyShortcutsEnabled,
+    huntlyShortcutsLoaded,
+    selectedModel,
+    shortcutMenuOpen,
+    useExternalShortcuts,
+  ]);
 
   // Load models (only if not using external data)
   useEffect(() => {
@@ -616,8 +659,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         TransitionProps={{ timeout: 180 }}
         PaperProps={{
           sx: {
-            maxHeight: 400,
+            maxHeight: modelMenuMaxHeight,
             minWidth: 200,
+            overflowY: "auto",
             zIndex: menuZIndex,
             borderRadius: "10px",
             border: "1px solid",

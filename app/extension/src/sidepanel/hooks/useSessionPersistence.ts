@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { deleteSession, saveSession } from "../sessionStorage";
 import type { SessionData } from "../types";
 
@@ -108,5 +108,8 @@ export function useSessionPersistence(): PersistenceAPI {
     };
   }, [flush]);
 
-  return { persist, markDeleted, cancelPending, flush };
+  return useMemo(
+    () => ({ persist, markDeleted, cancelPending, flush }),
+    [persist, markDeleted, cancelPending, flush]
+  );
 }

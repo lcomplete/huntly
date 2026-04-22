@@ -665,14 +665,20 @@ export function useHuntlyChat(
     uiMessagesRef.current = uiMessages;
   }, [uiMessages]);
 
+  const onMessagesChangeRef = useRef(options.onMessagesChange);
+
+  useEffect(() => {
+    onMessagesChangeRef.current = options.onMessagesChange;
+  }, [options.onMessagesChange]);
+
   const messages = useMemo(
     () => convertUIMessagesToChatMessages(uiMessages, status, error),
     [uiMessages, status, error]
   );
 
   useEffect(() => {
-    options.onMessagesChange?.(messages);
-  }, [messages, options.onMessagesChange]);
+    onMessagesChangeRef.current?.(messages);
+  }, [messages]);
 
   const isRunning = status === "submitted" || status === "streaming";
 

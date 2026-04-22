@@ -7,8 +7,18 @@
  * - `session-attachments`: Binary attachment blobs referenced by message parts
  */
 
-import type { ChatMessage, SessionData, SessionMetadata } from "./types";
+import type {
+  ChatMessage,
+  SessionData,
+  SessionMetadata,
+  SessionTitleGenerationStatus,
+} from "./types";
 import { readBlobAsDataUrl } from "./utils/dom";
+import { getDisplayMessageText } from "./utils/messageParts";
+import {
+  DEFAULT_SESSION_TITLE,
+  sortSessionMetadataByActivity,
+} from "./utils/sessions";
 
 const DB_NAME = "huntly-agent";
 const DB_VERSION = 2;
@@ -108,22 +118,6 @@ async function withTransaction<T>(
 // Session helpers
 // ---------------------------------------------------------------------------
 
-function getMessageText(parts: ChatMessage["parts"]): string {
-  return parts
-    .filter((p) => p.type === "text" && p.text)
-    .map((p) => p.text!)
-    .join("\n");
-}
-
-function getDisplayMessageText(parts: ChatMessage["parts"]): string {
-  const text = getMessageText(parts);
-  const promptMatch = text.match(
-    /^\s*<huntly-(?:prompts|command)>\s*\n\s*(\/[^\n]+)[\s\S]*?\n\s*<\/huntly-(?:prompts|command)>\s*$/i
-  );
-
-  return promptMatch ? promptMatch[1].trim() : text;
-}
-
 export function getMessageTextPreview(messages: ChatMessage[]): string {
   const preview = messages
     .map((message) => {
@@ -145,12 +139,32 @@ function getLatestMessage(messages: ChatMessage[]): ChatMessage | null {
   return messages.length > 0 ? messages[messages.length - 1] : null;
 }
 
+function normalizeTitleGenerationStatus(
+  status?: SessionTitleGenerationStatus
+): SessionTitleGenerationStatus {
+  switch (status) {
+    case "generated":
+    case "failed":
+      return status;
+    default:
+      return "idle";
+  }
+}
+
 function normalizeSessionTiming(session: SessionData): SessionData {
   const latestMessage = getLatestMessage(session.messages);
   const legacy = session as SessionData & LegacySessionTiming;
+  const normalizedTitleGenerationStatus = normalizeTitleGenerationStatus(
+    session.titleGenerationStatus
+  );
   return {
     id: session.id,
-    title: session.title,
+    title: (session.title || "").trim() || DEFAULT_SESSION_TITLE,
+    titleGenerationStatus: normalizedTitleGenerationStatus,
+    titleGeneratedAt:
+      normalizedTitleGenerationStatus === "generated"
+        ? session.titleGeneratedAt || session.updatedAt
+        : undefined,
     currentModelId: session.currentModelId,
     thinkingEnabled: session.thinkingEnabled,
     messages: session.messages,
@@ -167,6 +181,26 @@ function normalizeSessionTiming(session: SessionData): SessionData {
     lastOpenedAt:
       session.lastOpenedAt || session.updatedAt || session.createdAt,
   };
+}
+
+export function reconcileSessionMetadata(
+  metadata: SessionMetadata,
+  session: SessionData | null | undefined
+): SessionMetadata {
+  if (!session) {
+    return metadata;
+  }
+
+  const reconciled = buildSessionMetadata(session);
+  if (
+    reconciled.title === metadata.title &&
+    reconciled.titleGenerationStatus === metadata.titleGenerationStatus &&
+    reconciled.titleGeneratedAt === metadata.titleGeneratedAt
+  ) {
+    return metadata;
+  }
+
+  return reconciled;
 }
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
@@ -316,6 +350,8 @@ export function buildSessionMetadata(session: SessionData): SessionMetadata {
   return {
     id: normalized.id,
     title: normalized.title,
+    titleGenerationStatus: normalized.titleGenerationStatus,
+    titleGeneratedAt: normalized.titleGeneratedAt,
     createdAt: normalized.createdAt,
     updatedAt: normalized.updatedAt,
     lastMessageAt: normalized.lastMessageAt,
@@ -384,26 +420,117 @@ export async function getSession(
         sessionId
       );
 
-      return hydrateSessionAttachments(session, attachments);
+      return normalizeSessionTiming(
+        await hydrateSessionAttachments(session, attachments)
+      );
     }
   );
 }
 
+export async function markSessionOpened(
+  sessionId: string,
+  openedAt: string
+): Promise<void> {
+  await withTransaction([SESSIONS_STORE, METADATA_STORE], "readwrite", async (stores) => {
+    const [storedSessionResult, storedMetadataResult] = await Promise.all([
+      requestToPromise(stores[SESSIONS_STORE].get(sessionId)),
+      requestToPromise(stores[METADATA_STORE].get(sessionId)),
+    ]);
+
+    const storedSession = (storedSessionResult as SessionData | null) || null;
+    const storedMetadata =
+      (storedMetadataResult as SessionMetadata | null) || null;
+
+    if (!storedSession && !storedMetadata) {
+      return;
+    }
+
+    const normalizedSession = storedSession
+      ? normalizeSessionTiming({
+          ...storedSession,
+          lastOpenedAt: openedAt,
+        })
+      : null;
+
+    const metadata = normalizedSession
+      ? buildSessionMetadata(normalizedSession)
+      : storedMetadata
+      ? {
+          ...storedMetadata,
+          lastOpenedAt: openedAt,
+        }
+      : null;
+
+    await Promise.all([
+      normalizedSession
+        ? requestToPromise(
+            stores[SESSIONS_STORE].put(
+              JSON.parse(JSON.stringify(normalizedSession))
+            )
+          )
+        : Promise.resolve(undefined),
+      metadata
+        ? requestToPromise(
+            stores[METADATA_STORE].put(JSON.parse(JSON.stringify(metadata)))
+          )
+        : Promise.resolve(undefined),
+    ]);
+  });
+}
+
 export async function listSessionMetadata(): Promise<SessionMetadata[]> {
-  return withTransaction([METADATA_STORE], "readonly", async (stores) => {
+  return withTransaction([METADATA_STORE, SESSIONS_STORE], "readwrite", async (stores) => {
     const metadata = ((await requestToPromise(
       stores[METADATA_STORE].getAll()
     )) || []) as SessionMetadata[];
-    return metadata.sort((a, b) => {
-      const responseDelta = getSessionSortTime(b) - getSessionSortTime(a);
-      if (responseDelta !== 0) return responseDelta;
 
-      const createdDelta =
-        getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
-      if (createdDelta !== 0) return createdDelta;
-
-      return a.id.localeCompare(b.id);
+    const staleMetadata = metadata.filter((session) => {
+      const trimmedTitle = (session.title || "").trim();
+      return (
+        !trimmedTitle ||
+        trimmedTitle === DEFAULT_SESSION_TITLE ||
+        session.titleGenerationStatus === undefined
+      );
     });
+
+    if (staleMetadata.length === 0) {
+      return sortSessionMetadataByActivity(metadata);
+    }
+
+    const sessionsById = new Map(
+      (
+        await Promise.all(
+          staleMetadata.map(async (session) => {
+            const storedSession =
+              ((await requestToPromise(
+                stores[SESSIONS_STORE].get(session.id)
+              )) as SessionData | null) || null;
+            return [session.id, storedSession] as const;
+          })
+        )
+      ).filter((entry): entry is readonly [string, SessionData] => Boolean(entry[1]))
+    );
+
+    const repairedMetadata = metadata.map((session) =>
+      reconcileSessionMetadata(session, sessionsById.get(session.id))
+    );
+
+    const changedMetadata = repairedMetadata.filter(
+      (session, index) =>
+        session.title !== metadata[index].title ||
+        session.titleGenerationStatus !== metadata[index].titleGenerationStatus ||
+        session.titleGeneratedAt !== metadata[index].titleGeneratedAt
+    );
+
+    if (changedMetadata.length > 0) {
+      await Promise.all(
+        changedMetadata.map((session) =>
+          requestToPromise(stores[METADATA_STORE].put(JSON.parse(JSON.stringify(session))))
+        )
+      );
+    }
+
+    return sortSessionMetadataByActivity(repairedMetadata);
   });
 }
 
@@ -432,7 +559,8 @@ export function createEmptySession(currentModelId: string | null): SessionData {
   const now = new Date().toISOString();
   return {
     id: crypto.randomUUID(),
-    title: "New chat",
+    title: DEFAULT_SESSION_TITLE,
+    titleGenerationStatus: "idle",
     currentModelId,
     thinkingEnabled: false,
     messages: [],
@@ -440,20 +568,4 @@ export function createEmptySession(currentModelId: string | null): SessionData {
     updatedAt: now,
     lastOpenedAt: now,
   };
-}
-
-function getTimestamp(value: string | undefined): number {
-  if (!value) return 0;
-  const timestamp = Date.parse(value);
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-}
-
-function getSessionSortTime(session: SessionMetadata): number {
-  const legacy = session as SessionMetadata & LegacySessionTiming;
-  return getTimestamp(
-    session.lastMessageAt ||
-      legacy.lastAssistantResponseAt ||
-      session.updatedAt ||
-      session.createdAt
-  );
 }

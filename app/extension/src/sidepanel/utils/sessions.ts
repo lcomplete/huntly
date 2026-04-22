@@ -3,11 +3,15 @@ import type {
   SessionData,
   SessionMetadata,
 } from "../types";
+import { getDisplayMessageText } from "./messageParts";
 
 type LegacySessionTiming = {
   lastAssistantResponseAt?: string;
   lastAssistantMessageId?: string;
 };
+
+export const DEFAULT_SESSION_TITLE = "New chat";
+const SESSION_TITLE_MAX_LENGTH = 40;
 
 export function getStoredLastMessageAt(
   session: SessionData | SessionMetadata
@@ -35,6 +39,78 @@ function getTimestamp(value: string | undefined): number {
   if (!value) return 0;
   const timestamp = Date.parse(value);
   return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+export function deriveSessionTitle(
+  messages: ChatMessage[],
+  currentTitle: string = DEFAULT_SESSION_TITLE
+): string {
+  const trimmedTitle = currentTitle.trim();
+  if (trimmedTitle && trimmedTitle !== DEFAULT_SESSION_TITLE) {
+    return currentTitle;
+  }
+
+  const firstUserMessage = messages.find((message) => message.role === "user");
+  if (!firstUserMessage) {
+    return trimmedTitle || DEFAULT_SESSION_TITLE;
+  }
+
+  const text = getDisplayMessageText(firstUserMessage.parts)
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const fallback = getTitleFallbackFromParts(firstUserMessage.parts);
+  const candidate = text || fallback;
+
+  if (!candidate) {
+    return trimmedTitle || DEFAULT_SESSION_TITLE;
+  }
+
+  return candidate.length <= SESSION_TITLE_MAX_LENGTH
+    ? candidate
+    : `${candidate.slice(0, SESSION_TITLE_MAX_LENGTH - 1).trimEnd()}…`;
+}
+
+function getTitleFallbackFromParts(parts: ChatMessage["parts"]): string {
+  for (const part of parts) {
+    if (part.type === "page-context") {
+      const label = (part.articleTitle || part.title || part.url || "").trim();
+      if (label) return label;
+    }
+    if (part.type === "file" && part.filename) {
+      return part.filename;
+    }
+  }
+  return "";
+}
+
+export function getSessionSortTime(session: SessionMetadata): number {
+  const legacy = session as SessionMetadata & LegacySessionTiming;
+  return getTimestamp(
+    session.lastMessageAt ||
+      legacy.lastAssistantResponseAt ||
+      session.updatedAt ||
+      session.createdAt
+  );
+}
+
+export function compareSessionMetadataByActivity(
+  a: SessionMetadata,
+  b: SessionMetadata
+): number {
+  const messageDelta = getSessionSortTime(b) - getSessionSortTime(a);
+  if (messageDelta !== 0) return messageDelta;
+
+  const createdDelta = getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
+  if (createdDelta !== 0) return createdDelta;
+
+  return a.id.localeCompare(b.id);
+}
+
+export function sortSessionMetadataByActivity(
+  sessions: SessionMetadata[]
+): SessionMetadata[] {
+  return [...sessions].sort(compareSessionMetadataByActivity);
 }
 
 export function hasUnreadMessages(

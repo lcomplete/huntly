@@ -6,6 +6,7 @@ import {
   useState,
   type FC,
 } from "react";
+import { streamText } from "ai";
 import { ChevronDown } from "lucide-react";
 
 import { useHuntlyChat } from "./useHuntlyChat";
@@ -23,10 +24,12 @@ import {
   resolveModelSelection,
 } from "./modelBridge";
 import {
+  buildSessionMetadata,
   createEmptySession,
   deleteSession,
   getSession,
   listSessionMetadata,
+  markSessionOpened,
 } from "./sessionStorage";
 import {
   composePromptMessage,
@@ -41,7 +44,9 @@ import {
   saveSidepanelThinkingModeEnabled,
 } from "../storage";
 import {
+  buildSidepanelTitleGenerationSystemPrompt,
   buildSidepanelSystemPrompt,
+  loadSidepanelTitleGenerationSystemPrompt,
   loadSidepanelSystemPrompt,
 } from "./systemPrompt";
 import { loadModels } from "./utils/loadModels";
@@ -64,7 +69,9 @@ import {
   getDisplayMessageText,
 } from "./utils/messageParts";
 import {
+  DEFAULT_SESSION_TITLE,
   getLatestMessage,
+  sortSessionMetadataByActivity,
   getStoredLastMessageAt,
   getStoredLastMessageId,
 } from "./utils/sessions";
@@ -80,7 +87,8 @@ import {
 } from "./components/Placeholders";
 
 const SCROLL_PIN_THRESHOLD_PX = 96;
-const TITLE_MAX_LENGTH = 60;
+const TITLE_MAX_LENGTH = 80;
+const TITLE_TRANSCRIPT_MAX_LENGTH = 4000;
 const DROPPABLE_STRING_TYPES = new Set([
   "text/plain",
   "text/uri-list",
@@ -225,6 +233,22 @@ function dedupeFiles(files: File[]): File[] {
   });
 }
 
+function isComposingEnterEvent(
+  event: React.KeyboardEvent<HTMLTextAreaElement>
+): boolean {
+  if (event.key !== "Enter") return false;
+
+  const nativeEvent = event.nativeEvent as KeyboardEvent & {
+    isComposing?: boolean;
+    keyCode?: number;
+  };
+
+  return (
+    nativeEvent.isComposing === true ||
+    nativeEvent.keyCode === 229
+  );
+}
+
 async function extractDroppedPayload(
   dataTransfer: DataTransfer,
   baseUrl?: string | null
@@ -303,6 +327,123 @@ async function extractDroppedPayload(
   };
 }
 
+function summarizeTitleGenerationParts(parts: ChatPart[]): string {
+  const segments: string[] = [];
+  const text = getDisplayMessageText(parts).replace(/\s+/g, " ").trim();
+
+  if (text) {
+    segments.push(text);
+  }
+
+  for (const part of parts) {
+    if (part.type === "page-context") {
+      const label = (part.articleTitle || part.title || part.url || "").trim();
+      if (label) {
+        segments.push(`Attached page: ${label}`);
+      }
+      continue;
+    }
+
+    if (part.type === "file") {
+      const label = (part.filename || part.mediaType || "attachment").trim();
+      if (label) {
+        segments.push(`Attachment: ${label}`);
+      }
+    }
+  }
+
+  return segments.join(" | ");
+}
+
+function buildTitleGenerationTranscript(messages: ChatMessage[]): string {
+  const transcript = messages
+    .filter((message) => message.role === "user" || message.role === "assistant")
+    .map((message) => {
+      const summary = summarizeTitleGenerationParts(message.parts);
+      if (!summary) return null;
+      const speaker = message.role === "user" ? "User" : "Assistant";
+      return `${speaker}: ${summary}`;
+    })
+    .filter((entry): entry is string => Boolean(entry))
+    .join("\n\n")
+    .trim();
+
+  if (transcript.length <= TITLE_TRANSCRIPT_MAX_LENGTH) {
+    return transcript;
+  }
+
+  return `${transcript.slice(0, TITLE_TRANSCRIPT_MAX_LENGTH - 1).trimEnd()}…`;
+}
+
+function normalizeGeneratedSessionTitle(value: string): string | null {
+  const firstLine = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  if (!firstLine) return null;
+
+  const normalized = firstLine
+    .replace(/^[#>*\-\d.\s]*(?:title|conversation title)\s*:\s*/i, "")
+    .replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/[.。]+$/, "")
+    .trim();
+
+  if (!normalized || normalized === DEFAULT_SESSION_TITLE) {
+    return null;
+  }
+
+  return normalized.length <= TITLE_MAX_LENGTH
+    ? normalized
+    : `${normalized.slice(0, TITLE_MAX_LENGTH - 1).trimEnd()}…`;
+}
+
+async function generateSessionTitle(
+  messages: ChatMessage[],
+  modelInfo: HuntlyModelInfo,
+  systemPrompt: string,
+  abortSignal?: AbortSignal
+): Promise<string | null> {
+  const transcript = buildTitleGenerationTranscript(messages);
+  if (!transcript) {
+    console.warn("[SidepanelApp] Title generation skipped: empty transcript");
+    return null;
+  }
+
+  console.debug(
+    "[SidepanelApp] Title generation starting",
+    { provider: modelInfo.provider, modelId: modelInfo.modelId }
+  );
+
+  let streamError: unknown = null;
+  const result = streamText({
+    model: modelInfo.model as any,
+    system: systemPrompt,
+    prompt: `Conversation transcript:\n\n${transcript}\n\nGenerate one short title for this conversation. Output only the title.`,
+    maxOutputTokens: 24,
+    abortSignal,
+    providerOptions: {
+      openai: { systemMessageMode: "system" },
+    },
+    onError({ error }) {
+      streamError = error;
+    },
+  });
+
+  const generatedText = await result.text;
+  if (streamError) {
+    throw streamError;
+  }
+
+  const normalized = normalizeGeneratedSessionTitle(generatedText);
+  console.debug(
+    "[SidepanelApp] Title generation finished",
+    { raw: generatedText, normalized }
+  );
+  return normalized;
+}
+
 export const SidepanelApp: FC = () => {
   const [models, setModels] = useState<HuntlyModelInfo[]>([]);
   const [currentModelId, setCurrentModelId] = useState<string | null>(null);
@@ -323,11 +464,18 @@ export const SidepanelApp: FC = () => {
   const [systemPrompt, setSystemPrompt] = useState(() =>
     buildSidepanelSystemPrompt("English")
   );
+  const [titleGenerationSystemPrompt, setTitleGenerationSystemPrompt] =
+    useState(() => buildSidepanelTitleGenerationSystemPrompt("English"));
 
   const currentModelRef = useRef<HuntlyModelInfo | null>(null);
   const thinkingModeRef = useRef(false);
   const sessionRef = useRef<SessionData | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
+  const titleGenerationRequestKeyRef = useRef<string | null>(null);
+  const titleGenerationAbortRef = useRef<AbortController | null>(null);
+  const titleGenerationSystemPromptRef = useRef(
+    buildSidepanelTitleGenerationSystemPrompt("English")
+  );
   const skipNextMessagesPersistRef = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
@@ -347,14 +495,191 @@ export const SidepanelApp: FC = () => {
     thinkingModeRef.current = thinkingMode;
   }, [thinkingMode]);
 
+  useEffect(() => {
+    titleGenerationSystemPromptRef.current = titleGenerationSystemPrompt;
+  }, [titleGenerationSystemPrompt]);
+
+  const syncSessionSnapshot = useCallback(
+    (updated: SessionData, immediate: boolean) => {
+      sessionRef.current = updated;
+      setSessions((previous) => {
+        const metadata = buildSessionMetadata(updated);
+        const existingIndex = previous.findIndex(
+          (storedSession) => storedSession.id === metadata.id
+        );
+
+        if (existingIndex === -1) {
+          return sortSessionMetadataByActivity([metadata, ...previous]);
+        }
+
+        const nextSessions = [...previous];
+        nextSessions[existingIndex] = {
+          ...nextSessions[existingIndex],
+          ...metadata,
+        };
+        return sortSessionMetadataByActivity(nextSessions);
+      });
+      persistence.persist(updated, immediate);
+    },
+    [persistence]
+  );
+
+  const maybeGenerateSessionTitle = useCallback(
+    (session: SessionData, chatMessages: ChatMessage[]) => {
+      const currentModel = currentModelRef.current;
+      if (!currentModel || chatMessages.length === 0) {
+        console.debug("[SidepanelApp] maybeGenerateSessionTitle: skip (no model or empty messages)", {
+          hasModel: Boolean(currentModel),
+          messageCount: chatMessages.length,
+        });
+        return;
+      }
+
+      if (session.titleGenerationStatus === "generated") {
+        return;
+      }
+
+      const latestMessage = getLatestMessage(chatMessages);
+      if (!latestMessage || latestMessage.status === "running") {
+        return;
+      }
+
+      const requestKey = `${session.id}:${latestMessage.id || chatMessages.length}`;
+      if (titleGenerationRequestKeyRef.current === requestKey) {
+        return;
+      }
+
+      console.debug("[SidepanelApp] maybeGenerateSessionTitle: scheduling", {
+        sessionId: session.id,
+        latestMessageId: latestMessage.id,
+        latestStatus: latestMessage.status,
+      });
+
+      titleGenerationAbortRef.current?.abort();
+      const controller = new AbortController();
+      titleGenerationAbortRef.current = controller;
+      titleGenerationRequestKeyRef.current = requestKey;
+
+      void generateSessionTitle(
+        chatMessages,
+        currentModel,
+        titleGenerationSystemPromptRef.current,
+        controller.signal
+      )
+        .then((title) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          const activeSession = sessionRef.current;
+          if (!activeSession || activeSession.id !== session.id) {
+            console.debug(
+              "[SidepanelApp] Title generation: session changed, discarding",
+              { expectedSessionId: session.id, activeSessionId: activeSession?.id }
+            );
+            return;
+          }
+
+          if (!title) {
+            console.warn(
+              "[SidepanelApp] Title generation produced empty title; marking failed",
+              { sessionId: session.id }
+            );
+            syncSessionSnapshot(
+              {
+                ...activeSession,
+                titleGenerationStatus: "failed",
+                titleGeneratedAt: undefined,
+              },
+              true
+            );
+            return;
+          }
+
+          console.debug("[SidepanelApp] Title generation: applying title", {
+            sessionId: session.id,
+            title,
+          });
+          syncSessionSnapshot(
+            {
+              ...activeSession,
+              title,
+              titleGenerationStatus: "generated",
+              titleGeneratedAt: new Date().toISOString(),
+            },
+            true
+          );
+        })
+        .catch((error) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          console.error("[SidepanelApp] Failed to generate session title", error);
+
+          const activeSession = sessionRef.current;
+          if (!activeSession || activeSession.id !== session.id) {
+            return;
+          }
+
+          syncSessionSnapshot(
+            {
+              ...activeSession,
+              titleGenerationStatus: "failed",
+              titleGeneratedAt: undefined,
+            },
+            true
+          );
+        })
+        .finally(() => {
+          if (titleGenerationAbortRef.current === controller) {
+            titleGenerationAbortRef.current = null;
+          }
+          if (titleGenerationRequestKeyRef.current === requestKey) {
+            titleGenerationRequestKeyRef.current = null;
+          }
+        });
+    },
+    [syncSessionSnapshot]
+  );
+
   const refreshSessions = useCallback(async () => {
     try {
-      setSessions(await listSessionMetadata());
+      const storedSessions = await listSessionMetadata();
+      const currentSession = sessionRef.current;
+
+      if (!currentSession) {
+        setSessions(storedSessions);
+        return;
+      }
+
+      const currentMetadata = buildSessionMetadata(currentSession);
+      const existingIndex = storedSessions.findIndex(
+        (session) => session.id === currentMetadata.id
+      );
+
+      if (existingIndex === -1) {
+        setSessions(
+          sortSessionMetadataByActivity([currentMetadata, ...storedSessions])
+        );
+        return;
+      }
+
+      const mergedSessions = [...storedSessions];
+      mergedSessions[existingIndex] = {
+        ...mergedSessions[existingIndex],
+        ...currentMetadata,
+      };
+      setSessions(sortSessionMetadataByActivity(mergedSessions));
     } catch (error) {
       console.error("[SidepanelApp] Failed to list sessions", error);
       setSessions([]);
     }
   }, []);
+
+  useEffect(() => {
+    void refreshSessions();
+  }, [refreshSessions]);
 
   const handleMessagesChange = useCallback(
     (chatMessages: ChatMessage[]) => {
@@ -366,6 +691,7 @@ export const SidepanelApp: FC = () => {
       if (chatMessages.length === 0) return;
 
       let session = sessionRef.current;
+      const isNewSession = !session;
       if (!session) {
         session = createEmptySession(
           currentModelRef.current ? getModelKey(currentModelRef.current) : null
@@ -375,46 +701,60 @@ export const SidepanelApp: FC = () => {
         setCurrentSessionId(session.id);
       }
 
-      let title = session.title;
-      const firstUserMsg = chatMessages.find(
-        (message) => message.role === "user"
-      );
-      if (firstUserMsg && title === "New chat") {
-        const textParts = getDisplayMessageText(firstUserMsg.parts)
-          .replace(/\s+/g, " ")
-          .trim();
-        if (textParts) {
-          title =
-            textParts.length <= TITLE_MAX_LENGTH
-              ? textParts
-              : `${textParts.slice(0, TITLE_MAX_LENGTH - 3)}...`;
-        }
-      }
-
       const now = new Date().toISOString();
       const latestMessage = getLatestMessage(chatMessages);
+      const prevLastMessage =
+        session.messages.length > 0
+          ? session.messages[session.messages.length - 1]
+          : null;
+      const prevLatestId = getStoredLastMessageId(session);
+      const prevLastMessageAt = getStoredLastMessageAt(session);
+      const isStreaming = latestMessage?.status === "running";
+      const latestChanged =
+        isNewSession ||
+        chatMessages.length !== session.messages.length ||
+        latestMessage?.id !== (prevLastMessage?.id ?? prevLatestId) ||
+        latestMessage?.status !== prevLastMessage?.status ||
+        isStreaming;
+
+      // Avoid churning session order when nothing actually changed (e.g.
+      // immediately after loading an existing session via setMessages) —
+      // opening history should not move the active chat to the top.
+      if (!latestChanged) {
+        return;
+      }
 
       const updated: SessionData = {
         ...session,
-        title,
+        title: (session.title || "").trim() || DEFAULT_SESSION_TITLE,
+        titleGenerationStatus:
+          session.titleGenerationStatus === "generated"
+            ? "generated"
+            : "idle",
+        titleGeneratedAt:
+          session.titleGenerationStatus === "generated"
+            ? session.titleGeneratedAt
+            : undefined,
         currentModelId: currentModelRef.current
           ? getModelKey(currentModelRef.current)
           : null,
         thinkingEnabled: thinkingModeRef.current,
         messages: chatMessages,
-        updatedAt: now,
-        lastMessageAt: latestMessage ? now : getStoredLastMessageAt(session),
-        lastMessageId: latestMessage?.id || getStoredLastMessageId(session),
+        updatedAt: latestChanged ? now : session.updatedAt || now,
+        lastMessageAt: latestChanged
+          ? now
+          : prevLastMessageAt || (latestMessage ? now : undefined),
+        lastMessageId: latestMessage?.id || prevLatestId,
         lastOpenedAt:
           currentSessionIdRef.current === session.id
             ? now
             : session.lastOpenedAt || session.updatedAt || session.createdAt,
       };
 
-      sessionRef.current = updated;
-      persistence.persist(updated, latestMessage?.status !== "running");
+      syncSessionSnapshot(updated, latestMessage?.status !== "running");
+      maybeGenerateSessionTitle(updated, chatMessages);
     },
-    [persistence]
+    [maybeGenerateSessionTitle, syncSessionSnapshot]
   );
 
   const currentModel = useMemo(
@@ -449,6 +789,7 @@ export const SidepanelApp: FC = () => {
         savedThinkingMode,
         tab,
         loadedSystemPrompt,
+        loadedTitleGenerationSystemPrompt,
       ] = await Promise.all([
         loadModels(),
         loadSlashPrompts(),
@@ -456,6 +797,7 @@ export const SidepanelApp: FC = () => {
         getSidepanelThinkingModeEnabled(),
         getTabContext(),
         loadSidepanelSystemPrompt(),
+        loadSidepanelTitleGenerationSystemPrompt(),
       ]);
       if (cancelled) return;
 
@@ -464,6 +806,7 @@ export const SidepanelApp: FC = () => {
       setThinkingMode(savedThinkingMode);
       setTabContext(tab);
       setSystemPrompt(loadedSystemPrompt);
+      setTitleGenerationSystemPrompt(loadedTitleGenerationSystemPrompt);
 
       if (availableModels.length > 0) {
         const resolution = resolveModelSelection(
@@ -525,15 +868,22 @@ export const SidepanelApp: FC = () => {
 
   useEffect(() => {
     const unsubscribe = onConfigChange(async () => {
-      const [updatedModels, updatedPrompts, updatedSystemPrompt] =
+      const [
+        updatedModels,
+        updatedPrompts,
+        updatedSystemPrompt,
+        updatedTitleGenerationSystemPrompt,
+      ] =
         await Promise.all([
           loadModels(),
           loadSlashPrompts(),
           loadSidepanelSystemPrompt(),
+          loadSidepanelTitleGenerationSystemPrompt(),
         ]);
       setModels(updatedModels);
       setSlashPrompts(updatedPrompts);
       setSystemPrompt(updatedSystemPrompt);
+      setTitleGenerationSystemPrompt(updatedTitleGenerationSystemPrompt);
     });
     return unsubscribe;
   }, []);
@@ -555,6 +905,7 @@ export const SidepanelApp: FC = () => {
     return () => {
       window.removeEventListener("pagehide", flushPendingSession);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      titleGenerationAbortRef.current?.abort();
     };
   }, [persistence]);
 
@@ -628,8 +979,13 @@ export const SidepanelApp: FC = () => {
     async (id: string) => {
       persistence.markDeleted(id);
 
-      if (currentSessionIdRef.current === id) {
+      if (currentSessionIdRef.current === id && isRunning) {
         cancelRun({ discard: true });
+      }
+
+      if (currentSessionIdRef.current === id) {
+        titleGenerationAbortRef.current?.abort();
+        titleGenerationRequestKeyRef.current = null;
       }
 
       await deleteSession(id);
@@ -644,14 +1000,21 @@ export const SidepanelApp: FC = () => {
         clearMessages();
       }
     },
-    [cancelRun, clearMessages, persistence, resetComposerState]
+    [cancelRun, clearMessages, isRunning, persistence, resetComposerState]
   );
 
   const handleSelectSession = useCallback(
     async (id: string) => {
       try {
-        skipNextMessagesPersistRef.current = true;
-        cancelRun({ discard: true });
+        if (id === currentSessionIdRef.current) {
+          setHistoryOpen(false);
+          return;
+        }
+
+        if (isRunning) {
+          skipNextMessagesPersistRef.current = true;
+          cancelRun({ discard: true });
+        }
         await persistence.flush();
 
         const session = await getSession(id);
@@ -682,6 +1045,8 @@ export const SidepanelApp: FC = () => {
         sessionRef.current = openedSession;
         currentSessionIdRef.current = openedSession.id;
         setCurrentSessionId(openedSession.id);
+        titleGenerationAbortRef.current?.abort();
+        titleGenerationRequestKeyRef.current = null;
 
         skipNextMessagesPersistRef.current = true;
         if (chatMessages.length > 0) {
@@ -692,17 +1057,46 @@ export const SidepanelApp: FC = () => {
 
         resetComposerState();
         setHistoryOpen(false);
-        persistence.persist(openedSession, true);
+        setSessions((previous) =>
+          previous.map((storedSession) =>
+            storedSession.id === openedSession.id
+              ? {
+                  ...storedSession,
+                  title: openedSession.title,
+                  titleGenerationStatus: openedSession.titleGenerationStatus,
+                  titleGeneratedAt: openedSession.titleGeneratedAt,
+                  lastOpenedAt: openedAt,
+                }
+              : storedSession
+          )
+        );
+
+        void markSessionOpened(openedSession.id, openedAt).catch((error) => {
+          console.error("[SidepanelApp] Failed to mark session opened", error);
+        });
+        maybeGenerateSessionTitle(openedSession, chatMessages);
       } catch (error) {
         console.error("[SidepanelApp] Failed to open session", error);
       }
     },
-    [cancelRun, clearMessages, persistence, resetComposerState, setMessages]
+    [
+      cancelRun,
+      clearMessages,
+      isRunning,
+      maybeGenerateSessionTitle,
+      persistence,
+      resetComposerState,
+      setMessages,
+    ]
   );
 
   const handleNewChat = useCallback(() => {
     void (async () => {
-      cancelRun({ discard: true });
+      if (isRunning) {
+        cancelRun({ discard: true });
+      }
+      titleGenerationAbortRef.current?.abort();
+      titleGenerationRequestKeyRef.current = null;
       await persistence.flush();
       sessionRef.current = null;
       currentSessionIdRef.current = null;
@@ -714,7 +1108,7 @@ export const SidepanelApp: FC = () => {
       clearMessages();
       inputRef.current?.focus();
     })();
-  }, [cancelRun, clearMessages, persistence, resetComposerState]);
+  }, [cancelRun, clearMessages, isRunning, persistence, resetComposerState]);
 
   const handleThinkingModeToggle = useCallback(() => {
     setThinkingMode((previous) => {
@@ -929,6 +1323,10 @@ export const SidepanelApp: FC = () => {
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (isComposingEnterEvent(event)) {
+        return;
+      }
+
       if (inputText.startsWith("/") && filteredPrompts.length > 0) {
         if (event.key === "ArrowDown") {
           event.preventDefault();
@@ -958,6 +1356,12 @@ export const SidepanelApp: FC = () => {
 
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
+        const form = event.currentTarget.form;
+        if (form) {
+          form.requestSubmit();
+          return;
+        }
+
         sendText(inputText);
       }
     },
