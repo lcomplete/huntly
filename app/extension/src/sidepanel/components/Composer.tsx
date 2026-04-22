@@ -1,16 +1,9 @@
-import { useMemo, useRef, useState, type FC } from "react";
-import {
-  ArrowUp,
-  History,
-  Paperclip,
-  Square,
-  SquarePen,
-  X,
-} from "lucide-react";
+import { useMemo, useRef, type FC } from "react";
+import { ArrowUp, History, Square, SquarePen } from "lucide-react";
 import type { ChatPart, HuntlyModelInfo, SlashPrompt } from "../types";
 import type { TabContext } from "../utils/tabContext";
-import { formatFileSize } from "../utils/format";
 import { getTriggeredPromptPrefix } from "../utils/messageParts";
+import { AttachmentPreviewList } from "./AttachmentPreviewList";
 import { ComposerActionMenu } from "./ComposerActionMenu";
 import { ComposerContextBar } from "./ComposerContextBar";
 import { HighlightedPromptText } from "./HighlightedPromptText";
@@ -18,11 +11,33 @@ import { IconButton } from "./IconButton";
 import { ModelDropdown } from "./ModelDropdown";
 import { SlashPromptMenu } from "./SlashPromptMenu";
 
+function getPastedImageFiles(
+  clipboardData: DataTransfer | null
+): File[] {
+  if (!clipboardData) {
+    return [];
+  }
+
+  const filesFromItems = Array.from(clipboardData.items || [])
+    .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => Boolean(file));
+
+  if (filesFromItems.length > 0) {
+    return filesFromItems;
+  }
+
+  return Array.from(clipboardData.files || []).filter((file) =>
+    file.type.startsWith("image/")
+  );
+}
+
 interface ComposerProps {
   tabContext: TabContext | null;
   contextAttached: boolean;
   contextError: string | null;
   contextLoading: boolean;
+  attachmentProcessingLabel: string | null;
   inputText: string;
   attachments: ChatPart[];
   filteredPrompts: SlashPrompt[];
@@ -41,7 +56,7 @@ interface ComposerProps {
   onAttachContext: () => void;
   onDetachContext: () => void;
   onSlashPromptSelect: (prompt: SlashPrompt) => void;
-  onAttachmentFiles: (files: FileList) => void;
+  onAttachmentFiles: (files: FileList | File[]) => void;
   onAttachmentRemove: (id: string) => void;
   onModelSelect: (model: HuntlyModelInfo) => void;
   onOpenSettings: () => void;
@@ -55,6 +70,7 @@ export const Composer: FC<ComposerProps> = ({
   contextAttached,
   contextError,
   contextLoading,
+  attachmentProcessingLabel,
   inputText,
   attachments,
   filteredPrompts,
@@ -82,39 +98,83 @@ export const Composer: FC<ComposerProps> = ({
   onThinkingModeToggle,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const attachmentProcessing = Boolean(attachmentProcessingLabel);
   const submitDisabled =
-    (!inputText.trim() && attachments.length === 0) || isRunning;
+    (!inputText.trim() && attachments.length === 0) ||
+    isRunning ||
+    attachmentProcessing;
   const triggeredPromptPrefix = useMemo(
     () => getTriggeredPromptPrefix(inputText, slashPrompts),
     [inputText, slashPrompts]
   );
   const slashMenuVisible = inputText.startsWith("/");
+  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedImageFiles = getPastedImageFiles(event.clipboardData);
+    if (pastedImageFiles.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    onAttachmentFiles(pastedImageFiles);
+  };
+
+  const handleComposerMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    if (
+      target.closest(
+        "button, input, textarea, select, a, label, [role='button'], [role='listbox'], [role='option'], [contenteditable='true']"
+      )
+    ) {
+      return;
+    }
+
+    const textarea = inputRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    event.preventDefault();
+    if (document.activeElement !== textarea) {
+      textarea.focus();
+    }
+  };
 
   return (
     <div className="mx-auto w-full max-w-[760px]">
-      <div className="mb-2 flex min-h-8 items-center justify-between gap-2 px-1">
-        {(tabContext || contextError) && (
-          <ComposerContextBar
-            contextAttached={contextAttached}
-            contextError={contextError}
-            contextLoading={contextLoading}
-            onAttachContext={onAttachContext}
-            onDetachContext={onDetachContext}
-            tabContext={tabContext}
-          />
-        )}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <IconButton
-            active={historyOpen}
-            label="Chat history"
-            onClick={onToggleHistory}
-          >
-            <History className="size-4" />
-          </IconButton>
-          <IconButton label="New chat" onClick={onNewChat}>
-            <SquarePen className="size-4" />
-          </IconButton>
+      <div className="mb-2 flex flex-col gap-2 px-1">
+        <div className="flex min-h-8 items-center justify-between gap-2">
+          {tabContext || contextError ? (
+            <ComposerContextBar
+              contextAttached={contextAttached}
+              contextError={contextError}
+              contextLoading={contextLoading}
+              onAttachContext={onAttachContext}
+              onDetachContext={onDetachContext}
+              tabContext={tabContext}
+            />
+          ) : (
+            <span className="min-w-0" />
+          )}
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <IconButton
+              active={historyOpen}
+              label="Chat history"
+              onClick={onToggleHistory}
+            >
+              <History className="size-4" />
+            </IconButton>
+            <IconButton label="New chat" onClick={onNewChat}>
+              <SquarePen className="size-4" />
+            </IconButton>
+          </div>
         </div>
       </div>
       <form className="relative" onSubmit={onSubmit}>
@@ -130,79 +190,26 @@ export const Composer: FC<ComposerProps> = ({
             event.currentTarget.value = "";
           }}
         />
-        <SlashPromptMenu
-          visible={slashMenuVisible}
-          prompts={filteredPrompts}
-          onSelect={onSlashPromptSelect}
-          selectedIndex={slashPromptIndex}
-        />
-
-        <div className="rounded-2xl border border-[#d8cfbf] bg-[#fffaf4] shadow-[0_16px_55px_rgba(64,48,31,0.10)]">
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap items-start gap-2 px-3 pt-3">
-              {attachments.map((attachment) => {
-                const label = attachment.filename || "Attachment";
-                const size = formatFileSize(attachment.size);
-                const isImage = attachment.mediaType?.startsWith("image/");
-                return isImage && attachment.dataUrl ? (
-                  <div
-                    key={attachment.id || label}
-                    className="relative h-24 w-24 shrink-0 rounded-lg border border-[#ded4c4] bg-[#f4efe6]"
-                  >
-                    <button
-                      type="button"
-                      className="h-full w-full overflow-hidden rounded-lg"
-                      onClick={() => setPreviewUrl(attachment.dataUrl!)}
-                      aria-label={`Preview ${label}`}
-                    >
-                      <img
-                        src={attachment.dataUrl}
-                        alt={label}
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                    {attachment.id && (
-                      <button
-                        type="button"
-                        aria-label={`Remove ${label}`}
-                        title={`Remove ${label}`}
-                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#2f261f]/60 text-white transition-colors hover:bg-[#2f261f]/90"
-                        onClick={() => onAttachmentRemove(attachment.id!)}
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    key={attachment.id || label}
-                    className="flex min-w-0 max-w-full items-center gap-1.5 rounded-lg border border-[#ded4c4] bg-[#f4efe6] px-2 py-1 text-xs text-[#5f5347]"
-                  >
-                    <Paperclip className="size-4 shrink-0 text-[#6f6254]" />
-                    <span className="max-w-[180px] truncate font-medium">
-                      {label}
-                    </span>
-                    {size && (
-                      <span className="shrink-0 text-[#6f6254]">{size}</span>
-                    )}
-                    {attachment.id && (
-                      <button
-                        type="button"
-                        aria-label={`Remove ${label}`}
-                        title={`Remove ${label}`}
-                        className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#6f6254] transition-colors hover:bg-[#e9dcc7] hover:text-[#2f261f]"
-                        onClick={() => onAttachmentRemove(attachment.id!)}
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+        <div
+          className="cursor-text rounded-2xl border border-[#d8cfbf] bg-[#fffaf4] shadow-[0_16px_55px_rgba(64,48,31,0.10)]"
+          onMouseDown={handleComposerMouseDown}
+        >
+          {(attachments.length > 0 || attachmentProcessing) && (
+            <div className="px-4 pt-4">
+              <AttachmentPreviewList
+                attachments={attachments}
+                processingLabel={attachmentProcessingLabel}
+                onRemove={onAttachmentRemove}
+              />
             </div>
           )}
-
           <div className="relative min-h-[84px]">
+            <SlashPromptMenu
+              visible={slashMenuVisible}
+              prompts={filteredPrompts}
+              onSelect={onSlashPromptSelect}
+              selectedIndex={slashPromptIndex}
+            />
             {triggeredPromptPrefix && inputText && (
               <div
                 aria-hidden="true"
@@ -217,6 +224,7 @@ export const Composer: FC<ComposerProps> = ({
             )}
             <textarea
               ref={inputRef}
+              aria-busy={attachmentProcessing || undefined}
               value={inputText}
               rows={1}
               className={[
@@ -225,9 +233,10 @@ export const Composer: FC<ComposerProps> = ({
                   ? "text-transparent caret-[#2f261f]"
                   : "text-[#2f261f]",
               ].join(" ")}
-              placeholder="How can I help you today?"
+              placeholder="Ask anything, drop files here, or type / for prompts"
               onChange={onInputChange}
               onKeyDown={onKeyDown}
+              onPaste={handlePaste}
             />
           </div>
 
@@ -264,7 +273,7 @@ export const Composer: FC<ComposerProps> = ({
                 disabled={submitDisabled}
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2f261f] text-[#fffaf4] transition-colors hover:bg-[#46382d] disabled:cursor-not-allowed disabled:bg-[#d7cbbb] disabled:text-[#5f5347]"
                 aria-label="Send"
-                title="Send"
+                title={attachmentProcessing ? "Processing attachment" : "Send"}
               >
                 <ArrowUp className="size-4" />
               </button>
@@ -272,28 +281,6 @@ export const Composer: FC<ComposerProps> = ({
           </div>
         </div>
       </form>
-
-      {previewUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2f261f]/60"
-          onClick={() => setPreviewUrl(null)}
-        >
-          <button
-            type="button"
-            aria-label="Close preview"
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#2f261f]/60 text-white transition-colors hover:bg-[#2f261f]/90"
-            onClick={() => setPreviewUrl(null)}
-          >
-            <X className="size-5" />
-          </button>
-          <img
-            src={previewUrl}
-            alt="Preview"
-            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   );
 };

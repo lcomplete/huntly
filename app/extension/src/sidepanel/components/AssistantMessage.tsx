@@ -1,11 +1,12 @@
-import React, { useMemo, type FC } from "react";
-import { Copy, RotateCcw } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState, type FC } from "react";
+import { Check, Copy, RotateCcw } from "lucide-react";
+import { MessageFooter } from "./MessageFooter";
 import type { ChatMessage } from "../types";
-import { extractSources, getMessageText } from "../utils/messageParts";
+import { extractLinkCardGroups, getMessageText } from "../utils/messageParts";
 import { IconButton } from "./IconButton";
+import { LinkCardsBlock } from "./LinkCardsBlock";
 import { MarkdownContent } from "./MarkdownContent";
 import { ReasoningBlock } from "./ReasoningBlock";
-import { SourcesBlock } from "./SourcesBlock";
 import { ToolCallBlock } from "./ToolCallBlock";
 
 interface AssistantMessageProps {
@@ -13,7 +14,7 @@ interface AssistantMessageProps {
   isLast: boolean;
   isRunning: boolean;
   thinkingMode: boolean;
-  onRegenerate?: () => void;
+  onRegenerate?: (messageId: string) => void;
 }
 
 const AssistantMessageImpl: FC<AssistantMessageProps> = ({
@@ -28,33 +29,76 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
   );
   const showThinkingPreview =
     thinkingMode && isLast && isRunning && !hasReasoningText;
-  const sources = useMemo(() => extractSources(message.parts), [message.parts]);
   const text = useMemo(() => getMessageText(message.parts), [message.parts]);
+  const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
+  const copyResetTimeoutRef = useRef<number | null>(null);
+  const footerButtonClassName =
+    "h-7 w-7 rounded-full text-[#7e7368] hover:bg-[#ede4d7] hover:text-[#2f261f]";
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = () => {
+    if (!text) return;
+
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        if (copyResetTimeoutRef.current !== null) {
+          window.clearTimeout(copyResetTimeoutRef.current);
+        }
+
+        setCopyFeedbackVisible(true);
+        copyResetTimeoutRef.current = window.setTimeout(() => {
+          copyResetTimeoutRef.current = null;
+          setCopyFeedbackVisible(false);
+        }, 1600);
+      })
+      .catch((error) => {
+        console.error("[AssistantMessage] Failed to copy message", error);
+      });
+  };
 
   return (
     <div className="group flex gap-3">
       <div className="min-w-0 flex-1">
-        <SourcesBlock sources={sources} />
         {showThinkingPreview && (
           <ReasoningBlock streaming={true} text="Thinking..." />
         )}
 
         {message.parts.map((part, index) => {
+          if (part.type === "step-start") {
+            return index > 0 ? (
+              <div key={`${message.id}-${index}`} className="my-2">
+                <hr className="border-[#e7ded0]" />
+              </div>
+            ) : null;
+          }
           if (part.type === "reasoning") {
             if (!part.text?.trim()) return null;
 
             return (
               <ReasoningBlock
                 key={part.id || `${message.id}-${index}`}
-                streaming={
-                  isLast && isRunning && index === message.parts.length - 1
-                }
+                streaming={Boolean(part.streaming)}
                 text={part.text}
               />
             );
           }
           if (part.type === "tool-call") {
-            return <ToolCallBlock key={part.toolCallId || index} part={part} />;
+            const linkCardGroups = extractLinkCardGroups(part);
+
+            return (
+              <React.Fragment key={part.toolCallId || `${message.id}-${index}`}>
+                <ToolCallBlock part={part} />
+                <LinkCardsBlock groups={linkCardGroups} />
+              </React.Fragment>
+            );
           }
           if (part.type === "text" && part.text?.trim()) {
             return (
@@ -76,23 +120,31 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
           </div>
         )}
 
-        {isLast && !isRunning && (
-          <div className="mt-3 flex items-center gap-1">
+        {!(isLast && isRunning) && (
+          <MessageFooter actionsVisibility="always">
             <IconButton
               disabled={!text}
-              label="Copy"
-              onClick={() => {
-                if (text) void navigator.clipboard.writeText(text);
-              }}
+              active={copyFeedbackVisible}
+              className={footerButtonClassName}
+              label={copyFeedbackVisible ? "Copied" : "Copy"}
+              onClick={handleCopy}
             >
-              <Copy className="size-4" />
+              {copyFeedbackVisible ? (
+                <Check className="size-4" />
+              ) : (
+                <Copy className="size-4" />
+              )}
             </IconButton>
             {onRegenerate && (
-              <IconButton label="Regenerate" onClick={onRegenerate}>
+              <IconButton
+                className={footerButtonClassName}
+                label="Retry response"
+                onClick={() => onRegenerate(message.id)}
+              >
                 <RotateCcw className="size-4" />
               </IconButton>
             )}
-          </div>
+          </MessageFooter>
         )}
       </div>
     </div>

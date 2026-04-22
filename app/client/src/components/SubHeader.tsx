@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslation } from 'react-i18next';
 import {ReactElement} from "react";
 import {NavLabel, getTranslatedLabel} from "./Navigation/shared/NavLabels";
+import { setDocTitle } from "../common/docUtils";
 import SearchBox from "./SearchBox";
 import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
@@ -20,6 +21,7 @@ export type ButtonOptions = {
 
 type SubHeaderProps = {
   navLabel: NavLabel,
+  documentTitle?: string,
   onMarkListAsRead?: () => void,
   onMarkAllAsRead?: () => void,
   buttonOptions?: ButtonOptions,
@@ -34,6 +36,7 @@ const SubHeader = (props: SubHeaderProps) => {
   const { t } = useTranslation('navigation');
   const {
     navLabel,
+    documentTitle,
     navLabelArea,
     onMarkListAsRead,
     onMarkAllAsRead,
@@ -55,6 +58,12 @@ const SubHeader = (props: SubHeaderProps) => {
   const [viewMode, setViewMode] = React.useState<typeof viewOptions[number]['id']>('magazine');
   const activeView = viewOptions.find((option) => option.id === viewMode) ?? viewOptions[0];
   const ActiveViewIcon = activeView.icon;
+
+  React.useEffect(() => {
+    if (documentTitle) {
+      setDocTitle(documentTitle);
+    }
+  }, [documentTitle]);
 
   const hasButtons = buttonOptions.markRead || buttonOptions.viewSwitch;
   const hasRightContent = Boolean(rightContent);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { deleteSession, saveSession } from "../sessionStorage";
 import type { SessionData } from "../types";
 
@@ -11,13 +11,13 @@ interface PersistenceAPI {
   markDeleted: (id: string) => void;
   /** Cancel any pending debounced save without flushing. */
   cancelPending: () => void;
-  /** Flush a pending save immediately (used on unmount). */
-  flush: () => void;
+  /** Flush pending work and wait for queued writes to finish. */
+  flush: () => Promise<void>;
 }
 
 /**
  * Encapsulates the debounce + serial-write queue + delete-cancel logic for
- * persisting chat sessions to `chrome.storage.local`. Keeps the component
+ * persisting chat sessions to IndexedDB. Keeps the component
  * free of ref-juggling for persistence concerns.
  */
 export function useSessionPersistence(): PersistenceAPI {
@@ -26,7 +26,7 @@ export function useSessionPersistence(): PersistenceAPI {
   const queueRef = useRef<Promise<void>>(Promise.resolve());
   const deletedIdsRef = useRef<Set<string>>(new Set());
 
-  const enqueueSave = useCallback((session: SessionData) => {
+  const enqueueSave = useCallback((session: SessionData): Promise<void> => {
     queueRef.current = queueRef.current
       .catch(() => undefined)
       .then(async () => {
@@ -41,6 +41,8 @@ export function useSessionPersistence(): PersistenceAPI {
       .catch((error) => {
         console.error("[useSessionPersistence] Failed to save session", error);
       });
+
+    return queueRef.current;
   }, []);
 
   const cancelPending = useCallback(() => {
@@ -83,19 +85,31 @@ export function useSessionPersistence(): PersistenceAPI {
     [cancelPending]
   );
 
-  const flush = useCallback(() => {
+  const flush = useCallback(async () => {
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+
     const pending = pendingRef.current;
     pendingRef.current = null;
-    if (pending) enqueueSave(pending);
+
+    if (pending) {
+      await enqueueSave(pending);
+      return;
+    }
+
+    await queueRef.current.catch(() => undefined);
   }, [enqueueSave]);
 
   useEffect(() => {
-    return flush;
+    return () => {
+      void flush();
+    };
   }, [flush]);
 
-  return { persist, markDeleted, cancelPending, flush };
+  return useMemo(
+    () => ({ persist, markDeleted, cancelPending, flush }),
+    [persist, markDeleted, cancelPending, flush]
+  );
 }

@@ -2,9 +2,18 @@ import type { ChatPart, SlashPrompt } from "../types";
 import { parsePromptInput } from "../agentPrompts";
 import { parseMaybeJson } from "./format";
 
-export interface ExtractedSource {
+export interface LinkCardItem {
   href: string;
   title: string;
+  description?: string;
+  meta?: string;
+}
+
+export interface LinkCardGroup {
+  id: string;
+  title: string;
+  items: LinkCardItem[];
+  defaultOpen?: boolean;
 }
 
 export interface DisplayMessage {
@@ -56,36 +65,81 @@ export function addSlashPromptToInput(
   return `/${prompt.trigger} ${remainingText}`;
 }
 
-export function extractSources(parts: ChatPart[]): ExtractedSource[] {
-  const sources: ExtractedSource[] = [];
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function getTrimmedString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function joinMeta(...values: Array<string | undefined>): string | undefined {
+  const parts = values.filter((value): value is string => Boolean(value));
+  return parts.length > 0 ? parts.join(" • ") : undefined;
+}
+
+type ToolLinkCardExtractor = (result: unknown) => LinkCardGroup[];
+
+function extractSearchHuntlyLinkCards(result: unknown): LinkCardGroup[] {
+  const parsed = parseMaybeJson(result);
+  if (!isRecord(parsed)) return [];
+
+  const rawResults = parsed.results;
+  if (!Array.isArray(rawResults)) return [];
+
+  const items: LinkCardItem[] = [];
   const seen = new Set<string>();
 
-  for (const part of parts) {
-    if (
-      part.type !== "tool-call" ||
-      part.toolName !== "search_huntly" ||
-      !part.result
-    ) {
+  for (const item of rawResults) {
+    if (!isRecord(item)) continue;
+
+    const href = getTrimmedString(item.url);
+    const title = getTrimmedString(item.title) || href;
+    if (!href || !title || seen.has(href)) {
       continue;
     }
 
-    const parsed = parseMaybeJson(part.result);
-    if (!parsed || typeof parsed !== "object") continue;
-
-    const results = (parsed as { results?: unknown }).results;
-    if (!Array.isArray(results)) continue;
-
-    for (const item of results) {
-      if (!item || typeof item !== "object") continue;
-      const result = item as { url?: unknown; title?: unknown };
-      if (typeof result.url !== "string" || typeof result.title !== "string") {
-        continue;
-      }
-      if (seen.has(result.url)) continue;
-      seen.add(result.url);
-      sources.push({ href: result.url, title: result.title });
-    }
+    seen.add(href);
+    items.push({
+      href,
+      title,
+      description: getTrimmedString(item.description),
+      meta: joinMeta(
+        getTrimmedString(item.siteName),
+        getTrimmedString(item.domain),
+        getTrimmedString(item.author)
+      ),
+    });
   }
 
-  return sources;
+  return items.length > 0
+    ? [
+        {
+          id: "search-results",
+          title: "Search results",
+          items,
+        },
+      ]
+    : [];
+}
+
+const TOOL_LINK_CARD_EXTRACTORS: Record<string, ToolLinkCardExtractor> = {
+  search_huntly: extractSearchHuntlyLinkCards,
+};
+
+export function extractLinkCardGroups(part: ChatPart): LinkCardGroup[] {
+  if (
+    part.type !== "tool-call" ||
+    !part.toolName ||
+    part.result === undefined ||
+    part.result === null
+  ) {
+    return [];
+  }
+
+  const extractor = TOOL_LINK_CARD_EXTRACTORS[part.toolName];
+  return extractor ? extractor(part.result) : [];
 }

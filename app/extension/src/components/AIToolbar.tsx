@@ -124,13 +124,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   useEffect(() => {
     try {
       const manifest = chrome.runtime.getManifest() as any;
-      const sidePanelApi = (chrome as any).sidePanel;
-      setCanOpenSidePanel(
-        Boolean(
-          manifest.side_panel &&
-            (sidePanelApi?.open || chrome.runtime?.sendMessage)
-        )
-      );
+      setCanOpenSidePanel(Boolean(manifest.side_panel));
     } catch {
       setCanOpenSidePanel(false);
     }
@@ -139,28 +133,20 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   const handleOpenChat = useCallback(async () => {
     try {
       const sidePanelApi = (chrome as any).sidePanel;
-      if (!sidePanelApi?.open) {
-        chrome.runtime?.sendMessage({ type: "open_side_panel" }, () => {
-          if (chrome.runtime.lastError) {
-            console.error(
-              "Failed to request chat side panel:",
-              chrome.runtime.lastError
-            );
+      if (sidePanelApi?.open) {
+        // Extension page context (popup, options) - open directly
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.windowId != null) {
+          await sidePanelApi.open({ windowId: tab.windowId });
+        } else {
+          const currentWindow = await chrome.windows.getCurrent();
+          if (currentWindow?.id != null) {
+            await sidePanelApi.open({ windowId: currentWindow.id });
           }
-        });
-        return;
-      }
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      if (tab?.windowId != null) {
-        await sidePanelApi.open({ windowId: tab.windowId });
-      } else {
-        const currentWindow = await chrome.windows.getCurrent();
-        if (currentWindow?.id != null) {
-          await sidePanelApi.open({ windowId: currentWindow.id });
         }
+      } else {
+        // Content script context - delegate to background
+        chrome.runtime.sendMessage({ type: "open_side_panel" });
       }
     } catch (error) {
       console.error("Failed to open chat side panel:", error);
@@ -182,6 +168,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   );
   const [huntlyShortcutsEnabled, setHuntlyShortcutsEnabled] = useState(
     externalShortcuts?.huntlyShortcutsEnabled ?? true
+  );
+  const [huntlyShortcutsLoaded, setHuntlyShortcutsLoaded] = useState(
+    useExternalShortcuts
   );
   const [loadingShortcuts, setLoadingShortcuts] = useState(
     !useExternalShortcuts
@@ -241,61 +230,25 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   const [modelAnchorEl, setModelAnchorEl] = useState<null | HTMLElement>(null);
   const shortcutMenuOpen = Boolean(shortcutAnchorEl);
   const modelMenuOpen = Boolean(modelAnchorEl);
+  const modelMenuMaxHeight = compact
+    ? "min(280px, calc(100vh - 80px))"
+    : "min(340px, calc(100vh - 96px))";
 
-  // Load shortcuts (only if not using external data)
+  // Load prompts from storage (only if not using external data).
+  // Huntly shortcuts are fetched lazily when Huntly AI is actually used.
   useEffect(() => {
     if (useExternalShortcuts) return;
 
     async function loadShortcuts() {
       setLoadingShortcuts(true);
       try {
-        // Load prompts from storage
         const promptsSettings = await getPromptsSettings();
         const enabledPrompts = promptsSettings.prompts.filter((p) => p.enabled);
         setUserPrompts(enabledPrompts.filter((p) => !p.isSystem));
         setSystemPrompts(enabledPrompts.filter((p) => p.isSystem));
         setHuntlyShortcutsEnabled(promptsSettings.huntlyShortcutsEnabled);
-
-        // Check if server is configured
-        const baseUrl = await getApiBaseUrl();
-
-        // Load huntly shortcuts if enabled and server configured
-        if (baseUrl && promptsSettings.huntlyShortcutsEnabled) {
-          try {
-            // Try direct fetch first (works in popup/options),
-            // fall back to message passing for content scripts (CORS issues)
-            let shortcuts: any[] = [];
-            try {
-              shortcuts = await fetchEnabledShortcuts();
-            } catch (fetchError) {
-              // Direct fetch failed (likely CORS in content script), use message passing
-              const response = await new Promise<{
-                success: boolean;
-                shortcuts: any[];
-              }>((resolve) => {
-                chrome.runtime.sendMessage(
-                  { type: "get_huntly_shortcuts" },
-                  (resp) => {
-                    if (chrome.runtime.lastError) {
-                      console.error(
-                        "Message passing failed:",
-                        chrome.runtime.lastError
-                      );
-                      resolve({ success: false, shortcuts: [] });
-                    } else {
-                      resolve(resp || { success: false, shortcuts: [] });
-                    }
-                  }
-                );
-              });
-              shortcuts = response.shortcuts || [];
-            }
-            setHuntlyShortcuts(shortcuts);
-          } catch (error) {
-            console.error("Failed to load huntly shortcuts:", error);
-            setHuntlyShortcuts([]);
-          }
-        }
+        setHuntlyShortcuts([]);
+        setHuntlyShortcutsLoaded(!promptsSettings.huntlyShortcutsEnabled);
       } catch (error) {
         console.error("Failed to load shortcuts:", error);
       } finally {
@@ -304,6 +257,82 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
     }
     loadShortcuts();
   }, [useExternalShortcuts]);
+
+  useEffect(() => {
+    if (useExternalShortcuts) return;
+    if (!shortcutMenuOpen || !selectedModel) return;
+    if (selectedModel.provider !== "huntly-server") return;
+    if (!huntlyShortcutsEnabled || huntlyShortcutsLoaded) return;
+
+    let cancelled = false;
+
+    async function loadHuntlyShortcuts() {
+      setLoadingShortcuts(true);
+      try {
+        const baseUrl = await getApiBaseUrl();
+        if (!baseUrl) {
+          if (!cancelled) {
+            setHuntlyShortcuts([]);
+            setHuntlyShortcutsLoaded(true);
+          }
+          return;
+        }
+
+        let shortcuts: any[] = [];
+        try {
+          shortcuts = await fetchEnabledShortcuts();
+        } catch (_fetchError) {
+          const response = await new Promise<{
+            success: boolean;
+            shortcuts: any[];
+          }>((resolve) => {
+            chrome.runtime.sendMessage(
+              { type: "get_huntly_shortcuts" },
+              (resp) => {
+                if (chrome.runtime.lastError) {
+                  console.error(
+                    "Message passing failed:",
+                    chrome.runtime.lastError
+                  );
+                  resolve({ success: false, shortcuts: [] });
+                } else {
+                  resolve(resp || { success: false, shortcuts: [] });
+                }
+              }
+            );
+          });
+          shortcuts = response.shortcuts || [];
+        }
+
+        if (!cancelled) {
+          setHuntlyShortcuts(shortcuts);
+          setHuntlyShortcutsLoaded(true);
+        }
+      } catch (error) {
+        console.error("Failed to load huntly shortcuts:", error);
+        if (!cancelled) {
+          setHuntlyShortcuts([]);
+          setHuntlyShortcutsLoaded(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingShortcuts(false);
+        }
+      }
+    }
+
+    void loadHuntlyShortcuts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    huntlyShortcutsEnabled,
+    huntlyShortcutsLoaded,
+    selectedModel,
+    shortcutMenuOpen,
+    useExternalShortcuts,
+  ]);
 
   // Load models (only if not using external data)
   useEffect(() => {
@@ -630,8 +659,9 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         TransitionProps={{ timeout: 180 }}
         PaperProps={{
           sx: {
-            maxHeight: 400,
+            maxHeight: modelMenuMaxHeight,
             minWidth: 200,
+            overflowY: "auto",
             zIndex: menuZIndex,
             borderRadius: "10px",
             border: "1px solid",
@@ -779,14 +809,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
 
       {/* Open Chat Button */}
       {canOpenSidePanel && (
-        <Tooltip
-          title="Open chat"
-          placement="top"
-          PopperProps={{
-            container: menuContainer,
-            sx: { zIndex: menuZIndex },
-          }}
-        >
+        <Tooltip title="Open chat" placement="top">
           <IconButton
             size="small"
             onClick={handleOpenChat}

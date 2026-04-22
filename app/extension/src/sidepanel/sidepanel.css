@@ -290,5 +290,5 @@ textarea:focus-visible {
 }
 
 .reasoning-block[open] .reasoning-chevron {
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 }

@@ -3,11 +3,15 @@ import type {
   SessionData,
   SessionMetadata,
 } from "../types";
+import { getDisplayMessageText } from "./messageParts";
 
 type LegacySessionTiming = {
   lastAssistantResponseAt?: string;
   lastAssistantMessageId?: string;
 };
+
+export const DEFAULT_SESSION_TITLE = "New chat";
+const SESSION_TITLE_MAX_LENGTH = 40;
 
 export function getStoredLastMessageAt(
   session: SessionData | SessionMetadata
@@ -37,6 +41,86 @@ function getTimestamp(value: string | undefined): number {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
+export function deriveSessionTitle(
+  messages: ChatMessage[],
+  currentTitle: string = DEFAULT_SESSION_TITLE
+): string {
+  const trimmedTitle = currentTitle.trim();
+  if (trimmedTitle && trimmedTitle !== DEFAULT_SESSION_TITLE) {
+    return currentTitle;
+  }
+
+  const firstUserMessage = messages.find((message) => message.role === "user");
+  if (!firstUserMessage) {
+    return trimmedTitle || DEFAULT_SESSION_TITLE;
+  }
+
+  const text = getDisplayMessageText(firstUserMessage.parts)
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const fallback = getTitleFallbackFromParts(firstUserMessage.parts);
+  const candidate = text || fallback;
+
+  if (!candidate) {
+    return trimmedTitle || DEFAULT_SESSION_TITLE;
+  }
+
+  return candidate.length <= SESSION_TITLE_MAX_LENGTH
+    ? candidate
+    : `${candidate.slice(0, SESSION_TITLE_MAX_LENGTH - 1).trimEnd()}…`;
+}
+
+function getTitleFallbackFromParts(parts: ChatMessage["parts"]): string {
+  for (const part of parts) {
+    if (part.type === "page-context") {
+      const label = (part.articleTitle || part.title || part.url || "").trim();
+      if (label) return label;
+    }
+    if (part.type === "file" && part.filename) {
+      return part.filename;
+    }
+  }
+  return "";
+}
+
+export function getSessionSortTime(session: SessionMetadata): number {
+  const legacy = session as SessionMetadata & LegacySessionTiming;
+  return getTimestamp(
+    session.lastMessageAt ||
+      legacy.lastAssistantResponseAt ||
+      session.updatedAt ||
+      session.createdAt
+  );
+}
+
+export function compareSessionMetadataByActivity(
+  a: SessionMetadata,
+  b: SessionMetadata
+): number {
+  const pinnedDelta = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+  if (pinnedDelta !== 0) return pinnedDelta;
+
+  if (a.pinned && b.pinned) {
+    const pinnedAtDelta = getTimestamp(b.pinnedAt) - getTimestamp(a.pinnedAt);
+    if (pinnedAtDelta !== 0) return pinnedAtDelta;
+  }
+
+  const messageDelta = getSessionSortTime(b) - getSessionSortTime(a);
+  if (messageDelta !== 0) return messageDelta;
+
+  const createdDelta = getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
+  if (createdDelta !== 0) return createdDelta;
+
+  return a.id.localeCompare(b.id);
+}
+
+export function sortSessionMetadataByActivity(
+  sessions: SessionMetadata[]
+): SessionMetadata[] {
+  return [...sessions].sort(compareSessionMetadataByActivity);
+}
+
 export function hasUnreadMessages(
   session: SessionMetadata,
   currentSessionId: string | null
@@ -60,6 +144,7 @@ export function getLatestMessage(
 }
 
 export type DateGroup =
+  | "Pinned"
   | "Today"
   | "Yesterday"
   | "Last 7 days"
@@ -67,6 +152,7 @@ export type DateGroup =
   | "Older";
 
 export const DATE_GROUP_ORDER: DateGroup[] = [
+  "Pinned",
   "Today",
   "Yesterday",
   "Last 7 days",
@@ -89,13 +175,17 @@ export function groupSessionsByDate(
   const groups = new Map<DateGroup, SessionMetadata[]>();
 
   for (const session of sessions) {
-    const date = new Date(getSessionListDate(session));
     let label: DateGroup;
-    if (date >= today) label = "Today";
-    else if (date >= yesterday) label = "Yesterday";
-    else if (date >= lastWeek) label = "Last 7 days";
-    else if (date >= lastMonth) label = "Last 30 days";
-    else label = "Older";
+    if (session.pinned) {
+      label = "Pinned";
+    } else {
+      const date = new Date(getSessionListDate(session));
+      if (date >= today) label = "Today";
+      else if (date >= yesterday) label = "Yesterday";
+      else if (date >= lastWeek) label = "Last 7 days";
+      else if (date >= lastMonth) label = "Last 30 days";
+      else label = "Older";
+    }
 
     const existing = groups.get(label) || [];
     existing.push(session);

@@ -8,6 +8,7 @@ const SettingsFeeds = () => {
   return (
     <MainContainer>
       <SubHeader
+        documentTitle="Feeds Settings"
         navLabel={{ labelText: 'Feeds', labelIcon: RssFeedIcon }}
         buttonOptions={{ markRead: false }}
       />

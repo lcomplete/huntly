@@ -1,9 +1,3 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createDeepSeek } from '@ai-sdk/deepseek';
-import { createGroq } from '@ai-sdk/groq';
-import { createAzure } from '@ai-sdk/azure';
 import { generateText, LanguageModel } from 'ai';
 import {
   AIProviderConfig,
@@ -11,10 +5,9 @@ import {
   PROVIDER_REGISTRY,
 } from './types';
 import {
-  getOpenAICompatibleBaseUrl,
   getOllamaBaseUrl,
-  getOllamaOpenAIBaseUrl,
 } from './openAICompatibleProviders';
+import { createLanguageModel } from '../sidepanel/modelBridge';
 
 export function createProviderModel(
   config: AIProviderConfig,
@@ -23,113 +16,26 @@ export function createProviderModel(
   const model = modelId || config.enabledModels[0];
   if (!model) return null;
 
-  const meta = PROVIDER_REGISTRY[config.type];
+  // Huntly Server is handled separately via SSE; no AI SDK model is created.
+  if (config.type === 'huntly-server') return null;
 
-  switch (config.type) {
-    case 'openai': {
-      const provider = createOpenAI({
-        apiKey: config.apiKey,
-        baseURL: getOpenAICompatibleBaseUrl(config),
-      });
-      return provider.chat(model) as LanguageModel;
-    }
-
-    case 'anthropic': {
-      const provider = createAnthropic({
-        apiKey: config.apiKey,
-        baseURL: config.baseUrl || undefined,
-        headers: {
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-      });
-      return provider(model) as LanguageModel;
-    }
-
-    case 'google': {
-      const provider = createGoogleGenerativeAI({
-        apiKey: config.apiKey,
-        baseURL: config.baseUrl || undefined,
-      });
-      return provider(model) as LanguageModel;
-    }
-
-    case 'deepseek': {
-      const provider = createDeepSeek({
-        apiKey: config.apiKey,
-        baseURL: config.baseUrl || undefined,
-      });
-      return provider(model) as LanguageModel;
-    }
-
-    case 'groq': {
-      const provider = createGroq({
-        apiKey: config.apiKey,
-      });
-      return provider(model) as LanguageModel;
-    }
-
-    case 'ollama': {
-      const provider = createOpenAI({
-        apiKey: config.apiKey || 'ollama',
-        baseURL: getOllamaOpenAIBaseUrl(config.baseUrl),
-      });
-      return provider.chat(model) as LanguageModel;
-    }
-
-    case 'azure-openai':
-    case 'azure-ai': {
-      if (!config.baseUrl) return null;
-      const provider = createAzure({
-        apiKey: config.apiKey,
-        baseURL: config.baseUrl,
-      });
-      return provider(model) as LanguageModel;
-    }
-
-    case 'qwen': {
-      // Qwen uses OpenAI-compatible API (DashScope)
-      const provider = createOpenAI({
-        apiKey: config.apiKey,
-        baseURL: getOpenAICompatibleBaseUrl(config),
-      });
-      return provider.chat(model) as LanguageModel;
-    }
-
-    case 'zhipu': {
-      // Zhipu AI uses OpenAI-compatible API
-      const provider = createOpenAI({
-        apiKey: config.apiKey,
-        baseURL: getOpenAICompatibleBaseUrl(config),
-      });
-      return provider.chat(model) as LanguageModel;
-    }
-
-    case 'minimax': {
-      // MiniMax uses OpenAI-compatible API
-      const provider = createOpenAI({
-        apiKey: config.apiKey,
-        baseURL: getOpenAICompatibleBaseUrl(config),
-      });
-      return provider.chat(model) as LanguageModel;
-    }
-
-    case 'huntly-server': {
-      // Huntly Server is a special provider that uses the server's AI
-      // It doesn't use the AI SDK directly, but through SSE streaming
-      // Return null here as it's handled separately
-      return null;
-    }
-
-    default:
-      return null;
-  }
+  return createLanguageModel(
+    {
+      type: config.type,
+      apiKey: config.apiKey,
+      baseUrl: config.baseUrl,
+      enabledModels: config.enabledModels,
+      enabled: config.enabled,
+      apiFormat: config.apiFormat,
+    },
+    model
+  ) as LanguageModel | null;
 }
 
 export async function testProviderConnection(
   config: AIProviderConfig
 ): Promise<ConnectionTestResult> {
   try {
-    // Huntly Server doesn't use the AI SDK directly
     if (config.type === 'huntly-server') {
       return {
         success: true,
@@ -184,8 +90,6 @@ export async function testProviderConnection(
       maxOutputTokens: 5,
     });
 
-    // Check if we got a valid response - result.text can be empty string for some models
-    // Also check finishReason to ensure the request actually completed
     if (result.text !== undefined && result.text !== null) {
       const responseText = result.text.trim();
       return {
@@ -202,7 +106,7 @@ export async function testProviderConnection(
     };
   } catch (error: any) {
     let message = error.message || 'Connection failed';
-    
+
     if (message.includes('401') || message.includes('Unauthorized')) {
       message = 'Invalid API Key';
     } else if (message.includes('403') || message.includes('Forbidden')) {

@@ -26,18 +26,13 @@ import {
 import { PROVIDER_REGISTRY, ProviderType } from "./ai/types";
 import { createProviderModel } from "./ai/providers";
 import {
-  getOpenAICompatibleBaseUrl,
-  usesRawOpenAICompatibleStream,
-} from "./ai/openAICompatibleProviders";
-import {
   applyStreamingPreviewChunk,
   createStreamingPreviewState,
   getStreamingPreviewResult,
   hasStreamingPreviewStateChanged,
 } from "./ai/streamingPreview";
-import { streamOpenAICompatibleChatCompletion } from "./ai/openAICompatibleStream";
-import { getThinkingModeOptions } from "./ai/thinkingMode";
 import { streamText } from "ai";
+import type { ProviderOptions } from "@ai-sdk/provider-utils";
 // Note: turndown is not used here because service worker has no DOM
 // HTML to markdown conversion should be done in content script/popup before sending to background
 
@@ -50,6 +45,36 @@ const badgeCache = new Map<number, string>();
 const SAVED_BADGE_TEXT = "✓";
 const SAVED_BADGE_BG = "#15803D";
 const AI_MAX_OUTPUT_TOKENS = 20000;
+const ANTHROPIC_THINKING_BUDGET_TOKENS = 4000;
+
+function buildThinkingProviderOptions(): ProviderOptions {
+  return {
+    anthropic: {
+      thinking: {
+        type: "enabled",
+        budgetTokens: ANTHROPIC_THINKING_BUDGET_TOKENS,
+      },
+    },
+    deepseek: {
+      thinking: { type: "enabled" },
+    },
+    google: {
+      thinkingConfig: {
+        thinkingLevel: "high",
+        includeThoughts: true,
+      },
+    },
+    groq: {
+      reasoningEffort: "high",
+    },
+    openai: {
+      systemMessageMode: "system",
+      reasoningEffort: "high",
+      reasoningSummary: "auto",
+      forceReasoning: true,
+    },
+  };
+}
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -368,95 +393,51 @@ async function startProcessingWithVercelAI(task: any) {
     let streamState = createStreamingPreviewState();
     const includeReasoningPreview = Boolean(thinkingModeEnabled);
 
-    if (usesRawOpenAICompatibleStream(config)) {
-      const baseUrl = getOpenAICompatibleBaseUrl(config);
-      if (!baseUrl) {
-        throw new Error(`Provider ${providerType} base URL is not configured`);
+    // Create the model
+    const model = createProviderModel(config, modelId);
+    if (!model) {
+      throw new Error(`Failed to create model for ${providerType}`);
+    }
+
+    // Use streamText for streaming response with abort signal
+    const result = streamText({
+      model,
+      system: systemPrompt,
+      prompt: userPrompt,
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+      abortSignal: abortController.signal,
+      providerOptions: thinkingModeEnabled
+        ? buildThinkingProviderOptions()
+        : undefined,
+    });
+
+    // Process the full stream so providers that emit reasoning deltas before
+    // text deltas (for example, glm-5) still produce visible incremental output.
+    for await (const chunk of result.fullStream) {
+      // Check if aborted
+      if (abortController.signal.aborted) {
+        break;
       }
 
-      await streamOpenAICompatibleChatCompletion({
-        apiKey: config.apiKey,
-        baseUrl,
-        modelId,
-        systemPrompt,
-        userPrompt,
-        maxTokens: AI_MAX_OUTPUT_TOKENS,
-        requestBodyExtras: getThinkingModeOptions(Boolean(thinkingModeEnabled)),
-        abortSignal: abortController.signal,
-        onDelta: ({ contentDelta, reasoningDelta }) => {
-          let nextStreamState = streamState;
-
-          if (reasoningDelta) {
-            nextStreamState = applyStreamingPreviewChunk(nextStreamState, {
-              type: "reasoning",
-              textDelta: reasoningDelta,
-            }, {
-              includeReasoning: includeReasoningPreview,
-            });
-          }
-
-          if (contentDelta) {
-            nextStreamState = applyStreamingPreviewChunk(nextStreamState, {
-              type: "text-delta",
-              textDelta: contentDelta,
-            });
-          }
-
-          if (!hasStreamingPreviewStateChanged(streamState, nextStreamState)) {
-            return;
-          }
-
-          streamState = nextStreamState;
-          sendStreamingPreviewUpdate(
-            streamState,
-            contentDelta || reasoningDelta
-          );
-        },
+      const nextStreamState = applyStreamingPreviewChunk(streamState, chunk, {
+        includeReasoning: includeReasoningPreview,
       });
-    } else {
-      // Create the model
-      const model = createProviderModel(config, modelId);
-      if (!model) {
-        throw new Error(`Failed to create model for ${providerType}`);
+      if (!hasStreamingPreviewStateChanged(streamState, nextStreamState)) {
+        continue;
       }
+      streamState = nextStreamState;
 
-      // Use streamText for streaming response with abort signal
-      const result = streamText({
-        model,
-        system: systemPrompt,
-        prompt: userPrompt,
-        maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
-        abortSignal: abortController.signal,
-      });
-
-      // Process the full stream so providers that emit reasoning deltas before
-      // text deltas (for example, glm-5) still produce visible incremental output.
-      for await (const chunk of result.fullStream) {
-        // Check if aborted
-        if (abortController.signal.aborted) {
-          break;
-        }
-
-        const nextStreamState = applyStreamingPreviewChunk(streamState, chunk, {
-          includeReasoning: includeReasoningPreview,
-        });
-        if (!hasStreamingPreviewStateChanged(streamState, nextStreamState)) {
-          continue;
-        }
-        streamState = nextStreamState;
-
-        // Send streaming data to preview
-        try {
-          sendStreamingPreviewUpdate(
-            streamState,
-            chunk.type === "text-delta" || chunk.type === "reasoning-delta"
-              ? chunk.text
-              : ""
-          );
-        } catch (error) {
-          console.warn("Failed to send shortcuts_process_data message:", error);
-          break;
-        }
+      // Send streaming data to preview
+      try {
+        sendStreamingPreviewUpdate(
+          streamState,
+          chunk.type === "text-delta" || chunk.type === "reasoning-delta"
+            ? chunk.text
+            : ""
+        );
+      } catch (error) {
+        console.warn("Failed to send shortcuts_process_data message:", error);
+        break;
       }
     }
 

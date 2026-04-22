@@ -8,6 +8,7 @@ const SettingsGeneral = () => {
   return (
     <MainContainer>
       <SubHeader
+        documentTitle="General Settings"
         navLabel={{ labelText: 'General', labelIcon: SettingsIcon }}
         buttonOptions={{ markRead: false }}
       />

@@ -15,7 +15,16 @@ const MarkdownContentImpl: FC<MarkdownContentProps> = ({ text, className }) => (
     }
   >
     <div className={className}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown
+        components={{
+          a: ({ ...props }) => (
+            <a {...props} rel="noopener noreferrer" target="_blank" />
+          ),
+        }}
+        remarkPlugins={[remarkGfm]}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   </ErrorBoundary>
 );

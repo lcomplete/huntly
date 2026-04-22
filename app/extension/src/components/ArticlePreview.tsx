@@ -234,6 +234,33 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
   const originalContentRef = useRef<HTMLDivElement>(null);
   const streamingRendererRef = useRef<StreamingContentRendererHandle>(null);
 
+  useEffect(() => {
+    const articleElement = originalContentRef.current;
+    if (!articleElement) {
+      return;
+    }
+
+    articleElement.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((link) => {
+      const href = link.getAttribute("href");
+      if (!href) {
+        return;
+      }
+
+      try {
+        const resolvedUrl = new URL(href, page.url);
+        if (resolvedUrl.protocol === "javascript:" || resolvedUrl.protocol === "data:") {
+          return;
+        }
+        link.href = resolvedUrl.toString();
+      } catch (_error) {
+        return;
+      }
+
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    });
+  }, [page.content, page.url]);
+
   // Check if Huntly server is configured
   useEffect(() => {
     readSyncStorageSettings().then((settings) => {

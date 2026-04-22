@@ -17,6 +17,16 @@ export type ProviderType =
   | 'azure-ai'
   | 'huntly-server';
 
+/**
+ * Wire format used to talk to the provider's HTTP API.
+ *
+ * Most providers have a single well-known format (OpenAI, Anthropic, Gemini,
+ * Azure, …). A few (qwen/zhipu/minimax) expose their models through both
+ * OpenAI-compatible and Anthropic-compatible endpoints; for those we let the
+ * user pick which one to use.
+ */
+export type ProviderApiFormat = 'openai' | 'anthropic';
+
 // AI Provider configuration
 export interface AIProviderConfig {
   type: ProviderType;
@@ -25,6 +35,11 @@ export interface AIProviderConfig {
   enabledModels: string[];
   enabled: boolean;
   updatedAt: number;
+  /**
+   * Only meaningful when the provider meta has `supportsCustomApiFormat = true`.
+   * Ignored for providers with a fixed native format.
+   */
+  apiFormat?: ProviderApiFormat;
 }
 
 // All AI providers storage structure
@@ -43,6 +58,16 @@ export interface ProviderMeta {
   supportsCustomUrl: boolean;
   defaultBaseUrl: string;
   defaultModels: ModelInfo[];
+  /**
+   * The wire format natively used by this provider.
+   * For providers that support multiple formats this is the default.
+   */
+  nativeApiFormat: ProviderApiFormat;
+  /**
+   * When true, the user can choose between OpenAI- and Anthropic-compatible
+   * endpoints for the same provider (qwen / zhipu / minimax currently).
+   */
+  supportsCustomApiFormat?: boolean;
 }
 
 // Model information
@@ -69,6 +94,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.openai.com/v1',
+    nativeApiFormat: 'openai',
     defaultModels: [
       { id: 'gpt-5.4' },
       { id: 'gpt-5.3-codex' },
@@ -94,6 +120,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.deepseek.com',
+    nativeApiFormat: 'openai',
     defaultModels: [
       // DeepSeek official API only supports these two model IDs
       // deepseek-chat: Non-thinking mode (V3.2)
@@ -110,6 +137,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: false,
     defaultBaseUrl: 'https://api.groq.com/openai/v1',
+    nativeApiFormat: 'openai',
     defaultModels: [
       { id: 'groq/compound-mini' },
       { id: 'qwen/qwen3-32b' },
@@ -130,6 +158,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    nativeApiFormat: 'openai',
     defaultModels: [
       { id: 'gemini-3-pro-preview' },
       { id: 'gemini-3-flash-preview' },
@@ -148,6 +177,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: false,
     supportsCustomUrl: true,
     defaultBaseUrl: 'http://localhost:11434',
+    nativeApiFormat: 'openai',
     defaultModels: [
       { id: 'qwq:32b' },
       { id: 'phi4' },
@@ -169,6 +199,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.anthropic.com/v1',
+    nativeApiFormat: 'anthropic',
     defaultModels: [
       { id: 'claude-opus-4-6-20260205' },
       { id: 'claude-sonnet-4-6-20260217' },
@@ -189,6 +220,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: '',
+    nativeApiFormat: 'openai',
     defaultModels: [
       { id: 'gpt-5.2' },
       { id: 'gpt-5' },
@@ -208,6 +240,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: '',
+    nativeApiFormat: 'openai',
     defaultModels: [
       { id: 'Mistral-small-2503' },
       { id: 'DeepSeek-V3' },
@@ -226,6 +259,8 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    nativeApiFormat: 'openai',
+    supportsCustomApiFormat: true,
     defaultModels: [
       { id: 'qwen3.5-plus' },
       { id: 'qwen3-max' },
@@ -248,6 +283,8 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    nativeApiFormat: 'openai',
+    supportsCustomApiFormat: true,
     defaultModels: [
       { id: 'glm-5' },
       { id: 'glm-4.7' },
@@ -271,6 +308,8 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.minimax.chat/v1',
+    nativeApiFormat: 'openai',
+    supportsCustomApiFormat: true,
     defaultModels: [
       { id: 'MiniMax-M2.5' },
       { id: 'MiniMax-M2.5-highspeed' },
@@ -291,6 +330,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     requiresApiKey: false,
     supportsCustomUrl: false,
     defaultBaseUrl: '',
+    nativeApiFormat: 'openai',
     defaultModels: [
       { id: 'server-default' },
     ],
@@ -331,3 +371,20 @@ export const DEFAULT_AI_STORAGE: AIProvidersStorage = {
   },
   defaultProvider: null,
 };
+
+/**
+ * Resolve the effective API wire format for a provider configuration.
+ *
+ * If the provider meta allows a custom format and the config picked one,
+ * use the user's choice; otherwise fall back to the provider's native format.
+ */
+export function getEffectiveApiFormat(
+  config: Pick<AIProviderConfig, 'type' | 'apiFormat'>
+): ProviderApiFormat {
+  const meta = PROVIDER_REGISTRY[config.type];
+  if (meta?.supportsCustomApiFormat && config.apiFormat) {
+    return config.apiFormat;
+  }
+  return meta?.nativeApiFormat || 'openai';
+}
+

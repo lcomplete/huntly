@@ -8,6 +8,7 @@ const SettingsLibrary = () => {
   return (
     <MainContainer>
       <SubHeader
+        documentTitle="Library Settings"
         navLabel={{ labelText: 'Library', labelIcon: LibraryBooksIcon }}
         buttonOptions={{ markRead: false }}
       />

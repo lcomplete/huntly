@@ -8,6 +8,7 @@ const SettingsAccount = () => {
   return (
     <MainContainer>
       <SubHeader
+        documentTitle="Account Settings"
         navLabel={{ labelText: 'Account', labelIcon: AccountBoxIcon }}
         buttonOptions={{ markRead: false }}
       />

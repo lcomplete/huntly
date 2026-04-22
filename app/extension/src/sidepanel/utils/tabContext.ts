@@ -48,6 +48,19 @@ function sendMessageToTab(tabId: number, message: unknown): Promise<any> {
   });
 }
 
+function sendRuntimeMessage(message: unknown): Promise<any> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      const error = chrome.runtime.lastError;
+      if (error) {
+        reject(new Error(error.message));
+        return;
+      }
+      resolve(response);
+    });
+  });
+}
+
 function buildPageContextMarkdown(page: ParsedPageContext): string {
   const meta: string[] = [];
   if (page.url) meta.push(`**URL:** ${page.url}`);
@@ -129,6 +142,180 @@ export async function createAttachmentPart(file: File): Promise<ChatPart> {
     size: file.size,
     dataUrl: await readFileAsDataUrl(file),
   };
+}
+
+function estimateDataUrlSize(encoded: string, isBase64: boolean): number | undefined {
+  if (!encoded) return 0;
+
+  if (isBase64) {
+    const normalized = encoded.replace(/\s/g, "");
+    const padding = normalized.endsWith("==")
+      ? 2
+      : normalized.endsWith("=")
+      ? 1
+      : 0;
+    return Math.max(0, Math.floor((normalized.length * 3) / 4) - padding);
+  }
+
+  try {
+    return new TextEncoder().encode(decodeURIComponent(encoded)).length;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseImageDataUrl(dataUrl: string): {
+  mediaType: string;
+  size?: number;
+} {
+  if (!dataUrl.startsWith("data:")) {
+    throw new Error("Dropped data is not a valid image data URL");
+  }
+
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex < 0) {
+    throw new Error("Dropped data is not a valid image payload");
+  }
+
+  const metadata = dataUrl.slice(5, commaIndex);
+  const mediaType = metadata.split(";")[0] || "";
+  if (!mediaType.startsWith("image/")) {
+    throw new Error("Dropped data is not an image");
+  }
+
+  return {
+    mediaType,
+    size: estimateDataUrlSize(
+      dataUrl.slice(commaIndex + 1),
+      metadata.includes(";base64")
+    ),
+  };
+}
+
+function inferFilenameFromUrl(url: string, fallbackExt: string): string {
+  try {
+    const parsed = new URL(url);
+    const last = parsed.pathname.split("/").filter(Boolean).pop() || "";
+    if (last && /\.[a-z0-9]+$/i.test(last)) return decodeURIComponent(last);
+    if (last) return `${decodeURIComponent(last)}.${fallbackExt}`;
+  } catch {
+    // ignore
+  }
+  return `image-${Date.now()}.${fallbackExt}`;
+}
+
+function inferFilenameFromMediaType(mediaType: string, prefix = "image"): string {
+  const extension = mediaType.split("/")[1]?.split(/[+;]/)[0] || "bin";
+  return `${prefix}-${Date.now()}.${extension}`;
+}
+
+async function fetchDroppedImageDataUrl(url: string): Promise<string> {
+  if (/^data:image\//i.test(url)) {
+    return url;
+  }
+
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (tab?.id) {
+    try {
+      const response = await sendMessageToTab(tab.id, {
+        type: "fetch_image",
+        payload: { url },
+      });
+
+      if (response?.success && response.dataUrl) {
+        return response.dataUrl;
+      }
+    } catch {
+      // Fall back to background fetch for standard URLs.
+    }
+  }
+
+  if (url.startsWith("blob:")) {
+    throw new Error("Failed to fetch blob image from the current tab");
+  }
+
+  const response = await sendRuntimeMessage({
+    type: "fetch_image",
+    payload: { url },
+  });
+
+  if (!response?.success || !response.dataUrl) {
+    throw new Error(response?.error || "Failed to fetch image");
+  }
+
+  return response.dataUrl;
+}
+
+export async function createAttachmentPartFromDataUrl(
+  dataUrl: string,
+  filename?: string
+): Promise<ChatPart> {
+  const { mediaType, size } = parseImageDataUrl(dataUrl);
+
+  return {
+    id: generateId(),
+    type: "file",
+    filename: filename || inferFilenameFromMediaType(mediaType),
+    mediaType,
+    size,
+    dataUrl,
+  };
+}
+
+export async function createAttachmentPartFromUrl(
+  url: string
+): Promise<ChatPart> {
+  const dataUrl = await fetchDroppedImageDataUrl(url);
+  const filename = url.startsWith("http://") || url.startsWith("https://")
+    ? inferFilenameFromUrl(url, "png")
+    : undefined;
+  return createAttachmentPartFromDataUrl(dataUrl, filename);
+}
+
+export async function getDraggedImageSource(): Promise<string | null> {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.id) {
+    return null;
+  }
+
+  try {
+    const response = await sendMessageToTab(tab.id, {
+      type: "get_dragged_image",
+    });
+
+    return response?.success && typeof response.url === "string"
+      ? response.url
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearDraggedImageSource(): Promise<void> {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.id) {
+    return;
+  }
+
+  try {
+    await sendMessageToTab(tab.id, {
+      type: "clear_dragged_image",
+    });
+  } catch {
+    // Ignore transient tab messaging failures.
+  }
 }
 
 export function onConfigChange(callback: () => void): () => void {
