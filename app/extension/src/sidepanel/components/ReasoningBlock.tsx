@@ -1,5 +1,5 @@
 import React, { type FC } from "react";
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface ReasoningBlockProps {
@@ -17,7 +17,6 @@ const ReasoningBlockImpl: FC<ReasoningBlockProps> = ({ text, streaming }) => (
         aria-hidden="true"
         className="reasoning-chevron size-3.5 shrink-0 transition-transform"
       />
-      <Sparkles aria-hidden="true" className="size-3.5 shrink-0" />
       <span className="font-medium">
         {streaming ? "Thinking" : "Thoughts"}
       </span>

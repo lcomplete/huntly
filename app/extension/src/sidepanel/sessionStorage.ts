@@ -157,6 +157,8 @@ function normalizeSessionTiming(session: SessionData): SessionData {
   const normalizedTitleGenerationStatus = normalizeTitleGenerationStatus(
     session.titleGenerationStatus
   );
+  const pinned = Boolean(session.pinned);
+  const archived = Boolean(session.archived);
   return {
     id: session.id,
     title: (session.title || "").trim() || DEFAULT_SESSION_TITLE,
@@ -180,6 +182,10 @@ function normalizeSessionTiming(session: SessionData): SessionData {
       latestMessage?.id,
     lastOpenedAt:
       session.lastOpenedAt || session.updatedAt || session.createdAt,
+    pinned,
+    pinnedAt: pinned ? session.pinnedAt || session.updatedAt : undefined,
+    archived,
+    archivedAt: archived ? session.archivedAt || session.updatedAt : undefined,
   };
 }
 
@@ -195,7 +201,9 @@ export function reconcileSessionMetadata(
   if (
     reconciled.title === metadata.title &&
     reconciled.titleGenerationStatus === metadata.titleGenerationStatus &&
-    reconciled.titleGeneratedAt === metadata.titleGeneratedAt
+    reconciled.titleGeneratedAt === metadata.titleGeneratedAt &&
+    Boolean(reconciled.pinned) === Boolean(metadata.pinned) &&
+    Boolean(reconciled.archived) === Boolean(metadata.archived)
   ) {
     return metadata;
   }
@@ -360,6 +368,10 @@ export function buildSessionMetadata(session: SessionData): SessionMetadata {
     messageCount: normalized.messages.length,
     preview: getMessageTextPreview(normalized.messages),
     currentModelId: normalized.currentModelId,
+    pinned: normalized.pinned,
+    pinnedAt: normalized.pinnedAt,
+    archived: normalized.archived,
+    archivedAt: normalized.archivedAt,
   };
 }
 
@@ -476,6 +488,82 @@ export async function markSessionOpened(
         : Promise.resolve(undefined),
     ]);
   });
+}
+
+async function patchStoredSession(
+  sessionId: string,
+  patch: (session: SessionData) => SessionData | null
+): Promise<SessionMetadata | null> {
+  return withTransaction(
+    [SESSIONS_STORE, METADATA_STORE],
+    "readwrite",
+    async (stores) => {
+      const stored = (await requestToPromise(
+        stores[SESSIONS_STORE].get(sessionId)
+      )) as SessionData | null;
+      if (!stored) return null;
+
+      const nextSession = patch(stored);
+      if (!nextSession) return null;
+
+      const normalized = normalizeSessionTiming(nextSession);
+      const metadata = buildSessionMetadata(normalized);
+
+      await Promise.all([
+        requestToPromise(
+          stores[SESSIONS_STORE].put(JSON.parse(JSON.stringify(normalized)))
+        ),
+        requestToPromise(
+          stores[METADATA_STORE].put(JSON.parse(JSON.stringify(metadata)))
+        ),
+      ]);
+
+      return metadata;
+    }
+  );
+}
+
+export async function renameSession(
+  sessionId: string,
+  rawTitle: string
+): Promise<SessionMetadata | null> {
+  const title = rawTitle.trim();
+  if (!title) return null;
+
+  const now = new Date().toISOString();
+  return patchStoredSession(sessionId, (session) => ({
+    ...session,
+    title,
+    titleGenerationStatus: "generated",
+    titleGeneratedAt: now,
+    updatedAt: now,
+  }));
+}
+
+export async function setSessionPinned(
+  sessionId: string,
+  pinned: boolean
+): Promise<SessionMetadata | null> {
+  const now = new Date().toISOString();
+  return patchStoredSession(sessionId, (session) => ({
+    ...session,
+    pinned,
+    pinnedAt: pinned ? now : undefined,
+    updatedAt: session.updatedAt,
+  }));
+}
+
+export async function setSessionArchived(
+  sessionId: string,
+  archived: boolean
+): Promise<SessionMetadata | null> {
+  const now = new Date().toISOString();
+  return patchStoredSession(sessionId, (session) => ({
+    ...session,
+    archived,
+    archivedAt: archived ? now : undefined,
+    updatedAt: session.updatedAt,
+  }));
 }
 
 export async function listSessionMetadata(): Promise<SessionMetadata[]> {

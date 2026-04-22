@@ -30,6 +30,9 @@ import {
   getSession,
   listSessionMetadata,
   markSessionOpened,
+  renameSession,
+  setSessionArchived,
+  setSessionPinned,
 } from "./sessionStorage";
 import {
   composePromptMessage,
@@ -70,6 +73,7 @@ import {
 } from "./utils/messageParts";
 import {
   DEFAULT_SESSION_TITLE,
+  deriveSessionTitle,
   getLatestMessage,
   sortSessionMetadataByActivity,
   getStoredLastMessageAt,
@@ -77,6 +81,12 @@ import {
 } from "./utils/sessions";
 import { useAutosizeTextArea } from "./utils/dom";
 import { useSessionPersistence } from "./hooks/useSessionPersistence";
+import {
+  getNextTitleGenerationRetryState,
+  hasTitleGenerationAttemptsRemaining,
+  resetTitleGenerationRetryState,
+  type TitleGenerationRetryState,
+} from "./utils/titleGenerationRetry";
 import { Composer } from "./components/Composer";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { MessageList } from "./components/MessageList";
@@ -89,6 +99,8 @@ import {
 const SCROLL_PIN_THRESHOLD_PX = 96;
 const TITLE_MAX_LENGTH = 80;
 const TITLE_TRANSCRIPT_MAX_LENGTH = 4000;
+const TITLE_GENERATION_MAX_ATTEMPTS = 3;
+const TITLE_GENERATION_RETRY_DELAY_MS = 1500;
 const DROPPABLE_STRING_TYPES = new Set([
   "text/plain",
   "text/uri-list",
@@ -417,11 +429,14 @@ async function generateSessionTitle(
   );
 
   let streamError: unknown = null;
+  // 256 leaves room for reasoning-capable models (o-series, gpt-5, Claude
+  // thinking, Gemini thinking) to consume hidden budget before emitting
+  // the title. 24 tokens starved them and produced empty output.
   const result = streamText({
     model: modelInfo.model as any,
     system: systemPrompt,
     prompt: `Conversation transcript:\n\n${transcript}\n\nGenerate one short title for this conversation. Output only the title.`,
-    maxOutputTokens: 24,
+    maxOutputTokens: 256,
     abortSignal,
     providerOptions: {
       openai: { systemMessageMode: "system" },
@@ -451,6 +466,7 @@ export const SidepanelApp: FC = () => {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionMetadata[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [thinkingMode, setThinkingMode] = useState(false);
   const [tabContext, setTabContext] = useState<TabContext | null>(null);
   const [attachedPageContext, setAttachedPageContext] =
@@ -473,6 +489,13 @@ export const SidepanelApp: FC = () => {
   const currentSessionIdRef = useRef<string | null>(null);
   const titleGenerationRequestKeyRef = useRef<string | null>(null);
   const titleGenerationAbortRef = useRef<AbortController | null>(null);
+  const titleGenerationRetryStateRef = useRef<TitleGenerationRetryState>(
+    resetTitleGenerationRetryState()
+  );
+  const titleGenerationRetryTimeoutRef = useRef<number | null>(null);
+  const maybeGenerateSessionTitleRef = useRef<
+    ((session: SessionData, chatMessages: ChatMessage[]) => void) | null
+  >(null);
   const titleGenerationSystemPromptRef = useRef(
     buildSidepanelTitleGenerationSystemPrompt("English")
   );
@@ -498,6 +521,15 @@ export const SidepanelApp: FC = () => {
   useEffect(() => {
     titleGenerationSystemPromptRef.current = titleGenerationSystemPrompt;
   }, [titleGenerationSystemPrompt]);
+
+  const clearScheduledTitleGenerationRetry = useCallback(() => {
+    if (titleGenerationRetryTimeoutRef.current !== null) {
+      window.clearTimeout(titleGenerationRetryTimeoutRef.current);
+      titleGenerationRetryTimeoutRef.current = null;
+    }
+
+    titleGenerationRetryStateRef.current = resetTitleGenerationRetryState();
+  }, []);
 
   const syncSessionSnapshot = useCallback(
     (updated: SessionData, immediate: boolean) => {
@@ -545,20 +577,80 @@ export const SidepanelApp: FC = () => {
       }
 
       const requestKey = `${session.id}:${latestMessage.id || chatMessages.length}`;
+      if (titleGenerationRetryStateRef.current.requestKey !== requestKey) {
+        clearScheduledTitleGenerationRetry();
+        titleGenerationRetryStateRef.current = resetTitleGenerationRetryState(
+          requestKey
+        );
+      }
+
       if (titleGenerationRequestKeyRef.current === requestKey) {
         return;
       }
+
+      const nextRetryState = getNextTitleGenerationRetryState(
+        titleGenerationRetryStateRef.current,
+        requestKey
+      );
+      const nextAttempt = nextRetryState.attempts;
+      titleGenerationRetryStateRef.current = nextRetryState;
 
       console.debug("[SidepanelApp] maybeGenerateSessionTitle: scheduling", {
         sessionId: session.id,
         latestMessageId: latestMessage.id,
         latestStatus: latestMessage.status,
+        attempt: nextAttempt,
       });
 
       titleGenerationAbortRef.current?.abort();
       const controller = new AbortController();
       titleGenerationAbortRef.current = controller;
       titleGenerationRequestKeyRef.current = requestKey;
+
+      const applyTitleResult = (title: string | null, reason: "llm" | "fallback") => {
+        const activeSession = sessionRef.current;
+        if (!activeSession || activeSession.id !== session.id) {
+          console.debug(
+            "[SidepanelApp] Title generation: session changed, discarding",
+            { expectedSessionId: session.id, activeSessionId: activeSession?.id }
+          );
+          return;
+        }
+
+        const resolved =
+          title || deriveSessionTitle(chatMessages, DEFAULT_SESSION_TITLE);
+        if (!resolved || resolved === DEFAULT_SESSION_TITLE) {
+          console.warn(
+            "[SidepanelApp] Title generation produced no title; marking failed",
+            { sessionId: session.id, reason }
+          );
+          syncSessionSnapshot(
+            {
+              ...activeSession,
+              titleGenerationStatus: "failed",
+              titleGeneratedAt: undefined,
+            },
+            true
+          );
+          return;
+        }
+
+        console.debug("[SidepanelApp] Title generation: applying title", {
+          sessionId: session.id,
+          title: resolved,
+          reason,
+        });
+        clearScheduledTitleGenerationRetry();
+        syncSessionSnapshot(
+          {
+            ...activeSession,
+            title: resolved,
+            titleGenerationStatus: "generated",
+            titleGeneratedAt: new Date().toISOString(),
+          },
+          true
+        );
+      };
 
       void generateSessionTitle(
         chatMessages,
@@ -570,45 +662,7 @@ export const SidepanelApp: FC = () => {
           if (controller.signal.aborted) {
             return;
           }
-
-          const activeSession = sessionRef.current;
-          if (!activeSession || activeSession.id !== session.id) {
-            console.debug(
-              "[SidepanelApp] Title generation: session changed, discarding",
-              { expectedSessionId: session.id, activeSessionId: activeSession?.id }
-            );
-            return;
-          }
-
-          if (!title) {
-            console.warn(
-              "[SidepanelApp] Title generation produced empty title; marking failed",
-              { sessionId: session.id }
-            );
-            syncSessionSnapshot(
-              {
-                ...activeSession,
-                titleGenerationStatus: "failed",
-                titleGeneratedAt: undefined,
-              },
-              true
-            );
-            return;
-          }
-
-          console.debug("[SidepanelApp] Title generation: applying title", {
-            sessionId: session.id,
-            title,
-          });
-          syncSessionSnapshot(
-            {
-              ...activeSession,
-              title,
-              titleGenerationStatus: "generated",
-              titleGeneratedAt: new Date().toISOString(),
-            },
-            true
-          );
+          applyTitleResult(title, title ? "llm" : "fallback");
         })
         .catch((error) => {
           if (controller.signal.aborted) {
@@ -617,19 +671,45 @@ export const SidepanelApp: FC = () => {
 
           console.error("[SidepanelApp] Failed to generate session title", error);
 
-          const activeSession = sessionRef.current;
-          if (!activeSession || activeSession.id !== session.id) {
+          if (
+            hasTitleGenerationAttemptsRemaining(
+              nextAttempt,
+              TITLE_GENERATION_MAX_ATTEMPTS
+            )
+          ) {
+            console.debug("[SidepanelApp] Retrying title generation", {
+              sessionId: session.id,
+              requestKey,
+              attempt: nextAttempt,
+              maxAttempts: TITLE_GENERATION_MAX_ATTEMPTS,
+            });
+
+            if (titleGenerationRetryTimeoutRef.current !== null) {
+              window.clearTimeout(titleGenerationRetryTimeoutRef.current);
+            }
+
+            titleGenerationRetryTimeoutRef.current = window.setTimeout(() => {
+              titleGenerationRetryTimeoutRef.current = null;
+
+              const activeSession = sessionRef.current;
+              if (!activeSession || activeSession.id !== session.id) {
+                return;
+              }
+
+              if (activeSession.titleGenerationStatus === "generated") {
+                clearScheduledTitleGenerationRetry();
+                return;
+              }
+
+              maybeGenerateSessionTitleRef.current?.(
+                activeSession,
+                activeSession.messages
+              );
+            }, TITLE_GENERATION_RETRY_DELAY_MS);
             return;
           }
 
-          syncSessionSnapshot(
-            {
-              ...activeSession,
-              titleGenerationStatus: "failed",
-              titleGeneratedAt: undefined,
-            },
-            true
-          );
+          applyTitleResult(null, "fallback");
         })
         .finally(() => {
           if (titleGenerationAbortRef.current === controller) {
@@ -640,8 +720,12 @@ export const SidepanelApp: FC = () => {
           }
         });
     },
-    [syncSessionSnapshot]
+    [clearScheduledTitleGenerationRetry, syncSessionSnapshot]
   );
+
+  useEffect(() => {
+    maybeGenerateSessionTitleRef.current = maybeGenerateSessionTitle;
+  }, [maybeGenerateSessionTitle]);
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -905,9 +989,10 @@ export const SidepanelApp: FC = () => {
     return () => {
       window.removeEventListener("pagehide", flushPendingSession);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearScheduledTitleGenerationRetry();
       titleGenerationAbortRef.current?.abort();
     };
-  }, [persistence]);
+  }, [clearScheduledTitleGenerationRetry, persistence]);
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = "smooth") => {
     messageScrollPinnedRef.current = true;
@@ -984,6 +1069,7 @@ export const SidepanelApp: FC = () => {
       }
 
       if (currentSessionIdRef.current === id) {
+        clearScheduledTitleGenerationRetry();
         titleGenerationAbortRef.current?.abort();
         titleGenerationRequestKeyRef.current = null;
       }
@@ -1000,8 +1086,94 @@ export const SidepanelApp: FC = () => {
         clearMessages();
       }
     },
-    [cancelRun, clearMessages, isRunning, persistence, resetComposerState]
+    [
+      cancelRun,
+      clearMessages,
+      clearScheduledTitleGenerationRetry,
+      isRunning,
+      persistence,
+      resetComposerState,
+    ]
   );
+
+  const applyMetadataPatch = useCallback(
+    (updated: SessionMetadata) => {
+      setSessions((previous) => {
+        const existingIndex = previous.findIndex(
+          (session) => session.id === updated.id
+        );
+        if (existingIndex === -1) {
+          return sortSessionMetadataByActivity([updated, ...previous]);
+        }
+        const next = [...previous];
+        next[existingIndex] = { ...next[existingIndex], ...updated };
+        return sortSessionMetadataByActivity(next);
+      });
+
+      if (sessionRef.current && sessionRef.current.id === updated.id) {
+        sessionRef.current = {
+          ...sessionRef.current,
+          title: updated.title,
+          titleGenerationStatus: updated.titleGenerationStatus,
+          titleGeneratedAt: updated.titleGeneratedAt,
+          pinned: updated.pinned,
+          pinnedAt: updated.pinnedAt,
+          archived: updated.archived,
+          archivedAt: updated.archivedAt,
+        };
+      }
+    },
+    []
+  );
+
+  const handleRenameSession = useCallback(
+    async (id: string, title: string) => {
+      try {
+        await persistence.flush();
+        const updated = await renameSession(id, title);
+        if (updated) {
+          applyMetadataPatch(updated);
+        }
+      } catch (error) {
+        console.error("[SidepanelApp] Failed to rename session", error);
+      }
+    },
+    [applyMetadataPatch, persistence]
+  );
+
+  const handleTogglePinned = useCallback(
+    async (id: string, pinned: boolean) => {
+      try {
+        await persistence.flush();
+        const updated = await setSessionPinned(id, pinned);
+        if (updated) {
+          applyMetadataPatch(updated);
+        }
+      } catch (error) {
+        console.error("[SidepanelApp] Failed to toggle pinned", error);
+      }
+    },
+    [applyMetadataPatch, persistence]
+  );
+
+  const handleToggleArchived = useCallback(
+    async (id: string, archived: boolean) => {
+      try {
+        await persistence.flush();
+        const updated = await setSessionArchived(id, archived);
+        if (updated) {
+          applyMetadataPatch(updated);
+        }
+      } catch (error) {
+        console.error("[SidepanelApp] Failed to toggle archived", error);
+      }
+    },
+    [applyMetadataPatch, persistence]
+  );
+
+  const handleToggleShowArchived = useCallback(() => {
+    setShowArchived((value) => !value);
+  }, []);
 
   const handleSelectSession = useCallback(
     async (id: string) => {
@@ -1045,6 +1217,7 @@ export const SidepanelApp: FC = () => {
         sessionRef.current = openedSession;
         currentSessionIdRef.current = openedSession.id;
         setCurrentSessionId(openedSession.id);
+        clearScheduledTitleGenerationRetry();
         titleGenerationAbortRef.current?.abort();
         titleGenerationRequestKeyRef.current = null;
 
@@ -1081,6 +1254,7 @@ export const SidepanelApp: FC = () => {
     },
     [
       cancelRun,
+      clearScheduledTitleGenerationRetry,
       clearMessages,
       isRunning,
       maybeGenerateSessionTitle,
@@ -1095,6 +1269,7 @@ export const SidepanelApp: FC = () => {
       if (isRunning) {
         cancelRun({ discard: true });
       }
+      clearScheduledTitleGenerationRetry();
       titleGenerationAbortRef.current?.abort();
       titleGenerationRequestKeyRef.current = null;
       await persistence.flush();
@@ -1108,7 +1283,14 @@ export const SidepanelApp: FC = () => {
       clearMessages();
       inputRef.current?.focus();
     })();
-  }, [cancelRun, clearMessages, isRunning, persistence, resetComposerState]);
+  }, [
+    cancelRun,
+    clearMessages,
+    clearScheduledTitleGenerationRetry,
+    isRunning,
+    persistence,
+    resetComposerState,
+  ]);
 
   const handleThinkingModeToggle = useCallback(() => {
     setThinkingMode((previous) => {
@@ -1259,7 +1441,10 @@ export const SidepanelApp: FC = () => {
   }, []);
 
   const sendText = useCallback(
-    (text: string) => {
+    async (
+      text: string,
+      options?: { includeCurrentPageContext?: boolean }
+    ) => {
       const trimmed = text.trim();
       if ((!trimmed && attachments.length === 0) || isRunning) return;
 
@@ -1269,9 +1454,25 @@ export const SidepanelApp: FC = () => {
         finalText = parsed.prompt ? composePromptMessage(parsed) : trimmed;
       }
 
-      const messageParts = attachedPageContext
-        ? [clonePageContextPart(attachedPageContext), ...attachments]
-        : attachments;
+      let messageParts: ChatPart[] = attachments;
+      if (options?.includeCurrentPageContext) {
+        try {
+          const pageContextPart = attachedPageContext
+            ? clonePageContextPart(attachedPageContext)
+            : await createCurrentPageContextPart();
+          messageParts = [pageContextPart, ...attachments];
+        } catch (error) {
+          console.error(
+            "[SidepanelApp] Failed to attach quick action page context",
+            error
+          );
+          setContextError("Unable to read this tab");
+          return;
+        }
+      } else if (attachedPageContext) {
+        messageParts = [clonePageContextPart(attachedPageContext), ...attachments];
+      }
+
       const sent = sendMessage(finalText, messageParts);
       if (!sent) return;
 
@@ -1292,7 +1493,7 @@ export const SidepanelApp: FC = () => {
   const handleSubmit = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      sendText(inputText);
+      void sendText(inputText);
     },
     [inputText, sendText]
   );
@@ -1362,7 +1563,7 @@ export const SidepanelApp: FC = () => {
           return;
         }
 
-        sendText(inputText);
+        void sendText(inputText);
       }
     },
     [
@@ -1411,9 +1612,16 @@ export const SidepanelApp: FC = () => {
         currentSessionId={currentSessionId}
         onClose={handleCloseHistory}
         onDelete={(id) => void handleDeleteSession(id)}
+        onRename={(id, title) => void handleRenameSession(id, title)}
         onSelect={(id) => void handleSelectSession(id)}
+        onToggleArchived={(id, archived) =>
+          void handleToggleArchived(id, archived)
+        }
+        onToggleShowArchived={handleToggleShowArchived}
+        onTogglePinned={(id, pinned) => void handleTogglePinned(id, pinned)}
         open={historyOpen}
         sessions={sessions}
+        showArchived={showArchived}
       />
 
       <main className="relative flex min-w-0 flex-1 flex-col">
@@ -1423,9 +1631,14 @@ export const SidepanelApp: FC = () => {
           onScroll={handleMessageScroll}
         >
           {messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center px-5">
-              <WelcomePane />
-            </div>
+            <WelcomePane
+              disabled={isRunning}
+              onQuickActionSend={(text, options) => {
+                void sendText(text, options);
+              }}
+              slashPrompts={slashPrompts}
+              tabContext={composerTabContext}
+            />
           ) : (
             <MessageList
               endRef={messagesEndRef}

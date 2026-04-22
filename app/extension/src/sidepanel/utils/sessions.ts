@@ -98,6 +98,14 @@ export function compareSessionMetadataByActivity(
   a: SessionMetadata,
   b: SessionMetadata
 ): number {
+  const pinnedDelta = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+  if (pinnedDelta !== 0) return pinnedDelta;
+
+  if (a.pinned && b.pinned) {
+    const pinnedAtDelta = getTimestamp(b.pinnedAt) - getTimestamp(a.pinnedAt);
+    if (pinnedAtDelta !== 0) return pinnedAtDelta;
+  }
+
   const messageDelta = getSessionSortTime(b) - getSessionSortTime(a);
   if (messageDelta !== 0) return messageDelta;
 
@@ -136,6 +144,7 @@ export function getLatestMessage(
 }
 
 export type DateGroup =
+  | "Pinned"
   | "Today"
   | "Yesterday"
   | "Last 7 days"
@@ -143,6 +152,7 @@ export type DateGroup =
   | "Older";
 
 export const DATE_GROUP_ORDER: DateGroup[] = [
+  "Pinned",
   "Today",
   "Yesterday",
   "Last 7 days",
@@ -165,13 +175,17 @@ export function groupSessionsByDate(
   const groups = new Map<DateGroup, SessionMetadata[]>();
 
   for (const session of sessions) {
-    const date = new Date(getSessionListDate(session));
     let label: DateGroup;
-    if (date >= today) label = "Today";
-    else if (date >= yesterday) label = "Yesterday";
-    else if (date >= lastWeek) label = "Last 7 days";
-    else if (date >= lastMonth) label = "Last 30 days";
-    else label = "Older";
+    if (session.pinned) {
+      label = "Pinned";
+    } else {
+      const date = new Date(getSessionListDate(session));
+      if (date >= today) label = "Today";
+      else if (date >= yesterday) label = "Yesterday";
+      else if (date >= lastWeek) label = "Last 7 days";
+      else if (date >= lastMonth) label = "Last 30 days";
+      else label = "Older";
+    }
 
     const existing = groups.get(label) || [];
     existing.push(session);

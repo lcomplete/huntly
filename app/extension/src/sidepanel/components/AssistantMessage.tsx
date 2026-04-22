@@ -1,11 +1,11 @@
 import React, { useMemo, type FC } from "react";
 import { Copy, RotateCcw } from "lucide-react";
 import type { ChatMessage } from "../types";
-import { extractSources, getMessageText } from "../utils/messageParts";
+import { extractLinkCardGroups, getMessageText } from "../utils/messageParts";
 import { IconButton } from "./IconButton";
+import { LinkCardsBlock } from "./LinkCardsBlock";
 import { MarkdownContent } from "./MarkdownContent";
 import { ReasoningBlock } from "./ReasoningBlock";
-import { SourcesBlock } from "./SourcesBlock";
 import { ToolCallBlock } from "./ToolCallBlock";
 
 interface AssistantMessageProps {
@@ -28,13 +28,11 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
   );
   const showThinkingPreview =
     thinkingMode && isLast && isRunning && !hasReasoningText;
-  const sources = useMemo(() => extractSources(message.parts), [message.parts]);
   const text = useMemo(() => getMessageText(message.parts), [message.parts]);
 
   return (
     <div className="group flex gap-3">
       <div className="min-w-0 flex-1">
-        <SourcesBlock sources={sources} />
         {showThinkingPreview && (
           <ReasoningBlock streaming={true} text="Thinking..." />
         )}
@@ -59,7 +57,14 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
             );
           }
           if (part.type === "tool-call") {
-            return <ToolCallBlock key={part.toolCallId || index} part={part} />;
+            const linkCardGroups = extractLinkCardGroups(part);
+
+            return (
+              <React.Fragment key={part.toolCallId || `${message.id}-${index}`}>
+                <ToolCallBlock part={part} />
+                <LinkCardsBlock groups={linkCardGroups} />
+              </React.Fragment>
+            );
           }
           if (part.type === "text" && part.text?.trim()) {
             return (

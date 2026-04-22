@@ -109,4 +109,78 @@ describe("sidepanel session helpers", () => {
       "older-message",
     ]);
   });
+
+  it("sorts pinned sessions above unpinned ones regardless of last-message time", () => {
+    const ordered = sortSessionMetadataByActivity([
+      createSession("newer-unpinned", {
+        lastMessageAt: "2026-04-22T08:00:00.000Z",
+      }),
+      createSession("older-pinned", {
+        lastMessageAt: "2026-04-20T08:00:00.000Z",
+        pinned: true,
+        pinnedAt: "2026-04-21T08:00:00.000Z",
+      }),
+    ]);
+
+    expect(ordered.map((session) => session.id)).toEqual([
+      "older-pinned",
+      "newer-unpinned",
+    ]);
+  });
+
+  it("orders multiple pinned sessions by most recently pinned", () => {
+    const ordered = sortSessionMetadataByActivity([
+      createSession("pinned-early", {
+        pinned: true,
+        pinnedAt: "2026-04-20T08:00:00.000Z",
+      }),
+      createSession("pinned-latest", {
+        pinned: true,
+        pinnedAt: "2026-04-22T08:00:00.000Z",
+      }),
+    ]);
+
+    expect(ordered.map((session) => session.id)).toEqual([
+      "pinned-latest",
+      "pinned-early",
+    ]);
+  });
+
+  it("exposes pinned and archived metadata when building from session data", () => {
+    const metadata = buildSessionMetadata(
+      createSessionData("session-pin", {
+        pinned: true,
+        pinnedAt: "2026-04-22T08:00:00.000Z",
+        archived: true,
+        archivedAt: "2026-04-22T08:05:00.000Z",
+      })
+    );
+
+    expect(metadata.pinned).toBe(true);
+    expect(metadata.pinnedAt).toBe("2026-04-22T08:00:00.000Z");
+    expect(metadata.archived).toBe(true);
+    expect(metadata.archivedAt).toBe("2026-04-22T08:05:00.000Z");
+  });
+
+  it("defaults pinned and archived fields to false when not set", () => {
+    const metadata = buildSessionMetadata(createSessionData("session-default"));
+
+    expect(metadata.pinned).toBe(false);
+    expect(metadata.archived).toBe(false);
+    expect(metadata.pinnedAt).toBeUndefined();
+    expect(metadata.archivedAt).toBeUndefined();
+  });
+
+  it("reconciles metadata when pinned or archived flags diverge from the session", () => {
+    const metadata = createSession("session-flip");
+    const session = createSessionData("session-flip", {
+      pinned: true,
+      pinnedAt: "2026-04-22T08:00:00.000Z",
+    });
+
+    const repaired = reconcileSessionMetadata(metadata, session);
+
+    expect(repaired.pinned).toBe(true);
+    expect(repaired.pinnedAt).toBe("2026-04-22T08:00:00.000Z");
+  });
 });

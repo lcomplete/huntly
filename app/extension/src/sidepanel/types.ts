@@ -82,6 +82,10 @@ export interface SessionData {
   lastMessageAt?: string;
   lastMessageId?: string;
   lastOpenedAt?: string;
+  pinned?: boolean;
+  pinnedAt?: string;
+  archived?: boolean;
+  archivedAt?: string;
 }
 
 export interface SessionMetadata {
@@ -97,6 +101,10 @@ export interface SessionMetadata {
   messageCount: number;
   preview: string;
   currentModelId: string | null;
+  pinned?: boolean;
+  pinnedAt?: string;
+  archived?: boolean;
+  archivedAt?: string;
 }
 
 // ---------------------------------------------------------------------------
