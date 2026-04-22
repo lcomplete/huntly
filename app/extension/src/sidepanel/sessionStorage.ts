@@ -151,8 +151,26 @@ function normalizeTitleGenerationStatus(
   }
 }
 
+function normalizeMessageTimestamps(session: SessionData): ChatMessage[] {
+  const fallbackTimestamp = session.createdAt || session.updatedAt;
+  let lastKnownTimestamp = fallbackTimestamp;
+
+  return session.messages.map((message) => {
+    const createdAt = message.createdAt || lastKnownTimestamp;
+    lastKnownTimestamp = createdAt;
+
+    return message.createdAt === createdAt
+      ? message
+      : {
+          ...message,
+          createdAt,
+        };
+  });
+}
+
 function normalizeSessionTiming(session: SessionData): SessionData {
-  const latestMessage = getLatestMessage(session.messages);
+  const messages = normalizeMessageTimestamps(session);
+  const latestMessage = getLatestMessage(messages);
   const legacy = session as SessionData & LegacySessionTiming;
   const normalizedTitleGenerationStatus = normalizeTitleGenerationStatus(
     session.titleGenerationStatus
@@ -169,7 +187,7 @@ function normalizeSessionTiming(session: SessionData): SessionData {
         : undefined,
     currentModelId: session.currentModelId,
     thinkingEnabled: session.thinkingEnabled,
-    messages: session.messages,
+    messages,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
     lastMessageAt:

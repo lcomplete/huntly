@@ -4,27 +4,51 @@ import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 
 interface MessageListProps {
+  editingUserMessageId?: string | null;
+  editingUserMessageText?: string;
   messages: ChatMessage[];
   isRunning: boolean;
   thinkingMode: boolean;
-  onRegenerate?: () => void;
+  onCancelUserMessageEdit?: () => void;
+  onEditUserMessage?: (messageId: string) => void;
+  onEditUserMessageTextChange?: (value: string) => void;
+  onRegenerate?: (messageId: string) => void;
+  onSaveUserMessageEdit?: (messageId: string) => void;
   endRef: React.RefObject<HTMLDivElement>;
 }
 
 export const MessageList: FC<MessageListProps> = ({
+  editingUserMessageId,
+  editingUserMessageText,
   messages,
   isRunning,
   thinkingMode,
+  onCancelUserMessageEdit,
+  onEditUserMessage,
+  onEditUserMessageTextChange,
   onRegenerate,
+  onSaveUserMessageEdit,
   endRef,
 }) => {
   const lastIndex = messages.length - 1;
   return (
     <div className="min-h-full px-5 py-6">
-      <div className="mx-auto flex max-w-[760px] flex-col gap-8">
+      <div className="mx-auto flex max-w-[760px] flex-col gap-4">
         {messages.map((message, index) => {
           if (message.role === "user") {
-            return <UserMessage key={message.id} message={message} />;
+            return (
+              <UserMessage
+                key={message.id}
+                editingText={editingUserMessageText}
+                isRunning={isRunning}
+                isEditing={editingUserMessageId === message.id}
+                message={message}
+                onCancelEdit={onCancelUserMessageEdit}
+                onEdit={onEditUserMessage}
+                onEditingTextChange={onEditUserMessageTextChange}
+                onSaveEdit={onSaveUserMessageEdit}
+              />
+            );
           }
           const isLast = index === lastIndex;
           return (
@@ -33,7 +57,7 @@ export const MessageList: FC<MessageListProps> = ({
               isLast={isLast}
               isRunning={isRunning && isLast}
               message={message}
-              onRegenerate={isLast ? onRegenerate : undefined}
+              onRegenerate={onRegenerate}
               thinkingMode={thinkingMode}
             />
           );

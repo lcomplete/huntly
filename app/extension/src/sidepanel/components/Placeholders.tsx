@@ -204,9 +204,8 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
   onQuickActionSend,
   disabled = false,
 }) => {
-  const [activeGroupId, setActiveGroupId] = useState<WelcomeActionGroupId | null>(
-    slashPrompts.length > 0 ? "prompts" : tabContext?.url ? "understand" : "library"
-  );
+  const [activeGroupId, setActiveGroupId] =
+    useState<WelcomeActionGroupId | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const groups = useMemo(
@@ -261,7 +260,7 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
       >
         <div className="text-center">
           <h1 className="font-serif text-[34px] leading-none text-[#2f261f]">
-            huntly chat
+            Welcome to Huntly Chat
           </h1>
         </div>
 

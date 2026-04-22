@@ -22,6 +22,19 @@ function createUserMessage(text: string): ChatMessage {
   };
 }
 
+function createAssistantMessage(
+  id: string,
+  status: ChatMessage["status"],
+  text = ""
+): ChatMessage {
+  return {
+    id,
+    role: "assistant",
+    parts: text ? [{ type: "text", text }] : [],
+    status,
+  };
+}
+
 function createSession(
   id: string,
   overrides: Partial<SessionMetadata> = {}
@@ -70,11 +83,26 @@ describe("sidepanel session helpers", () => {
     expect(title).toBe(`${"A".repeat(39)}…`);
   });
 
-  it("keeps persisted session titles at the default value before LLM generation", () => {
+  it("keeps persisted session titles at the default value before first-message derivation", () => {
     const metadata = buildSessionMetadata(createSessionData("session-1"));
 
     expect(metadata.title).toBe(DEFAULT_SESSION_TITLE);
     expect(metadata.titleGenerationStatus).toBe("idle");
+  });
+
+  it("keeps deriving the title from the first user message", () => {
+    const title = deriveSessionTitle([
+      createUserMessage("Generate a concise title now"),
+      createAssistantMessage("pending-assistant", "running"),
+      {
+        id: "message-2",
+        role: "user",
+        parts: [{ type: "text", text: "A later user message should not rename the chat" }],
+        status: "complete",
+      },
+    ]);
+
+    expect(title).toBe("Generate a concise title now");
   });
 
   it("rebuilds stale metadata from the stored generated title", () => {

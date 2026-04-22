@@ -1,5 +1,6 @@
-import React, { useMemo, type FC } from "react";
-import { Copy, RotateCcw } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState, type FC } from "react";
+import { Check, Copy, RotateCcw } from "lucide-react";
+import { MessageFooter } from "./MessageFooter";
 import type { ChatMessage } from "../types";
 import { extractLinkCardGroups, getMessageText } from "../utils/messageParts";
 import { IconButton } from "./IconButton";
@@ -13,7 +14,7 @@ interface AssistantMessageProps {
   isLast: boolean;
   isRunning: boolean;
   thinkingMode: boolean;
-  onRegenerate?: () => void;
+  onRegenerate?: (messageId: string) => void;
 }
 
 const AssistantMessageImpl: FC<AssistantMessageProps> = ({
@@ -29,6 +30,39 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
   const showThinkingPreview =
     thinkingMode && isLast && isRunning && !hasReasoningText;
   const text = useMemo(() => getMessageText(message.parts), [message.parts]);
+  const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
+  const copyResetTimeoutRef = useRef<number | null>(null);
+  const footerButtonClassName =
+    "h-7 w-7 rounded-full text-[#7e7368] hover:bg-[#ede4d7] hover:text-[#2f261f]";
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = () => {
+    if (!text) return;
+
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        if (copyResetTimeoutRef.current !== null) {
+          window.clearTimeout(copyResetTimeoutRef.current);
+        }
+
+        setCopyFeedbackVisible(true);
+        copyResetTimeoutRef.current = window.setTimeout(() => {
+          copyResetTimeoutRef.current = null;
+          setCopyFeedbackVisible(false);
+        }, 1600);
+      })
+      .catch((error) => {
+        console.error("[AssistantMessage] Failed to copy message", error);
+      });
+  };
 
   return (
     <div className="group flex gap-3">
@@ -87,22 +121,30 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
         )}
 
         {!(isLast && isRunning) && (
-          <div className="mt-3 flex items-center gap-1">
+          <MessageFooter actionsVisibility="always">
             <IconButton
               disabled={!text}
-              label="Copy"
-              onClick={() => {
-                if (text) void navigator.clipboard.writeText(text);
-              }}
+              active={copyFeedbackVisible}
+              className={footerButtonClassName}
+              label={copyFeedbackVisible ? "Copied" : "Copy"}
+              onClick={handleCopy}
             >
-              <Copy className="size-4" />
+              {copyFeedbackVisible ? (
+                <Check className="size-4" />
+              ) : (
+                <Copy className="size-4" />
+              )}
             </IconButton>
-            {isLast && onRegenerate && (
-              <IconButton label="Regenerate" onClick={onRegenerate}>
+            {onRegenerate && (
+              <IconButton
+                className={footerButtonClassName}
+                label="Retry response"
+                onClick={() => onRegenerate(message.id)}
+              >
                 <RotateCcw className="size-4" />
               </IconButton>
             )}
-          </div>
+          </MessageFooter>
         )}
       </div>
     </div>

@@ -20,7 +20,7 @@ export const SlashPromptMenu: FC<SlashPromptMenuProps> = ({
     <div
       role="listbox"
       aria-label="Prompt suggestions"
-      className="absolute bottom-full left-0 right-0 z-30 mb-2 overflow-hidden rounded-xl border border-[#d9cfbf] bg-[#fffaf4] shadow-[0_16px_42px_rgba(64,48,31,0.14)]"
+      className="absolute left-4 top-4 z-30 w-[min(20rem,calc(100%-2rem))] -translate-y-[calc(100%+0.375rem)] overflow-hidden rounded-xl border border-[#d9cfbf] bg-[#fffaf4] shadow-[0_16px_42px_rgba(64,48,31,0.14)]"
     >
       {prompts.map((prompt, index) => {
         const isSelected = index === selectedIndex;

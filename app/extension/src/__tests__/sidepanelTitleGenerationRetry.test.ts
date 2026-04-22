@@ -2,6 +2,7 @@ import {
   getNextTitleGenerationRetryState,
   hasTitleGenerationAttemptsRemaining,
   resetTitleGenerationRetryState,
+  shouldUseThinkingForTitleGeneration,
 } from "../sidepanel/utils/titleGenerationRetry";
 
 describe("sidepanel title generation retry helpers", () => {
@@ -53,5 +54,11 @@ describe("sidepanel title generation retry helpers", () => {
     expect(hasTitleGenerationAttemptsRemaining(1, 3)).toBe(true);
     expect(hasTitleGenerationAttemptsRemaining(2, 3)).toBe(true);
     expect(hasTitleGenerationAttemptsRemaining(3, 3)).toBe(false);
+  });
+
+  it("keeps thinking disabled on the first attempt only", () => {
+    expect(shouldUseThinkingForTitleGeneration(1)).toBe(false);
+    expect(shouldUseThinkingForTitleGeneration(2)).toBe(true);
+    expect(shouldUseThinkingForTitleGeneration(3)).toBe(true);
   });
 });

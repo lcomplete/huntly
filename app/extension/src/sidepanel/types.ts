@@ -58,6 +58,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   parts: ChatPart[];
+  createdAt?: string;
   status: "complete" | "running" | "error";
 }
 

@@ -1,24 +1,32 @@
 import { useState, type FC } from "react";
-import { Paperclip, X } from "lucide-react";
+import { Loader2, Paperclip, X } from "lucide-react";
 import type { ChatPart } from "../types";
 import { formatFileSize } from "../utils/format";
 
 interface AttachmentPreviewListProps {
   attachments: ChatPart[];
+  processingLabel?: string | null;
   onRemove: (id: string) => void;
 }
 
 export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
   attachments,
+  processingLabel,
   onRemove,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  if (attachments.length === 0) return null;
+  if (attachments.length === 0 && !processingLabel) return null;
 
   return (
     <>
       <div className="flex flex-wrap items-start gap-2">
+        {processingLabel && (
+          <div className="flex min-w-0 max-w-full items-center gap-1.5 rounded-lg border border-dashed border-[#d8b18d] bg-[#fff5eb] px-2 py-1 text-xs font-medium text-[#8b4b2d] shadow-[0_6px_18px_rgba(64,48,31,0.06)]">
+            <Loader2 className="size-4 shrink-0 animate-spin" />
+            <span className="truncate">{processingLabel}</span>
+          </div>
+        )}
         {attachments.map((attachment) => {
           const label = attachment.filename || "Attachment";
           const size = formatFileSize(attachment.size);

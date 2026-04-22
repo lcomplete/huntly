@@ -35,3 +35,9 @@ export function hasTitleGenerationAttemptsRemaining(
 ): boolean {
   return attempts < maxAttempts;
 }
+
+export function shouldUseThinkingForTitleGeneration(
+  attempts: number
+): boolean {
+  return attempts > 1;
+}

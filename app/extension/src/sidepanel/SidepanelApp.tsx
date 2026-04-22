@@ -6,10 +6,20 @@ import {
   useState,
   type FC,
 } from "react";
-import { streamText } from "ai";
+import { streamText, type ChatStatus } from "ai";
 import { ChevronDown } from "lucide-react";
 
-import { useHuntlyChat } from "./useHuntlyChat";
+import {
+  buildBaseProviderOptions,
+  buildThinkingProviderOptions,
+  convertUIMessagesToChatMessages,
+  useHuntlyChat,
+  type HuntlyUIMessage,
+} from "./useHuntlyChat";
+import {
+  SessionChatPool,
+  type SessionChatConfig,
+} from "./chatPool";
 import type {
   ChatMessage,
   ChatPart,
@@ -82,11 +92,9 @@ import {
 import { useAutosizeTextArea } from "./utils/dom";
 import { useSessionPersistence } from "./hooks/useSessionPersistence";
 import {
-  getNextTitleGenerationRetryState,
-  hasTitleGenerationAttemptsRemaining,
-  resetTitleGenerationRetryState,
-  type TitleGenerationRetryState,
-} from "./utils/titleGenerationRetry";
+  isScrollPinnedToBottom,
+  shouldShowScrollToBottomButton,
+} from "./utils/scrollToBottom";
 import { Composer } from "./components/Composer";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { MessageList } from "./components/MessageList";
@@ -98,9 +106,6 @@ import {
 
 const SCROLL_PIN_THRESHOLD_PX = 96;
 const TITLE_MAX_LENGTH = 80;
-const TITLE_TRANSCRIPT_MAX_LENGTH = 4000;
-const TITLE_GENERATION_MAX_ATTEMPTS = 3;
-const TITLE_GENERATION_RETRY_DELAY_MS = 1500;
 const DROPPABLE_STRING_TYPES = new Set([
   "text/plain",
   "text/uri-list",
@@ -339,7 +344,7 @@ async function extractDroppedPayload(
   };
 }
 
-function summarizeTitleGenerationParts(parts: ChatPart[]): string {
+function summarizeFirstUserMessageForTitle(parts: ChatPart[]): string {
   const segments: string[] = [];
   const text = getDisplayMessageText(parts).replace(/\s+/g, " ").trim();
 
@@ -367,26 +372,6 @@ function summarizeTitleGenerationParts(parts: ChatPart[]): string {
   return segments.join(" | ");
 }
 
-function buildTitleGenerationTranscript(messages: ChatMessage[]): string {
-  const transcript = messages
-    .filter((message) => message.role === "user" || message.role === "assistant")
-    .map((message) => {
-      const summary = summarizeTitleGenerationParts(message.parts);
-      if (!summary) return null;
-      const speaker = message.role === "user" ? "User" : "Assistant";
-      return `${speaker}: ${summary}`;
-    })
-    .filter((entry): entry is string => Boolean(entry))
-    .join("\n\n")
-    .trim();
-
-  if (transcript.length <= TITLE_TRANSCRIPT_MAX_LENGTH) {
-    return transcript;
-  }
-
-  return `${transcript.slice(0, TITLE_TRANSCRIPT_MAX_LENGTH - 1).trimEnd()}…`;
-}
-
 function normalizeGeneratedSessionTitle(value: string): string | null {
   const firstLine = value
     .split(/\r?\n/)
@@ -411,36 +396,31 @@ function normalizeGeneratedSessionTitle(value: string): string | null {
     : `${normalized.slice(0, TITLE_MAX_LENGTH - 1).trimEnd()}…`;
 }
 
-async function generateSessionTitle(
-  messages: ChatMessage[],
+async function generateSessionTitleFromFirstMessage(
+  message: ChatMessage,
   modelInfo: HuntlyModelInfo,
   systemPrompt: string,
+  thinkingEnabled = false,
   abortSignal?: AbortSignal
 ): Promise<string | null> {
-  const transcript = buildTitleGenerationTranscript(messages);
-  if (!transcript) {
-    console.warn("[SidepanelApp] Title generation skipped: empty transcript");
+  const source = summarizeFirstUserMessageForTitle(message.parts);
+  if (!source) {
+    console.warn("[SidepanelApp] Title generation skipped: empty first user message");
     return null;
   }
 
-  console.debug(
-    "[SidepanelApp] Title generation starting",
-    { provider: modelInfo.provider, modelId: modelInfo.modelId }
-  );
-
   let streamError: unknown = null;
-  // 256 leaves room for reasoning-capable models (o-series, gpt-5, Claude
-  // thinking, Gemini thinking) to consume hidden budget before emitting
-  // the title. 24 tokens starved them and produced empty output.
   const result = streamText({
     model: modelInfo.model as any,
     system: systemPrompt,
-    prompt: `Conversation transcript:\n\n${transcript}\n\nGenerate one short title for this conversation. Output only the title.`,
-    maxOutputTokens: 256,
+    prompt:
+      `First user message:\n\n${source}\n\n` +
+      "Generate one short conversation title based only on this first user message. Output only the title.",
+    maxOutputTokens: 128,
     abortSignal,
-    providerOptions: {
-      openai: { systemMessageMode: "system" },
-    },
+    providerOptions: thinkingEnabled
+      ? buildThinkingProviderOptions(modelInfo.provider)
+      : buildBaseProviderOptions(modelInfo.provider),
     onError({ error }) {
       streamError = error;
     },
@@ -451,12 +431,7 @@ async function generateSessionTitle(
     throw streamError;
   }
 
-  const normalized = normalizeGeneratedSessionTitle(generatedText);
-  console.debug(
-    "[SidepanelApp] Title generation finished",
-    { raw: generatedText, normalized }
-  );
-  return normalized;
+  return normalizeGeneratedSessionTitle(generatedText);
 }
 
 export const SidepanelApp: FC = () => {
@@ -474,7 +449,12 @@ export const SidepanelApp: FC = () => {
   const [contextLoading, setContextLoading] = useState(false);
   const [contextError, setContextError] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
+  const [editingUserMessageId, setEditingUserMessageId] = useState<string | null>(null);
+  const [editingUserMessageText, setEditingUserMessageText] = useState("");
   const [attachments, setAttachments] = useState<ChatPart[]>([]);
+  const [attachmentProcessingLabel, setAttachmentProcessingLabel] = useState<
+    string | null
+  >(null);
   const [slashPromptIndex, setSlashPromptIndex] = useState(0);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [systemPrompt, setSystemPrompt] = useState(() =>
@@ -485,26 +465,24 @@ export const SidepanelApp: FC = () => {
 
   const currentModelRef = useRef<HuntlyModelInfo | null>(null);
   const thinkingModeRef = useRef(false);
-  const sessionRef = useRef<SessionData | null>(null);
-  const currentSessionIdRef = useRef<string | null>(null);
-  const titleGenerationRequestKeyRef = useRef<string | null>(null);
-  const titleGenerationAbortRef = useRef<AbortController | null>(null);
-  const titleGenerationRetryStateRef = useRef<TitleGenerationRetryState>(
-    resetTitleGenerationRetryState()
+  const sessionsDataRef = useRef<Map<string, SessionData>>(new Map());
+  const previousSessionMessagesRef = useRef<Map<string, ChatMessage[]>>(
+    new Map()
   );
-  const titleGenerationRetryTimeoutRef = useRef<number | null>(null);
-  const maybeGenerateSessionTitleRef = useRef<
-    ((session: SessionData, chatMessages: ChatMessage[]) => void) | null
-  >(null);
+  const currentSessionIdRef = useRef<string | null>(null);
+  const configRef = useRef<SessionChatConfig | null>(null);
+  const titleGenerationAbortsRef = useRef<Map<string, AbortController>>(
+    new Map()
+  );
+  const titleGenerationKeysRef = useRef<Map<string, string>>(new Map());
   const titleGenerationSystemPromptRef = useRef(
     buildSidepanelTitleGenerationSystemPrompt("English")
   );
-  const skipNextMessagesPersistRef = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageScrollPinnedRef = useRef(true);
-  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   const persistence = useSessionPersistence();
 
@@ -522,18 +500,80 @@ export const SidepanelApp: FC = () => {
     titleGenerationSystemPromptRef.current = titleGenerationSystemPrompt;
   }, [titleGenerationSystemPrompt]);
 
-  const clearScheduledTitleGenerationRetry = useCallback(() => {
-    if (titleGenerationRetryTimeoutRef.current !== null) {
-      window.clearTimeout(titleGenerationRetryTimeoutRef.current);
-      titleGenerationRetryTimeoutRef.current = null;
-    }
+  // Shared configuration for every pooled Chat. Updated here on every render;
+  // pool transports read this ref lazily at send time, so changes take effect
+  // for every session's next request without rebuilding Chat instances.
+  useEffect(() => {
+    const activeModel = findModelByKey(models, currentModelId);
+    configRef.current = activeModel
+      ? {
+          modelInfo: activeModel,
+          systemPrompt,
+          thinkingEnabled: thinkingMode,
+        }
+      : null;
+  }, [models, currentModelId, systemPrompt, thinkingMode]);
 
-    titleGenerationRetryStateRef.current = resetTitleGenerationRetryState();
+  // Stable pool instance. The event handler is stored in a ref so we can
+  // update its closure without ever tearing down or recreating the pool
+  // (which would discard running streams).
+  const poolEventHandlerRef = useRef<
+    (
+      sessionId: string,
+      snapshot: {
+        messages: HuntlyUIMessage[];
+        status: ChatStatus;
+        error: Error | undefined;
+      }
+    ) => void
+  >(() => {});
+  const poolRef = useRef<SessionChatPool | null>(null);
+  if (!poolRef.current) {
+    poolRef.current = new SessionChatPool(
+      () => configRef.current,
+      (sessionId, snapshot) =>
+        poolEventHandlerRef.current(sessionId, snapshot)
+    );
+  }
+
+  const cancelTitleGenerationFor = useCallback((sessionId: string) => {
+    titleGenerationAbortsRef.current.get(sessionId)?.abort();
+    titleGenerationAbortsRef.current.delete(sessionId);
+    titleGenerationKeysRef.current.delete(sessionId);
   }, []);
+
+  const cancelAllTitleGenerations = useCallback(() => {
+    for (const controller of titleGenerationAbortsRef.current.values()) {
+      controller.abort();
+    }
+    titleGenerationAbortsRef.current.clear();
+    titleGenerationKeysRef.current.clear();
+  }, []);
+
+  /**
+   * Drop a pool entry that was never used (no persisted messages, idle status).
+   * Prevents accumulating empty draft Chats when the user keeps clicking
+   * "New chat" without sending anything.
+   */
+  const pruneEmptyDraft = useCallback(
+    (sessionId: string | null) => {
+      if (!sessionId) return;
+      const pool = poolRef.current;
+      if (!pool) return;
+      if (sessionsDataRef.current.has(sessionId)) return;
+      if (pool.isRunning(sessionId)) return;
+      const chat = pool.get(sessionId);
+      if (chat && chat.messages.length > 0) return;
+      pool.remove(sessionId);
+      previousSessionMessagesRef.current.delete(sessionId);
+      cancelTitleGenerationFor(sessionId);
+    },
+    [cancelTitleGenerationFor]
+  );
 
   const syncSessionSnapshot = useCallback(
     (updated: SessionData, immediate: boolean) => {
-      sessionRef.current = updated;
+      sessionsDataRef.current.set(updated.id, updated);
       setSessions((previous) => {
         const metadata = buildSessionMetadata(updated);
         const existingIndex = previous.findIndex(
@@ -559,74 +599,64 @@ export const SidepanelApp: FC = () => {
   const maybeGenerateSessionTitle = useCallback(
     (session: SessionData, chatMessages: ChatMessage[]) => {
       const currentModel = currentModelRef.current;
-      if (!currentModel || chatMessages.length === 0) {
-        console.debug("[SidepanelApp] maybeGenerateSessionTitle: skip (no model or empty messages)", {
-          hasModel: Boolean(currentModel),
-          messageCount: chatMessages.length,
-        });
+      if (
+        !currentModel ||
+        chatMessages.length === 0 ||
+        session.titleGenerationStatus === "generated"
+      ) {
         return;
       }
 
-      if (session.titleGenerationStatus === "generated") {
-        return;
-      }
-
-      const latestMessage = getLatestMessage(chatMessages);
-      if (!latestMessage || latestMessage.status === "running") {
-        return;
-      }
-
-      const requestKey = `${session.id}:${latestMessage.id || chatMessages.length}`;
-      if (titleGenerationRetryStateRef.current.requestKey !== requestKey) {
-        clearScheduledTitleGenerationRetry();
-        titleGenerationRetryStateRef.current = resetTitleGenerationRetryState(
-          requestKey
-        );
-      }
-
-      if (titleGenerationRequestKeyRef.current === requestKey) {
-        return;
-      }
-
-      const nextRetryState = getNextTitleGenerationRetryState(
-        titleGenerationRetryStateRef.current,
-        requestKey
+      const firstUserMessage = chatMessages.find(
+        (message) => message.role === "user"
       );
-      const nextAttempt = nextRetryState.attempts;
-      titleGenerationRetryStateRef.current = nextRetryState;
+      if (!firstUserMessage) {
+        return;
+      }
 
-      console.debug("[SidepanelApp] maybeGenerateSessionTitle: scheduling", {
-        sessionId: session.id,
-        latestMessageId: latestMessage.id,
-        latestStatus: latestMessage.status,
-        attempt: nextAttempt,
-      });
+      const sessionId = session.id;
+      const requestKey = `${sessionId}:${firstUserMessage.id || "first-user"}`;
+      if (titleGenerationKeysRef.current.get(sessionId) === requestKey) {
+        return;
+      }
 
-      titleGenerationAbortRef.current?.abort();
+      // Cancel any previous attempt for this session (different first message
+      // — e.g. edited-first-message path) and start fresh. Do NOT touch other
+      // sessions' title generation runs, so parallel conversations can each
+      // generate their own title independently.
+      cancelTitleGenerationFor(sessionId);
+
       const controller = new AbortController();
-      titleGenerationAbortRef.current = controller;
-      titleGenerationRequestKeyRef.current = requestKey;
+      titleGenerationAbortsRef.current.set(sessionId, controller);
+      titleGenerationKeysRef.current.set(sessionId, requestKey);
 
-      const applyTitleResult = (title: string | null, reason: "llm" | "fallback") => {
-        const activeSession = sessionRef.current;
-        if (!activeSession || activeSession.id !== session.id) {
-          console.debug(
-            "[SidepanelApp] Title generation: session changed, discarding",
-            { expectedSessionId: session.id, activeSessionId: activeSession?.id }
-          );
+      const applyTitleResult = (
+        title: string | null,
+        reason: "llm" | "fallback"
+      ) => {
+        const currentSession = sessionsDataRef.current.get(sessionId);
+        if (!currentSession) {
           return;
         }
 
-        const resolved =
-          title || deriveSessionTitle(chatMessages, DEFAULT_SESSION_TITLE);
-        if (!resolved || resolved === DEFAULT_SESSION_TITLE) {
-          console.warn(
-            "[SidepanelApp] Title generation produced no title; marking failed",
-            { sessionId: session.id, reason }
-          );
+        const currentFirstUserMessage = currentSession.messages.find(
+          (message) => message.role === "user"
+        );
+        const activeRequestKey = currentFirstUserMessage
+          ? `${currentSession.id}:${currentFirstUserMessage.id || "first-user"}`
+          : null;
+
+        if (activeRequestKey !== requestKey) {
+          return;
+        }
+
+        const resolvedTitle =
+          title ||
+          deriveSessionTitle(currentSession.messages, DEFAULT_SESSION_TITLE);
+        if (!resolvedTitle || resolvedTitle === DEFAULT_SESSION_TITLE) {
           syncSessionSnapshot(
             {
-              ...activeSession,
+              ...currentSession,
               titleGenerationStatus: "failed",
               titleGeneratedAt: undefined,
             },
@@ -635,126 +665,109 @@ export const SidepanelApp: FC = () => {
           return;
         }
 
-        console.debug("[SidepanelApp] Title generation: applying title", {
-          sessionId: session.id,
-          title: resolved,
-          reason,
-        });
-        clearScheduledTitleGenerationRetry();
         syncSessionSnapshot(
           {
-            ...activeSession,
-            title: resolved,
+            ...currentSession,
+            title: resolvedTitle,
             titleGenerationStatus: "generated",
             titleGeneratedAt: new Date().toISOString(),
           },
           true
         );
+        console.debug("[SidepanelApp] Title generation: applying title", {
+          sessionId,
+          reason,
+          title: resolvedTitle,
+        });
       };
 
-      void generateSessionTitle(
-        chatMessages,
-        currentModel,
-        titleGenerationSystemPromptRef.current,
-        controller.signal
-      )
-        .then((title) => {
-          if (controller.signal.aborted) {
-            return;
+      void (async () => {
+        let generatedTitle: string | null = null;
+
+        try {
+          generatedTitle = await generateSessionTitleFromFirstMessage(
+            firstUserMessage,
+            currentModel,
+            titleGenerationSystemPromptRef.current,
+            false,
+            controller.signal
+          );
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            console.error(
+              "[SidepanelApp] Title generation failed without thinking",
+              error
+            );
           }
-          applyTitleResult(title, title ? "llm" : "fallback");
-        })
-        .catch((error) => {
-          if (controller.signal.aborted) {
-            return;
-          }
+        }
 
-          console.error("[SidepanelApp] Failed to generate session title", error);
+        if (controller.signal.aborted) {
+          return;
+        }
 
-          if (
-            hasTitleGenerationAttemptsRemaining(
-              nextAttempt,
-              TITLE_GENERATION_MAX_ATTEMPTS
-            )
-          ) {
-            console.debug("[SidepanelApp] Retrying title generation", {
-              sessionId: session.id,
-              requestKey,
-              attempt: nextAttempt,
-              maxAttempts: TITLE_GENERATION_MAX_ATTEMPTS,
-            });
-
-            if (titleGenerationRetryTimeoutRef.current !== null) {
-              window.clearTimeout(titleGenerationRetryTimeoutRef.current);
-            }
-
-            titleGenerationRetryTimeoutRef.current = window.setTimeout(() => {
-              titleGenerationRetryTimeoutRef.current = null;
-
-              const activeSession = sessionRef.current;
-              if (!activeSession || activeSession.id !== session.id) {
-                return;
-              }
-
-              if (activeSession.titleGenerationStatus === "generated") {
-                clearScheduledTitleGenerationRetry();
-                return;
-              }
-
-              maybeGenerateSessionTitleRef.current?.(
-                activeSession,
-                activeSession.messages
+        if (!generatedTitle) {
+          try {
+            generatedTitle = await generateSessionTitleFromFirstMessage(
+              firstUserMessage,
+              currentModel,
+              titleGenerationSystemPromptRef.current,
+              true,
+              controller.signal
+            );
+          } catch (error) {
+            if (!controller.signal.aborted) {
+              console.error(
+                "[SidepanelApp] Title generation retry failed with thinking",
+                error
               );
-            }, TITLE_GENERATION_RETRY_DELAY_MS);
-            return;
+            }
           }
+        }
 
-          applyTitleResult(null, "fallback");
-        })
-        .finally(() => {
-          if (titleGenerationAbortRef.current === controller) {
-            titleGenerationAbortRef.current = null;
-          }
-          if (titleGenerationRequestKeyRef.current === requestKey) {
-            titleGenerationRequestKeyRef.current = null;
-          }
-        });
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        applyTitleResult(generatedTitle, generatedTitle ? "llm" : "fallback");
+      })().finally(() => {
+        if (titleGenerationAbortsRef.current.get(sessionId) === controller) {
+          titleGenerationAbortsRef.current.delete(sessionId);
+        }
+        if (titleGenerationKeysRef.current.get(sessionId) === requestKey) {
+          titleGenerationKeysRef.current.delete(sessionId);
+        }
+      });
     },
-    [clearScheduledTitleGenerationRetry, syncSessionSnapshot]
+    [cancelTitleGenerationFor, syncSessionSnapshot]
   );
-
-  useEffect(() => {
-    maybeGenerateSessionTitleRef.current = maybeGenerateSessionTitle;
-  }, [maybeGenerateSessionTitle]);
 
   const refreshSessions = useCallback(async () => {
     try {
       const storedSessions = await listSessionMetadata();
-      const currentSession = sessionRef.current;
+      const liveSessions = Array.from(sessionsDataRef.current.values());
 
-      if (!currentSession) {
+      if (liveSessions.length === 0) {
         setSessions(storedSessions);
         return;
       }
 
-      const currentMetadata = buildSessionMetadata(currentSession);
-      const existingIndex = storedSessions.findIndex(
-        (session) => session.id === currentMetadata.id
-      );
-
-      if (existingIndex === -1) {
-        setSessions(
-          sortSessionMetadataByActivity([currentMetadata, ...storedSessions])
+      const merged = [...storedSessions];
+      for (const liveSession of liveSessions) {
+        const liveMetadata = buildSessionMetadata(liveSession);
+        const existingIndex = merged.findIndex(
+          (session) => session.id === liveMetadata.id
         );
-        return;
+        if (existingIndex === -1) {
+          merged.push(liveMetadata);
+        } else {
+          merged[existingIndex] = {
+            ...merged[existingIndex],
+            ...liveMetadata,
+          };
+        }
       }
 
-      const mergedSessions = [...storedSessions];
-      mergedSessions[existingIndex] = {
-        ...mergedSessions[existingIndex],
-        ...currentMetadata,
-      };
-      setSessions(sortSessionMetadataByActivity(mergedSessions));
+      setSessions(sortSessionMetadataByActivity(merged));
     } catch (error) {
       console.error("[SidepanelApp] Failed to list sessions", error);
       setSessions([]);
@@ -765,24 +778,26 @@ export const SidepanelApp: FC = () => {
     void refreshSessions();
   }, [refreshSessions]);
 
-  const handleMessagesChange = useCallback(
-    (chatMessages: ChatMessage[]) => {
-      if (skipNextMessagesPersistRef.current) {
-        skipNextMessagesPersistRef.current = false;
+  const handleSessionMessagesChange = useCallback(
+    (sessionId: string, chatMessages: ChatMessage[]) => {
+      // Empty drafts (no messages yet) are kept entirely in-memory and never
+      // persisted. They are only created on the user's first send below.
+      const existing = sessionsDataRef.current.get(sessionId);
+      if (chatMessages.length === 0 && !existing) {
+        return;
+      }
+      if (chatMessages.length === 0) {
         return;
       }
 
-      if (chatMessages.length === 0) return;
-
-      let session = sessionRef.current;
+      let session = existing;
       const isNewSession = !session;
       if (!session) {
-        session = createEmptySession(
+        const created = createEmptySession(
           currentModelRef.current ? getModelKey(currentModelRef.current) : null
         );
-        sessionRef.current = session;
-        currentSessionIdRef.current = session.id;
-        setCurrentSessionId(session.id);
+        session = { ...created, id: sessionId };
+        sessionsDataRef.current.set(sessionId, session);
       }
 
       const now = new Date().toISOString();
@@ -801,9 +816,6 @@ export const SidepanelApp: FC = () => {
         latestMessage?.status !== prevLastMessage?.status ||
         isStreaming;
 
-      // Avoid churning session order when nothing actually changed (e.g.
-      // immediately after loading an existing session via setMessages) —
-      // opening history should not move the active chat to the top.
       if (!latestChanged) {
         return;
       }
@@ -824,10 +836,8 @@ export const SidepanelApp: FC = () => {
           : null,
         thinkingEnabled: thinkingModeRef.current,
         messages: chatMessages,
-        updatedAt: latestChanged ? now : session.updatedAt || now,
-        lastMessageAt: latestChanged
-          ? now
-          : prevLastMessageAt || (latestMessage ? now : undefined),
+        updatedAt: now,
+        lastMessageAt: now,
         lastMessageId: latestMessage?.id || prevLatestId,
         lastOpenedAt:
           currentSessionIdRef.current === session.id
@@ -841,16 +851,40 @@ export const SidepanelApp: FC = () => {
     [maybeGenerateSessionTitle, syncSessionSnapshot]
   );
 
+  // Pool event handler converts the AI SDK UI snapshot into our local
+  // ChatMessage shape and feeds the per-session messages handler. Stored as
+  // a ref so updating its closure does not require recreating the pool.
+  useEffect(() => {
+    poolEventHandlerRef.current = (sessionId, snapshot) => {
+      const previous =
+        previousSessionMessagesRef.current.get(sessionId) || [];
+      const chatMessages = convertUIMessagesToChatMessages(
+        snapshot.messages,
+        snapshot.status,
+        snapshot.error,
+        previous
+      );
+      previousSessionMessagesRef.current.set(sessionId, chatMessages);
+      handleSessionMessagesChange(sessionId, chatMessages);
+    };
+  }, [handleSessionMessagesChange]);
+
   const currentModel = useMemo(
     () => findModelByKey(models, currentModelId),
     [models, currentModelId]
   );
 
+  // Subscribe the UI to the active session's Chat. Background sessions keep
+  // streaming; only this hook drives composer/MessageList rendering for the
+  // currently displayed session.
+  const activeChat = useMemo(() => {
+    if (!poolRef.current || !currentSessionId) return null;
+    return poolRef.current.get(currentSessionId);
+  }, [currentSessionId]);
+
   const chat = useHuntlyChat({
-    modelInfo: currentModel,
-    thinkingEnabled: thinkingMode,
-    systemPrompt,
-    onMessagesChange: handleMessagesChange,
+    chat: activeChat,
+    hasModel: Boolean(currentModel),
   });
 
   const {
@@ -862,6 +896,18 @@ export const SidepanelApp: FC = () => {
     setMessages,
     clearMessages,
   } = chat;
+
+  // Ensure there is always an active draft session once the app has finished
+  // loading, so the composer can send without waiting for a re-render after
+  // creating a Chat.
+  useEffect(() => {
+    if (loading) return;
+    if (currentSessionIdRef.current) return;
+    const draftId = generateId();
+    poolRef.current?.ensure(draftId);
+    currentSessionIdRef.current = draftId;
+    setCurrentSessionId(draftId);
+  }, [loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -989,14 +1035,14 @@ export const SidepanelApp: FC = () => {
     return () => {
       window.removeEventListener("pagehide", flushPendingSession);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      clearScheduledTitleGenerationRetry();
-      titleGenerationAbortRef.current?.abort();
+      cancelAllTitleGenerations();
+      poolRef.current?.disposeAll();
     };
-  }, [clearScheduledTitleGenerationRetry, persistence]);
+  }, [cancelAllTitleGenerations, persistence]);
 
-  const scrollToLatest = useCallback((behavior: ScrollBehavior = "smooth") => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     messageScrollPinnedRef.current = true;
-    setShowJumpToLatest(false);
+    setShowScrollToBottom(false);
     messagesEndRef.current?.scrollIntoView({ block: "end", behavior });
   }, []);
 
@@ -1008,27 +1054,34 @@ export const SidepanelApp: FC = () => {
       scrollContainer.scrollHeight -
       scrollContainer.scrollTop -
       scrollContainer.clientHeight;
-    const pinned = distanceToBottom < SCROLL_PIN_THRESHOLD_PX;
+    const pinned = isScrollPinnedToBottom(
+      distanceToBottom,
+      SCROLL_PIN_THRESHOLD_PX
+    );
 
     messageScrollPinnedRef.current = pinned;
-    setShowJumpToLatest(!pinned && messages.length > 0 && isRunning);
-  }, [isRunning, messages.length]);
+    setShowScrollToBottom(
+      shouldShowScrollToBottomButton(messages.length, pinned)
+    );
+  }, [messages.length]);
 
   useEffect(() => {
     if (messages.length === 0) {
       messageScrollPinnedRef.current = true;
-      setShowJumpToLatest(false);
+      setShowScrollToBottom(false);
       return;
     }
 
     if (!messageScrollPinnedRef.current) {
-      setShowJumpToLatest(true);
+      setShowScrollToBottom(
+        shouldShowScrollToBottomButton(messages.length, false)
+      );
       return;
     }
 
-    const frame = window.requestAnimationFrame(() => scrollToLatest("auto"));
+    const frame = window.requestAnimationFrame(() => scrollToBottom("auto"));
     return () => window.cancelAnimationFrame(frame);
-  }, [messages, isRunning, scrollToLatest]);
+  }, [messages, scrollToBottom]);
 
   const filteredPrompts = useMemo(
     () =>
@@ -1054,77 +1107,76 @@ export const SidepanelApp: FC = () => {
     setHistoryOpen(false);
   }, []);
 
+  const clearInlineUserMessageEdit = useCallback(() => {
+    setEditingUserMessageId(null);
+    setEditingUserMessageText("");
+  }, []);
+
   const resetComposerState = useCallback(() => {
     setAttachedPageContext(null);
     setContextError(null);
     setAttachments([]);
+    setAttachmentProcessingLabel(null);
   }, []);
 
   const handleDeleteSession = useCallback(
     async (id: string) => {
       persistence.markDeleted(id);
-
-      if (currentSessionIdRef.current === id && isRunning) {
-        cancelRun({ discard: true });
-      }
-
-      if (currentSessionIdRef.current === id) {
-        clearScheduledTitleGenerationRetry();
-        titleGenerationAbortRef.current?.abort();
-        titleGenerationRequestKeyRef.current = null;
-      }
+      cancelTitleGenerationFor(id);
+      poolRef.current?.remove(id);
+      sessionsDataRef.current.delete(id);
+      previousSessionMessagesRef.current.delete(id);
 
       await deleteSession(id);
       setSessions((previous) =>
         previous.filter((session) => session.id !== id)
       );
+
       if (currentSessionIdRef.current === id) {
-        sessionRef.current = null;
-        currentSessionIdRef.current = null;
-        setCurrentSessionId(null);
+        // Switch to a fresh draft so the composer is still usable.
+        const draftId = generateId();
+        poolRef.current?.ensure(draftId);
+        currentSessionIdRef.current = draftId;
+        setCurrentSessionId(draftId);
+        clearInlineUserMessageEdit();
         resetComposerState();
-        clearMessages();
       }
     },
     [
-      cancelRun,
-      clearMessages,
-      clearScheduledTitleGenerationRetry,
-      isRunning,
+      cancelTitleGenerationFor,
+      clearInlineUserMessageEdit,
       persistence,
       resetComposerState,
     ]
   );
 
-  const applyMetadataPatch = useCallback(
-    (updated: SessionMetadata) => {
-      setSessions((previous) => {
-        const existingIndex = previous.findIndex(
-          (session) => session.id === updated.id
-        );
-        if (existingIndex === -1) {
-          return sortSessionMetadataByActivity([updated, ...previous]);
-        }
-        const next = [...previous];
-        next[existingIndex] = { ...next[existingIndex], ...updated };
-        return sortSessionMetadataByActivity(next);
-      });
-
-      if (sessionRef.current && sessionRef.current.id === updated.id) {
-        sessionRef.current = {
-          ...sessionRef.current,
-          title: updated.title,
-          titleGenerationStatus: updated.titleGenerationStatus,
-          titleGeneratedAt: updated.titleGeneratedAt,
-          pinned: updated.pinned,
-          pinnedAt: updated.pinnedAt,
-          archived: updated.archived,
-          archivedAt: updated.archivedAt,
-        };
+  const applyMetadataPatch = useCallback((updated: SessionMetadata) => {
+    setSessions((previous) => {
+      const existingIndex = previous.findIndex(
+        (session) => session.id === updated.id
+      );
+      if (existingIndex === -1) {
+        return sortSessionMetadataByActivity([updated, ...previous]);
       }
-    },
-    []
-  );
+      const next = [...previous];
+      next[existingIndex] = { ...next[existingIndex], ...updated };
+      return sortSessionMetadataByActivity(next);
+    });
+
+    const liveSession = sessionsDataRef.current.get(updated.id);
+    if (liveSession) {
+      sessionsDataRef.current.set(updated.id, {
+        ...liveSession,
+        title: updated.title,
+        titleGenerationStatus: updated.titleGenerationStatus,
+        titleGeneratedAt: updated.titleGeneratedAt,
+        pinned: updated.pinned,
+        pinnedAt: updated.pinnedAt,
+        archived: updated.archived,
+        archivedAt: updated.archivedAt,
+      });
+    }
+  }, []);
 
   const handleRenameSession = useCallback(
     async (id: string, title: string) => {
@@ -1183,114 +1235,122 @@ export const SidepanelApp: FC = () => {
           return;
         }
 
-        if (isRunning) {
-          skipNextMessagesPersistRef.current = true;
-          cancelRun({ discard: true });
-        }
-        await persistence.flush();
+        // Switch sessions WITHOUT cancelling the previously active session.
+        // The pool keeps that Chat alive so its stream continues in the
+        // background; persistence and title generation stay wired up.
+        const pool = poolRef.current;
+        if (!pool) return;
 
-        const session = await getSession(id);
-        if (!session) {
-          skipNextMessagesPersistRef.current = false;
-          return;
+        let openedSession: SessionData | null =
+          sessionsDataRef.current.get(id) ?? null;
+        let chatMessages: ChatMessage[];
+
+        if (pool.has(id) && openedSession) {
+          chatMessages = openedSession.messages || [];
+        } else {
+          await persistence.flush();
+          const stored = await getSession(id);
+          if (!stored) {
+            return;
+          }
+          chatMessages = (stored.messages || []).map((message) => ({
+            id: message.id || generateId(),
+            role: message.role,
+            parts: message.parts || [],
+            status: message.status || "complete",
+          }));
+
+          const latestMessage = getLatestMessage(chatMessages);
+          openedSession = {
+            ...stored,
+            messages: chatMessages,
+            lastMessageAt:
+              getStoredLastMessageAt(stored) ||
+              (latestMessage ? stored.updatedAt : undefined),
+            lastMessageId: getStoredLastMessageId(stored) || latestMessage?.id,
+          };
+          sessionsDataRef.current.set(id, openedSession);
+          previousSessionMessagesRef.current.set(id, chatMessages);
+          pool.ensure(id, chatMessages);
         }
 
-        const storedMessages = session.messages || [];
-        const chatMessages: ChatMessage[] = storedMessages.map((message) => ({
-          id: message.id || generateId(),
-          role: message.role,
-          parts: message.parts || [],
-          status: message.status || "complete",
-        }));
-        const latestMessage = getLatestMessage(chatMessages);
         const openedAt = new Date().toISOString();
-        const openedSession: SessionData = {
-          ...session,
-          messages: chatMessages,
-          lastMessageAt:
-            getStoredLastMessageAt(session) ||
-            (latestMessage ? session.updatedAt : undefined),
-          lastMessageId: getStoredLastMessageId(session) || latestMessage?.id,
+        const finalSession: SessionData = {
+          ...openedSession,
           lastOpenedAt: openedAt,
         };
+        sessionsDataRef.current.set(id, finalSession);
+        const previousId = currentSessionIdRef.current;
+        currentSessionIdRef.current = id;
+        setCurrentSessionId(id);
+        pruneEmptyDraft(previousId);
 
-        sessionRef.current = openedSession;
-        currentSessionIdRef.current = openedSession.id;
-        setCurrentSessionId(openedSession.id);
-        clearScheduledTitleGenerationRetry();
-        titleGenerationAbortRef.current?.abort();
-        titleGenerationRequestKeyRef.current = null;
-
-        skipNextMessagesPersistRef.current = true;
-        if (chatMessages.length > 0) {
-          setMessages(chatMessages);
-        } else {
-          clearMessages();
-        }
-
+        clearInlineUserMessageEdit();
         resetComposerState();
         setHistoryOpen(false);
         setSessions((previous) =>
           previous.map((storedSession) =>
-            storedSession.id === openedSession.id
+            storedSession.id === id
               ? {
                   ...storedSession,
-                  title: openedSession.title,
-                  titleGenerationStatus: openedSession.titleGenerationStatus,
-                  titleGeneratedAt: openedSession.titleGeneratedAt,
+                  title: finalSession.title,
+                  titleGenerationStatus: finalSession.titleGenerationStatus,
+                  titleGeneratedAt: finalSession.titleGeneratedAt,
                   lastOpenedAt: openedAt,
                 }
               : storedSession
           )
         );
 
-        void markSessionOpened(openedSession.id, openedAt).catch((error) => {
+        void markSessionOpened(id, openedAt).catch((error) => {
           console.error("[SidepanelApp] Failed to mark session opened", error);
         });
-        maybeGenerateSessionTitle(openedSession, chatMessages);
+        maybeGenerateSessionTitle(finalSession, chatMessages);
       } catch (error) {
         console.error("[SidepanelApp] Failed to open session", error);
       }
     },
     [
-      cancelRun,
-      clearScheduledTitleGenerationRetry,
-      clearMessages,
-      isRunning,
+      clearInlineUserMessageEdit,
       maybeGenerateSessionTitle,
       persistence,
+      pruneEmptyDraft,
       resetComposerState,
-      setMessages,
     ]
   );
 
   const handleNewChat = useCallback(() => {
-    void (async () => {
-      if (isRunning) {
-        cancelRun({ discard: true });
+    // Don't cancel any running session. Just open a fresh draft chat; the
+    // previous session keeps streaming via the pool until it completes.
+    const pool = poolRef.current;
+    if (!pool) return;
+
+    const previousId = currentSessionIdRef.current;
+    const draftId = generateId();
+    pool.ensure(draftId);
+    currentSessionIdRef.current = draftId;
+    setCurrentSessionId(draftId);
+    pruneEmptyDraft(previousId);
+    setHistoryOpen(false);
+    clearInlineUserMessageEdit();
+    setInputText("");
+    setSlashPromptIndex(0);
+    resetComposerState();
+    inputRef.current?.focus();
+  }, [clearInlineUserMessageEdit, pruneEmptyDraft, resetComposerState]);
+
+  const prepareOutgoingText = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        return "";
       }
-      clearScheduledTitleGenerationRetry();
-      titleGenerationAbortRef.current?.abort();
-      titleGenerationRequestKeyRef.current = null;
-      await persistence.flush();
-      sessionRef.current = null;
-      currentSessionIdRef.current = null;
-      setCurrentSessionId(null);
-      setHistoryOpen(false);
-      setInputText("");
-      setSlashPromptIndex(0);
-      resetComposerState();
-      clearMessages();
-      inputRef.current?.focus();
-    })();
-  }, [
-    cancelRun,
-    clearMessages,
-    clearScheduledTitleGenerationRetry,
-    isRunning,
-    persistence,
-    resetComposerState,
-  ]);
+
+      const parsed = parsePromptInput(trimmed, slashPrompts);
+      return parsed.prompt ? composePromptMessage(parsed) : trimmed;
+    },
+    [slashPrompts]
+  );
 
   const handleThinkingModeToggle = useCallback(() => {
     setThinkingMode((previous) => {
@@ -1300,18 +1360,36 @@ export const SidepanelApp: FC = () => {
     });
   }, []);
 
-  const handleAttachmentFiles = useCallback((files: File[] | FileList) => {
+  const attachFiles = useCallback(async (files: File[] | FileList) => {
     const selectedFiles = Array.from(files);
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) return false;
 
-    void Promise.all(selectedFiles.map(createAttachmentPart))
-      .then((parts) => {
-        setAttachments((previous) => [...previous, ...parts]);
-      })
-      .catch((error) => {
-        console.error("[SidepanelApp] Failed to read attachment", error);
-      });
+    const parts = await Promise.all(selectedFiles.map(createAttachmentPart));
+    setAttachments((previous) => [...previous, ...parts]);
+    return true;
   }, []);
+
+  const handleAttachmentFiles = useCallback(
+    (files: File[] | FileList) => {
+      const selectedFiles = Array.from(files);
+      if (selectedFiles.length === 0) return;
+
+      setAttachmentProcessingLabel(
+        selectedFiles.length > 1
+          ? "Processing attachments..."
+          : "Processing attachment..."
+      );
+
+      void attachFiles(selectedFiles)
+        .catch((error) => {
+          console.error("[SidepanelApp] Failed to read attachment", error);
+        })
+        .finally(() => {
+          setAttachmentProcessingLabel(null);
+        });
+    },
+    [attachFiles]
+  );
 
   const addAttachmentFromSource = useCallback(async (source: string) => {
     try {
@@ -1380,28 +1458,45 @@ export const SidepanelApp: FC = () => {
       setIsDraggingOver(false);
 
       void (async () => {
-        const { files, sources } = await extractDroppedPayload(
-          event.dataTransfer,
-          tabContext?.url
+        const filesFromItems = dedupeFiles(
+          Array.from(event.dataTransfer.items || [])
+            .filter((item) => item.kind === "file")
+            .map((item) => item.getAsFile())
+            .filter((file): file is File => Boolean(file))
         );
+        const files =
+          filesFromItems.length > 0
+            ? filesFromItems
+            : dedupeFiles(Array.from(event.dataTransfer.files || []));
 
         if (files.length > 0) {
-          handleAttachmentFiles(files);
+          setAttachmentProcessingLabel(
+            files.length > 1
+              ? "Processing dropped files..."
+              : "Processing dropped file..."
+          );
+          await attachFiles(files);
           return;
         }
 
+        setAttachmentProcessingLabel("Processing dropped image...");
         let attached = false;
-        for (const source of sources) {
-          attached = await addAttachmentFromSource(source);
-          if (attached) {
-            break;
-          }
+        const draggedSource = await getDraggedImageSource();
+        if (draggedSource) {
+          attached = await addAttachmentFromSource(draggedSource);
         }
 
         if (!attached) {
-          const draggedSource = await getDraggedImageSource();
-          if (draggedSource) {
-            attached = await addAttachmentFromSource(draggedSource);
+          const { sources } = await extractDroppedPayload(
+            event.dataTransfer,
+            tabContext?.url
+          );
+
+          for (const source of sources) {
+            attached = await addAttachmentFromSource(source);
+            if (attached) {
+              break;
+            }
           }
         }
 
@@ -1410,14 +1505,115 @@ export const SidepanelApp: FC = () => {
         }
       })().catch((error) => {
         console.error("[SidepanelApp] Failed to handle drop", error);
+      }).finally(() => {
+        setAttachmentProcessingLabel(null);
       });
     },
-    [addAttachmentFromSource, handleAttachmentFiles, hasFilesOrUrl]
+    [addAttachmentFromSource, attachFiles, hasFilesOrUrl, tabContext?.url]
   );
 
   const handleAttachmentRemove = useCallback((id: string) => {
     setAttachments((previous) => previous.filter((part) => part.id !== id));
   }, []);
+
+  const handleEditUserMessage = useCallback(
+    (messageId: string) => {
+      if (isRunning) {
+        return;
+      }
+
+      const message = messages.find(
+        (candidate) => candidate.id === messageId && candidate.role === "user"
+      );
+      if (!message) {
+        return;
+      }
+
+      setEditingUserMessageId(messageId);
+      setEditingUserMessageText(getDisplayMessageText(message.parts));
+    },
+    [isRunning, messages]
+  );
+
+  const handleEditUserMessageTextChange = useCallback((value: string) => {
+    setEditingUserMessageText(value);
+  }, []);
+
+  const handleCancelUserMessageEdit = useCallback(() => {
+    clearInlineUserMessageEdit();
+  }, [clearInlineUserMessageEdit]);
+
+  const handleSaveUserMessageEdit = useCallback(
+    (messageId: string) => {
+      if (isRunning || messageId !== editingUserMessageId) {
+        return;
+      }
+
+      const messageIndex = messages.findIndex(
+        (message) => message.id === messageId && message.role === "user"
+      );
+      if (messageIndex === -1) {
+        clearInlineUserMessageEdit();
+        return;
+      }
+
+      const message = messages[messageIndex];
+      const preservedParts = message.parts.flatMap((part) => {
+        if (part.type === "page-context") {
+          return [clonePageContextPart(part)];
+        }
+
+        if (part.type === "file") {
+          return [{ ...part }];
+        }
+
+        return [];
+      });
+      const remainingMessages = messages.slice(0, messageIndex);
+      const finalText = prepareOutgoingText(editingUserMessageText);
+
+      const activeSessionId = currentSessionIdRef.current;
+      if (activeSessionId) {
+        cancelTitleGenerationFor(activeSessionId);
+      }
+
+      if (remainingMessages.length > 0) {
+        setMessages(remainingMessages);
+      } else {
+        clearMessages();
+      }
+
+      const sent = sendMessage(finalText, preservedParts);
+      if (!sent) {
+        return;
+      }
+
+      clearInlineUserMessageEdit();
+    },
+    [
+      cancelTitleGenerationFor,
+      clearInlineUserMessageEdit,
+      clearMessages,
+      editingUserMessageId,
+      editingUserMessageText,
+      isRunning,
+      messages,
+      prepareOutgoingText,
+      sendMessage,
+      setMessages,
+    ]
+  );
+
+  const handleRegenerateMessage = useCallback(
+    (messageId: string) => {
+      const activeSessionId = currentSessionIdRef.current;
+      if (activeSessionId) {
+        cancelTitleGenerationFor(activeSessionId);
+      }
+      void regenerate(messageId);
+    },
+    [cancelTitleGenerationFor, regenerate]
+  );
 
   const handleAttachContext = useCallback(async () => {
     if (contextLoading || attachedPageContext) return;
@@ -1440,19 +1636,36 @@ export const SidepanelApp: FC = () => {
     setContextError(null);
   }, []);
 
+  useEffect(() => {
+    if (!editingUserMessageId) {
+      return;
+    }
+
+    const editingMessageStillExists = messages.some(
+      (message) =>
+        message.id === editingUserMessageId && message.role === "user"
+    );
+
+    if (!editingMessageStillExists) {
+      clearInlineUserMessageEdit();
+    }
+  }, [clearInlineUserMessageEdit, editingUserMessageId, messages]);
+
   const sendText = useCallback(
     async (
       text: string,
       options?: { includeCurrentPageContext?: boolean }
     ) => {
       const trimmed = text.trim();
-      if ((!trimmed && attachments.length === 0) || isRunning) return;
-
-      let finalText = trimmed;
-      if (trimmed) {
-        const parsed = parsePromptInput(trimmed, slashPrompts);
-        finalText = parsed.prompt ? composePromptMessage(parsed) : trimmed;
+      if (
+        (!trimmed && attachments.length === 0) ||
+        isRunning ||
+        attachmentProcessingLabel
+      ) {
+        return;
       }
+
+      const finalText = prepareOutgoingText(trimmed);
 
       let messageParts: ChatPart[] = attachments;
       if (options?.includeCurrentPageContext) {
@@ -1476,6 +1689,7 @@ export const SidepanelApp: FC = () => {
       const sent = sendMessage(finalText, messageParts);
       if (!sent) return;
 
+      clearInlineUserMessageEdit();
       setInputText("");
       setSlashPromptIndex(0);
       resetComposerState();
@@ -1483,10 +1697,12 @@ export const SidepanelApp: FC = () => {
     [
       attachedPageContext,
       attachments,
+      attachmentProcessingLabel,
       isRunning,
+      clearInlineUserMessageEdit,
+      prepareOutgoingText,
       resetComposerState,
       sendMessage,
-      slashPrompts,
     ]
   );
 
@@ -1641,30 +1857,38 @@ export const SidepanelApp: FC = () => {
             />
           ) : (
             <MessageList
+              editingUserMessageId={editingUserMessageId}
+              editingUserMessageText={editingUserMessageText}
               endRef={messagesEndRef}
               isRunning={isRunning}
               messages={messages}
-              onRegenerate={regenerate}
+              onCancelUserMessageEdit={handleCancelUserMessageEdit}
+              onEditUserMessage={handleEditUserMessage}
+              onEditUserMessageTextChange={handleEditUserMessageTextChange}
+              onRegenerate={handleRegenerateMessage}
+              onSaveUserMessageEdit={handleSaveUserMessageEdit}
               thinkingMode={thinkingMode}
             />
           )}
         </div>
 
         <div className="shrink-0 bg-[#f7f3ea]/95 px-4 pb-4 pt-3">
-          {showJumpToLatest && (
-            <div className="mb-2 flex justify-center">
+          {showScrollToBottom && (
+            <div className="mb-2 flex justify-end">
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8cfbf] bg-[#fffaf4] px-3 py-1.5 text-xs font-semibold text-[#5f5347] shadow-[0_8px_24px_rgba(64,48,31,0.14)] transition-colors hover:bg-[#f4efe6] hover:text-[#2f261f]"
-                onClick={() => scrollToLatest("smooth")}
+                aria-label="Scroll to bottom"
+                title="Scroll to bottom"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d8cfbf] bg-[#fffaf4] text-[#5f5347] shadow-[0_8px_24px_rgba(64,48,31,0.14)] transition-colors hover:bg-[#f4efe6] hover:text-[#2f261f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a34020] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f3ea]"
+                onClick={() => scrollToBottom("smooth")}
               >
-                <ChevronDown className="size-4" />
-                Jump to latest
+                <ChevronDown className="size-5" />
               </button>
             </div>
           )}
           <Composer
             attachments={attachments}
+            attachmentProcessingLabel={attachmentProcessingLabel}
             contextAttached={Boolean(attachedPageContext)}
             contextError={contextError}
             contextLoading={contextLoading}

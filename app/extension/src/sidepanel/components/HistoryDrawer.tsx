@@ -142,6 +142,16 @@ export const HistoryDrawer: FC<HistoryDrawerProps> = ({
       getFocusableElements(dialogRef.current)[0]?.focus();
     });
 
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      restoreFocusRef.current?.focus();
+      restoreFocusRef.current = null;
+    };
+  }, [open, rendered]);
+
+  useEffect(() => {
+    if (!open || !rendered) return;
+
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -199,10 +209,7 @@ export const HistoryDrawer: FC<HistoryDrawerProps> = ({
 
     document.addEventListener("keydown", handler);
     return () => {
-      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handler);
-      restoreFocusRef.current?.focus();
-      restoreFocusRef.current = null;
     };
   }, [open, rendered, onClose, renamingId, menuOpenId]);
 

@@ -1,6 +1,6 @@
 import TurndownService from "turndown";
 import type { ChatPart } from "../types";
-import { readBlobAsDataUrl, readFileAsDataUrl } from "./dom";
+import { readFileAsDataUrl } from "./dom";
 import { generateId } from "./ids";
 
 export type TabContext = { title: string; url: string; faviconUrl?: string };
@@ -144,17 +144,51 @@ export async function createAttachmentPart(file: File): Promise<ChatPart> {
   };
 }
 
-async function createAttachmentPartFromBlob(
-  blob: Blob,
-  filename: string
-): Promise<ChatPart> {
+function estimateDataUrlSize(encoded: string, isBase64: boolean): number | undefined {
+  if (!encoded) return 0;
+
+  if (isBase64) {
+    const normalized = encoded.replace(/\s/g, "");
+    const padding = normalized.endsWith("==")
+      ? 2
+      : normalized.endsWith("=")
+      ? 1
+      : 0;
+    return Math.max(0, Math.floor((normalized.length * 3) / 4) - padding);
+  }
+
+  try {
+    return new TextEncoder().encode(decodeURIComponent(encoded)).length;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseImageDataUrl(dataUrl: string): {
+  mediaType: string;
+  size?: number;
+} {
+  if (!dataUrl.startsWith("data:")) {
+    throw new Error("Dropped data is not a valid image data URL");
+  }
+
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex < 0) {
+    throw new Error("Dropped data is not a valid image payload");
+  }
+
+  const metadata = dataUrl.slice(5, commaIndex);
+  const mediaType = metadata.split(";")[0] || "";
+  if (!mediaType.startsWith("image/")) {
+    throw new Error("Dropped data is not an image");
+  }
+
   return {
-    id: generateId(),
-    type: "file",
-    filename,
-    mediaType: blob.type || "application/octet-stream",
-    size: blob.size,
-    dataUrl: await readBlobAsDataUrl(blob),
+    mediaType,
+    size: estimateDataUrlSize(
+      dataUrl.slice(commaIndex + 1),
+      metadata.includes(";base64")
+    ),
   };
 }
 
@@ -220,20 +254,16 @@ export async function createAttachmentPartFromDataUrl(
   dataUrl: string,
   filename?: string
 ): Promise<ChatPart> {
-  const response = await fetch(dataUrl);
-  if (!response.ok) {
-    throw new Error("Failed to read dropped image data");
-  }
+  const { mediaType, size } = parseImageDataUrl(dataUrl);
 
-  const blob = await response.blob();
-  if (!blob.type.startsWith("image/")) {
-    throw new Error("Dropped data is not an image");
-  }
-
-  return createAttachmentPartFromBlob(
-    blob,
-    filename || inferFilenameFromMediaType(blob.type)
-  );
+  return {
+    id: generateId(),
+    type: "file",
+    filename: filename || inferFilenameFromMediaType(mediaType),
+    mediaType,
+    size,
+    dataUrl,
+  };
 }
 
 export async function createAttachmentPartFromUrl(

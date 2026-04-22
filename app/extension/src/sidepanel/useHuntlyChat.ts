@@ -3,28 +3,27 @@
  *
  * Uses AI SDK UI's official React chat state with a local chat transport for
  * multi-step tool execution, while adapting messages to Huntly's local types.
+ *
+ * Multiple parallel sessions are coordinated via `SessionChatPool` in
+ * `./chatPool`. This hook binds the React UI state to an externally-created
+ * `Chat` instance representing the active session.
  */
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Chat, type CreateUIMessage, useChat } from "@ai-sdk/react";
 import {
-  ToolLoopAgent,
-  convertToModelMessages,
   isReasoningUIPart,
   isTextUIPart,
   isToolUIPart,
-  stepCountIs,
   type ChatStatus,
   type ChatTransport,
   type UIMessage,
   type UIMessageChunk,
-  validateUIMessages,
 } from "ai";
 import type { ProviderOptions } from "@ai-sdk/provider-utils";
-import type { HuntlyModelInfo, ChatMessage, ChatPart } from "./types";
-import { ALL_AGENT_TOOLS } from "./agentTools";
+import type { ChatMessage, ChatPart } from "./types";
 
-const CHAT_MAX_OUTPUT_TOKENS = 8192;
+export const CHAT_MAX_OUTPUT_TOKENS = 8192;
 const ANTHROPIC_THINKING_BUDGET_TOKENS = 4000;
 
 const ATTACHED_PAGE_CONTEXT_RE =
@@ -33,7 +32,13 @@ const CONTENT_SECTION_RE = /(?:^|\n)\s*Content:\s*\n([\s\S]*)$/i;
 const STEP_PLACEHOLDER_ID = "pending-assistant";
 const INLINE_FILE_DATA_PART_TYPE = "data-huntly-inline-file";
 
-type InlineFileDataPart = {
+export type HuntlyUIMessageMetadata = {
+  createdAt?: string;
+};
+
+export type HuntlyUIMessage = UIMessage<HuntlyUIMessageMetadata>;
+
+export type InlineFileDataPart = {
   type: typeof INLINE_FILE_DATA_PART_TYPE;
   data: {
     dataUrl: string;
@@ -42,7 +47,7 @@ type InlineFileDataPart = {
   };
 };
 
-const MISSING_MODEL_TRANSPORT: ChatTransport<UIMessage> = {
+export const MISSING_MODEL_TRANSPORT: ChatTransport<HuntlyUIMessage> = {
   async sendMessages(): Promise<ReadableStream<UIMessageChunk>> {
     throw new Error("No AI model is configured.");
   },
@@ -56,18 +61,21 @@ const MISSING_MODEL_TRANSPORT: ChatTransport<UIMessage> = {
 // ---------------------------------------------------------------------------
 
 export interface UseHuntlyChatOptions {
-  modelInfo: HuntlyModelInfo | null;
-  thinkingEnabled: boolean;
-  systemPrompt: string;
-  onMessagesChange?: (messages: ChatMessage[]) => void;
+  /**
+   * Active session Chat instance produced by `SessionChatPool`. When null
+   * (e.g. no model configured or no session selected), the hook returns a
+   * no-op API.
+   */
+  chat: Chat<HuntlyUIMessage> | null;
+  hasModel: boolean;
 }
 
 export interface UseHuntlyChatReturn {
   messages: ChatMessage[];
   isRunning: boolean;
   sendMessage: (text: string, attachments?: ChatPart[]) => boolean;
-  regenerate: () => void;
-  cancelRun: (options?: { discard?: boolean }) => void;
+  regenerate: (messageId?: string) => void;
+  cancelRun: () => void;
   setMessages: (messages: ChatMessage[]) => void;
   clearMessages: () => void;
 }
@@ -76,13 +84,17 @@ export interface UseHuntlyChatReturn {
 // Provider options for thinking/reasoning
 // ---------------------------------------------------------------------------
 
-function buildBaseProviderOptions(_provider?: string): ProviderOptions {
+export function buildBaseProviderOptions(
+  _provider?: string
+): ProviderOptions {
   return {
     openai: { systemMessageMode: "system" },
   };
 }
 
-function buildThinkingProviderOptions(provider?: string): ProviderOptions {
+export function buildThinkingProviderOptions(
+  provider?: string
+): ProviderOptions {
   const options = buildBaseProviderOptions(provider);
 
   options.anthropic = {
@@ -230,7 +242,9 @@ function inlineFilePartToDataPart(
   };
 }
 
-function replaceInlineFileParts(messages: UIMessage[]): UIMessage[] {
+export function replaceInlineFileParts(
+  messages: HuntlyUIMessage[]
+): HuntlyUIMessage[] {
   return messages.map((message) => {
     if (message.role !== "user") {
       return message;
@@ -245,7 +259,7 @@ function replaceInlineFileParts(messages: UIMessage[]): UIMessage[] {
   });
 }
 
-function convertInlineFileDataPart(part: { type: string; data: unknown }) {
+export function convertInlineFileDataPart(part: { type: string; data: unknown }) {
   if (part.type !== INLINE_FILE_DATA_PART_TYPE) {
     return undefined;
   }
@@ -263,10 +277,11 @@ function convertInlineFileDataPart(part: { type: string; data: unknown }) {
   };
 }
 
-function convertUserChatPartsToUIMessage(
-  parts: ChatPart[]
-): CreateUIMessage<UIMessage> {
-  const uiParts: UIMessage["parts"] = [];
+export function convertUserChatPartsToUIMessage(
+  parts: ChatPart[],
+  createdAt = new Date().toISOString()
+): CreateUIMessage<HuntlyUIMessage> {
+  const uiParts: HuntlyUIMessage["parts"] = [];
 
   for (const part of parts) {
     if (part.type === "page-context") {
@@ -295,11 +310,14 @@ function convertUserChatPartsToUIMessage(
   return {
     role: "user",
     parts: uiParts,
+    metadata: { createdAt },
   };
 }
 
-function convertAssistantChatMessageToUIMessage(message: ChatMessage): UIMessage {
-  const parts: UIMessage["parts"] = [];
+function convertAssistantChatMessageToUIMessage(
+  message: ChatMessage
+): HuntlyUIMessage {
+  const parts: HuntlyUIMessage["parts"] = [];
 
   for (const part of message.parts) {
     switch (part.type) {
@@ -382,28 +400,35 @@ function convertAssistantChatMessageToUIMessage(message: ChatMessage): UIMessage
     id: message.id,
     role: "assistant",
     parts,
+    metadata: message.createdAt ? { createdAt: message.createdAt } : undefined,
   };
 }
 
-function convertChatMessageToUIMessage(message: ChatMessage): UIMessage {
+function convertChatMessageToUIMessage(message: ChatMessage): HuntlyUIMessage {
   if (message.role === "user") {
-    const userMessage = convertUserChatPartsToUIMessage(message.parts);
+    const userMessage = convertUserChatPartsToUIMessage(
+      message.parts,
+      message.createdAt
+    );
 
     return {
       id: message.id,
       role: "user",
       parts: userMessage.parts,
+      metadata: userMessage.metadata,
     };
   }
 
   return convertAssistantChatMessageToUIMessage(message);
 }
 
-function convertChatMessagesToUIMessages(messages: ChatMessage[]): UIMessage[] {
+export function convertChatMessagesToUIMessages(
+  messages: ChatMessage[]
+): HuntlyUIMessage[] {
   return messages.map(convertChatMessageToUIMessage);
 }
 
-function convertUserUIMessageToChatParts(message: UIMessage): ChatPart[] {
+function convertUserUIMessageToChatParts(message: HuntlyUIMessage): ChatPart[] {
   const result: ChatPart[] = [];
 
   for (const part of message.parts) {
@@ -430,7 +455,9 @@ function convertUserUIMessageToChatParts(message: UIMessage): ChatPart[] {
   return result;
 }
 
-function convertAssistantUIMessageToChatParts(message: UIMessage): ChatPart[] {
+function convertAssistantUIMessageToChatParts(
+  message: HuntlyUIMessage
+): ChatPart[] {
   return message.parts.reduce<ChatPart[]>((result, part) => {
     if (part.type === "step-start") {
       result.push({ type: "step-start" });
@@ -514,6 +541,7 @@ function ensureErrorMessage(
     return [
       ...messages,
       {
+        createdAt: new Date().toISOString(),
         id: `error-${generateId()}`,
         role: "assistant",
         parts: [{ type: "text", text: errorText }],
@@ -539,11 +567,29 @@ function ensureErrorMessage(
   ];
 }
 
-function convertUIMessagesToChatMessages(
-  messages: UIMessage[],
+function resolveMessageCreatedAt(
+  message: HuntlyUIMessage,
+  previousMessagesById: Map<string, ChatMessage>,
+  fallbackCreatedAt?: string
+): string | undefined {
+  return (
+    previousMessagesById.get(message.id)?.createdAt ||
+    message.metadata?.createdAt ||
+    fallbackCreatedAt ||
+    new Date().toISOString()
+  );
+}
+
+export function convertUIMessagesToChatMessages(
+  messages: HuntlyUIMessage[],
   status: ChatStatus,
-  error: Error | undefined
+  error: Error | undefined,
+  previousMessages: ChatMessage[]
 ): ChatMessage[] {
+  const previousMessagesById = new Map(
+    previousMessages.map((message) => [message.id, message])
+  );
+
   const chatMessages = messages.reduce<ChatMessage[]>((result, message, index) => {
     if (message.role === "system") return result;
 
@@ -559,6 +605,11 @@ function convertUIMessagesToChatMessages(
         : "complete";
 
     result.push({
+      createdAt: resolveMessageCreatedAt(
+        message,
+        previousMessagesById,
+        result[result.length - 1]?.createdAt
+      ),
       id: message.id,
       role: message.role,
       parts:
@@ -572,6 +623,7 @@ function convertUIMessagesToChatMessages(
   }, []);
 
   const placeholderMessage: ChatMessage = {
+    createdAt: new Date().toISOString(),
     id: STEP_PLACEHOLDER_ID,
     role: "assistant",
     parts: [],
@@ -591,65 +643,26 @@ function convertUIMessagesToChatMessages(
 // useHuntlyChat hook
 // ---------------------------------------------------------------------------
 
+const FALLBACK_CHAT_MESSAGES: HuntlyUIMessage[] = [];
+
+function createFallbackChat(): Chat<HuntlyUIMessage> {
+  return new Chat<HuntlyUIMessage>({
+    messages: FALLBACK_CHAT_MESSAGES,
+    transport: MISSING_MODEL_TRANSPORT,
+  });
+}
+
 export function useHuntlyChat(
   options: UseHuntlyChatOptions
 ): UseHuntlyChatReturn {
-  const { modelInfo, thinkingEnabled } = options;
-  const uiMessagesRef = useRef<UIMessage[]>([]);
-  const [chatGeneration, bumpChatGeneration] = useReducer(
-    (value: number) => value + 1,
-    0
-  );
+  const { chat, hasModel } = options;
+  const fallbackChatRef = useRef<Chat<HuntlyUIMessage> | null>(null);
+  if (!fallbackChatRef.current) {
+    fallbackChatRef.current = createFallbackChat();
+  }
 
-  const transport = useMemo<ChatTransport<UIMessage>>(() => {
-    if (!modelInfo) {
-      return MISSING_MODEL_TRANSPORT;
-    }
-
-    const agent = new ToolLoopAgent({
-      model: modelInfo.model,
-      instructions: options.systemPrompt,
-      tools: ALL_AGENT_TOOLS,
-      stopWhen: stepCountIs(5),
-      maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
-      providerOptions: thinkingEnabled
-        ? buildThinkingProviderOptions(modelInfo.provider)
-        : buildBaseProviderOptions(modelInfo.provider),
-    });
-
-    return {
-      async sendMessages({ messages: nextMessages, abortSignal }) {
-        const validatedMessages = await validateUIMessages({
-          messages: nextMessages,
-          tools: agent.tools as any,
-        });
-        const modelMessages = await convertToModelMessages(
-          replaceInlineFileParts(validatedMessages),
-          {
-            tools: agent.tools as any,
-            convertDataPart: convertInlineFileDataPart,
-          }
-        );
-        const result = await agent.stream({
-          prompt: modelMessages,
-          abortSignal,
-        });
-        return result.toUIMessageStream({ sendReasoning: thinkingEnabled });
-      },
-      async reconnectToStream() {
-        return null;
-      },
-    };
-  }, [modelInfo, options.systemPrompt, thinkingEnabled]);
-
-  const chat = useMemo(
-    () =>
-      new Chat<UIMessage>({
-        messages: uiMessagesRef.current,
-        transport,
-      }),
-    [transport, chatGeneration]
-  );
+  const activeChat = chat ?? fallbackChatRef.current;
+  const previousMessagesRef = useRef<ChatMessage[]>([]);
 
   const {
     messages: uiMessages,
@@ -659,32 +672,35 @@ export function useHuntlyChat(
     regenerate: regenerateUIMessage,
     stop,
     setMessages: setUIMessages,
-  } = useChat<UIMessage>({ chat });
+  } = useChat<HuntlyUIMessage>({ chat: activeChat });
 
+  // Reset the "previous messages" memo when the underlying chat instance
+  // changes so we don't leak history from one session's messages into
+  // another's error-recovery logic.
   useEffect(() => {
-    uiMessagesRef.current = uiMessages;
-  }, [uiMessages]);
-
-  const onMessagesChangeRef = useRef(options.onMessagesChange);
-
-  useEffect(() => {
-    onMessagesChangeRef.current = options.onMessagesChange;
-  }, [options.onMessagesChange]);
+    previousMessagesRef.current = [];
+  }, [activeChat]);
 
   const messages = useMemo(
-    () => convertUIMessagesToChatMessages(uiMessages, status, error),
+    () =>
+      convertUIMessagesToChatMessages(
+        uiMessages,
+        status,
+        error,
+        previousMessagesRef.current
+      ),
     [uiMessages, status, error]
   );
 
   useEffect(() => {
-    onMessagesChangeRef.current?.(messages);
+    previousMessagesRef.current = messages;
   }, [messages]);
 
   const isRunning = status === "submitted" || status === "streaming";
 
   const sendMessage = useCallback(
     (text: string, attachments: ChatPart[] = []) => {
-      if (isRunning || !modelInfo) return false;
+      if (isRunning || !hasModel || !chat) return false;
 
       const pageContextParts = attachments.filter(
         (part) =>
@@ -711,37 +727,34 @@ export function useHuntlyChat(
       void sendUIMessage(convertUserChatPartsToUIMessage(parts));
       return true;
     },
-    [isRunning, modelInfo, sendUIMessage]
+    [chat, hasModel, isRunning, sendUIMessage]
   );
 
-  const regenerate = useCallback(() => {
-    if (isRunning || !modelInfo || uiMessages.length === 0) return;
-    void regenerateUIMessage();
-  }, [isRunning, modelInfo, regenerateUIMessage, uiMessages.length]);
-
-  const cancelRun = useCallback(
-    (runOptions?: { discard?: boolean }) => {
-      void stop();
-      if (runOptions?.discard) {
-        bumpChatGeneration();
-      }
+  const regenerate = useCallback(
+    (messageId?: string) => {
+      if (isRunning || !hasModel || !chat || uiMessages.length === 0) return;
+      void regenerateUIMessage(messageId ? { messageId } : undefined);
     },
-    [stop]
+    [chat, hasModel, isRunning, regenerateUIMessage, uiMessages.length]
   );
+
+  const cancelRun = useCallback(() => {
+    void stop();
+  }, [stop]);
 
   const setMessages = useCallback(
     (nextMessages: ChatMessage[]) => {
+      if (!chat) return;
       const nextUiMessages = convertChatMessagesToUIMessages(nextMessages);
-      uiMessagesRef.current = nextUiMessages;
       setUIMessages(nextUiMessages);
     },
-    [setUIMessages]
+    [chat, setUIMessages]
   );
 
   const clearMessages = useCallback(() => {
-    uiMessagesRef.current = [];
+    if (!chat) return;
     setUIMessages([]);
-  }, [setUIMessages]);
+  }, [chat, setUIMessages]);
 
   return {
     messages,
