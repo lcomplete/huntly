@@ -46,9 +46,13 @@ import {
 } from "./systemPrompt";
 import { loadModels } from "./utils/loadModels";
 import {
+  clearDraggedImageSource,
   clonePageContextPart,
   createAttachmentPart,
+  createAttachmentPartFromDataUrl,
+  createAttachmentPartFromUrl,
   createCurrentPageContextPart,
+  getDraggedImageSource,
   getTabContext,
   onConfigChange,
   pageContextToTabContext,
@@ -77,6 +81,227 @@ import {
 
 const SCROLL_PIN_THRESHOLD_PX = 96;
 const TITLE_MAX_LENGTH = 60;
+const DROPPABLE_STRING_TYPES = new Set([
+  "text/plain",
+  "text/uri-list",
+  "text/html",
+  "text/x-moz-url",
+  "text/x-moz-url-data",
+  "DownloadURL",
+]);
+
+function isImageDataUrl(value: string): boolean {
+  return /^data:image\//i.test(value.trim());
+}
+
+function isBlobUrl(value: string): boolean {
+  return /^blob:/i.test(value.trim());
+}
+
+function isHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim());
+}
+
+function looksLikeRelativeUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || /\s/.test(trimmed)) return false;
+
+  return (
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("./") ||
+    trimmed.startsWith("../") ||
+    trimmed.includes("/") ||
+    /\.[a-z0-9]{2,8}(?:[?#].*)?$/i.test(trimmed)
+  );
+}
+
+function normalizeDroppedSource(
+  value: string,
+  baseUrl?: string | null
+): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (isHttpUrl(trimmed) || isImageDataUrl(trimmed) || isBlobUrl(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("//")) {
+    try {
+      return new URL(trimmed, baseUrl || "https://example.com").toString();
+    } catch {
+      return null;
+    }
+  }
+
+  if (!baseUrl) return null;
+  if (!looksLikeRelativeUrl(trimmed)) return null;
+
+  try {
+    const resolved = new URL(trimmed, baseUrl).toString();
+    if (isHttpUrl(resolved) || isImageDataUrl(resolved) || isBlobUrl(resolved)) {
+      return resolved;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function collectUrlsFromSrcset(value: string, baseUrl?: string | null): string[] {
+  return value
+    .split(",")
+    .map((candidate) => candidate.trim().split(/\s+/)[0] || "")
+    .map((candidate) => normalizeDroppedSource(candidate, baseUrl))
+    .filter((candidate): candidate is string => Boolean(candidate));
+}
+
+function collectUrlsFromText(value: string, baseUrl?: string | null): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => normalizeDroppedSource(entry, baseUrl))
+    .filter((entry): entry is string => Boolean(entry));
+}
+
+function collectUrlsFromDownloadUrl(
+  value: string,
+  baseUrl?: string | null
+): string[] {
+  const match = value.match(/^[^:]+:[^:]*:(.+)$/);
+  if (!match?.[1]) return [];
+
+  const normalized = normalizeDroppedSource(match[1], baseUrl);
+  return normalized ? [normalized] : [];
+}
+
+function collectImageSourcesFromHtml(
+  html: string,
+  baseUrl?: string | null
+): string[] {
+  const sources = new Set<string>();
+
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const nodes = doc.querySelectorAll("img, source");
+
+    nodes.forEach((node) => {
+      const src = node.getAttribute("src");
+      const srcset = node.getAttribute("srcset");
+
+      const normalizedSrc = src ? normalizeDroppedSource(src, baseUrl) : null;
+      if (normalizedSrc) {
+        sources.add(normalizedSrc);
+      }
+
+      if (srcset) {
+        collectUrlsFromSrcset(srcset, baseUrl).forEach((value) =>
+          sources.add(value)
+        );
+      }
+    });
+  } catch {
+    // Ignore malformed HTML payloads from drag-and-drop.
+  }
+
+  return Array.from(sources);
+}
+
+function readDragItemAsString(item: DataTransferItem): Promise<string> {
+  return new Promise((resolve) => {
+    item.getAsString((value) => resolve(value || ""));
+  });
+}
+
+function dedupeFiles(files: File[]): File[] {
+  const seen = new Set<string>();
+  return files.filter((file) => {
+    const key = [file.name, file.size, file.type, file.lastModified].join(":");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function extractDroppedPayload(
+  dataTransfer: DataTransfer,
+  baseUrl?: string | null
+): Promise<{
+  files: File[];
+  sources: string[];
+}> {
+  const items = Array.from(dataTransfer.items || []);
+  const filesFromItems = dedupeFiles(
+    items
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file))
+  );
+
+  const files =
+    filesFromItems.length > 0
+      ? filesFromItems
+      : dedupeFiles(Array.from(dataTransfer.files || []));
+
+  const stringItems = await Promise.all(
+    items
+      .filter(
+        (item) =>
+          item.kind === "string" && DROPPABLE_STRING_TYPES.has(item.type)
+      )
+      .map(async (item) => ({
+        type: item.type,
+        value: (await readDragItemAsString(item)).trim(),
+      }))
+  );
+
+  const sources = new Set<string>();
+
+  for (const item of stringItems) {
+    if (!item.value) continue;
+
+    if (item.type === "text/html") {
+      collectImageSourcesFromHtml(item.value, baseUrl).forEach((value) =>
+        sources.add(value)
+      );
+      continue;
+    }
+
+    if (item.type === "DownloadURL") {
+      collectUrlsFromDownloadUrl(item.value, baseUrl).forEach((value) =>
+        sources.add(value)
+      );
+      continue;
+    }
+
+    collectUrlsFromText(item.value, baseUrl).forEach((value) =>
+      sources.add(value)
+    );
+  }
+
+  collectUrlsFromText(dataTransfer.getData("text/uri-list"), baseUrl).forEach(
+    (value) => sources.add(value)
+  );
+  collectImageSourcesFromHtml(dataTransfer.getData("text/html"), baseUrl).forEach(
+    (value) => sources.add(value)
+  );
+  collectUrlsFromText(dataTransfer.getData("text/plain"), baseUrl).forEach(
+    (value) => sources.add(value)
+  );
+  collectUrlsFromText(dataTransfer.getData("text/x-moz-url"), baseUrl).forEach(
+    (value) => sources.add(value)
+  );
+  collectUrlsFromDownloadUrl(dataTransfer.getData("DownloadURL"), baseUrl).forEach(
+    (value) => sources.add(value)
+  );
+
+  return {
+    files,
+    sources: Array.from(sources),
+  };
+}
 
 export const SidepanelApp: FC = () => {
   const [models, setModels] = useState<HuntlyModelInfo[]>([]);
@@ -192,9 +417,14 @@ export const SidepanelApp: FC = () => {
     [persistence]
   );
 
+  const currentModel = useMemo(
+    () => findModelByKey(models, currentModelId),
+    [models, currentModelId]
+  );
+
   const chat = useHuntlyChat({
-    getModelInfo: () => currentModelRef.current,
-    getThinkingMode: () => thinkingModeRef.current,
+    modelInfo: currentModel,
+    thinkingEnabled: thinkingMode,
     systemPrompt,
     onMessagesChange: handleMessagesChange,
   });
@@ -308,6 +538,26 @@ export const SidepanelApp: FC = () => {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const flushPendingSession = () => {
+      void persistence.flush();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        void persistence.flush();
+      }
+    };
+
+    window.addEventListener("pagehide", flushPendingSession);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", flushPendingSession);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [persistence]);
+
   const scrollToLatest = useCallback((behavior: ScrollBehavior = "smooth") => {
     messageScrollPinnedRef.current = true;
     setShowJumpToLatest(false);
@@ -400,11 +650,15 @@ export const SidepanelApp: FC = () => {
   const handleSelectSession = useCallback(
     async (id: string) => {
       try {
+        skipNextMessagesPersistRef.current = true;
         cancelRun({ discard: true });
-        persistence.flush();
+        await persistence.flush();
 
         const session = await getSession(id);
-        if (!session) return;
+        if (!session) {
+          skipNextMessagesPersistRef.current = false;
+          return;
+        }
 
         const storedMessages = session.messages || [];
         const chatMessages: ChatMessage[] = storedMessages.map((message) => ({
@@ -447,17 +701,19 @@ export const SidepanelApp: FC = () => {
   );
 
   const handleNewChat = useCallback(() => {
-    cancelRun({ discard: true });
-    persistence.cancelPending();
-    sessionRef.current = null;
-    currentSessionIdRef.current = null;
-    setCurrentSessionId(null);
-    setHistoryOpen(false);
-    setInputText("");
-    setSlashPromptIndex(0);
-    resetComposerState();
-    clearMessages();
-    inputRef.current?.focus();
+    void (async () => {
+      cancelRun({ discard: true });
+      await persistence.flush();
+      sessionRef.current = null;
+      currentSessionIdRef.current = null;
+      setCurrentSessionId(null);
+      setHistoryOpen(false);
+      setInputText("");
+      setSlashPromptIndex(0);
+      resetComposerState();
+      clearMessages();
+      inputRef.current?.focus();
+    })();
   }, [cancelRun, clearMessages, persistence, resetComposerState]);
 
   const handleThinkingModeToggle = useCallback(() => {
@@ -468,7 +724,7 @@ export const SidepanelApp: FC = () => {
     });
   }, []);
 
-  const handleAttachmentFiles = useCallback((files: FileList) => {
+  const handleAttachmentFiles = useCallback((files: File[] | FileList) => {
     const selectedFiles = Array.from(files);
     if (selectedFiles.length === 0) return;
 
@@ -480,6 +736,108 @@ export const SidepanelApp: FC = () => {
         console.error("[SidepanelApp] Failed to read attachment", error);
       });
   }, []);
+
+  const addAttachmentFromSource = useCallback(async (source: string) => {
+    try {
+      const part = isImageDataUrl(source)
+        ? await createAttachmentPartFromDataUrl(source)
+        : await createAttachmentPartFromUrl(source);
+      setAttachments((previous) => [...previous, part]);
+      return true;
+    } catch (error) {
+      console.error("[SidepanelApp] Failed to attach dropped image", error);
+      return false;
+    }
+  }, []);
+
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragDepthRef = useRef(0);
+
+  const hasFilesOrUrl = useCallback((event: React.DragEvent) => {
+    const items = Array.from(event.dataTransfer?.items || []);
+    if (items.length > 0) {
+      return items.some(
+        (item) =>
+          item.kind === "file" ||
+          (item.kind === "string" && DROPPABLE_STRING_TYPES.has(item.type))
+      );
+    }
+
+    return Array.from(event.dataTransfer?.types || []).some(
+      (type) => type === "Files" || DROPPABLE_STRING_TYPES.has(type)
+    );
+  }, []);
+
+  const handleDragEnter = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!hasFilesOrUrl(event)) return;
+      event.preventDefault();
+      dragDepthRef.current += 1;
+      setIsDraggingOver(true);
+    },
+    [hasFilesOrUrl]
+  );
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!hasFilesOrUrl(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    [hasFilesOrUrl]
+  );
+
+  const handleDragLeave = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!hasFilesOrUrl(event)) return;
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setIsDraggingOver(false);
+    },
+    [hasFilesOrUrl]
+  );
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!hasFilesOrUrl(event)) return;
+      event.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDraggingOver(false);
+
+      void (async () => {
+        const { files, sources } = await extractDroppedPayload(
+          event.dataTransfer,
+          tabContext?.url
+        );
+
+        if (files.length > 0) {
+          handleAttachmentFiles(files);
+          return;
+        }
+
+        let attached = false;
+        for (const source of sources) {
+          attached = await addAttachmentFromSource(source);
+          if (attached) {
+            break;
+          }
+        }
+
+        if (!attached) {
+          const draggedSource = await getDraggedImageSource();
+          if (draggedSource) {
+            attached = await addAttachmentFromSource(draggedSource);
+          }
+        }
+
+        if (attached) {
+          await clearDraggedImageSource();
+        }
+      })().catch((error) => {
+        console.error("[SidepanelApp] Failed to handle drop", error);
+      });
+    },
+    [addAttachmentFromSource, handleAttachmentFiles, hasFilesOrUrl]
+  );
 
   const handleAttachmentRemove = useCallback((id: string) => {
     setAttachments((previous) => previous.filter((part) => part.id !== id));
@@ -638,7 +996,13 @@ export const SidepanelApp: FC = () => {
   }
 
   return (
-    <div className="relative flex h-full overflow-hidden bg-[#f7f3ea] text-[#2f261f]">
+    <div
+      className="relative flex h-full overflow-hidden bg-[#f7f3ea] text-[#2f261f]"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <HistoryDrawer
         currentSessionId={currentSessionId}
         onClose={handleCloseHistory}
@@ -715,6 +1079,14 @@ export const SidepanelApp: FC = () => {
           />
         </div>
       </main>
+
+      {isDraggingOver && (
+        <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-[#2f261f]/10 backdrop-blur-[1px]">
+          <div className="rounded-2xl border-2 border-dashed border-[#a34020] bg-[#fffaf4]/95 px-6 py-4 text-sm font-semibold text-[#a34020] shadow-[0_16px_55px_rgba(64,48,31,0.18)]">
+            Drop images or files to attach
+          </div>
+        </div>
+      )}
     </div>
   );
 };

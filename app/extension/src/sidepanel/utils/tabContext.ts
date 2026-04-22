@@ -1,6 +1,6 @@
 import TurndownService from "turndown";
 import type { ChatPart } from "../types";
-import { readFileAsDataUrl } from "./dom";
+import { readBlobAsDataUrl, readFileAsDataUrl } from "./dom";
 import { generateId } from "./ids";
 
 export type TabContext = { title: string; url: string; faviconUrl?: string };
@@ -38,6 +38,19 @@ export async function getTabContext(): Promise<TabContext | null> {
 function sendMessageToTab(tabId: number, message: unknown): Promise<any> {
   return new Promise((resolve, reject) => {
     chrome.tabs.sendMessage(tabId, message, (response) => {
+      const error = chrome.runtime.lastError;
+      if (error) {
+        reject(new Error(error.message));
+        return;
+      }
+      resolve(response);
+    });
+  });
+}
+
+function sendRuntimeMessage(message: unknown): Promise<any> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
       const error = chrome.runtime.lastError;
       if (error) {
         reject(new Error(error.message));
@@ -129,6 +142,150 @@ export async function createAttachmentPart(file: File): Promise<ChatPart> {
     size: file.size,
     dataUrl: await readFileAsDataUrl(file),
   };
+}
+
+async function createAttachmentPartFromBlob(
+  blob: Blob,
+  filename: string
+): Promise<ChatPart> {
+  return {
+    id: generateId(),
+    type: "file",
+    filename,
+    mediaType: blob.type || "application/octet-stream",
+    size: blob.size,
+    dataUrl: await readBlobAsDataUrl(blob),
+  };
+}
+
+function inferFilenameFromUrl(url: string, fallbackExt: string): string {
+  try {
+    const parsed = new URL(url);
+    const last = parsed.pathname.split("/").filter(Boolean).pop() || "";
+    if (last && /\.[a-z0-9]+$/i.test(last)) return decodeURIComponent(last);
+    if (last) return `${decodeURIComponent(last)}.${fallbackExt}`;
+  } catch {
+    // ignore
+  }
+  return `image-${Date.now()}.${fallbackExt}`;
+}
+
+function inferFilenameFromMediaType(mediaType: string, prefix = "image"): string {
+  const extension = mediaType.split("/")[1]?.split(/[+;]/)[0] || "bin";
+  return `${prefix}-${Date.now()}.${extension}`;
+}
+
+async function fetchDroppedImageDataUrl(url: string): Promise<string> {
+  if (/^data:image\//i.test(url)) {
+    return url;
+  }
+
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (tab?.id) {
+    try {
+      const response = await sendMessageToTab(tab.id, {
+        type: "fetch_image",
+        payload: { url },
+      });
+
+      if (response?.success && response.dataUrl) {
+        return response.dataUrl;
+      }
+    } catch {
+      // Fall back to background fetch for standard URLs.
+    }
+  }
+
+  if (url.startsWith("blob:")) {
+    throw new Error("Failed to fetch blob image from the current tab");
+  }
+
+  const response = await sendRuntimeMessage({
+    type: "fetch_image",
+    payload: { url },
+  });
+
+  if (!response?.success || !response.dataUrl) {
+    throw new Error(response?.error || "Failed to fetch image");
+  }
+
+  return response.dataUrl;
+}
+
+export async function createAttachmentPartFromDataUrl(
+  dataUrl: string,
+  filename?: string
+): Promise<ChatPart> {
+  const response = await fetch(dataUrl);
+  if (!response.ok) {
+    throw new Error("Failed to read dropped image data");
+  }
+
+  const blob = await response.blob();
+  if (!blob.type.startsWith("image/")) {
+    throw new Error("Dropped data is not an image");
+  }
+
+  return createAttachmentPartFromBlob(
+    blob,
+    filename || inferFilenameFromMediaType(blob.type)
+  );
+}
+
+export async function createAttachmentPartFromUrl(
+  url: string
+): Promise<ChatPart> {
+  const dataUrl = await fetchDroppedImageDataUrl(url);
+  const filename = url.startsWith("http://") || url.startsWith("https://")
+    ? inferFilenameFromUrl(url, "png")
+    : undefined;
+  return createAttachmentPartFromDataUrl(dataUrl, filename);
+}
+
+export async function getDraggedImageSource(): Promise<string | null> {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.id) {
+    return null;
+  }
+
+  try {
+    const response = await sendMessageToTab(tab.id, {
+      type: "get_dragged_image",
+    });
+
+    return response?.success && typeof response.url === "string"
+      ? response.url
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearDraggedImageSource(): Promise<void> {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.id) {
+    return;
+  }
+
+  try {
+    await sendMessageToTab(tab.id, {
+      type: "clear_dragged_image",
+    });
+  } catch {
+    // Ignore transient tab messaging failures.
+  }
 }
 
 export function onConfigChange(callback: () => void): () => void {

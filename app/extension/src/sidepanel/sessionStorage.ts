@@ -1,17 +1,30 @@
 /**
  * IndexedDB session storage — dual-store pattern.
  *
- * Two object stores:
+ * Three object stores:
  * - `sessions`: Full session data with messages
  * - `session-metadata`: Lightweight listing data
+ * - `session-attachments`: Binary attachment blobs referenced by message parts
  */
 
 import type { ChatMessage, SessionData, SessionMetadata } from "./types";
+import { readBlobAsDataUrl } from "./utils/dom";
 
 const DB_NAME = "huntly-agent";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SESSIONS_STORE = "sessions";
 const METADATA_STORE = "session-metadata";
+const ATTACHMENTS_STORE = "session-attachments";
+const ATTACHMENTS_BY_SESSION_INDEX = "by-sessionId";
+
+type StoredAttachmentRecord = {
+  id: string;
+  sessionId: string;
+  blob: Blob;
+  createdAt: string;
+  mediaType?: string;
+  size?: number;
+};
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
@@ -35,6 +48,20 @@ function openDatabase(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains(METADATA_STORE)) {
           db.createObjectStore(METADATA_STORE, { keyPath: "id" });
+        }
+
+        const attachmentsStore = db.objectStoreNames.contains(ATTACHMENTS_STORE)
+          ? request.transaction!.objectStore(ATTACHMENTS_STORE)
+          : db.createObjectStore(ATTACHMENTS_STORE, { keyPath: "id" });
+
+        if (
+          !attachmentsStore.indexNames.contains(ATTACHMENTS_BY_SESSION_INDEX)
+        ) {
+          attachmentsStore.createIndex(
+            ATTACHMENTS_BY_SESSION_INDEX,
+            "sessionId",
+            { unique: false }
+          );
         }
       };
 
@@ -142,6 +169,148 @@ function normalizeSessionTiming(session: SessionData): SessionData {
   };
 }
 
+async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
+  const response = await fetch(dataUrl);
+  if (!response.ok) {
+    throw new Error("Failed to decode attachment data");
+  }
+
+  return response.blob();
+}
+
+type SerializedSession = {
+  session: SessionData;
+  attachments: StoredAttachmentRecord[];
+  referencedAttachmentIds: Set<string>;
+};
+
+async function serializeSessionAttachments(
+  session: SessionData
+): Promise<SerializedSession> {
+  const attachmentRecords = new Map<string, Promise<StoredAttachmentRecord>>();
+  const referencedAttachmentIds = new Set<string>();
+
+  const messages = await Promise.all(
+    session.messages.map(async (message) => ({
+      ...message,
+      parts: await Promise.all(
+        message.parts.map(async (part) => {
+          if (part.type !== "file") return part;
+
+          const attachmentId = part.attachmentId || crypto.randomUUID();
+          referencedAttachmentIds.add(attachmentId);
+
+          if (!part.attachmentId) {
+            part.attachmentId = attachmentId;
+          }
+
+          if (part.dataUrl && !attachmentRecords.has(attachmentId)) {
+            attachmentRecords.set(
+              attachmentId,
+              dataUrlToBlob(part.dataUrl).then((blob) => ({
+                id: attachmentId,
+                sessionId: session.id,
+                blob,
+                createdAt: session.updatedAt,
+                mediaType: part.mediaType,
+                size: part.size,
+              }))
+            );
+          }
+
+          return {
+            ...part,
+            attachmentId,
+            dataUrl: undefined,
+          };
+        })
+      ),
+    }))
+  );
+
+  return {
+    session: {
+      ...session,
+      messages,
+    },
+    attachments: await Promise.all(attachmentRecords.values()),
+    referencedAttachmentIds,
+  };
+}
+
+async function getAttachmentIdsForSession(
+  attachmentStore: IDBObjectStore,
+  sessionId: string
+): Promise<string[]> {
+  const index = attachmentStore.index(ATTACHMENTS_BY_SESSION_INDEX);
+  const keys = (await requestToPromise(
+    index.getAllKeys(sessionId)
+  )) as IDBValidKey[];
+
+  return keys.map((key) => String(key));
+}
+
+async function getAttachmentsForSession(
+  attachmentStore: IDBObjectStore,
+  sessionId: string
+): Promise<StoredAttachmentRecord[]> {
+  const index = attachmentStore.index(ATTACHMENTS_BY_SESSION_INDEX);
+  return ((await requestToPromise(index.getAll(sessionId))) || []) as
+    | StoredAttachmentRecord[]
+    | [];
+}
+
+async function hydrateSessionAttachments(
+  session: SessionData,
+  attachments: StoredAttachmentRecord[]
+): Promise<SessionData> {
+  const attachmentMap = new Map(attachments.map((attachment) => [attachment.id, attachment]));
+  const dataUrlCache = new Map<string, Promise<string>>();
+
+  const messages = await Promise.all(
+    session.messages.map(async (message) => ({
+      ...message,
+      parts: await Promise.all(
+        message.parts.map(async (part) => {
+          if (
+            part.type !== "file" ||
+            part.dataUrl ||
+            !part.attachmentId ||
+            !attachmentMap.has(part.attachmentId)
+          ) {
+            return part;
+          }
+
+          let dataUrlPromise = dataUrlCache.get(part.attachmentId);
+          if (!dataUrlPromise) {
+            dataUrlPromise = readBlobAsDataUrl(
+              attachmentMap.get(part.attachmentId)!.blob
+            );
+            dataUrlCache.set(part.attachmentId, dataUrlPromise);
+          }
+
+          const attachment = attachmentMap.get(part.attachmentId)!;
+          return {
+            ...part,
+            mediaType:
+              part.mediaType ||
+              attachment.mediaType ||
+              attachment.blob.type ||
+              "application/octet-stream",
+            size: part.size ?? attachment.size ?? attachment.blob.size,
+            dataUrl: await dataUrlPromise,
+          };
+        })
+      ),
+    }))
+  );
+
+  return {
+    ...session,
+    messages,
+  };
+}
+
 export function buildSessionMetadata(session: SessionData): SessionMetadata {
   const normalized = normalizeSessionTiming(session);
   return {
@@ -164,18 +333,33 @@ export function buildSessionMetadata(session: SessionData): SessionMetadata {
 
 export async function saveSession(session: SessionData): Promise<void> {
   const normalizedSession = normalizeSessionTiming(session);
-  const metadata = buildSessionMetadata(normalizedSession);
+  const serialized = await serializeSessionAttachments(normalizedSession);
+  const metadata = buildSessionMetadata(serialized.session);
   const safeSession: SessionData = JSON.parse(
-    JSON.stringify(normalizedSession)
+    JSON.stringify(serialized.session)
   );
   const safeMetadata: SessionMetadata = JSON.parse(JSON.stringify(metadata));
   await withTransaction(
-    [SESSIONS_STORE, METADATA_STORE],
+    [SESSIONS_STORE, METADATA_STORE, ATTACHMENTS_STORE],
     "readwrite",
     async (stores) => {
+      const existingAttachmentIds = await getAttachmentIdsForSession(
+        stores[ATTACHMENTS_STORE],
+        safeSession.id
+      );
+      const removedAttachmentIds = existingAttachmentIds.filter(
+        (id) => !serialized.referencedAttachmentIds.has(id)
+      );
+
       await Promise.all([
         requestToPromise(stores[SESSIONS_STORE].put(safeSession)),
         requestToPromise(stores[METADATA_STORE].put(safeMetadata)),
+        ...serialized.attachments.map((attachment) =>
+          requestToPromise(stores[ATTACHMENTS_STORE].put(attachment))
+        ),
+        ...removedAttachmentIds.map((attachmentId) =>
+          requestToPromise(stores[ATTACHMENTS_STORE].delete(attachmentId))
+        ),
       ]);
     }
   );
@@ -184,11 +368,25 @@ export async function saveSession(session: SessionData): Promise<void> {
 export async function getSession(
   sessionId: string
 ): Promise<SessionData | null> {
-  return withTransaction([SESSIONS_STORE], "readonly", async (stores) => {
-    return (
-      (await requestToPromise(stores[SESSIONS_STORE].get(sessionId))) || null
-    );
-  });
+  return withTransaction(
+    [SESSIONS_STORE, ATTACHMENTS_STORE],
+    "readonly",
+    async (stores) => {
+      const session =
+        ((await requestToPromise(
+          stores[SESSIONS_STORE].get(sessionId)
+        )) as SessionData | null) || null;
+
+      if (!session) return null;
+
+      const attachments = await getAttachmentsForSession(
+        stores[ATTACHMENTS_STORE],
+        sessionId
+      );
+
+      return hydrateSessionAttachments(session, attachments);
+    }
+  );
 }
 
 export async function listSessionMetadata(): Promise<SessionMetadata[]> {
@@ -211,12 +409,20 @@ export async function listSessionMetadata(): Promise<SessionMetadata[]> {
 
 export async function deleteSession(sessionId: string): Promise<void> {
   await withTransaction(
-    [SESSIONS_STORE, METADATA_STORE],
+    [SESSIONS_STORE, METADATA_STORE, ATTACHMENTS_STORE],
     "readwrite",
     async (stores) => {
+      const attachmentIds = await getAttachmentIdsForSession(
+        stores[ATTACHMENTS_STORE],
+        sessionId
+      );
+
       await Promise.all([
         requestToPromise(stores[SESSIONS_STORE].delete(sessionId)),
         requestToPromise(stores[METADATA_STORE].delete(sessionId)),
+        ...attachmentIds.map((attachmentId) =>
+          requestToPromise(stores[ATTACHMENTS_STORE].delete(attachmentId))
+        ),
       ]);
     }
   );

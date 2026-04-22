@@ -1,5 +1,5 @@
-import React, { useMemo, type FC } from "react";
-import { Paperclip } from "lucide-react";
+import React, { useMemo, useState, type FC } from "react";
+import { Paperclip, X } from "lucide-react";
 import type { ChatMessage } from "../types";
 import { formatFileSize } from "../utils/format";
 import { getDisplayMessage } from "../utils/messageParts";
@@ -11,6 +11,7 @@ interface UserMessageProps {
 }
 
 const UserMessageImpl: FC<UserMessageProps> = ({ message }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const display = useMemo(() => getDisplayMessage(message.parts), [
     message.parts,
   ]);
@@ -43,7 +44,23 @@ const UserMessageImpl: FC<UserMessageProps> = ({ message }) => {
                 {attachments.map((attachment, index) => {
                   const label = attachment.filename || "Attachment";
                   const size = formatFileSize(attachment.size);
-                  return (
+                  const isImage = attachment.mediaType?.startsWith("image/");
+                  return isImage && attachment.dataUrl ? (
+                    <button
+                      key={attachment.id || `${label}-${index}`}
+                      type="button"
+                      className="relative h-20 w-20 overflow-hidden rounded-xl border border-[#d8cfbf] bg-[#fffaf4]/80 shadow-[0_6px_18px_rgba(64,48,31,0.08)]"
+                      aria-label={`Preview ${label}`}
+                      title={label}
+                      onClick={() => setPreviewUrl(attachment.dataUrl!)}
+                    >
+                      <img
+                        src={attachment.dataUrl}
+                        alt={label}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  ) : (
                     <div
                       key={attachment.id || `${label}-${index}`}
                       className="flex min-w-0 max-w-full items-center gap-1.5 rounded-lg bg-[#fffaf4]/70 px-2 py-1 text-xs text-[#5f5347]"
@@ -70,6 +87,28 @@ const UserMessageImpl: FC<UserMessageProps> = ({ message }) => {
                 part={part}
               />
             ))}
+          </div>
+        )}
+
+        {previewUrl && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#2f261f]/60"
+            onClick={() => setPreviewUrl(null)}
+          >
+            <button
+              type="button"
+              aria-label="Close preview"
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#2f261f]/60 text-white transition-colors hover:bg-[#2f261f]/90"
+              onClick={() => setPreviewUrl(null)}
+            >
+              <X className="size-5" />
+            </button>
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-lg"
+              onClick={(event) => event.stopPropagation()}
+            />
           </div>
         )}
       </div>

@@ -81,7 +81,7 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
           </div>
         )}
 
-        {isLast && !isRunning && (
+        {!(isLast && isRunning) && (
           <div className="mt-3 flex items-center gap-1">
             <IconButton
               disabled={!text}
@@ -92,7 +92,7 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
             >
               <Copy className="size-4" />
             </IconButton>
-            {onRegenerate && (
+            {isLast && onRegenerate && (
               <IconButton label="Regenerate" onClick={onRegenerate}>
                 <RotateCcw className="size-4" />
               </IconButton>

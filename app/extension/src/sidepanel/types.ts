@@ -41,6 +41,7 @@ export interface ChatPart {
   description?: string;
   author?: string;
   siteName?: string;
+  attachmentId?: string;
   filename?: string;
   mediaType?: string;
   dataUrl?: string;

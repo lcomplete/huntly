@@ -14,10 +14,108 @@ let lastSnippetPage: PageModel | null = null;
 let cachedParserType: ContentParserType = "readability";
 // Preview root element reference
 let previewRootEl: HTMLDivElement | null = null;
+let lastDraggedImage:
+  | {
+      url: string;
+      capturedAt: number;
+      pageUrl: string;
+    }
+  | null = null;
+
+const DRAGGED_IMAGE_TTL_MS = 15_000;
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () =>
+      reject(reader.error || new Error("Failed to read image blob"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function normalizeImageSource(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  if (/^(https?:|data:image\/|blob:)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("//")) {
+    return `${location.protocol}${trimmed}`;
+  }
+
+  try {
+    return new URL(trimmed, location.href).toString();
+  } catch {
+    return null;
+  }
+}
+
+function getFirstSrcsetCandidate(srcset: string | null | undefined): string | null {
+  const candidate = srcset?.split(",")[0]?.trim().split(/\s+/)[0];
+  return normalizeImageSource(candidate);
+}
+
+function resolveDraggedImageUrl(target: EventTarget | null): string | null {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  const image = target.closest("img");
+  if (image instanceof HTMLImageElement) {
+    return (
+      normalizeImageSource(image.currentSrc) ||
+      normalizeImageSource(image.getAttribute("src")) ||
+      getFirstSrcsetCandidate(image.getAttribute("srcset"))
+    );
+  }
+
+  const source = target.closest("source");
+  if (source instanceof HTMLSourceElement) {
+    return (
+      getFirstSrcsetCandidate(source.srcset || source.getAttribute("srcset")) ||
+      normalizeImageSource(source.getAttribute("src"))
+    );
+  }
+
+  const picture = target.closest("picture");
+  if (picture instanceof HTMLPictureElement) {
+    const pictureImage = picture.querySelector("img");
+    if (pictureImage instanceof HTMLImageElement) {
+      return (
+        normalizeImageSource(pictureImage.currentSrc) ||
+        normalizeImageSource(pictureImage.getAttribute("src")) ||
+        getFirstSrcsetCandidate(pictureImage.getAttribute("srcset"))
+      );
+    }
+  }
+
+  return null;
+}
+
+function trackDraggedImages(): void {
+  document.addEventListener(
+    "dragstart",
+    (event) => {
+      const url = resolveDraggedImageUrl(event.target);
+      if (!url) return;
+
+      lastDraggedImage = {
+        url,
+        capturedAt: Date.now(),
+        pageUrl: location.href,
+      };
+    },
+    true
+  );
+}
 
 export function initWebClipper(): void {
   log("[Huntly] initWebClipper called - content script starting");
   log("web clipper script loaded");
+  trackDraggedImages();
 
   readSyncStorageSettings().then((settings) => {
     cachedParserType = settings.contentParser;
@@ -43,6 +141,53 @@ export function initWebClipper(): void {
         console.error("[Huntly] parse_doc error:", error);
         sendResponse({page: null, parserType: cachedParserType, isHuntlySite: false});
       }
+      return;
+    } else if (msg.type === "fetch_image") {
+      const imageUrl = msg.payload?.url;
+      if (!imageUrl) {
+        sendResponse({ success: false, error: "No URL provided" });
+        return;
+      }
+
+      void (async () => {
+        try {
+          const response = await fetch(imageUrl);
+          if (!response.ok) {
+            sendResponse({ success: false, error: `HTTP ${response.status}` });
+            return;
+          }
+
+          const contentType = response.headers.get("content-type") || "";
+          if (!contentType.startsWith("image/")) {
+            sendResponse({ success: false, error: "Not an image" });
+            return;
+          }
+
+          const blob = await response.blob();
+          const dataUrl = await blobToDataUrl(blob);
+          sendResponse({ success: true, dataUrl });
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: (error as Error)?.message || "Fetch failed",
+          });
+        }
+      })();
+
+      return true;
+    } else if (msg.type === "get_dragged_image") {
+      if (
+        lastDraggedImage &&
+        Date.now() - lastDraggedImage.capturedAt <= DRAGGED_IMAGE_TTL_MS
+      ) {
+        sendResponse({ success: true, ...lastDraggedImage });
+      } else {
+        sendResponse({ success: false });
+      }
+      return;
+    } else if (msg.type === "clear_dragged_image") {
+      lastDraggedImage = null;
+      sendResponse({ success: true });
       return;
     } else if (msg.type === 'shortcuts_preview') {
       let page = msg.payload?.page;

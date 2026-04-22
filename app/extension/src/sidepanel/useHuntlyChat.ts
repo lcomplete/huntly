@@ -1,15 +1,15 @@
 /**
  * useHuntlyChat — React hook for managing chat with AI SDK's ToolLoopAgent.
  *
- * Uses AI SDK UI's official React chat state with DirectChatTransport for
+ * Uses AI SDK UI's official React chat state with a local chat transport for
  * multi-step tool execution, while adapting messages to Huntly's local types.
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { Chat, type CreateUIMessage, useChat } from "@ai-sdk/react";
 import {
-  DirectChatTransport,
   ToolLoopAgent,
+  convertToModelMessages,
   isReasoningUIPart,
   isTextUIPart,
   isToolUIPart,
@@ -18,6 +18,7 @@ import {
   type ChatTransport,
   type UIMessage,
   type UIMessageChunk,
+  validateUIMessages,
 } from "ai";
 import type { ProviderOptions } from "@ai-sdk/provider-utils";
 import type { HuntlyModelInfo, ChatMessage, ChatPart } from "./types";
@@ -30,6 +31,16 @@ const ATTACHED_PAGE_CONTEXT_RE =
   /^\s*<attached-page-context>\s*([\s\S]*?)\s*<\/attached-page-context>\s*$/i;
 const CONTENT_SECTION_RE = /(?:^|\n)\s*Content:\s*\n([\s\S]*)$/i;
 const STEP_PLACEHOLDER_ID = "pending-assistant";
+const INLINE_FILE_DATA_PART_TYPE = "data-huntly-inline-file";
+
+type InlineFileDataPart = {
+  type: typeof INLINE_FILE_DATA_PART_TYPE;
+  data: {
+    dataUrl: string;
+    mediaType: string;
+    filename?: string;
+  };
+};
 
 const MISSING_MODEL_TRANSPORT: ChatTransport<UIMessage> = {
   async sendMessages(): Promise<ReadableStream<UIMessageChunk>> {
@@ -45,8 +56,8 @@ const MISSING_MODEL_TRANSPORT: ChatTransport<UIMessage> = {
 // ---------------------------------------------------------------------------
 
 export interface UseHuntlyChatOptions {
-  getModelInfo: () => HuntlyModelInfo | null;
-  getThinkingMode: () => boolean;
+  modelInfo: HuntlyModelInfo | null;
+  thinkingEnabled: boolean;
   systemPrompt: string;
   onMessagesChange?: (messages: ChatMessage[]) => void;
 }
@@ -191,6 +202,65 @@ function getToolInput(part: ChatPart): unknown {
   if (part.args) return part.args;
   if (part.argsText) return safeParseJson(part.argsText);
   return {};
+}
+
+function dataUrlToBase64(dataUrl: string): string {
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex === -1) {
+    throw new Error("Invalid data URL format");
+  }
+
+  return dataUrl.slice(commaIndex + 1);
+}
+
+function inlineFilePartToDataPart(
+  part: Extract<UIMessage["parts"][number], { type: "file" }>
+): InlineFileDataPart | Extract<UIMessage["parts"][number], { type: "file" }> {
+  if (!part.url.startsWith("data:")) {
+    return part;
+  }
+
+  return {
+    type: INLINE_FILE_DATA_PART_TYPE,
+    data: {
+      dataUrl: part.url,
+      mediaType: part.mediaType,
+      filename: part.filename,
+    },
+  };
+}
+
+function replaceInlineFileParts(messages: UIMessage[]): UIMessage[] {
+  return messages.map((message) => {
+    if (message.role !== "user") {
+      return message;
+    }
+
+    return {
+      ...message,
+      parts: message.parts.map((part) =>
+        part.type === "file" ? inlineFilePartToDataPart(part) : part
+      ),
+    };
+  });
+}
+
+function convertInlineFileDataPart(part: { type: string; data: unknown }) {
+  if (part.type !== INLINE_FILE_DATA_PART_TYPE) {
+    return undefined;
+  }
+
+  const payload = part.data as InlineFileDataPart["data"];
+  if (!payload?.dataUrl || !payload.mediaType) {
+    return undefined;
+  }
+
+  return {
+    type: "file" as const,
+    mediaType: payload.mediaType,
+    filename: payload.filename,
+    data: dataUrlToBase64(payload.dataUrl),
+  };
 }
 
 function convertUserChatPartsToUIMessage(
@@ -524,8 +594,7 @@ function convertUIMessagesToChatMessages(
 export function useHuntlyChat(
   options: UseHuntlyChatOptions
 ): UseHuntlyChatReturn {
-  const modelInfo = options.getModelInfo();
-  const thinkingEnabled = options.getThinkingMode();
+  const { modelInfo, thinkingEnabled } = options;
   const uiMessagesRef = useRef<UIMessage[]>([]);
   const [chatGeneration, bumpChatGeneration] = useReducer(
     (value: number) => value + 1,
@@ -548,10 +617,29 @@ export function useHuntlyChat(
         : buildBaseProviderOptions(modelInfo.provider),
     });
 
-    return new DirectChatTransport({
-      agent,
-      sendReasoning: thinkingEnabled,
-    });
+    return {
+      async sendMessages({ messages: nextMessages, abortSignal }) {
+        const validatedMessages = await validateUIMessages({
+          messages: nextMessages,
+          tools: agent.tools as any,
+        });
+        const modelMessages = await convertToModelMessages(
+          replaceInlineFileParts(validatedMessages),
+          {
+            tools: agent.tools as any,
+            convertDataPart: convertInlineFileDataPart,
+          }
+        );
+        const result = await agent.stream({
+          prompt: modelMessages,
+          abortSignal,
+        });
+        return result.toUIMessageStream({ sendReasoning: thinkingEnabled });
+      },
+      async reconnectToStream() {
+        return null;
+      },
+    };
   }, [modelInfo, options.systemPrompt, thinkingEnabled]);
 
   const chat = useMemo(

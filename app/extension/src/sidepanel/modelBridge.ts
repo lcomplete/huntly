@@ -23,7 +23,12 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createGroq } from "@ai-sdk/groq";
 import { createAzure } from "@ai-sdk/azure";
-import type { LanguageModelV3 } from "@ai-sdk/provider";
+import type {
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
+} from "@ai-sdk/provider";
 import {
   getEffectiveApiFormat,
   PROVIDER_REGISTRY,
@@ -152,6 +157,183 @@ const openAICompatibleFetch: typeof fetch = async (input, init) => {
   });
 };
 
+function promptHasFileParts(options: LanguageModelV3CallOptions): boolean {
+  return options.prompt.some(
+    (message) =>
+      message.role === "user" &&
+      message.content.some((part) => part.type === "file")
+  );
+}
+
+function getReasoningDeltaFromRawChunk(rawValue: unknown): string | null {
+  const choices = (rawValue as {
+    choices?: Array<{ delta?: Record<string, unknown> }>;
+  })?.choices;
+  if (!Array.isArray(choices) || choices.length === 0) {
+    return null;
+  }
+
+  const delta = choices[0]?.delta;
+  if (!delta || typeof delta !== "object") {
+    return null;
+  }
+
+  if (typeof delta.reasoning_content === "string" && delta.reasoning_content) {
+    return delta.reasoning_content;
+  }
+
+  if (typeof delta.reasoning === "string" && delta.reasoning) {
+    return delta.reasoning;
+  }
+
+  return null;
+}
+
+async function mergeSupportedUrls(
+  ...models: LanguageModelV3[]
+): Promise<Record<string, RegExp[]>> {
+  const merged: Record<string, RegExp[]> = {};
+
+  const supportedUrls = await Promise.all(
+    models.map((model) => Promise.resolve(model.supportedUrls))
+  );
+
+  for (const urlsByType of supportedUrls) {
+    for (const [mediaType, patterns] of Object.entries(urlsByType || {})) {
+      merged[mediaType] = [...(merged[mediaType] || []), ...patterns];
+    }
+  }
+
+  return merged;
+}
+
+function createPromptAwareModel(
+  defaultModel: LanguageModelV3,
+  fileCapableModel: LanguageModelV3
+): LanguageModelV3 {
+  const resolveModel = (options: LanguageModelV3CallOptions) =>
+    promptHasFileParts(options) ? fileCapableModel : defaultModel;
+
+  return {
+    specificationVersion: "v3",
+    provider: defaultModel.provider,
+    modelId: defaultModel.modelId,
+    supportedUrls: mergeSupportedUrls(defaultModel, fileCapableModel),
+    doGenerate(options) {
+      return resolveModel(options).doGenerate(options);
+    },
+    doStream(options) {
+      return resolveModel(options).doStream(options);
+    },
+  };
+}
+
+function createReasoningAwareChatModel(
+  baseModel: LanguageModelV3
+): LanguageModelV3 {
+  const reasoningId = "0";
+
+  const transformStream = (
+    stream: ReadableStream<LanguageModelV3StreamPart>,
+    shouldForwardRaw: boolean
+  ) => {
+    let reasoningOpen = false;
+    let reasoningClosed = false;
+
+    const closeReasoning = (
+      controller: TransformStreamDefaultController<LanguageModelV3StreamPart>
+    ) => {
+      if (!reasoningOpen || reasoningClosed) {
+        return;
+      }
+
+      controller.enqueue({
+        type: "reasoning-end",
+        id: reasoningId,
+      });
+      reasoningClosed = true;
+    };
+
+    return stream.pipeThrough(
+      new TransformStream<LanguageModelV3StreamPart, LanguageModelV3StreamPart>({
+        transform(part, controller) {
+          if (part.type === "raw") {
+            const reasoningDelta = getReasoningDeltaFromRawChunk(part.rawValue);
+            if (reasoningDelta) {
+              if (!reasoningOpen) {
+                reasoningOpen = true;
+                controller.enqueue({
+                  type: "reasoning-start",
+                  id: reasoningId,
+                });
+              }
+
+              controller.enqueue({
+                type: "reasoning-delta",
+                id: reasoningId,
+                delta: reasoningDelta,
+              });
+            }
+
+            if (shouldForwardRaw) {
+              controller.enqueue(part);
+            }
+            return;
+          }
+
+          if (part.type === "finish" || part.type === "error") {
+            closeReasoning(controller);
+          }
+
+          controller.enqueue(part);
+        },
+        flush(controller) {
+          closeReasoning(controller);
+        },
+      })
+    );
+  };
+
+  return {
+    specificationVersion: "v3",
+    provider: baseModel.provider,
+    modelId: baseModel.modelId,
+    supportedUrls: baseModel.supportedUrls,
+    doGenerate(options) {
+      return baseModel.doGenerate(options);
+    },
+    async doStream(
+      options: LanguageModelV3CallOptions
+    ): Promise<LanguageModelV3StreamResult> {
+      const result = await baseModel.doStream({
+        ...options,
+        includeRawChunks: true,
+      });
+
+      return {
+        ...result,
+        stream: transformStream(result.stream, Boolean(options.includeRawChunks)),
+      };
+    },
+  };
+}
+
+function createOpenAICompatibleChatModel(
+  config: ProviderConfig,
+  modelId: string,
+  baseUrl: string
+): LanguageModelV3 | null {
+  if (!baseUrl) return null;
+
+  const provider = createOpenAI({
+    apiKey: config.apiKey || "placeholder",
+    baseURL: baseUrl,
+    fetch: openAICompatibleFetch,
+  });
+
+  return createReasoningAwareChatModel(provider.chat(modelId as any));
+}
+
 function createOpenAIFormatModel(
   config: ProviderConfig,
   modelId: string,
@@ -185,7 +367,16 @@ function createOpenAIFormatModel(
     baseURL: baseUrl,
     fetch: openAICompatibleFetch,
   });
-  return provider(modelId);
+  const fileCapableModel = createOpenAICompatibleChatModel(
+    config,
+    modelId,
+    baseUrl
+  );
+  const defaultModel = provider(modelId);
+
+  return fileCapableModel
+    ? createPromptAwareModel(defaultModel, fileCapableModel)
+    : defaultModel;
 }
 
 function createAnthropicFormatModel(
