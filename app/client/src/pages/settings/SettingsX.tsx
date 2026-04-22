@@ -17,6 +17,7 @@ const SettingsX = () => {
   return (
     <MainContainer>
       <SubHeader
+        documentTitle="X Settings"
         navLabel={{ labelText: 'X', labelIcon: XIcon }}
         buttonOptions={{ markRead: false }}
       />

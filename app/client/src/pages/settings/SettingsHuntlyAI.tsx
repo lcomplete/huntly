@@ -8,6 +8,7 @@ const SettingsHuntlyAI = () => {
   return (
     <MainContainer>
       <SubHeader
+        documentTitle="Huntly AI Settings"
         navLabel={{ labelText: 'Huntly AI', labelIcon: AutoAwesomeIcon }}
         buttonOptions={{ markRead: false }}
       />

@@ -51,7 +51,34 @@ type ConfigProvider = () => SessionChatConfig | null;
 
 interface PoolEntry {
   chat: Chat<HuntlyUIMessage>;
-  unsubscribers: Array<() => void>;
+  pollTimer: ReturnType<typeof setInterval> | null;
+  lastMessagesRef: HuntlyUIMessage[] | null;
+  lastStatus: ChatStatus | null;
+  lastError: Error | undefined;
+}
+
+const CHAT_POLL_INTERVAL_MS = 100;
+
+function isChatRunning(status: ChatStatus): boolean {
+  return status === "submitted" || status === "streaming";
+}
+
+function findPropertyDescriptor(
+  value: object,
+  propertyName: PropertyKey
+): PropertyDescriptor | undefined {
+  let current: object | null = value;
+
+  while (current) {
+    const descriptor = Object.getOwnPropertyDescriptor(current, propertyName);
+    if (descriptor) {
+      return descriptor;
+    }
+
+    current = Object.getPrototypeOf(current);
+  }
+
+  return undefined;
 }
 
 function buildTransport(
@@ -119,6 +146,120 @@ export class SessionChatPool {
     return this.entries.get(sessionId)?.chat ?? null;
   }
 
+  private emit(sessionId: string, entry: PoolEntry, force = false): void {
+    const { chat } = entry;
+    if (
+      !force &&
+      entry.lastMessagesRef === chat.messages &&
+      entry.lastStatus === chat.status &&
+      entry.lastError === chat.error
+    ) {
+      return;
+    }
+
+    entry.lastMessagesRef = chat.messages;
+    entry.lastStatus = chat.status;
+    entry.lastError = chat.error;
+
+    this.handler(sessionId, {
+      messages: chat.messages,
+      status: chat.status,
+      error: chat.error,
+    });
+  }
+
+  private stopPolling(entry: PoolEntry): void {
+    if (entry.pollTimer === null) {
+      return;
+    }
+
+    clearInterval(entry.pollTimer);
+    entry.pollTimer = null;
+  }
+
+  private syncPolling(sessionId: string, entry: PoolEntry): void {
+    if (!isChatRunning(entry.chat.status)) {
+      this.stopPolling(entry);
+      return;
+    }
+
+    if (entry.pollTimer !== null) {
+      return;
+    }
+
+    entry.pollTimer = setInterval(() => {
+      this.emit(sessionId, entry);
+
+      if (!isChatRunning(entry.chat.status)) {
+        this.stopPolling(entry);
+      }
+    }, CHAT_POLL_INTERVAL_MS);
+  }
+
+  private instrumentChat(sessionId: string, entry: PoolEntry): void {
+    const { chat } = entry;
+    const mutableChat = chat as Record<string, any>;
+    const messagesDescriptor = findPropertyDescriptor(chat, "messages");
+
+    if (messagesDescriptor?.get && messagesDescriptor.set) {
+      Object.defineProperty(chat, "messages", {
+        configurable: true,
+        enumerable: false,
+        get: () => messagesDescriptor.get!.call(chat) as HuntlyUIMessage[],
+        set: (messages: HuntlyUIMessage[]) => {
+          messagesDescriptor.set!.call(chat, messages);
+          this.emit(sessionId, entry, true);
+          this.syncPolling(sessionId, entry);
+        },
+      });
+    }
+
+    const wrapAsyncMethod = <TArgs extends unknown[], TResult>(
+      methodName:
+        | "sendMessage"
+        | "regenerate"
+        | "resumeStream"
+        | "stop"
+        | "addToolOutput"
+        | "addToolApprovalResponse"
+    ) => {
+      const original = mutableChat[methodName].bind(chat) as (
+        ...args: TArgs
+      ) => Promise<TResult>;
+
+      mutableChat[methodName] = async (...args: TArgs) => {
+        const resultPromise = original(...args);
+        this.emit(sessionId, entry, true);
+        this.syncPolling(sessionId, entry);
+
+        try {
+          return await resultPromise;
+        } finally {
+          this.emit(sessionId, entry);
+          this.syncPolling(sessionId, entry);
+        }
+      };
+    };
+
+    const wrapSyncMethod = (methodName: "clearError") => {
+      const original = mutableChat[methodName].bind(chat) as () => void;
+
+      mutableChat[methodName] = () => {
+        original();
+        this.emit(sessionId, entry, true);
+        this.syncPolling(sessionId, entry);
+      };
+    };
+
+    wrapAsyncMethod("sendMessage");
+    wrapAsyncMethod("regenerate");
+    wrapAsyncMethod("resumeStream");
+    wrapAsyncMethod("stop");
+    wrapAsyncMethod("addToolOutput");
+    wrapAsyncMethod("addToolApprovalResponse");
+    wrapSyncMethod("clearError");
+  }
+
   /**
    * Create the Chat for `sessionId` if it does not exist yet. Initial messages
    * are only used on first creation; if the entry already exists, they are
@@ -137,20 +278,16 @@ export class SessionChatPool {
       transport,
     });
 
-    const emit = () =>
-      this.handler(sessionId, {
-        messages: chat.messages,
-        status: chat.status,
-        error: chat.error,
-      });
+    const entry: PoolEntry = {
+      chat,
+      pollTimer: null,
+      lastMessagesRef: chat.messages,
+      lastStatus: chat.status,
+      lastError: chat.error,
+    };
 
-    const unsubscribers: Array<() => void> = [
-      chat["~registerMessagesCallback"](emit),
-      chat["~registerStatusCallback"](emit),
-      chat["~registerErrorCallback"](emit),
-    ];
-
-    this.entries.set(sessionId, { chat, unsubscribers });
+    this.instrumentChat(sessionId, entry);
+    this.entries.set(sessionId, entry);
     return chat;
   }
 
@@ -167,17 +304,11 @@ export class SessionChatPool {
   remove(sessionId: string): void {
     const entry = this.entries.get(sessionId);
     if (!entry) return;
+    this.stopPolling(entry);
     try {
       void entry.chat.stop();
     } catch {
       // ignore
-    }
-    for (const unsub of entry.unsubscribers) {
-      try {
-        unsub();
-      } catch {
-        // ignore
-      }
     }
     this.entries.delete(sessionId);
   }

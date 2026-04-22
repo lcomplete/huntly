@@ -1406,8 +1406,13 @@ export const SidepanelApp: FC = () => {
 
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragDepthRef = useRef(0);
+  const internalDragRef = useRef(false);
 
   const hasFilesOrUrl = useCallback((event: React.DragEvent) => {
+    if (internalDragRef.current) {
+      return false;
+    }
+
     const items = Array.from(event.dataTransfer?.items || []);
     if (items.length > 0) {
       return items.some(
@@ -1454,6 +1459,7 @@ export const SidepanelApp: FC = () => {
     (event: React.DragEvent<HTMLDivElement>) => {
       if (!hasFilesOrUrl(event)) return;
       event.preventDefault();
+      internalDragRef.current = false;
       dragDepthRef.current = 0;
       setIsDraggingOver(false);
 
@@ -1512,6 +1518,16 @@ export const SidepanelApp: FC = () => {
     [addAttachmentFromSource, attachFiles, hasFilesOrUrl, tabContext?.url]
   );
 
+  const handleInternalDragStartCapture = useCallback(() => {
+    internalDragRef.current = true;
+  }, []);
+
+  const handleInternalDragEndCapture = useCallback(() => {
+    internalDragRef.current = false;
+    dragDepthRef.current = 0;
+    setIsDraggingOver(false);
+  }, []);
+
   const handleAttachmentRemove = useCallback((id: string) => {
     setAttachments((previous) => previous.filter((part) => part.id !== id));
   }, []);
@@ -1558,6 +1574,7 @@ export const SidepanelApp: FC = () => {
       }
 
       const message = messages[messageIndex];
+      const previousMessages = messages;
       const preservedParts = message.parts.flatMap((part) => {
         if (part.type === "page-context") {
           return [clonePageContextPart(part)];
@@ -1572,11 +1589,6 @@ export const SidepanelApp: FC = () => {
       const remainingMessages = messages.slice(0, messageIndex);
       const finalText = prepareOutgoingText(editingUserMessageText);
 
-      const activeSessionId = currentSessionIdRef.current;
-      if (activeSessionId) {
-        cancelTitleGenerationFor(activeSessionId);
-      }
-
       if (remainingMessages.length > 0) {
         setMessages(remainingMessages);
       } else {
@@ -1585,7 +1597,13 @@ export const SidepanelApp: FC = () => {
 
       const sent = sendMessage(finalText, preservedParts);
       if (!sent) {
+        setMessages(previousMessages);
         return;
+      }
+
+      const activeSessionId = currentSessionIdRef.current;
+      if (activeSessionId) {
+        cancelTitleGenerationFor(activeSessionId);
       }
 
       clearInlineUserMessageEdit();
@@ -1819,10 +1837,12 @@ export const SidepanelApp: FC = () => {
   return (
     <div
       className="relative flex h-full overflow-hidden bg-[#f7f3ea] text-[#2f261f]"
+      onDragEndCapture={handleInternalDragEndCapture}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onDragStartCapture={handleInternalDragStartCapture}
     >
       <HistoryDrawer
         currentSessionId={currentSessionId}

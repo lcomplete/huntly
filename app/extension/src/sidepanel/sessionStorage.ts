@@ -260,10 +260,6 @@ async function serializeSessionAttachments(
           const attachmentId = part.attachmentId || crypto.randomUUID();
           referencedAttachmentIds.add(attachmentId);
 
-          if (!part.attachmentId) {
-            part.attachmentId = attachmentId;
-          }
-
           if (part.dataUrl && !attachmentRecords.has(attachmentId)) {
             attachmentRecords.set(
               attachmentId,
@@ -585,24 +581,28 @@ export async function setSessionArchived(
 }
 
 export async function listSessionMetadata(): Promise<SessionMetadata[]> {
-  return withTransaction([METADATA_STORE, SESSIONS_STORE], "readwrite", async (stores) => {
+  const metadata = await withTransaction([METADATA_STORE], "readonly", async (stores) => {
     const metadata = ((await requestToPromise(
       stores[METADATA_STORE].getAll()
     )) || []) as SessionMetadata[];
 
-    const staleMetadata = metadata.filter((session) => {
-      const trimmedTitle = (session.title || "").trim();
-      return (
-        !trimmedTitle ||
-        trimmedTitle === DEFAULT_SESSION_TITLE ||
-        session.titleGenerationStatus === undefined
-      );
-    });
+    return sortSessionMetadataByActivity(metadata);
+  });
 
-    if (staleMetadata.length === 0) {
-      return sortSessionMetadataByActivity(metadata);
-    }
+  const staleMetadata = metadata.filter((session) => {
+    const trimmedTitle = (session.title || "").trim();
+    return (
+      !trimmedTitle ||
+      trimmedTitle === DEFAULT_SESSION_TITLE ||
+      session.titleGenerationStatus === undefined
+    );
+  });
 
+  if (staleMetadata.length === 0) {
+    return metadata;
+  }
+
+  return withTransaction([METADATA_STORE, SESSIONS_STORE], "readwrite", async (stores) => {
     const sessionsById = new Map(
       (
         await Promise.all(

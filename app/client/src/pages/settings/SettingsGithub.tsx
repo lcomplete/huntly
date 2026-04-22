@@ -8,6 +8,7 @@ const SettingsGithub = () => {
   return (
     <MainContainer>
       <SubHeader
+        documentTitle="GitHub Settings"
         navLabel={{ labelText: 'GitHub', labelIcon: GitHubIcon }}
         buttonOptions={{ markRead: false }}
       />

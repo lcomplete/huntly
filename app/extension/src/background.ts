@@ -44,7 +44,7 @@ const vercelAIAbortControllers = new Map<string, AbortController>();
 const badgeCache = new Map<number, string>();
 const SAVED_BADGE_TEXT = "✓";
 const SAVED_BADGE_BG = "#15803D";
-const AI_MAX_OUTPUT_TOKENS = 8192;
+const AI_MAX_OUTPUT_TOKENS = 20000;
 const ANTHROPIC_THINKING_BUDGET_TOKENS = 4000;
 
 function buildThinkingProviderOptions(): ProviderOptions {

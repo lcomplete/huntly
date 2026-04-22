@@ -627,7 +627,7 @@ Per favore rispondi in {lang}.`,
       content: `Translate the following Markdown document into {lang} using paragraph-by-paragraph comparison format.
 
 ## Translation Requirements:
-1. **Keep all original text**, add the corresponding translation after each paragraph
+1. **Keep all original translatable text**, add the corresponding translation after each paragraph. Non-translatable Markdown elements such as images must remain in place and appear only once.
 2. **Maintain original formatting**, including heading levels, list markers, indentation, code blocks, etc.
 3. **Ordered lists special handling**: Translation follows directly after the original text, no line break. Format: \`1. Original content 翻译内容\`
 
@@ -637,7 +637,8 @@ Per favore rispondi in {lang}.`,
 - **Unordered lists**: Add the translation with the same indentation on the next line
 - **Ordered lists**: Translation follows directly after the original, separated by a space
 - **Code blocks**: Keep unchanged, only translate comments
-- **Blank lines, images**: Keep unchanged
+- **Blank lines**: Keep unchanged
+- **Images and other non-translatable Markdown elements**: Keep unchanged and output them only once; do not add a translated duplicate after them
 
 ## Notes:
 - Use fluent and natural expressions, avoid machine translation feel
@@ -650,7 +651,7 @@ Per favore rispondi in {lang}.`,
       content: `请将以下 Markdown 文档翻译成{lang}，采用段落对照的方式。
 
 ## 翻译要求：
-1. **保留所有原文**，在每段原文后添加对应的翻译
+1. **保留所有可翻译的原文文本**，在每段原文后添加对应的翻译。Markdown 图片等不可翻译元素必须保留在原位置，且只出现一次。
 2. **保持原始格式**，包括标题级别、列表符号、缩进、代码块等
 3. **有序列表特殊处理**：翻译直接跟在原文后面，不换行。格式：\`1. English content 中文翻译\`
 
@@ -660,7 +661,8 @@ Per favore rispondi in {lang}.`,
 - **无序列表**：原文项下一行添加相同缩进的翻译
 - **有序列表**：翻译直接跟在原文后，用空格分隔
 - **代码块**：保持不变，仅翻译注释
-- **空行、图片**：保持不变
+- **空行**：保持不变
+- **图片和其他不可翻译的 Markdown 元素**：保持原样且只输出一次，不要在后面追加重复的翻译内容
 
 ## 注意：
 - 使用流畅自然的表达，避免机翻感
@@ -673,7 +675,7 @@ Per favore rispondi in {lang}.`,
       content: `以下のMarkdownドキュメントを{lang}に翻訳し、段落ごとの対照形式で表示してください。
 
 ## 翻訳要件：
-1. **すべての原文を保持**し、各段落の後に対応する翻訳を追加
+1. **翻訳可能な原文テキストはすべて保持**し、各段落の後に対応する翻訳を追加。画像など翻訳対象ではないMarkdown要素は元の位置にそのまま1回だけ残す
 2. **元のフォーマットを維持**、見出しレベル、リストマーカー、インデント、コードブロックなどを含む
 3. **番号付きリストの特別処理**：翻訳は原文の直後に続け、改行しない。形式：\`1. Original content 翻訳内容\`
 
@@ -683,7 +685,8 @@ Per favore rispondi in {lang}.`,
 - **箇条書き**：原文項目の次の行に同じインデントで翻訳を追加
 - **番号付きリスト**：翻訳は原文の直後にスペースで区切って続ける
 - **コードブロック**：変更せず、コメントのみ翻訳
-- **空行、画像**：変更しない
+- **空行**：変更しない
+- **画像やその他の翻訳対象ではないMarkdown要素**：元のまま1回だけ出力し、その後に重複した翻訳を追加しない
 
 ## 注意：
 - 流暢で自然な表現を使用し、機械翻訳感を避ける
@@ -696,7 +699,7 @@ Per favore rispondi in {lang}.`,
       content: `다음 Markdown 문서를 {lang}로 번역하고, 단락별 대조 형식으로 표시하세요.
 
 ## 번역 요구사항:
-1. **모든 원문 유지**, 각 단락 뒤에 해당 번역 추가
+1. **번역 가능한 모든 원문 텍스트 유지**, 각 단락 뒤에 해당 번역 추가. 이미지처럼 번역 대상이 아닌 Markdown 요소는 원래 위치에 한 번만 유지
 2. **원본 서식 유지**, 제목 수준, 목록 기호, 들여쓰기, 코드 블록 등 포함
 3. **순서 목록 특별 처리**: 번역은 원문 바로 뒤에 이어서, 줄 바꿈 없음. 형식: \`1. Original content 번역 내용\`
 
@@ -706,7 +709,8 @@ Per favore rispondi in {lang}.`,
 - **비순서 목록**: 원문 항목 다음 줄에 같은 들여쓰기로 번역 추가
 - **순서 목록**: 번역은 원문 바로 뒤에 공백으로 구분하여 이어서
 - **코드 블록**: 변경하지 않고 주석만 번역
-- **빈 줄, 이미지**: 변경하지 않음
+- **빈 줄**: 변경하지 않음
+- **이미지 및 기타 번역 대상이 아닌 Markdown 요소**: 원문 그대로 한 번만 출력하고, 뒤에 중복 번역을 추가하지 않음
 
 ## 주의:
 - 유창하고 자연스러운 표현 사용, 기계 번역 느낌 피하기
@@ -719,7 +723,7 @@ Per favore rispondi in {lang}.`,
       content: `Traduce el siguiente documento Markdown a {lang} usando formato de comparación párrafo por párrafo.
 
 ## Requisitos de traducción:
-1. **Mantener todo el texto original**, agregar la traducción correspondiente después de cada párrafo
+1. **Mantener todo el texto original traducible**, agregar la traducción correspondiente después de cada párrafo. Los elementos Markdown no traducibles, como las imágenes, deben permanecer en su lugar y aparecer solo una vez.
 2. **Mantener el formato original**, incluyendo niveles de encabezado, marcadores de lista, sangría, bloques de código, etc.
 3. **Manejo especial de listas ordenadas**: La traducción sigue directamente después del texto original, sin salto de línea. Formato: \`1. Contenido original Traducción\`
 
@@ -729,7 +733,8 @@ Per favore rispondi in {lang}.`,
 - **Listas no ordenadas**: Agregar la traducción con la misma sangría en la siguiente línea
 - **Listas ordenadas**: La traducción sigue directamente después del original, separada por un espacio
 - **Bloques de código**: Mantener sin cambios, solo traducir comentarios
-- **Líneas en blanco, imágenes**: Mantener sin cambios
+- **Líneas en blanco**: Mantener sin cambios
+- **Imágenes y otros elementos Markdown no traducibles**: Mantener sin cambios y mostrarlos solo una vez; no agregar una línea de traducción duplicada después
 
 ## Notas:
 - Usar expresiones fluidas y naturales, evitar sensación de traducción automática
@@ -742,7 +747,7 @@ Per favore rispondi in {lang}.`,
       content: `Traduisez le document Markdown suivant en {lang} en utilisant un format de comparaison paragraphe par paragraphe.
 
 ## Exigences de traduction :
-1. **Conserver tout le texte original**, ajouter la traduction correspondante après chaque paragraphe
+1. **Conserver tout le texte original traduisible**, ajouter la traduction correspondante après chaque paragraphe. Les éléments Markdown non traduisibles, comme les images, doivent rester à leur place et n'apparaître qu'une seule fois.
 2. **Maintenir le formatage original**, y compris les niveaux de titre, les marqueurs de liste, l'indentation, les blocs de code, etc.
 3. **Traitement spécial des listes ordonnées** : La traduction suit directement le texte original, sans saut de ligne. Format : \`1. Contenu original Traduction\`
 
@@ -752,7 +757,8 @@ Per favore rispondi in {lang}.`,
 - **Listes non ordonnées** : Ajouter la traduction avec la même indentation sur la ligne suivante
 - **Listes ordonnées** : La traduction suit directement l'original, séparée par un espace
 - **Blocs de code** : Garder inchangés, traduire uniquement les commentaires
-- **Lignes vides, images** : Garder inchangées
+- **Lignes vides** : Garder inchangées
+- **Images et autres éléments Markdown non traduisibles** : Les garder inchangés et ne les afficher qu'une seule fois ; ne pas ajouter de ligne de traduction dupliquée après eux
 
 ## Notes :
 - Utiliser des expressions fluides et naturelles, éviter l'impression de traduction automatique
@@ -765,7 +771,7 @@ Per favore rispondi in {lang}.`,
       content: `Übersetzen Sie das folgende Markdown-Dokument in {lang} im Absatz-für-Absatz-Vergleichsformat.
 
 ## Übersetzungsanforderungen:
-1. **Gesamten Originaltext beibehalten**, nach jedem Absatz die entsprechende Übersetzung hinzufügen
+1. **Gesamten übersetzbaren Originaltext beibehalten**, nach jedem Absatz die entsprechende Übersetzung hinzufügen. Nicht übersetzbare Markdown-Elemente wie Bilder müssen an ihrer Stelle bleiben und dürfen nur einmal erscheinen.
 2. **Originalformatierung beibehalten**, einschließlich Überschriftenebenen, Listenmarkierungen, Einrückung, Codeblöcke usw.
 3. **Spezielle Behandlung geordneter Listen**: Übersetzung folgt direkt nach dem Originaltext, kein Zeilenumbruch. Format: \`1. Originalinhalt Übersetzung\`
 
@@ -775,7 +781,8 @@ Per favore rispondi in {lang}.`,
 - **Ungeordnete Listen**: Übersetzung mit gleicher Einrückung in der nächsten Zeile hinzufügen
 - **Geordnete Listen**: Übersetzung folgt direkt nach dem Original, durch Leerzeichen getrennt
 - **Codeblöcke**: Unverändert lassen, nur Kommentare übersetzen
-- **Leerzeilen, Bilder**: Unverändert lassen
+- **Leerzeilen**: Unverändert lassen
+- **Bilder und andere nicht übersetzbare Markdown-Elemente**: Unverändert lassen und nur einmal ausgeben; danach keine doppelte Übersetzungszeile hinzufügen
 
 ## Hinweise:
 - Flüssige und natürliche Ausdrücke verwenden, maschinellen Übersetzungseindruck vermeiden
@@ -788,7 +795,7 @@ Per favore rispondi in {lang}.`,
       content: `Переведите следующий Markdown-документ на {lang}, используя формат сравнения абзац за абзацем.
 
 ## Требования к переводу:
-1. **Сохранить весь оригинальный текст**, добавить соответствующий перевод после каждого абзаца
+1. **Сохранить весь переводимый исходный текст**, добавить соответствующий перевод после каждого абзаца. Непереводимые элементы Markdown, такие как изображения, должны оставаться на месте и появляться только один раз.
 2. **Сохранить оригинальное форматирование**, включая уровни заголовков, маркеры списков, отступы, блоки кода и т.д.
 3. **Специальная обработка нумерованных списков**: Перевод следует сразу после оригинального текста, без переноса строки. Формат: \`1. Оригинальный контент Перевод\`
 
@@ -798,7 +805,8 @@ Per favore rispondi in {lang}.`,
 - **Маркированные списки**: Добавить перевод с тем же отступом на следующей строке
 - **Нумерованные списки**: Перевод следует сразу после оригинала, разделённый пробелом
 - **Блоки кода**: Оставить без изменений, переводить только комментарии
-- **Пустые строки, изображения**: Оставить без изменений
+- **Пустые строки**: Оставить без изменений
+- **Изображения и другие непереводимые элементы Markdown**: Оставить без изменений и выводить только один раз; не добавлять после них дублирующую строку перевода
 
 ## Примечания:
 - Использовать плавные и естественные выражения, избегать ощущения машинного перевода
@@ -811,7 +819,7 @@ Per favore rispondi in {lang}.`,
       content: `Traduza o seguinte documento Markdown para {lang} usando formato de comparação parágrafo por parágrafo.
 
 ## Requisitos de tradução:
-1. **Manter todo o texto original**, adicionar a tradução correspondente após cada parágrafo
+1. **Manter todo o texto original traduzível**, adicionar a tradução correspondente após cada parágrafo. Elementos Markdown não traduzíveis, como imagens, devem permanecer no lugar e aparecer apenas uma vez.
 2. **Manter a formatação original**, incluindo níveis de título, marcadores de lista, recuo, blocos de código, etc.
 3. **Tratamento especial de listas ordenadas**: A tradução segue diretamente após o texto original, sem quebra de linha. Formato: \`1. Conteúdo original Tradução\`
 
@@ -821,7 +829,8 @@ Per favore rispondi in {lang}.`,
 - **Listas não ordenadas**: Adicionar a tradução com o mesmo recuo na linha seguinte
 - **Listas ordenadas**: A tradução segue diretamente após o original, separada por um espaço
 - **Blocos de código**: Manter inalterados, traduzir apenas comentários
-- **Linhas em branco, imagens**: Manter inalteradas
+- **Linhas em branco**: Manter inalteradas
+- **Imagens e outros elementos Markdown não traduzíveis**: Manter inalterados e exibi-los apenas uma vez; não adicionar uma linha de tradução duplicada depois
 
 ## Notas:
 - Usar expressões fluentes e naturais, evitar sensação de tradução automática
@@ -834,7 +843,7 @@ Per favore rispondi in {lang}.`,
       content: `Traduci il seguente documento Markdown in {lang} usando il formato di confronto paragrafo per paragrafo.
 
 ## Requisiti di traduzione:
-1. **Mantenere tutto il testo originale**, aggiungere la traduzione corrispondente dopo ogni paragrafo
+1. **Mantenere tutto il testo originale traducibile**, aggiungere la traduzione corrispondente dopo ogni paragrafo. Gli elementi Markdown non traducibili, come le immagini, devono rimanere al loro posto e apparire una sola volta.
 2. **Mantenere la formattazione originale**, inclusi livelli di intestazione, marcatori di elenco, rientro, blocchi di codice, ecc.
 3. **Gestione speciale degli elenchi ordinati**: La traduzione segue direttamente il testo originale, senza interruzione di riga. Formato: \`1. Contenuto originale Traduzione\`
 
@@ -844,7 +853,8 @@ Per favore rispondi in {lang}.`,
 - **Elenchi non ordinati**: Aggiungere la traduzione con lo stesso rientro sulla riga successiva
 - **Elenchi ordinati**: La traduzione segue direttamente l'originale, separata da uno spazio
 - **Blocchi di codice**: Mantenere invariati, tradurre solo i commenti
-- **Righe vuote, immagini**: Mantenere invariate
+- **Righe vuote**: Mantenere invariate
+- **Immagini e altri elementi Markdown non traducibili**: Mantenere invariati e mostrarli una sola volta; non aggiungere una riga di traduzione duplicata dopo
 
 ## Note:
 - Usare espressioni fluide e naturali, evitare la sensazione di traduzione automatica
@@ -857,7 +867,7 @@ Per favore rispondi in {lang}.`,
       content: `ترجم مستند Markdown التالي إلى {lang} باستخدام تنسيق المقارنة فقرة بفقرة.
 
 ## متطلبات الترجمة:
-1. **الاحتفاظ بكل النص الأصلي**، إضافة الترجمة المقابلة بعد كل فقرة
+1. **الاحتفاظ بكل النص الأصلي القابل للترجمة**، إضافة الترجمة المقابلة بعد كل فقرة. العناصر غير القابلة للترجمة في Markdown مثل الصور يجب أن تبقى في مكانها وتظهر مرة واحدة فقط.
 2. **الحفاظ على التنسيق الأصلي**، بما في ذلك مستويات العناوين وعلامات القوائم والمسافات البادئة وكتل الكود وما إلى ذلك
 3. **معالجة خاصة للقوائم المرقمة**: الترجمة تتبع مباشرة بعد النص الأصلي، بدون سطر جديد. التنسيق: \`1. المحتوى الأصلي الترجمة\`
 
@@ -867,7 +877,8 @@ Per favore rispondi in {lang}.`,
 - **القوائم غير المرقمة**: إضافة الترجمة بنفس المسافة البادئة في السطر التالي
 - **القوائم المرقمة**: الترجمة تتبع مباشرة بعد الأصل، مفصولة بمسافة
 - **كتل الكود**: تبقى دون تغيير، ترجمة التعليقات فقط
-- **الأسطر الفارغة، الصور**: تبقى دون تغيير
+- **الأسطر الفارغة**: تبقى دون تغيير
+- **الصور وغيرها من عناصر Markdown غير القابلة للترجمة**: تبقى كما هي وتُعرض مرة واحدة فقط، ولا تضف بعدها سطراً مترجماً مكرراً
 
 ## ملاحظات:
 - استخدام تعبيرات سلسة وطبيعية، تجنب الشعور بالترجمة الآلية
