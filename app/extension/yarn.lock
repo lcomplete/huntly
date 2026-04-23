@@ -69,6 +69,15 @@
     "@ai-sdk/provider" "3.0.8"
     "@ai-sdk/provider-utils" "4.0.19"
 
+"@ai-sdk/mcp@^1.0.36":
+  version "1.0.36"
+  resolved "https://registry.npmmirror.com/@ai-sdk/mcp/-/mcp-1.0.36.tgz#561d8c3798ac82d3357fb195dfd8a9547c08382d"
+  integrity sha512-THQKwlknp7OU2ViLPfIU7W01XvDRM2eqH+4UULQgP64AopnwI9mGqqJeGIx2l/pxUu9yIDQtW9YtYM8kHm2CQg==
+  dependencies:
+    "@ai-sdk/provider" "3.0.8"
+    "@ai-sdk/provider-utils" "4.0.23"
+    pkce-challenge "^5.0.0"
+
 "@ai-sdk/openai@3.0.41", "@ai-sdk/openai@^3.0.41":
   version "3.0.41"
   resolved "https://registry.npmmirror.com/@ai-sdk/openai/-/openai-3.0.41.tgz#22f559888cd4f9bb312c5c576441c3412f442e7b"
@@ -5329,6 +5338,11 @@ pirates@^4.0.1, pirates@^4.0.4:
   version "4.0.5"
   resolved "https://registry.npmjs.org/pirates/-/pirates-4.0.5.tgz"
   integrity sha512-8V9+HQPupnaXMA23c5hvl69zXvTwTzyAYasnkb0Tts4XvO4CliqONMOnvlq26rkhLC3nWDFBJf73LU1e1VZLaQ==
+
+pkce-challenge@^5.0.0:
+  version "5.0.1"
+  resolved "https://registry.npmmirror.com/pkce-challenge/-/pkce-challenge-5.0.1.tgz#3b4446865b17b1745e9ace2016a31f48ddf6230d"
+  integrity sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==
 
 pkg-dir@^4.2.0:
   version "4.2.0"

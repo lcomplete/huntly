@@ -83,52 +83,7 @@ function joinMeta(...values: Array<string | undefined>): string | undefined {
 
 type ToolLinkCardExtractor = (result: unknown) => LinkCardGroup[];
 
-function extractSearchHuntlyLinkCards(result: unknown): LinkCardGroup[] {
-  const parsed = parseMaybeJson(result);
-  if (!isRecord(parsed)) return [];
-
-  const rawResults = parsed.results;
-  if (!Array.isArray(rawResults)) return [];
-
-  const items: LinkCardItem[] = [];
-  const seen = new Set<string>();
-
-  for (const item of rawResults) {
-    if (!isRecord(item)) continue;
-
-    const href = getTrimmedString(item.url);
-    const title = getTrimmedString(item.title) || href;
-    if (!href || !title || seen.has(href)) {
-      continue;
-    }
-
-    seen.add(href);
-    items.push({
-      href,
-      title,
-      description: getTrimmedString(item.description),
-      meta: joinMeta(
-        getTrimmedString(item.siteName),
-        getTrimmedString(item.domain),
-        getTrimmedString(item.author)
-      ),
-    });
-  }
-
-  return items.length > 0
-    ? [
-        {
-          id: "search-results",
-          title: "Search results",
-          items,
-        },
-      ]
-    : [];
-}
-
-const TOOL_LINK_CARD_EXTRACTORS: Record<string, ToolLinkCardExtractor> = {
-  search_huntly: extractSearchHuntlyLinkCards,
-};
+const TOOL_LINK_CARD_EXTRACTORS: Record<string, ToolLinkCardExtractor> = {};
 
 export function extractLinkCardGroups(part: ChatPart): LinkCardGroup[] {
   if (

@@ -70,6 +70,7 @@ import {
   createAttachmentPartFromDataUrl,
   createAttachmentPartFromUrl,
   createCurrentPageContextPart,
+  createPageContextPart,
   getDraggedImageSource,
   getTabContext,
   onConfigChange,
@@ -115,8 +116,72 @@ const DROPPABLE_STRING_TYPES = new Set([
   "DownloadURL",
 ]);
 
+type PendingSelectionPageContext = {
+  title?: string;
+  content?: string;
+  url?: string;
+  faviconUrl?: string;
+  description?: string;
+  author?: string;
+  siteName?: string;
+};
+
+type PendingSidepanelContextCommand = {
+  id: string;
+} & (
+  | {
+      kind: "image";
+      source: string;
+    }
+  | {
+      kind: "page-context";
+    }
+  | {
+      kind: "selection";
+      page: PendingSelectionPageContext;
+    }
+);
+
 function isImageDataUrl(value: string): boolean {
   return /^data:image\//i.test(value.trim());
+}
+
+function isPendingSelectionPageContext(
+  value: unknown
+): value is PendingSelectionPageContext {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      (typeof (value as PendingSelectionPageContext).content === "string" ||
+        typeof (value as PendingSelectionPageContext).content === "undefined")
+  );
+}
+
+function isPendingSidepanelContextCommand(
+  value: unknown
+): value is PendingSidepanelContextCommand {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const command = value as PendingSidepanelContextCommand;
+  if (typeof command.id !== "string" || typeof command.kind !== "string") {
+    return false;
+  }
+
+  if (command.kind === "image") {
+    return typeof command.source === "string";
+  }
+
+  if (command.kind === "page-context") {
+    return true;
+  }
+
+  if (command.kind === "selection") {
+    return isPendingSelectionPageContext(command.page);
+  }
+
+  return false;
 }
 
 function isBlobUrl(value: string): boolean {
@@ -527,14 +592,14 @@ export const SidepanelApp: FC = () => {
       }
     ) => void
   >(() => {});
-  const poolRef = useRef<SessionChatPool | null>(null);
-  if (!poolRef.current) {
-    poolRef.current = new SessionChatPool(
-      () => configRef.current,
-      (sessionId, snapshot) =>
-        poolEventHandlerRef.current(sessionId, snapshot)
-    );
-  }
+  const [pool] = useState(
+    () =>
+      new SessionChatPool(
+        () => configRef.current,
+        (sessionId, snapshot) =>
+          poolEventHandlerRef.current(sessionId, snapshot)
+      )
+  );
 
   const cancelTitleGenerationFor = useCallback((sessionId: string) => {
     titleGenerationAbortsRef.current.get(sessionId)?.abort();
@@ -558,8 +623,6 @@ export const SidepanelApp: FC = () => {
   const pruneEmptyDraft = useCallback(
     (sessionId: string | null) => {
       if (!sessionId) return;
-      const pool = poolRef.current;
-      if (!pool) return;
       if (sessionsDataRef.current.has(sessionId)) return;
       if (pool.isRunning(sessionId)) return;
       const chat = pool.get(sessionId);
@@ -568,7 +631,7 @@ export const SidepanelApp: FC = () => {
       previousSessionMessagesRef.current.delete(sessionId);
       cancelTitleGenerationFor(sessionId);
     },
-    [cancelTitleGenerationFor]
+    [cancelTitleGenerationFor, pool]
   );
 
   const syncSessionSnapshot = useCallback(
@@ -782,21 +845,18 @@ export const SidepanelApp: FC = () => {
     (sessionId: string, chatMessages: ChatMessage[]) => {
       // Empty drafts (no messages yet) are kept entirely in-memory and never
       // persisted. They are only created on the user's first send below.
-      const existing = sessionsDataRef.current.get(sessionId);
-      if (chatMessages.length === 0 && !existing) {
-        return;
-      }
       if (chatMessages.length === 0) {
         return;
       }
 
+      const existing = sessionsDataRef.current.get(sessionId);
       let session = existing;
       const isNewSession = !session;
       if (!session) {
-        const created = createEmptySession(
-          currentModelRef.current ? getModelKey(currentModelRef.current) : null
+        session = createEmptySession(
+          currentModelRef.current ? getModelKey(currentModelRef.current) : null,
+          sessionId
         );
-        session = { ...created, id: sessionId };
         sessionsDataRef.current.set(sessionId, session);
       }
 
@@ -807,7 +867,6 @@ export const SidepanelApp: FC = () => {
           ? session.messages[session.messages.length - 1]
           : null;
       const prevLatestId = getStoredLastMessageId(session);
-      const prevLastMessageAt = getStoredLastMessageAt(session);
       const isStreaming = latestMessage?.status === "running";
       const latestChanged =
         isNewSession ||
@@ -820,6 +879,15 @@ export const SidepanelApp: FC = () => {
         return;
       }
 
+      // Only the active session reflects the user-selected model/thinking
+      // switch into its persisted record; background sessions keep whatever
+      // they were configured with at send time so switching the UI model
+      // does not silently rewrite history.
+      const isActiveSession = sessionId === currentSessionIdRef.current;
+      const activeModelKey = currentModelRef.current
+        ? getModelKey(currentModelRef.current)
+        : null;
+
       const updated: SessionData = {
         ...session,
         title: (session.title || "").trim() || DEFAULT_SESSION_TITLE,
@@ -831,22 +899,29 @@ export const SidepanelApp: FC = () => {
           session.titleGenerationStatus === "generated"
             ? session.titleGeneratedAt
             : undefined,
-        currentModelId: currentModelRef.current
-          ? getModelKey(currentModelRef.current)
-          : null,
-        thinkingEnabled: thinkingModeRef.current,
+        currentModelId: isActiveSession
+          ? activeModelKey
+          : session.currentModelId,
+        thinkingEnabled: isActiveSession
+          ? thinkingModeRef.current
+          : session.thinkingEnabled,
         messages: chatMessages,
         updatedAt: now,
         lastMessageAt: now,
         lastMessageId: latestMessage?.id || prevLatestId,
-        lastOpenedAt:
-          currentSessionIdRef.current === session.id
-            ? now
-            : session.lastOpenedAt || session.updatedAt || session.createdAt,
+        lastOpenedAt: isActiveSession
+          ? now
+          : session.lastOpenedAt || session.updatedAt || session.createdAt,
       };
 
-      syncSessionSnapshot(updated, latestMessage?.status !== "running");
-      maybeGenerateSessionTitle(updated, chatMessages);
+      syncSessionSnapshot(updated, !isStreaming);
+
+      // Title generation is off the hot path: only fire once streaming
+      // settles (or when not streaming at all). The inner dedupe still
+      // short-circuits if the title is already generated.
+      if (!isStreaming) {
+        maybeGenerateSessionTitle(updated, chatMessages);
+      }
     },
     [maybeGenerateSessionTitle, syncSessionSnapshot]
   );
@@ -878,9 +953,9 @@ export const SidepanelApp: FC = () => {
   // streaming; only this hook drives composer/MessageList rendering for the
   // currently displayed session.
   const activeChat = useMemo(() => {
-    if (!poolRef.current || !currentSessionId) return null;
-    return poolRef.current.get(currentSessionId);
-  }, [currentSessionId]);
+    if (!currentSessionId) return null;
+    return pool.get(currentSessionId);
+  }, [currentSessionId, pool]);
 
   const chat = useHuntlyChat({
     chat: activeChat,
@@ -904,10 +979,10 @@ export const SidepanelApp: FC = () => {
     if (loading) return;
     if (currentSessionIdRef.current) return;
     const draftId = generateId();
-    poolRef.current?.ensure(draftId);
+    pool.ensure(draftId);
     currentSessionIdRef.current = draftId;
     setCurrentSessionId(draftId);
-  }, [loading]);
+  }, [loading, pool]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1036,9 +1111,9 @@ export const SidepanelApp: FC = () => {
       window.removeEventListener("pagehide", flushPendingSession);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       cancelAllTitleGenerations();
-      poolRef.current?.disposeAll();
+      pool.disposeAll();
     };
-  }, [cancelAllTitleGenerations, persistence]);
+  }, [cancelAllTitleGenerations, persistence, pool]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     messageScrollPinnedRef.current = true;
@@ -1121,9 +1196,10 @@ export const SidepanelApp: FC = () => {
 
   const handleDeleteSession = useCallback(
     async (id: string) => {
+      await persistence.flush();
       persistence.markDeleted(id);
       cancelTitleGenerationFor(id);
-      poolRef.current?.remove(id);
+      pool.remove(id);
       sessionsDataRef.current.delete(id);
       previousSessionMessagesRef.current.delete(id);
 
@@ -1135,7 +1211,7 @@ export const SidepanelApp: FC = () => {
       if (currentSessionIdRef.current === id) {
         // Switch to a fresh draft so the composer is still usable.
         const draftId = generateId();
-        poolRef.current?.ensure(draftId);
+        pool.ensure(draftId);
         currentSessionIdRef.current = draftId;
         setCurrentSessionId(draftId);
         clearInlineUserMessageEdit();
@@ -1146,6 +1222,7 @@ export const SidepanelApp: FC = () => {
       cancelTitleGenerationFor,
       clearInlineUserMessageEdit,
       persistence,
+      pool,
       resetComposerState,
     ]
   );
@@ -1238,9 +1315,6 @@ export const SidepanelApp: FC = () => {
         // Switch sessions WITHOUT cancelling the previously active session.
         // The pool keeps that Chat alive so its stream continues in the
         // background; persistence and title generation stay wired up.
-        const pool = poolRef.current;
-        if (!pool) return;
-
         let openedSession: SessionData | null =
           sessionsDataRef.current.get(id) ?? null;
         let chatMessages: ChatMessage[];
@@ -1314,6 +1388,7 @@ export const SidepanelApp: FC = () => {
       clearInlineUserMessageEdit,
       maybeGenerateSessionTitle,
       persistence,
+      pool,
       pruneEmptyDraft,
       resetComposerState,
     ]
@@ -1322,9 +1397,6 @@ export const SidepanelApp: FC = () => {
   const handleNewChat = useCallback(() => {
     // Don't cancel any running session. Just open a fresh draft chat; the
     // previous session keeps streaming via the pool until it completes.
-    const pool = poolRef.current;
-    if (!pool) return;
-
     const previousId = currentSessionIdRef.current;
     const draftId = generateId();
     pool.ensure(draftId);
@@ -1337,7 +1409,7 @@ export const SidepanelApp: FC = () => {
     setSlashPromptIndex(0);
     resetComposerState();
     inputRef.current?.focus();
-  }, [clearInlineUserMessageEdit, pruneEmptyDraft, resetComposerState]);
+  }, [clearInlineUserMessageEdit, pool, pruneEmptyDraft, resetComposerState]);
 
   const prepareOutgoingText = useCallback(
     (text: string) => {
@@ -1404,6 +1476,163 @@ export const SidepanelApp: FC = () => {
     }
   }, []);
 
+  const appendPendingContextCommands = useCallback(
+    async (commands: PendingSidepanelContextCommand[]) => {
+      if (commands.length === 0) {
+        return [] as string[];
+      }
+
+      setAttachmentProcessingLabel(
+        commands.length > 1
+          ? "Processing chat context..."
+          : "Processing chat context..."
+      );
+
+      const completedIds: string[] = [];
+      try {
+        for (const command of commands) {
+          if (command.kind === "image") {
+            const attached = await addAttachmentFromSource(command.source);
+            if (attached) {
+              completedIds.push(command.id);
+            }
+            continue;
+          }
+
+          if (command.kind === "page-context") {
+            try {
+              const part = await createCurrentPageContextPart();
+              setAttachedPageContext(part);
+              setContextError(null);
+              completedIds.push(command.id);
+            } catch (error) {
+              console.error("[SidepanelApp] Failed to attach page context", error);
+              setContextError("Unable to read this tab");
+            }
+            continue;
+          }
+
+          try {
+            const part = createPageContextPart(command.page, {
+              title: command.page.title || "Selected content",
+              url: command.page.url,
+              faviconUrl: command.page.faviconUrl,
+            });
+            setAttachedPageContext(part);
+            setContextError(null);
+            completedIds.push(command.id);
+          } catch (error) {
+            console.error("[SidepanelApp] Failed to attach selection context", error);
+            setContextError("Unable to read this selection");
+          }
+        }
+
+        if (completedIds.length > 0) {
+          inputRef.current?.focus();
+        }
+
+        return completedIds;
+      } finally {
+        setAttachmentProcessingLabel(null);
+      }
+    },
+    [addAttachmentFromSource]
+  );
+
+  // Keep the latest append callback in a ref so the runtime message listener
+  // below can stay mount-once. Re-subscribing the listener on every render
+  // re-invoked `consume_pending_sidepanel_context_commands`, which
+  // double-consumed pending commands from the background page.
+  const appendPendingContextCommandsRef = useRef(appendPendingContextCommands);
+  useEffect(() => {
+    appendPendingContextCommandsRef.current = appendPendingContextCommands;
+  }, [appendPendingContextCommands]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const handleRuntimeMessage = (
+      message: unknown,
+      _sender: unknown,
+      sendResponse: (response?: unknown) => void
+    ) => {
+      const typedMessage = message as
+        | {
+            type?: string;
+            payload?: { command?: unknown };
+          }
+        | undefined;
+      if (typedMessage?.type !== "sidepanel_context_menu_command") {
+        return undefined;
+      }
+
+      const command = typedMessage.payload?.command;
+      if (!isPendingSidepanelContextCommand(command)) {
+        sendResponse({
+          success: false,
+          error: "Invalid sidepanel context command.",
+        });
+        return undefined;
+      }
+
+      void appendPendingContextCommandsRef.current([command])
+        .then((completedIds) => {
+          const completed = completedIds.includes(command.id);
+          sendResponse({
+            success: completed,
+            commandId: completed ? command.id : null,
+          });
+        })
+        .catch((error) => {
+          console.error("[SidepanelApp] Failed to handle context menu command", error);
+          sendResponse({
+            success: false,
+            error: (error as Error)?.message || "Failed to process command",
+          });
+        });
+
+      return true;
+    };
+
+    const consumePendingContextCommands = async () => {
+      try {
+        const currentWindow = await chrome.windows.getCurrent();
+        if (cancelled || typeof currentWindow.id !== "number") {
+          return;
+        }
+
+        const response = (await chrome.runtime.sendMessage({
+          type: "consume_pending_sidepanel_context_commands",
+          payload: {
+            windowId: currentWindow.id,
+          },
+        })) as unknown as { commands?: unknown } | undefined;
+        const pendingCommands = Array.isArray(response?.commands)
+          ? response.commands.filter(isPendingSidepanelContextCommand)
+          : [];
+
+        if (!cancelled && pendingCommands.length > 0) {
+          await appendPendingContextCommandsRef.current(pendingCommands);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "[SidepanelApp] Failed to consume pending sidepanel commands",
+            error
+          );
+        }
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
+    void consumePendingContextCommands();
+
+    return () => {
+      cancelled = true;
+      chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
+    };
+  }, []);
+
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragDepthRef = useRef(0);
   const internalDragRef = useRef(false);
@@ -1463,17 +1692,13 @@ export const SidepanelApp: FC = () => {
       dragDepthRef.current = 0;
       setIsDraggingOver(false);
 
+      const dataTransfer = event.dataTransfer;
+
       void (async () => {
-        const filesFromItems = dedupeFiles(
-          Array.from(event.dataTransfer.items || [])
-            .filter((item) => item.kind === "file")
-            .map((item) => item.getAsFile())
-            .filter((file): file is File => Boolean(file))
+        const { files, sources } = await extractDroppedPayload(
+          dataTransfer,
+          tabContext?.url
         );
-        const files =
-          filesFromItems.length > 0
-            ? filesFromItems
-            : dedupeFiles(Array.from(event.dataTransfer.files || []));
 
         if (files.length > 0) {
           setAttachmentProcessingLabel(
@@ -1493,11 +1718,6 @@ export const SidepanelApp: FC = () => {
         }
 
         if (!attached) {
-          const { sources } = await extractDroppedPayload(
-            event.dataTransfer,
-            tabContext?.url
-          );
-
           for (const source of sources) {
             attached = await addAttachmentFromSource(source);
             if (attached) {

@@ -57,6 +57,14 @@ const ToolCallBlockImpl: FC<ToolCallBlockProps> = ({ part }) => {
         onClick={() => setOpen((value) => !value)}
       >
         <Wrench className="size-4 shrink-0" />
+        {part.toolSource === "mcp" && (
+          <span
+            className="shrink-0 rounded bg-[#efe8dc] px-1.5 py-0.5 text-[10px] font-medium text-[#7b6f62]"
+            title={part.toolSourceLabel || "MCP tool"}
+          >
+            MCP
+          </span>
+        )}
         <span className="min-w-0 flex-1 truncate font-medium">
           {part.toolName || "Tool call"}
         </span>

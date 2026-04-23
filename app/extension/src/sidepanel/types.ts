@@ -48,6 +48,9 @@ export interface ChatPart {
   size?: number;
   toolCallId?: string;
   toolName?: string;
+  toolTitle?: string;
+  toolSource?: "local" | "mcp";
+  toolSourceLabel?: string;
   args?: Record<string, unknown>;
   argsText?: string;
   result?: unknown;

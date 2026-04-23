@@ -42,6 +42,27 @@ const vercelAIAbortControllers = new Map<string, AbortController>();
 // Badge management: cache to avoid redundant API calls
 // Maps tabId -> url to track which URL was last checked for each tab
 const badgeCache = new Map<number, string>();
+type PendingSelectionPageContext = Pick<
+  PageModel,
+  "title" | "content" | "url" | "faviconUrl" | "description" | "author" | "siteName"
+>;
+type PendingSidepanelContextCommand = {
+  id: string;
+} & (
+  | {
+      kind: "image";
+      source: string;
+    }
+  | {
+      kind: "page-context";
+    }
+  | {
+      kind: "selection";
+      page: PendingSelectionPageContext;
+    }
+);
+const pendingSidepanelContextCommands =
+  new Map<number, PendingSidepanelContextCommand[]>();
 const SAVED_BADGE_TEXT = "✓";
 const SAVED_BADGE_BG = "#15803D";
 const AI_MAX_OUTPUT_TOKENS = 20000;
@@ -95,6 +116,19 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
   const base64 = arrayBufferToBase64(buffer);
 
   return `data:${contentType};base64,${base64}`;
+}
+
+function sendMessageToTab<T = any>(tabId: number, message: unknown): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response) => {
+      const error = chrome.runtime.lastError;
+      if (error) {
+        reject(new Error(error.message));
+        return;
+      }
+      resolve(response as T);
+    });
+  });
 }
 
 /**
@@ -166,6 +200,23 @@ function cancelVercelAITask(taskId: string): boolean {
     return true;
   }
   return false;
+}
+
+function enqueuePendingSidepanelContextCommand(
+  windowId: number,
+  command: PendingSidepanelContextCommand
+): void {
+  const queue = pendingSidepanelContextCommands.get(windowId) || [];
+  queue.push(command);
+  pendingSidepanelContextCommands.set(windowId, queue);
+}
+
+function consumePendingSidepanelContextCommands(
+  windowId: number
+): PendingSidepanelContextCommand[] {
+  const queued = pendingSidepanelContextCommands.get(windowId) || [];
+  pendingSidepanelContextCommands.delete(windowId);
+  return queued;
 }
 
 function startProcessingWithShortcuts(
@@ -581,7 +632,22 @@ export function initBackground(): void {
         chrome.tabs.create({ url });
       }
     } else if ((msg as any).type === "open_side_panel") {
-      openSidePanelForContextMenuClick(sender.tab);
+      void openSidePanelForContextMenuClick(sender.tab);
+    } else if ((msg as any).type === "consume_pending_sidepanel_context_commands") {
+      const windowId = msg.payload?.windowId;
+      if (typeof windowId !== "number") {
+        sendResponse({
+          success: false,
+          error: "Invalid window id for pending sidepanel context commands.",
+        });
+        return;
+      }
+
+      sendResponse({
+        success: true,
+        commands: consumePendingSidepanelContextCommands(windowId),
+      });
+      return;
     } else if ((msg as any).type === "fetch_image") {
       const imageUrl = msg.payload?.url;
       if (!imageUrl) {
@@ -830,14 +896,28 @@ function refreshBadgeForActiveTab() {
 const CONTEXT_MENU_HUNTLY_ROOT = "huntly_root";
 const CONTEXT_MENU_READING_MODE_PAGE = "huntly_reading_mode_page";
 const CONTEXT_MENU_SIDE_PANEL_PAGE = "huntly_side_panel_page";
+const CONTEXT_MENU_SIDE_PANEL_IMAGE = "huntly_side_panel_image";
 const CONTEXT_MENU_READING_MODE_ACTION = "huntly_reading_mode_action";
 const CONTEXT_MENU_SIDE_PANEL_ACTION = "huntly_side_panel_action";
-const CONTEXT_MENU_PAGE_CONTEXTS = ["page", "selection"];
-const CONTEXT_MENU_ACTION_CONTEXTS = ["action"];
+const CONTEXT_MENU_PAGE_CONTEXTS: chrome.contextMenus.ContextType[] = [
+  "page",
+  "selection",
+];
+const CONTEXT_MENU_IMAGE_CONTEXTS: chrome.contextMenus.ContextType[] = [
+  "image",
+];
+const CONTEXT_MENU_ACTION_CONTEXTS: chrome.contextMenus.ContextType[] = [
+  "action",
+];
+const CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS: chrome.contextMenus.ContextType[] = [
+  ...CONTEXT_MENU_PAGE_CONTEXTS,
+  ...CONTEXT_MENU_IMAGE_CONTEXTS,
+];
 
 const HUNTLY_MENU_TITLE = isDebugging ? "Huntly [DEV]" : "Huntly";
 const READING_MODE_TITLE = "Reading Mode";
 const SIDE_PANEL_TITLE = "Chat";
+const SIDE_PANEL_SEND_TITLE = "Send to Chat";
 
 function createContextMenuItem(
   properties: chrome.contextMenus.CreateProperties
@@ -858,21 +938,28 @@ function setupContextMenus() {
     createContextMenuItem({
       id: CONTEXT_MENU_HUNTLY_ROOT,
       title: HUNTLY_MENU_TITLE,
-      contexts: CONTEXT_MENU_PAGE_CONTEXTS,
+      contexts: CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS,
     });
 
     createContextMenuItem({
       id: CONTEXT_MENU_READING_MODE_PAGE,
       parentId: CONTEXT_MENU_HUNTLY_ROOT,
       title: READING_MODE_TITLE,
-      contexts: CONTEXT_MENU_PAGE_CONTEXTS,
+      contexts: CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS,
     });
 
     createContextMenuItem({
       id: CONTEXT_MENU_SIDE_PANEL_PAGE,
       parentId: CONTEXT_MENU_HUNTLY_ROOT,
       title: SIDE_PANEL_TITLE,
-      contexts: CONTEXT_MENU_PAGE_CONTEXTS,
+      contexts: CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS,
+    });
+
+    createContextMenuItem({
+      id: CONTEXT_MENU_SIDE_PANEL_IMAGE,
+      parentId: CONTEXT_MENU_HUNTLY_ROOT,
+      title: SIDE_PANEL_SEND_TITLE,
+      contexts: CONTEXT_MENU_IMAGE_CONTEXTS,
     });
 
     createContextMenuItem({
@@ -904,20 +991,33 @@ async function resolveContextMenuTab(
   return getCurrentActiveTab();
 }
 
-function openSidePanelForContextMenuClick(tab?: chrome.tabs.Tab): void {
+function openSidePanelForContextMenuClick(tab?: chrome.tabs.Tab): boolean {
   const sidePanelApi = (chrome as any).sidePanel;
   if (!sidePanelApi?.open) {
-    return;
+    return false;
   }
 
   if (typeof tab?.windowId !== "number") {
-    log("Failed to open side panel: missing windowId from context menu tab");
-    return;
+    log("Failed to open side panel: missing window id");
+    return false;
+  }
+
+  if (typeof tab.id === "number" && typeof sidePanelApi.setOptions === "function") {
+    void sidePanelApi
+      .setOptions({
+        tabId: tab.id,
+        path: "sidepanel.html",
+        enabled: true,
+      })
+      .catch((error: unknown) => {
+        log("Failed to configure side panel:", error);
+      });
   }
 
   void sidePanelApi.open({ windowId: tab.windowId }).catch((error: unknown) => {
     log("Failed to open side panel:", error);
   });
+  return true;
 }
 
 function isReadingModeMenuItem(menuItemId: string | number): boolean {
@@ -932,6 +1032,121 @@ function isSidePanelMenuItem(menuItemId: string | number): boolean {
     menuItemId === CONTEXT_MENU_SIDE_PANEL_PAGE ||
     menuItemId === CONTEXT_MENU_SIDE_PANEL_ACTION
   );
+}
+
+async function handleImageSidePanelContextMenuClick(
+  info: chrome.contextMenus.OnClickData,
+  tab?: chrome.tabs.Tab
+): Promise<void> {
+  if (!info.srcUrl) return;
+
+  const openedFromContextMenu = openSidePanelForContextMenuClick(tab);
+
+  const targetTab = tab?.id ? tab : await resolveContextMenuTab(tab);
+  if (!targetTab || typeof targetTab.windowId !== "number") return;
+
+  const command: PendingSidepanelContextCommand = {
+    id: crypto.randomUUID(),
+    kind: "image",
+    source: info.srcUrl,
+  };
+
+  if (!openedFromContextMenu && !openSidePanelForContextMenuClick(targetTab)) {
+    enqueuePendingSidepanelContextCommand(targetTab.windowId, command);
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "sidepanel_context_menu_command",
+      payload: {
+        command,
+        windowId: targetTab.windowId,
+      },
+    });
+
+    if (response?.success && response.commandId === command.id) {
+      return;
+    }
+  } catch (error) {
+    log("Deferred sidepanel image attachment until panel is ready", error);
+  }
+
+  enqueuePendingSidepanelContextCommand(targetTab.windowId, command);
+}
+
+async function handlePageSidePanelContextMenuClick(
+  info: chrome.contextMenus.OnClickData,
+  tab?: chrome.tabs.Tab
+): Promise<void> {
+  const targetTab = await resolveContextMenuTab(tab);
+  if (
+    !targetTab?.id ||
+    typeof targetTab.id !== "number" ||
+    typeof targetTab.windowId !== "number"
+  ) {
+    return;
+  }
+
+  let command: PendingSidepanelContextCommand;
+  if (info.selectionText?.trim()) {
+    try {
+      const response = await sendMessageToTab<{ page?: PageModel | null }>(
+        targetTab.id,
+        { type: "get_selection" }
+      );
+      const page = response?.page;
+      if (!page?.content) {
+        return;
+      }
+
+      command = {
+        id: crypto.randomUUID(),
+        kind: "selection",
+        page: {
+          title: page.title,
+          content: page.content,
+          url: page.url,
+          faviconUrl: page.faviconUrl,
+          description: page.description,
+          author: page.author,
+          siteName: page.siteName,
+        },
+      };
+    } catch (error) {
+      log("Failed to capture page selection for chat", error);
+      return;
+    }
+  } else {
+    command = {
+      id: crypto.randomUUID(),
+      kind: "page-context",
+    };
+  }
+
+  const opened = await openSidePanelForContextMenuClick(targetTab);
+  if (!opened) {
+    enqueuePendingSidepanelContextCommand(targetTab.windowId, command);
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "sidepanel_context_menu_command",
+      payload: {
+        command,
+        windowId: targetTab.windowId,
+      },
+    });
+
+    if (response?.success && response.commandId === command.id) {
+      return;
+    }
+  } catch (error) {
+    log("Deferred sidepanel page context command until panel is ready", error);
+  }
+
+  enqueuePendingSidepanelContextCommand(targetTab.windowId, command);
 }
 
 async function handleReadingModeContextMenuClick(
@@ -1014,12 +1229,21 @@ function registerBackgroundUiListeners(): void {
     badgeCache.delete(tabId);
   });
 
+  chrome.windows.onRemoved.addListener((windowId) => {
+    pendingSidepanelContextCommands.delete(windowId);
+  });
+
   chrome.runtime.onInstalled.addListener(setupContextMenus);
   chrome.runtime.onStartup.addListener(setupContextMenus);
 
   chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === CONTEXT_MENU_SIDE_PANEL_IMAGE) {
+      void handleImageSidePanelContextMenuClick(info, tab);
+      return;
+    }
+
     if (isSidePanelMenuItem(info.menuItemId)) {
-      openSidePanelForContextMenuClick(tab);
+      void openSidePanelForContextMenuClick(tab);
       return;
     }
 

@@ -661,10 +661,13 @@ export async function deleteSession(sessionId: string): Promise<void> {
   );
 }
 
-export function createEmptySession(currentModelId: string | null): SessionData {
+export function createEmptySession(
+  currentModelId: string | null,
+  id?: string
+): SessionData {
   const now = new Date().toISOString();
   return {
-    id: crypto.randomUUID(),
+    id: id ?? crypto.randomUUID(),
     title: DEFAULT_SESSION_TITLE,
     titleGenerationStatus: "idle",
     currentModelId,
