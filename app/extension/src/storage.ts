@@ -1,9 +1,16 @@
 import { getLocalizedSystemPrompt } from './ai/system-prompts';
+import {
+  DisplayLanguage,
+  getBrowserDisplayLanguage,
+  normalizeDisplayLanguage,
+} from './displayLanguage';
 import { LANGUAGES } from './languages';
 import type { LanguageOption } from './languages';
 
 export { getLocalizedSystemPrompt } from './ai/system-prompts';
 export type { SystemPromptContent } from './ai/system-prompts';
+export type { DisplayLanguage, DisplayLanguageOption } from './displayLanguage';
+export { DISPLAY_LANGUAGE_OPTIONS } from './displayLanguage';
 export { LANGUAGES } from './languages';
 export type { LanguageOption } from './languages';
 
@@ -12,6 +19,7 @@ export const STORAGE_SERVER_URL_LIST = "serverUrlList";
 export const STORAGE_AUTO_SAVE_ENABLED = "autoSaveEnabled";
 export const STORAGE_AUTO_SAVE_TWEET = "autoSaveTweet";
 export const STORAGE_CONTENT_PARSER = "contentParser";
+export const STORAGE_DISPLAY_LANGUAGE = "displayLanguage";
 export const STORAGE_DEFAULT_TARGET_LANGUAGE = "defaultTargetLanguage";
 export const STORAGE_USER_PROMPTS = "userPrompts";  // User-created prompts only
 export const STORAGE_ENABLED_SYSTEM_PROMPTS = "enabledSystemPrompts";  // IDs of enabled system prompts
@@ -134,6 +142,24 @@ export async function readSyncStorageSettings(): Promise<StorageSettings> {
     defaultTargetLanguage: items[STORAGE_DEFAULT_TARGET_LANGUAGE] || DefaultStorageSettings.defaultTargetLanguage,
     huntlyShortcutsEnabled: items[STORAGE_HUNTLY_SHORTCUTS_ENABLED] ?? DefaultStorageSettings.huntlyShortcutsEnabled
   };
+}
+
+export async function getDisplayLanguage(): Promise<DisplayLanguage> {
+  const items = await chrome.storage.sync.get({
+    [STORAGE_DISPLAY_LANGUAGE]: '',
+  });
+
+  return normalizeDisplayLanguage(
+    items[STORAGE_DISPLAY_LANGUAGE] || getBrowserDisplayLanguage()
+  );
+}
+
+export async function saveDisplayLanguage(
+  language: DisplayLanguage
+): Promise<void> {
+  await chrome.storage.sync.set({
+    [STORAGE_DISPLAY_LANGUAGE]: language,
+  });
 }
 
 export async function savePromptsSettings(settings: PromptsSettings): Promise<void> {

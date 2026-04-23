@@ -1,5 +1,6 @@
 import { useEffect, useState, type FC } from "react";
 import { BookOpen } from "lucide-react";
+import { useI18n } from "../../i18n";
 
 interface TabFaviconProps {
   faviconUrl?: string;
@@ -12,6 +13,7 @@ export const TabFavicon: FC<TabFaviconProps> = ({
   title,
   muted,
 }) => {
+  const { t } = useI18n();
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export const TabFavicon: FC<TabFaviconProps> = ({
 
   return (
     <BookOpen
-      aria-label={title || "Current tab"}
+      aria-label={title || t("sidepanel.context.currentTab")}
       className={[
         "size-4 shrink-0",
         muted ? "text-[#6f6254]" : "text-[#75695b]",

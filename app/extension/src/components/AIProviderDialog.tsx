@@ -43,6 +43,7 @@ import {
   saveProviderConfig,
 } from '../ai/storage';
 import { fetchOllamaModels, testProviderConnection } from '../ai/providers';
+import { useI18n } from '../i18n';
 
 export interface AIProviderDialogProps {
   open: boolean;
@@ -55,6 +56,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
   providerType,
   onClose,
 }) => {
+  const { t } = useI18n();
   const meta = PROVIDER_REGISTRY[providerType];
 
   const [apiKey, setApiKey] = useState('');
@@ -187,7 +189,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
   };
 
   const handleDelete = async () => {
-    if (window.confirm(`Are you sure you want to remove ${meta.displayName} configuration?`)) {
+    if (window.confirm(t('aiProviderDialog.confirmRemove', { provider: meta.displayName }))) {
       await deleteProviderConfig(providerType);
       onClose();
     }
@@ -220,10 +222,10 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
   const getAddModelHelperText = (): string | undefined => {
     const trimmed = newModelName.trim();
     if (presetModelIds.has(trimmed)) {
-      return 'This model is already in presets';
+      return t('aiProviderDialog.addModelHelper.preset');
     }
     if (customModels.includes(trimmed)) {
-      return 'This model already exists';
+      return t('aiProviderDialog.addModelHelper.duplicate');
     }
     return undefined;
   };
@@ -288,12 +290,12 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
 
   const getApiUrlHelperText = (type: ProviderType): string => {
     if (type === 'ollama') {
-      return 'Default: http://localhost:11434';
+      return t('aiProviderDialog.apiUrlHelper.ollama');
     }
     if (type === 'azure-openai' || type === 'azure-ai') {
-      return 'Required: Your Azure endpoint URL';
+      return t('aiProviderDialog.apiUrlHelper.azure');
     }
-    return 'Leave empty to use the default endpoint';
+    return t('aiProviderDialog.apiUrlHelper.default');
   };
 
   return (
@@ -305,7 +307,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
           alignItems: 'center',
         }}
       >
-        {meta.displayName} Settings
+        {t('aiProviderDialog.title', { provider: meta.displayName })}
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -315,13 +317,15 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {meta.requiresApiKey && (
             <TextField
-              label="API Key"
+              label={t('aiProviderDialog.apiKeyLabel')}
               type={showApiKey ? 'text' : 'password'}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               fullWidth
               size="small"
-              placeholder={`Enter your ${meta.displayName} API key`}
+              placeholder={t('aiProviderDialog.apiKeyPlaceholder', {
+                provider: meta.displayName,
+              })}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -340,12 +344,12 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
 
           {meta.supportsCustomUrl && (
             <TextField
-              label="API Proxy URL (Optional)"
+              label={t('aiProviderDialog.apiProxyLabel')}
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               fullWidth
               size="small"
-              placeholder={meta.defaultBaseUrl || 'Custom API endpoint'}
+              placeholder={meta.defaultBaseUrl || t('aiProviderDialog.customApiEndpoint')}
               helperText={getApiUrlHelperText(providerType)}
             />
           )}
@@ -353,25 +357,25 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
           {meta.supportsCustomApiFormat && (
             <FormControl size="small" fullWidth>
               <InputLabel id={`${providerType}-api-format-label`}>
-                API Format
+                {t('aiProviderDialog.apiFormatLabel')}
               </InputLabel>
               <Select
                 labelId={`${providerType}-api-format-label`}
-                label="API Format"
+                label={t('aiProviderDialog.apiFormatLabel')}
                 value={apiFormat}
                 onChange={(e) =>
                   setApiFormat(e.target.value as ProviderApiFormat)
                 }
               >
-                <MenuItem value="openai">OpenAI compatible</MenuItem>
-                <MenuItem value="anthropic">Anthropic compatible</MenuItem>
+                <MenuItem value="openai">{t('aiProviderDialog.apiFormat.openai')}</MenuItem>
+                <MenuItem value="anthropic">{t('aiProviderDialog.apiFormat.anthropic')}</MenuItem>
               </Select>
               <Typography
                 variant="caption"
                 color="text.secondary"
                 sx={{ mt: 0.5, ml: 1.5 }}
               >
-                Pick the wire format this provider exposes for the selected base URL.
+                {t('aiProviderDialog.apiFormatDescription')}
               </Typography>
             </FormControl>
           )}
@@ -385,7 +389,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
                 testing ? <CircularProgress size={16} /> : undefined
               }
             >
-              {testing ? 'Testing...' : 'Test Connection'}
+              {testing ? t('aiProviderDialog.testing') : t('aiProviderDialog.testConnection')}
             </Button>
             {providerType === 'ollama' && (
               <Button
@@ -400,7 +404,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
                   )
                 }
               >
-                Refresh Models
+                {t('aiProviderDialog.refreshModels')}
               </Button>
             )}
           </Box>
@@ -421,16 +425,18 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="subtitle2">Models</Typography>
+                <Typography variant="subtitle2">{t('aiProviderDialog.modelsTitle')}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  ({allSelectedCount} models available)
+                  {t('aiProviderDialog.modelsAvailable', {
+                    count: allSelectedCount,
+                  })}
                 </Typography>
               </Box>
               <IconButton
                 size="small"
                 onClick={() => setShowAddModel(!showAddModel)}
                 color={showAddModel ? 'primary' : 'default'}
-                title="Add custom model"
+                title={t('aiProviderDialog.addCustomModel')}
               >
                 <AddIcon fontSize="small" />
               </IconButton>
@@ -441,7 +447,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
               <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
                 <TextField
                   size="small"
-                  placeholder="Enter model name"
+                  placeholder={t('aiProviderDialog.modelNamePlaceholder')}
                   value={newModelName}
                   onChange={(e) => setNewModelName(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -459,7 +465,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
                     customModels.includes(newModelName.trim())
                   }
                 >
-                  Add
+                  {t('common.add')}
                 </Button>
               </Box>
             )}
@@ -503,14 +509,14 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
                       <IconButton
                         size="small"
                         onClick={() => handleStartEditCustomModel(index, modelId)}
-                        title="Edit model name"
+                        title={t('aiProviderDialog.editModelName')}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
                         onClick={() => handleRemoveCustomModel(modelId)}
-                        title="Delete model"
+                        title={t('aiProviderDialog.deleteModel')}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -536,7 +542,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
             </List>
             {allSelectedCount === 0 && (
               <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                Please enable at least one model
+                {t('aiProviderDialog.enableAtLeastOneModel')}
               </Typography>
             )}
           </Box>
@@ -545,7 +551,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
 
       <DialogActions sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
         <Button color="error" onClick={handleDelete}>
-          Remove
+          {t('common.remove')}
         </Button>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <FormControlLabel
@@ -556,7 +562,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
                 size="small"
               />
             }
-            label="Enable"
+            label={t('common.enable')}
             labelPlacement="start"
             sx={{
               mr: 1,
@@ -571,7 +577,7 @@ export const AIProviderDialog: React.FC<AIProviderDialogProps> = ({
             onClick={handleSave}
             disabled={!canSave || saving}
           >
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </Box>
       </DialogActions>

@@ -5,6 +5,7 @@ import { CacheProvider } from "@emotion/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { getShadowDomStyles } from "../styles/shadowDomStyles";
 import { ArticlePreview } from "./ArticlePreview";
+import { ExtensionI18nProvider } from "../i18n";
 import { ContentParserType } from "../storage";
 import { ExternalShortcutsData, ExternalModelsData, ShortcutItem, ModelItem } from "./AIToolbar";
 import { ShadowContainerContext } from "./shadowContainerContext";
@@ -71,9 +72,11 @@ const ShadowContent: React.FC<ShadowContentProps> = ({ emotionCache, container, 
   return (
     <CacheProvider value={emotionCache}>
       <ThemeProvider theme={theme}>
-        <ShadowContainerContext.Provider value={container}>
-          {children}
-        </ShadowContainerContext.Provider>
+        <ExtensionI18nProvider>
+          <ShadowContainerContext.Provider value={container}>
+            {children}
+          </ShadowContainerContext.Provider>
+        </ExtensionI18nProvider>
       </ThemeProvider>
     </CacheProvider>
   );

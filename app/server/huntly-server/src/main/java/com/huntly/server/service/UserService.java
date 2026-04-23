@@ -48,6 +48,10 @@ public class UserService {
         return !userRepository.findAll().isEmpty();
     }
 
+    public boolean existsByUsername(String username) {
+        return userRepository.findByUsername(username).isPresent();
+    }
+
     public void updateLoginUser(LoginRequest loginRequest, String currentUsername) {
         userRepository.findByUsername(currentUsername).ifPresent(user->{
             user.setUsername(loginRequest.getUsername());

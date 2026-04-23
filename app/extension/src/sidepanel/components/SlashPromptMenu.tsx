@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import type { SlashPrompt } from "../types";
+import { useI18n } from "../../i18n";
 
 interface SlashPromptMenuProps {
   visible: boolean;
@@ -14,12 +15,13 @@ export const SlashPromptMenu: FC<SlashPromptMenuProps> = ({
   selectedIndex,
   onSelect,
 }) => {
+  const { t } = useI18n();
   if (!visible || prompts.length === 0) return null;
 
   return (
     <div
       role="listbox"
-      aria-label="Prompt suggestions"
+      aria-label={t("sidepanel.slashPromptSuggestions")}
       className="absolute left-4 top-4 z-30 w-[min(20rem,calc(100%-2rem))] -translate-y-[calc(100%+0.375rem)] overflow-hidden rounded-xl border border-[#d9cfbf] bg-[#fffaf4] shadow-[0_16px_42px_rgba(64,48,31,0.14)]"
     >
       {prompts.map((prompt, index) => {

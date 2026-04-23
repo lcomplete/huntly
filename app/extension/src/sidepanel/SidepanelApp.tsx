@@ -104,6 +104,7 @@ import {
   LoadingScreen,
   WelcomePane,
 } from "./components/Placeholders";
+import { useI18n } from "../i18n";
 
 const SCROLL_PIN_THRESHOLD_PX = 96;
 const TITLE_MAX_LENGTH = 80;
@@ -500,6 +501,7 @@ async function generateSessionTitleFromFirstMessage(
 }
 
 export const SidepanelApp: FC = () => {
+  const { t } = useI18n();
   const [models, setModels] = useState<HuntlyModelInfo[]>([]);
   const [currentModelId, setCurrentModelId] = useState<string | null>(null);
   const [slashPrompts, setSlashPrompts] = useState<SlashPrompt[]>([]);
@@ -1448,8 +1450,8 @@ export const SidepanelApp: FC = () => {
 
       setAttachmentProcessingLabel(
         selectedFiles.length > 1
-          ? "Processing attachments..."
-          : "Processing attachment..."
+          ? t("sidepanel.processing.attachments")
+          : t("sidepanel.processing.attachment")
       );
 
       void attachFiles(selectedFiles)
@@ -1460,7 +1462,7 @@ export const SidepanelApp: FC = () => {
           setAttachmentProcessingLabel(null);
         });
     },
-    [attachFiles]
+    [attachFiles, t]
   );
 
   const addAttachmentFromSource = useCallback(async (source: string) => {
@@ -1483,9 +1485,7 @@ export const SidepanelApp: FC = () => {
       }
 
       setAttachmentProcessingLabel(
-        commands.length > 1
-          ? "Processing chat context..."
-          : "Processing chat context..."
+        t("sidepanel.processing.chatContext")
       );
 
       const completedIds: string[] = [];
@@ -1507,14 +1507,14 @@ export const SidepanelApp: FC = () => {
               completedIds.push(command.id);
             } catch (error) {
               console.error("[SidepanelApp] Failed to attach page context", error);
-              setContextError("Unable to read this tab");
+              setContextError(t("sidepanel.error.readTab"));
             }
             continue;
           }
 
           try {
             const part = createPageContextPart(command.page, {
-              title: command.page.title || "Selected content",
+              title: command.page.title || t("sidepanel.context.selectedContent"),
               url: command.page.url,
               faviconUrl: command.page.faviconUrl,
             });
@@ -1523,7 +1523,7 @@ export const SidepanelApp: FC = () => {
             completedIds.push(command.id);
           } catch (error) {
             console.error("[SidepanelApp] Failed to attach selection context", error);
-            setContextError("Unable to read this selection");
+            setContextError(t("sidepanel.error.readSelection"));
           }
         }
 
@@ -1536,7 +1536,7 @@ export const SidepanelApp: FC = () => {
         setAttachmentProcessingLabel(null);
       }
     },
-    [addAttachmentFromSource]
+    [addAttachmentFromSource, t]
   );
 
   // Keep the latest append callback in a ref so the runtime message listener
@@ -1703,14 +1703,14 @@ export const SidepanelApp: FC = () => {
         if (files.length > 0) {
           setAttachmentProcessingLabel(
             files.length > 1
-              ? "Processing dropped files..."
-              : "Processing dropped file..."
+              ? t("sidepanel.processing.droppedFiles")
+              : t("sidepanel.processing.droppedFile")
           );
           await attachFiles(files);
           return;
         }
 
-        setAttachmentProcessingLabel("Processing dropped image...");
+        setAttachmentProcessingLabel(t("sidepanel.processing.droppedImage"));
         let attached = false;
         const draggedSource = await getDraggedImageSource();
         if (draggedSource) {
@@ -1735,7 +1735,7 @@ export const SidepanelApp: FC = () => {
         setAttachmentProcessingLabel(null);
       });
     },
-    [addAttachmentFromSource, attachFiles, hasFilesOrUrl, tabContext?.url]
+    [addAttachmentFromSource, attachFiles, hasFilesOrUrl, t, tabContext?.url]
   );
 
   const handleInternalDragStartCapture = useCallback(() => {
@@ -1863,11 +1863,11 @@ export const SidepanelApp: FC = () => {
       setAttachedPageContext(context);
     } catch (error) {
       console.error("[SidepanelApp] Failed to attach tab context", error);
-      setContextError("Unable to read this tab");
+      setContextError(t("sidepanel.error.readTab"));
     } finally {
       setContextLoading(false);
     }
-  }, [attachedPageContext, contextLoading]);
+  }, [attachedPageContext, contextLoading, t]);
 
   const handleDetachContext = useCallback(() => {
     setAttachedPageContext(null);
@@ -1917,7 +1917,7 @@ export const SidepanelApp: FC = () => {
             "[SidepanelApp] Failed to attach quick action page context",
             error
           );
-          setContextError("Unable to read this tab");
+          setContextError(t("sidepanel.error.readTab"));
           return;
         }
       } else if (attachedPageContext) {
@@ -1941,6 +1941,7 @@ export const SidepanelApp: FC = () => {
       prepareOutgoingText,
       resetComposerState,
       sendMessage,
+      t,
     ]
   );
 
@@ -2117,8 +2118,8 @@ export const SidepanelApp: FC = () => {
             <div className="mb-2 flex justify-end">
               <button
                 type="button"
-                aria-label="Scroll to bottom"
-                title="Scroll to bottom"
+                aria-label={t("sidepanel.scrollToBottom")}
+                title={t("sidepanel.scrollToBottom")}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d8cfbf] bg-[#fffaf4] text-[#5f5347] shadow-[0_8px_24px_rgba(64,48,31,0.14)] transition-colors hover:bg-[#f4efe6] hover:text-[#2f261f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a34020] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f3ea]"
                 onClick={() => scrollToBottom("smooth")}
               >
@@ -2164,7 +2165,7 @@ export const SidepanelApp: FC = () => {
       {isDraggingOver && (
         <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-[#2f261f]/10 backdrop-blur-[1px]">
           <div className="rounded-2xl border-2 border-dashed border-[#a34020] bg-[#fffaf4]/95 px-6 py-4 text-sm font-semibold text-[#a34020] shadow-[0_16px_55px_rgba(64,48,31,0.18)]">
-            Drop images or files to attach
+            {t("sidepanel.dropOverlay")}
           </div>
         </div>
       )}

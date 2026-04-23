@@ -2,16 +2,6 @@
 
 <div align="center">
 
-✨ 特别感谢 ✨
-
-<a href="https://www.augmentcode.com/">
-  <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
-</a>
-
-**[Augment Code](https://www.augmentcode.com/)** - Better Context. Better Agent. Better Code.
-
----
-
 <!-- Huntly Logo & Title -->
 <img src="app/extension/public/favicon-128x128.png" alt="Huntly" width="120" />
 
@@ -40,7 +30,7 @@
 
 | 功能 | 描述 |
 |---------|-------------|
-| 🤖 **AI 内容处理** | 利用 AI 进行摘要、翻译和智能内容分析，支持自定义快捷指令 |
+| 🤖 **AI 内容处理** | 利用 AI 进行摘要、翻译、浏览器扩展内聊天和智能内容分析，支持自定义快捷指令 |
 | 🔌 **MCP & Agent Skills** | MCP 服务器 + Agent Skills，让 AI 助手可搜索您的知识库、RSS 订阅、推文和高亮标注。通过 `npx skills add lcomplete/huntly` 安装 |
 | 📚 **网页归档** | 使用 Defuddle 和 Mozilla Readability 自动保存和归档网页，提取正文内容 |
 | 📡 **RSS 订阅管理** | 集中管理所有 RSS 订阅，支持智能分类、OPML 导入/导出和全文搜索 |
@@ -55,6 +45,7 @@
 - [x] 将所有保存的内容导出为 Markdown
 - [x] 灵活的组织方式：收藏夹
 - [x] 增强扩展功能，支持独立 AI 处理(无需服务器)
+- [ ] 浏览器扩展内置聊天功能，支持页面上下文、附件和 AI 快捷指令
 
 ## 系统截图
 
@@ -157,3 +148,17 @@ sudo xattr -r -d com.apple.quarantine /YOUR_PATH/Huntly.app
     <td align="center"><a href="https://github.com/jtsang4">jtsang4</a></td>
   </tr>
 </table>
+
+---
+
+<div align="center">
+
+✨ 特别感谢 ✨
+
+<a href="https://www.augmentcode.com/">
+  <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
+</a>
+
+**[Augment Code](https://www.augmentcode.com/)** - Better Context. Better Agent. Better Code.
+
+</div>

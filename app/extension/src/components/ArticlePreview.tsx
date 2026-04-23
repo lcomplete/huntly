@@ -20,6 +20,7 @@ import AIToolbar, {
 import SaveDetailPanel from "./SaveDetailPanel";
 import { useShadowContainer } from "./shadowContainerContext";
 import ExportButton from "./ExportButton";
+import { useI18n } from "../i18n";
 
 // Create turndown instance for HTML to markdown conversion
 const turndownService = new TurndownService({
@@ -66,6 +67,7 @@ const StreamingContentRenderer = forwardRef<
   StreamingContentRendererHandle,
   { currentTaskId: string | null }
 >(({ currentTaskId }, ref) => {
+  const { t } = useI18n();
   const [processedContent, setProcessedContent] = useState("");
   const [reasoningContent, setReasoningContent] = useState("");
   const [isThinking, setIsThinking] = useState(false);
@@ -134,7 +136,9 @@ const StreamingContentRenderer = forwardRef<
                   />
                 )}
                 <span className="huntly-thinking-title">
-                  {isThinking ? "Thinking" : "Thought process"}
+                  {isThinking
+                    ? t("preview.processing.thinking")
+                    : t("preview.processing.thoughtProcess")}
                 </span>
               </div>
               <span className="huntly-thinking-chevron" aria-hidden="true">
@@ -163,7 +167,7 @@ const StreamingContentRenderer = forwardRef<
               </div>
             ) : (
               <div className="huntly-thinking-empty">
-                The model is still thinking...
+                {t("preview.processing.stillThinking")}
               </div>
             )}
           </div>
@@ -209,6 +213,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
   autoSelectedModel,
   initialThinkingModeEnabled = false,
 }) => {
+  const { t } = useI18n();
   const [page, setPage] = useState<PageModel>(initialPage);
   const [parserType, setParserType] =
     useState<ContentParserType>(initialParserType);
@@ -535,7 +540,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
       className="huntly-modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
-      aria-label="Article Preview"
+      aria-label={t("preview.dialog.article")}
     >
       <AIGradientDef />
       <div
@@ -582,7 +587,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                 <button
                   className="huntly-icon-button"
                   onClick={handleEditButtonClick}
-                  title="Edit details"
+                  title={t("preview.actions.editDetails")}
                   disabled={editLoading}
                 >
                   {editLoading ? (
@@ -610,14 +615,14 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
               )}
               {/* Parser selector */}
               <div className="huntly-parser-selector">
-                <span className="huntly-parser-label">Parser:</span>
+                <span className="huntly-parser-label">{t("preview.parser.label")}</span>
                 <select
                   className="huntly-parser-select"
                   value={parserType}
                   onChange={handleParserChange}
                 >
-                  <option value="readability">Readability</option>
-                  <option value="defuddle">Defuddle</option>
+                  <option value="readability">{t("general.contentParser.readability.title")}</option>
+                  <option value="defuddle">{t("general.contentParser.defuddle.title")}</option>
                 </select>
               </div>
 
@@ -638,7 +643,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
               <div
                 className="huntly-edit-drawer"
                 role="dialog"
-                aria-label="Edit details panel"
+                aria-label={t("preview.editPanel.title")}
                 onClick={(e) => e.stopPropagation()}
               >
                 {editError && (
@@ -647,7 +652,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                   </div>
                 )}
                 {editLoading ? (
-                  <div className="huntly-edit-loading">Preparing editor...</div>
+                  <div className="huntly-edit-loading">{t("preview.editPanel.preparing")}</div>
                 ) : editData ? (
                   <div className="huntly-edit-panel-body">
                     <SaveDetailPanel
@@ -671,7 +676,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                   </div>
                 ) : (
                   <div className="huntly-edit-loading">
-                    Unable to load editor.
+                    {t("preview.editPanel.unavailable")}
                   </div>
                 )}
               </div>
@@ -701,7 +706,7 @@ export const ArticlePreview: React.FC<ArticlePreviewProps> = ({
                 <div className="huntly-scroll-container">
                   {processingError ? (
                     <div style={{ color: "#d32f2f", padding: "16px" }}>
-                      Error: {processingError}
+                      {t("preview.processing.error", { message: processingError })}
                     </div>
                   ) : (
                     <StreamingContentRenderer

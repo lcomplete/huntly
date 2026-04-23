@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   List,
@@ -9,14 +9,15 @@ import {
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import ArticleIcon from '@mui/icons-material/Article';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import DnsIcon from '@mui/icons-material/Dns';
+import { GeneralSettings } from './GeneralSettings';
 import { ServerSettings } from './ServerSettings';
 import { AIProvidersSettings } from './AIProvidersSettings';
-import { ParserSettings } from './ParserSettings';
 import { PromptsSettings } from './PromptsSettings';
 import { SponsorSettings } from './SponsorSettings';
+import { useI18n } from '../i18n';
 
 interface MenuItem {
   id: string;
@@ -26,43 +27,68 @@ interface MenuItem {
 }
 
 export const SettingsPage: React.FC = () => {
-  // Read initial tab from URL hash (e.g., options.html#ai-providers)
-  const getInitialTab = () => {
+  const { t } = useI18n();
+  const validTabs = ['general', 'server', 'ai-providers', 'prompts', 'sponsor'];
+
+  const getTabFromHash = () => {
     const hash = window.location.hash.slice(1); // Remove '#'
-    const validTabs = ['server', 'ai-providers', 'prompts', 'parser', 'sponsor'];
-    return validTabs.includes(hash) ? hash : 'server';
+    if (hash === 'parser') {
+      return 'general';
+    }
+
+    return validTabs.includes(hash) ? hash : 'general';
   };
 
-  const [activeMenu, setActiveMenu] = useState(getInitialTab);
+  const [activeMenu, setActiveMenu] = useState(getTabFromHash);
+
+  useEffect(() => {
+    const syncMenuFromHash = () => {
+      setActiveMenu(getTabFromHash());
+    };
+
+    window.addEventListener('hashchange', syncMenuFromHash);
+    syncMenuFromHash();
+
+    return () => {
+      window.removeEventListener('hashchange', syncMenuFromHash);
+    };
+  }, []);
+
+  useEffect(() => {
+    const expectedHash = `#${activeMenu}`;
+    if (window.location.hash !== expectedHash) {
+      window.history.replaceState(null, '', expectedHash);
+    }
+  }, [activeMenu]);
 
   const menuItems: MenuItem[] = [
     {
-      id: 'server',
-      label: 'Server',
+      id: 'general',
+      label: t('menu.general'),
       icon: <SettingsIcon />,
+      component: <GeneralSettings />,
+    },
+    {
+      id: 'server',
+      label: t('menu.server'),
+      icon: <DnsIcon />,
       component: <ServerSettings />,
     },
     {
       id: 'ai-providers',
-      label: 'AI Providers',
+      label: t('menu.aiProviders'),
       icon: <SmartToyIcon />,
       component: <AIProvidersSettings />,
     },
     {
       id: 'prompts',
-      label: 'Prompts',
+      label: t('menu.prompts'),
       icon: <TextSnippetIcon />,
       component: <PromptsSettings />,
     },
     {
-      id: 'parser',
-      label: 'Content Parser',
-      icon: <ArticleIcon />,
-      component: <ParserSettings />,
-    },
-    {
       id: 'sponsor',
-      label: 'Sponsor',
+      label: t('menu.sponsor'),
       icon: <FavoriteIcon />,
       component: <SponsorSettings />,
     },
@@ -85,6 +111,8 @@ export const SettingsPage: React.FC = () => {
             {menuItems.map((item) => (
               <ListItemButton
                 key={item.id}
+                component="a"
+                href={`#${item.id}`}
                 selected={activeMenu === item.id}
                 onClick={() => setActiveMenu(item.id)}
                 className="sidebar-nav-item"
@@ -99,7 +127,9 @@ export const SettingsPage: React.FC = () => {
 
           <Box className="sidebar-footer">
             <Typography variant="caption" color="text.secondary">
-              Huntly Extension v{chrome.runtime.getManifest().version}
+              {t('sidebar.extensionVersion', {
+                version: chrome.runtime.getManifest().version,
+              })}
             </Typography>
           </Box>
         </Box>

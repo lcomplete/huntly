@@ -24,6 +24,7 @@ import {
   saveSelectedModelId,
   getSelectedModelId,
 } from "../storage";
+import { useI18n } from "../i18n";
 import { fetchEnabledShortcuts, getApiBaseUrl } from "../services";
 import {
   getAIProvidersStorage,
@@ -119,6 +120,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   thinkingModeEnabled = false,
   onThinkingModeToggle,
 }) => {
+  const { t } = useI18n();
   // Side panel (chat) availability
   const [canOpenSidePanel, setCanOpenSidePanel] = useState(false);
   useEffect(() => {
@@ -492,13 +494,13 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
   // Ensure portal-based menus render above the shadow DOM overlay.
   const menuZIndex = 2147483647;
   const thinkingModeTooltip = !selectedModel
-    ? "Thinking · choose a model"
+    ? t("aiToolbar.thinking.chooseModel")
     : thinkingModeEnabled
-    ? "Thinking on"
-    : "Thinking off";
+    ? t("aiToolbar.thinking.on")
+    : t("aiToolbar.thinking.off");
   const thinkingModeButtonLabel = thinkingModeEnabled
-    ? "Thinking on"
-    : "Thinking off";
+    ? t("aiToolbar.thinking.on")
+    : t("aiToolbar.thinking.off");
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -642,7 +644,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
                   color: "text.secondary",
                 }}
               >
-                Select Model
+                {t("aiToolbar.selectModel")}
               </Typography>
             )}
           </Button>
@@ -682,7 +684,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
                 sx={{ borderRadius: "6px", mx: 0.5, fontSize: "13px" }}
               >
                 <SettingsIcon fontSize="small" sx={{ mr: 1, opacity: 0.7 }} />
-                Configure AI Providers
+                {t("aiToolbar.configureProviders")}
               </MenuItem>,
             ]
           : [
@@ -804,15 +806,17 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
         disabled={isProcessing}
         sx={{ textTransform: "none" }}
       >
-        AI Shortcuts
+        {t("aiToolbar.shortcuts")}
       </Button>
 
       {/* Open Chat Button */}
       {canOpenSidePanel && (
-        <Tooltip title="Open chat" placement="top">
+        <Tooltip title={t("aiToolbar.openChat")} placement="top">
           <IconButton
             size="small"
             onClick={handleOpenChat}
+            aria-label={t("aiToolbar.openChat")}
+            title={t("aiToolbar.openChat")}
             sx={{
               color: "text.secondary",
               "&:hover": {
@@ -882,7 +886,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
           ? [
               <MenuItem key="loading" disabled>
                 <CircularProgress size={16} sx={{ mr: 1 }} />
-                Loading...
+                {t("common.loading")}
               </MenuItem>,
             ]
           : !hasShortcuts
@@ -890,8 +894,8 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
               <MenuItem key="configure" onClick={() => openSettings("prompts")}>
                 <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
                 {isHuntlyAISelected
-                  ? "Configure Huntly Shortcuts"
-                  : "Configure Prompts"}
+                  ? t("aiToolbar.configureHuntlyShortcuts")
+                  : t("aiToolbar.configurePrompts")}
               </MenuItem>,
             ]
           : [
@@ -902,7 +906,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
                       key="huntly-header"
                       sx={{ lineHeight: "32px", bgcolor: "background.paper" }}
                     >
-                      Huntly Shortcuts
+                          {t("aiToolbar.huntlyShortcuts")}
                     </ListSubheader>,
                     ...huntlyShortcuts.map((shortcut) => (
                       <MenuItem
@@ -934,7 +938,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
                               bgcolor: "background.paper",
                             }}
                           >
-                            Prompts
+                            {t("aiToolbar.prompts")}
                           </ListSubheader>,
                         ]
                       : []),
@@ -967,7 +971,7 @@ export const AIToolbar: React.FC<AIToolbarProps> = ({
                               bgcolor: "background.paper",
                             }}
                           >
-                            System Prompts
+                            {t("aiToolbar.systemPrompts")}
                           </ListSubheader>,
                         ]
                       : []),

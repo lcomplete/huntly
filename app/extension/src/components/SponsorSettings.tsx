@@ -6,39 +6,42 @@ import {
   Typography,
 } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { useI18n } from '../i18n';
 
 const GITHUB_SPONSORS_URL = 'https://github.com/sponsors/lcomplete';
 
-const PAYMENT_METHODS = [
-  {
-    id: 'wechat',
-    title: 'WeChat Pay',
-    description: 'Scan to support Huntly with WeChat.',
-    fileName: 'wechat.JPG',
-    alt: 'WeChat Pay QR code',
-  },
-  {
-    id: 'alipay',
-    title: 'Alipay',
-    description: 'Scan to support Huntly with Alipay.',
-    fileName: 'zfb.JPG',
-    alt: 'Alipay QR code',
-  },
-] as const;
-
 export const SponsorSettings: React.FC = () => {
+  const { t } = useI18n();
+
+  const paymentMethods = [
+    {
+      id: 'wechat',
+      title: t('sponsor.wechatTitle'),
+      description: t('sponsor.wechatDescription'),
+      fileName: 'wechat.JPG',
+      alt: t('sponsor.wechatAlt'),
+    },
+    {
+      id: 'alipay',
+      title: t('sponsor.alipayTitle'),
+      description: t('sponsor.alipayDescription'),
+      fileName: 'zfb.JPG',
+      alt: t('sponsor.alipayAlt'),
+    },
+  ] as const;
+
   return (
     <div className="settings-section">
       <div className="section-header">
-        <h2 className="section-title">Sponsor Huntly</h2>
+        <h2 className="section-title">{t('sponsor.title')}</h2>
         <p className="section-description">
-          If you find it useful, please consider supporting its development.
+          {t('sponsor.description')}
         </p>
       </div>
 
       <Box className="sponsor-link-card">
         <Typography variant="subtitle1" fontWeight={600}>
-          GitHub Sponsors
+          {t('sponsor.githubTitle')}
         </Typography>
         <Link
           href={GITHUB_SPONSORS_URL}
@@ -58,13 +61,13 @@ export const SponsorSettings: React.FC = () => {
             rel="noopener noreferrer"
             endIcon={<OpenInNewIcon />}
           >
-            Open GitHub Sponsors
+            {t('sponsor.openGithubSponsors')}
           </Button>
         </Box>
       </Box>
 
       <Box className="sponsor-qrs">
-        {PAYMENT_METHODS.map((paymentMethod) => (
+        {paymentMethods.map((paymentMethod) => (
           <Box key={paymentMethod.id} className="sponsor-qr-card">
             <Typography variant="subtitle1" fontWeight={600}>
               {paymentMethod.title}

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huntly.server.domain.entity.GlobalSetting;
 import com.huntly.server.mcp.tool.McpTool;
 import com.huntly.server.service.GlobalSettingService;
+import com.huntly.server.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.Authentication;
@@ -32,17 +33,20 @@ public class McpServerController {
 
     private final McpToolRegistry toolRegistry;
     private final GlobalSettingService globalSettingService;
+    private final UserService userService;
     private final ObjectMapper objectMapper;
     private final Map<String, SseEmitter> sessions = new ConcurrentHashMap<>();
 
     private static final String MCP_VERSION = "2024-11-05";
     private static final String SERVER_NAME = "huntly-mcp-server";
     private static final String SERVER_VERSION = "1.0.0";
+    private static final String ANONYMOUS_USER = "anonymousUser";
 
     public McpServerController(McpToolRegistry toolRegistry, GlobalSettingService globalSettingService,
-            ObjectMapper objectMapper) {
+            UserService userService, ObjectMapper objectMapper) {
         this.toolRegistry = toolRegistry;
         this.globalSettingService = globalSettingService;
+        this.userService = userService;
         this.objectMapper = objectMapper;
     }
 
@@ -275,13 +279,13 @@ public class McpServerController {
     }
 
     private boolean isAuthorized(Principal principal, String authorization) {
-        if (principal != null && StringUtils.isNotBlank(principal.getName())) {
+        if (principal != null && isAuthenticatedLoginUser(principal.getName())) {
             return true;
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()
-                && !"anonymousUser".equals(authentication.getName())) {
+                && isAuthenticatedLoginUser(authentication.getName())) {
             return true;
         }
 
@@ -303,5 +307,11 @@ public class McpServerController {
                 : authorization;
 
         return configuredToken.equals(token);
+    }
+
+    private boolean isAuthenticatedLoginUser(String username) {
+        return StringUtils.isNotBlank(username)
+                && !ANONYMOUS_USER.equals(username)
+                && userService.existsByUsername(username);
     }
 }

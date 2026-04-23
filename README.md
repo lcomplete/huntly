@@ -2,16 +2,6 @@
 
 <div align="center">
 
-✨ Special Thanks To ✨
-
-<a href="https://www.augmentcode.com/">
-  <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
-</a>
-
-**[Augment Code](https://www.augmentcode.com/)** - Better Context. Better Agent. Better Code.
-
----
-
 <!-- Huntly Logo & Title -->
 <img src="app/extension/public/favicon-128x128.png" alt="Huntly" width="120" />
 
@@ -40,7 +30,7 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 
 | Feature | Description |
 |---------|-------------|
-| 🤖 **AI Content Processing** | Leverage AI for summarization, translation, and intelligent content analysis with custom shortcuts |
+| 🤖 **AI Content Processing** | Leverage AI for summarization, translation, browser extension chat, and intelligent content analysis with custom shortcuts |
 | 🔌 **MCP & Agent Skills** | MCP server + Agent Skills for AI assistants to search your knowledge base, RSS feeds, tweets, and highlights. Install via `npx skills add lcomplete/huntly` |
 | 📚 **Web Archiving** | Automatically save and archive web pages with content extraction using Defuddle and Mozilla Readability |
 | 📡 **RSS Feed Management** | Centralize all your RSS feeds with intelligent categorization, OPML import/export, and full-text search |
@@ -55,6 +45,7 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 - [x] Export all saved content to Markdown
 - [x] Flexible Organization: Collections
 - [x] Enhanced extension with standalone AI processing (no server required)
+- [ ] Built-in browser extension chat with page context, attachments, and AI shortcuts
 
 ## Screenshot
 
@@ -157,3 +148,17 @@ Thank you to all our sponsors for your generous support!
     <td align="center"><a href="https://github.com/jtsang4">jtsang4</a></td>
   </tr>
 </table>
+
+---
+
+<div align="center">
+
+✨ Special Thanks To ✨
+
+<a href="https://www.augmentcode.com/">
+  <img src="static/images/sponsor/augment.png" alt="Augment Code" height="100" />
+</a>
+
+**[Augment Code](https://www.augmentcode.com/)** - Better Context. Better Agent. Better Code.
+
+</div>

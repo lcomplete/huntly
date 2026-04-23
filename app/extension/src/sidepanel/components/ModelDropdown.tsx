@@ -13,6 +13,7 @@ import { findModelByKey, getModelKey } from "../modelBridge";
 import { formatModelName, getProviderLabel } from "../utils/format";
 import { useOutsideClick } from "../utils/dom";
 import { IconButton } from "./IconButton";
+import { useI18n } from "../../i18n";
 
 interface ModelDropdownProps {
   models: HuntlyModelInfo[];
@@ -32,6 +33,7 @@ export const ModelDropdown: FC<ModelDropdownProps> = ({
   onThinkingModeToggle,
 }) => {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -108,7 +110,7 @@ export const ModelDropdown: FC<ModelDropdownProps> = ({
         <div
           id={panelId}
           role="dialog"
-          aria-label="Model picker"
+          aria-label={t("sidepanel.modelDropdown.picker")}
           className="absolute bottom-full left-0 z-50 mb-2 w-[min(340px,calc(100vw-92px))] overflow-hidden rounded-xl border border-[#d9cfbf] bg-[#fffaf4] shadow-[0_18px_45px_rgba(64,48,31,0.18)]"
         >
           <div className="border-b border-[#e7ded0] p-2">
@@ -119,14 +121,14 @@ export const ModelDropdown: FC<ModelDropdownProps> = ({
                   ref={searchInputRef}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  aria-label="Search models"
-                  placeholder="Search models"
+                  aria-label={t("sidepanel.modelDropdown.search")}
+                  placeholder={t("sidepanel.modelDropdown.search")}
                   className="min-w-0 flex-1 bg-transparent text-sm text-[#2f261f] outline-none placeholder:text-[#6f6254]"
                 />
               </div>
               <IconButton
                 className="h-9 w-9 shrink-0"
-                label="Model settings"
+                label={t("sidepanel.modelDropdown.settings")}
                 onClick={() => {
                   setOpen(false);
                   onOpenSettings();
@@ -140,7 +142,7 @@ export const ModelDropdown: FC<ModelDropdownProps> = ({
           <div className="max-h-[330px] overflow-y-auto py-1">
             {groupedModels.size === 0 ? (
               <div className="px-3 py-8 text-center text-sm text-[#6f6254]">
-                No models found
+                {t("sidepanel.modelDropdown.noModels")}
               </div>
             ) : (
               Array.from(groupedModels.entries()).map(
@@ -202,7 +204,9 @@ export const ModelDropdown: FC<ModelDropdownProps> = ({
                   thinkingMode ? "text-[#9a4f2c]" : "text-[#6f6254]",
                 ].join(" ")}
               />
-              <span className="min-w-0 flex-1 font-medium">Thinking</span>
+              <span className="min-w-0 flex-1 font-medium">
+                {t("common.thinking")}
+              </span>
               <span
                 aria-hidden="true"
                 className={[

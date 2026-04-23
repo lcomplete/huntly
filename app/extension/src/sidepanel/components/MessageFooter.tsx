@@ -1,4 +1,5 @@
 import type { FC, ReactNode } from "react";
+import { useI18n } from "../../i18n";
 
 interface MessageFooterProps {
   align?: "left" | "right";
@@ -7,29 +8,6 @@ interface MessageFooterProps {
   createdAt?: string;
   children?: ReactNode;
 }
-
-const SHORT_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
-
-const SHORT_DATE_WITH_YEAR_FORMAT = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
-
-const FULL_DATE_TIME_FORMAT = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
 
 function parseMessageDate(value?: string): Date | null {
   if (!value) return null;
@@ -41,16 +19,41 @@ function parseMessageDate(value?: string): Date | null {
 function formatFooterDate(value?: string): {
   shortLabel: string;
   fullLabel: string;
+} | null;
+function formatFooterDate(value: string | undefined, language: string): {
+  shortLabel: string;
+  fullLabel: string;
 } | null {
   const parsed = parseMessageDate(value);
   if (!parsed) return null;
 
   const sameYear = parsed.getFullYear() === new Date().getFullYear();
+  const shortDateFormat = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const shortDateWithYearFormat = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const fullDateTimeFormat = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
   return {
     shortLabel: sameYear
-      ? SHORT_DATE_FORMAT.format(parsed)
-      : SHORT_DATE_WITH_YEAR_FORMAT.format(parsed),
-    fullLabel: FULL_DATE_TIME_FORMAT.format(parsed),
+      ? shortDateFormat.format(parsed)
+      : shortDateWithYearFormat.format(parsed),
+    fullLabel: fullDateTimeFormat.format(parsed),
   };
 }
 
@@ -61,7 +64,8 @@ export const MessageFooter: FC<MessageFooterProps> = ({
   createdAt,
   children,
 }) => {
-  const formattedDate = formatFooterDate(createdAt);
+  const { language } = useI18n();
+  const formattedDate = formatFooterDate(createdAt, language);
   const shouldHoverReveal = actionsVisibility === "hover";
 
   if (!formattedDate && !children) {

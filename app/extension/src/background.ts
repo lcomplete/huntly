@@ -1,6 +1,8 @@
 import { log } from "./logger";
 import { isDebugging } from "./env";
 import {
+  STORAGE_DISPLAY_LANGUAGE,
+  getDisplayLanguage,
   readSyncStorageSettings,
   getPromptsSettings,
   getLanguageNativeName,
@@ -31,6 +33,7 @@ import {
   getStreamingPreviewResult,
   hasStreamingPreviewStateChanged,
 } from "./ai/streamingPreview";
+import { translateUi } from "./uiMessages";
 import { streamText } from "ai";
 import type { ProviderOptions } from "@ai-sdk/provider-utils";
 // Note: turndown is not used here because service worker has no DOM
@@ -777,6 +780,7 @@ export function initBackground(): void {
   });
 
   registerBackgroundUiListeners();
+  void setupContextMenus();
 }
 
 // Helper function to get all AI toolbar data
@@ -915,9 +919,19 @@ const CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS: chrome.contextMenus.ContextType[] = 
 ];
 
 const HUNTLY_MENU_TITLE = isDebugging ? "Huntly [DEV]" : "Huntly";
-const READING_MODE_TITLE = "Reading Mode";
-const SIDE_PANEL_TITLE = "Chat";
-const SIDE_PANEL_SEND_TITLE = "Send to Chat";
+
+async function getContextMenuTitles() {
+  const language = await getDisplayLanguage();
+
+  return {
+    readingMode: translateUi(language, "popup.readingMode"),
+    sidePanel: translateUi(language, "background.contextMenu.chat"),
+    sidePanelSend: translateUi(
+      language,
+      "background.contextMenu.sendToChat"
+    ),
+  };
+}
 
 function createContextMenuItem(
   properties: chrome.contextMenus.CreateProperties
@@ -929,7 +943,9 @@ function createContextMenuItem(
   });
 }
 
-function setupContextMenus() {
+async function setupContextMenus() {
+  const titles = await getContextMenuTitles();
+
   chrome.contextMenus.removeAll(() => {
     if (chrome.runtime.lastError) {
       log("Failed to reset context menus:", chrome.runtime.lastError);
@@ -944,33 +960,33 @@ function setupContextMenus() {
     createContextMenuItem({
       id: CONTEXT_MENU_READING_MODE_PAGE,
       parentId: CONTEXT_MENU_HUNTLY_ROOT,
-      title: READING_MODE_TITLE,
+      title: titles.readingMode,
       contexts: CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS,
     });
 
     createContextMenuItem({
       id: CONTEXT_MENU_SIDE_PANEL_PAGE,
       parentId: CONTEXT_MENU_HUNTLY_ROOT,
-      title: SIDE_PANEL_TITLE,
+      title: titles.sidePanel,
       contexts: CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS,
     });
 
     createContextMenuItem({
       id: CONTEXT_MENU_SIDE_PANEL_IMAGE,
       parentId: CONTEXT_MENU_HUNTLY_ROOT,
-      title: SIDE_PANEL_SEND_TITLE,
+      title: titles.sidePanelSend,
       contexts: CONTEXT_MENU_IMAGE_CONTEXTS,
     });
 
     createContextMenuItem({
       id: CONTEXT_MENU_READING_MODE_ACTION,
-      title: READING_MODE_TITLE,
+      title: titles.readingMode,
       contexts: CONTEXT_MENU_ACTION_CONTEXTS,
     });
 
     createContextMenuItem({
       id: CONTEXT_MENU_SIDE_PANEL_ACTION,
-      title: SIDE_PANEL_TITLE,
+      title: titles.sidePanel,
       contexts: CONTEXT_MENU_ACTION_CONTEXTS,
     });
   });
@@ -1233,8 +1249,20 @@ function registerBackgroundUiListeners(): void {
     pendingSidepanelContextCommands.delete(windowId);
   });
 
-  chrome.runtime.onInstalled.addListener(setupContextMenus);
-  chrome.runtime.onStartup.addListener(setupContextMenus);
+  chrome.runtime.onInstalled.addListener(() => {
+    void setupContextMenus();
+  });
+  chrome.runtime.onStartup.addListener(() => {
+    void setupContextMenus();
+  });
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (
+      areaName === "sync" &&
+      Object.prototype.hasOwnProperty.call(changes, STORAGE_DISPLAY_LANGUAGE)
+    ) {
+      void setupContextMenus();
+    }
+  });
 
   chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === CONTEXT_MENU_SIDE_PANEL_IMAGE) {
