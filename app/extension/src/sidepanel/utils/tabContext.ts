@@ -78,6 +78,33 @@ function buildPageContextMarkdown(page: ParsedPageContext): string {
   return parts.join("\n\n");
 }
 
+export function createPageContextPart(
+  page: ParsedPageContext,
+  fallback?: { title?: string; url?: string; faviconUrl?: string }
+): ChatPart {
+  const tabTitle = fallback?.title || page.title || "Current tab";
+  const articleTitle = page.title;
+  const pageContext: ParsedPageContext = {
+    ...page,
+    title: articleTitle || tabTitle,
+    url: page.url || fallback?.url,
+    faviconUrl: page.faviconUrl || fallback?.faviconUrl,
+  };
+
+  return {
+    id: generateId(),
+    type: "page-context",
+    title: tabTitle,
+    articleTitle,
+    url: pageContext.url,
+    faviconUrl: pageContext.faviconUrl,
+    content: buildPageContextMarkdown(pageContext),
+    description: pageContext.description,
+    author: pageContext.author,
+    siteName: pageContext.siteName,
+  };
+}
+
 export async function createCurrentPageContextPart(): Promise<ChatPart> {
   const [tab] = await chrome.tabs.query({
     active: true,
@@ -94,27 +121,11 @@ export async function createCurrentPageContextPart(): Promise<ChatPart> {
     throw new Error("Could not extract page content.");
   }
 
-  const tabTitle = tab.title || page.title || "Current tab";
-  const articleTitle = page.title;
-  const pageContext: ParsedPageContext = {
-    ...page,
-    title: articleTitle || tabTitle,
-    url: page.url || tab.url,
-    faviconUrl: page.faviconUrl || tab.favIconUrl,
-  };
-
-  return {
-    id: generateId(),
-    type: "page-context",
-    title: tabTitle,
-    articleTitle,
-    url: pageContext.url,
-    faviconUrl: pageContext.faviconUrl,
-    content: buildPageContextMarkdown(pageContext),
-    description: pageContext.description,
-    author: pageContext.author,
-    siteName: pageContext.siteName,
-  };
+  return createPageContextPart(page, {
+    title: tab.title || page.title || "Current tab",
+    url: tab.url,
+    faviconUrl: tab.favIconUrl,
+  });
 }
 
 export function pageContextToTabContext(

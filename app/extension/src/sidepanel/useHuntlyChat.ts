@@ -21,6 +21,11 @@ import {
   type UIMessageChunk,
 } from "ai";
 import type { ProviderOptions } from "@ai-sdk/provider-utils";
+import {
+  formatAgentToolTitle,
+  getAgentToolMetadata,
+  parseAgentToolTitle,
+} from "./agentTools";
 import type { ChatMessage, ChatPart } from "./types";
 
 export const CHAT_MAX_OUTPUT_TOKENS = 8192;
@@ -216,6 +221,62 @@ function getToolInput(part: ChatPart): unknown {
   return {};
 }
 
+function findToolCallPart(
+  message: ChatMessage | undefined,
+  toolCallId: string | undefined
+): ChatPart | undefined {
+  if (!message || !toolCallId) {
+    return undefined;
+  }
+
+  return message.parts.find(
+    (part) => part.type === "tool-call" && part.toolCallId === toolCallId
+  );
+}
+
+function resolveToolTitle(part: ChatPart): string | undefined {
+  if (part.toolTitle?.trim()) {
+    return part.toolTitle.trim();
+  }
+
+  return formatAgentToolTitle(
+    part.toolSource === "mcp"
+      ? { source: "mcp", sourceLabel: part.toolSourceLabel }
+      : undefined
+  );
+}
+
+function resolveToolPartMetadata(options: {
+  toolName: string;
+  title?: string;
+  previousPart?: ChatPart;
+}): Pick<ChatPart, "toolTitle" | "toolSource" | "toolSourceLabel"> {
+  const normalizedTitle = options.title?.trim() || options.previousPart?.toolTitle;
+  const titleMetadata = parseAgentToolTitle(normalizedTitle);
+  if (titleMetadata) {
+    return {
+      toolTitle: formatAgentToolTitle(titleMetadata),
+      toolSource: titleMetadata.source,
+      toolSourceLabel: titleMetadata.sourceLabel,
+    };
+  }
+
+  if (options.previousPart?.toolSource) {
+    return {
+      toolTitle: options.previousPart.toolTitle,
+      toolSource: options.previousPart.toolSource,
+      toolSourceLabel: options.previousPart.toolSourceLabel,
+    };
+  }
+
+  const metadata = getAgentToolMetadata(options.toolName);
+  return {
+    toolTitle: formatAgentToolTitle(metadata),
+    toolSource: metadata?.source,
+    toolSourceLabel: metadata?.sourceLabel,
+  };
+}
+
 function dataUrlToBase64(dataUrl: string): string {
   const commaIndex = dataUrl.indexOf(",");
   if (commaIndex === -1) {
@@ -349,6 +410,7 @@ function convertAssistantChatMessageToUIMessage(
         if (!part.toolCallId || !part.toolName) break;
 
         const input = getToolInput(part);
+        const title = resolveToolTitle(part);
         if (part.result === undefined) {
           parts.push({
             type: "dynamic-tool",
@@ -356,6 +418,7 @@ function convertAssistantChatMessageToUIMessage(
             toolCallId: part.toolCallId,
             state: "input-available",
             input,
+            title,
           });
           break;
         }
@@ -368,6 +431,7 @@ function convertAssistantChatMessageToUIMessage(
             state: "output-error",
             input,
             errorText: String(part.result || "Tool execution failed."),
+            title,
           });
           break;
         }
@@ -379,6 +443,7 @@ function convertAssistantChatMessageToUIMessage(
           state: "output-available",
           input,
           output: part.result,
+          title,
         });
         break;
       }
@@ -456,7 +521,8 @@ function convertUserUIMessageToChatParts(message: HuntlyUIMessage): ChatPart[] {
 }
 
 function convertAssistantUIMessageToChatParts(
-  message: HuntlyUIMessage
+  message: HuntlyUIMessage,
+  previousMessage?: ChatMessage
 ): ChatPart[] {
   return message.parts.reduce<ChatPart[]>((result, part) => {
     if (part.type === "step-start") {
@@ -487,6 +553,13 @@ function convertAssistantUIMessageToChatParts(
         part.type === "dynamic-tool"
           ? part.toolName
           : part.type.slice("tool-".length);
+      const title = "title" in part ? part.title : undefined;
+      const previousPart = findToolCallPart(previousMessage, part.toolCallId);
+      const toolMetadata = resolveToolPartMetadata({
+        toolName,
+        title,
+        previousPart,
+      });
 
       let toolResult: unknown;
       let isError = false;
@@ -509,6 +582,9 @@ function convertAssistantUIMessageToChatParts(
         type: "tool-call",
         toolCallId: part.toolCallId,
         toolName,
+        toolTitle: toolMetadata.toolTitle,
+        toolSource: toolMetadata.toolSource,
+        toolSourceLabel: toolMetadata.toolSourceLabel,
         args: asRecord(part.input),
         argsText: safeStringify(part.input),
         result: toolResult,
@@ -614,7 +690,10 @@ export function convertUIMessagesToChatMessages(
       role: message.role,
       parts:
         message.role === "assistant"
-          ? convertAssistantUIMessageToChatParts(message)
+          ? convertAssistantUIMessageToChatParts(
+              message,
+              previousMessagesById.get(message.id)
+            )
           : convertUserUIMessageToChatParts(message),
       status: messageStatus,
     });

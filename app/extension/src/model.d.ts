@@ -26,7 +26,7 @@ interface ShortcutPayload {
 }
 
 interface Message {
-  type: "auto_save_clipper" | "save_clipper" | 'tab_complete' | 'auto_save_tweets' | 'read_tweet' | 'parse_doc' | 'save_clipper_success' | 'shortcuts_preview' | 'shortcuts_execute' | 'shortcuts_process' | 'shortcuts_cancel' | 'shortcuts_processing_start' | 'shortcuts_process_result' | 'shortcuts_process_data' | 'shortcuts_process_error' | 'get_selection' | 'detect_rss_feed' | 'get_huntly_shortcuts' | 'get_ai_toolbar_data' | 'open_tab' | 'open_side_panel' | 'save_detail_init' | 'http_proxy' | 'badge_refresh' | 'fetch_image' | 'get_dragged_image' | 'clear_dragged_image',
+  type: "auto_save_clipper" | "save_clipper" | 'tab_complete' | 'auto_save_tweets' | 'read_tweet' | 'parse_doc' | 'save_clipper_success' | 'shortcuts_preview' | 'shortcuts_execute' | 'shortcuts_process' | 'shortcuts_cancel' | 'shortcuts_processing_start' | 'shortcuts_process_result' | 'shortcuts_process_data' | 'shortcuts_process_error' | 'get_selection' | 'detect_rss_feed' | 'get_huntly_shortcuts' | 'get_ai_toolbar_data' | 'open_tab' | 'open_side_panel' | 'save_detail_init' | 'http_proxy' | 'badge_refresh' | 'fetch_image' | 'get_dragged_image' | 'clear_dragged_image' | 'sidepanel_context_menu_command' | 'consume_pending_sidepanel_context_commands',
   payload?: any,
   url?: string
 }

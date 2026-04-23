@@ -16,7 +16,7 @@ import {
   type ChatTransport,
 } from "ai";
 
-import { ALL_AGENT_TOOLS } from "./agentTools";
+import { createAgentToolContext } from "./agentTools";
 import type { HuntlyModelInfo } from "./types";
 import {
   CHAT_MAX_OUTPUT_TOKENS,
@@ -94,35 +94,53 @@ function buildTransport(
         } as any);
       }
 
-      const agent = new ToolLoopAgent({
-        model: config.modelInfo.model,
-        instructions: config.systemPrompt,
-        tools: ALL_AGENT_TOOLS,
-        stopWhen: stepCountIs(5),
-        maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
-        providerOptions: config.thinkingEnabled
-          ? buildThinkingProviderOptions(config.modelInfo.provider)
-          : buildBaseProviderOptions(config.modelInfo.provider),
-      });
+      const toolContext = await createAgentToolContext();
 
-      const validated = await validateUIMessages({
-        messages,
-        tools: agent.tools as any,
-      });
-      const modelMessages = await convertToModelMessages(
-        replaceInlineFileParts(validated),
-        {
+      try {
+        const agent = new ToolLoopAgent({
+          model: config.modelInfo.model,
+          instructions: config.systemPrompt,
+          tools: toolContext.tools as any,
+          stopWhen: stepCountIs(5),
+          maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
+          providerOptions: config.thinkingEnabled
+            ? buildThinkingProviderOptions(config.modelInfo.provider)
+            : buildBaseProviderOptions(config.modelInfo.provider),
+        });
+
+        const validated = await validateUIMessages({
+          messages,
           tools: agent.tools as any,
-          convertDataPart: convertInlineFileDataPart,
+        });
+        const modelMessages = await convertToModelMessages(
+          replaceInlineFileParts(validated),
+          {
+            tools: agent.tools as any,
+            convertDataPart: convertInlineFileDataPart,
+          }
+        );
+        const result = await agent.stream({
+          prompt: modelMessages,
+          abortSignal,
+        });
+        return result.toUIMessageStream({
+          sendReasoning: config.thinkingEnabled,
+          onFinish: async () => {
+            try {
+              await toolContext.close();
+            } catch (error) {
+              console.error("[SessionChatPool] Failed to close MCP clients", error);
+            }
+          },
+        });
+      } catch (error) {
+        try {
+          await toolContext.close();
+        } catch (closeError) {
+          console.error("[SessionChatPool] Failed to close MCP clients", closeError);
         }
-      );
-      const result = await agent.stream({
-        prompt: modelMessages,
-        abortSignal,
-      });
-      return result.toUIMessageStream({
-        sendReasoning: config.thinkingEnabled,
-      });
+        throw error;
+      }
     },
     async reconnectToStream() {
       return null;

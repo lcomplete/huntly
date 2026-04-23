@@ -16,6 +16,7 @@ import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -56,5 +57,30 @@ class McpServerControllerTest {
                         .content("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}"))
                 .andExpect(status().isAccepted())
                 .andExpect(content().string(""));
+    }
+
+    @Test
+    void handleMessageReturnsAcceptedWhenAuthenticatedByLoginCookieContext() throws Exception {
+        mockMvc.perform(post("/api/mcp/message")
+                        .param("sessionId", SESSION_ID)
+                        .principal(() -> "huntly-user")
+                        .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}"))
+                .andExpect(status().isAccepted())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void getToolsRejectsUnauthenticatedRequests() throws Exception {
+        mockMvc.perform(get("/api/mcp/tools"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getToolsAllowsAuthenticatedLoginContext() throws Exception {
+        mockMvc.perform(get("/api/mcp/tools")
+                        .principal(() -> "huntly-user"))
+                .andExpect(status().isOk());
     }
 }

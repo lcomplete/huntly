@@ -1,30 +1,31 @@
 /**
  * Agent tools for the Huntly AI sidebar.
  *
- * Each tool wraps an existing Huntly extension capability (page content
- * extraction, Huntly API calls, etc.) as an AI SDK tool so the assistant
- * can invoke them autonomously during a conversation.
+ * Local tools wrap browser capabilities. Huntly MCP tools are loaded
+ * automatically when the user configured a Huntly server and is logged in.
  */
 
+import { createMCPClient, type MCPClient, type MCPClientConfig } from "@ai-sdk/mcp";
 import { tool } from "ai";
 import TurndownService from "turndown";
 import { z } from "zod";
-import {
-  archivePage,
-  deletePage,
-  getApiBaseUrl,
-  getPageDetail,
-  readLaterPage,
-  removePageFromLibrary,
-  saveArticle,
-  savePageToLibrary,
-  starPage,
-  unReadLaterPage,
-  unStarPage,
-} from "../services";
-import { postData } from "../utils";
+import { readSyncStorageSettings } from "../storage";
 
 const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
+const HUNTLY_MCP_SSE_PATH = "api/mcp/sse";
+const MCP_TOOL_TITLE_PREFIX = "MCP";
+
+type AgentToolSet = Record<string, any>;
+
+export interface AgentToolMetadata {
+  source: "local" | "mcp";
+  sourceLabel?: string;
+}
+
+const agentToolMetadataByName: Record<string, AgentToolMetadata> = {
+  get_page_content: { source: "local" },
+  get_page_selection: { source: "local" },
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,31 +47,6 @@ async function sendToActiveTab(message: any): Promise<any> {
   });
 }
 
-function parseJson(value: string | null | undefined): any {
-  if (!value) return null;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-}
-
-function extractSavedPageId(response: unknown): number {
-  if (typeof response === "number") return response;
-  if (!response || typeof response !== "object") return 0;
-
-  const data = (response as { data?: unknown }).data;
-  return typeof data === "number" ? data : 0;
-}
-
-function notifyBadgeRefresh(): void {
-  try {
-    chrome.runtime.sendMessage({ type: "badge_refresh" });
-  } catch {
-    // Badge refresh is best-effort.
-  }
-}
-
 function getPageDomain(url: string): string {
   try {
     return new URL(url).hostname;
@@ -79,26 +55,127 @@ function getPageDomain(url: string): string {
   }
 }
 
-async function getActiveParsedPage(): Promise<any> {
-  const resp = await sendToActiveTab({ type: "parse_doc" });
-  const page = resp?.page;
-  if (!page?.url || !page?.content) {
-    throw new Error("Could not extract page content.");
+function normalizeUrl(url: string | null | undefined): string {
+  const trimmed = url?.trim() || "";
+  if (!trimmed) return "";
+  return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
+}
+
+function registerAgentToolMetadata(
+  toolName: string,
+  metadata: AgentToolMetadata
+): void {
+  agentToolMetadataByName[toolName] = metadata;
+}
+
+export function getAgentToolMetadata(
+  toolName: string | null | undefined
+): AgentToolMetadata | undefined {
+  if (!toolName) {
+    return undefined;
   }
 
+  return agentToolMetadataByName[toolName];
+}
+
+export function formatAgentToolTitle(
+  metadata: AgentToolMetadata | undefined
+): string | undefined {
+  if (!metadata || metadata.source !== "mcp") {
+    return undefined;
+  }
+
+  const sourceLabel = metadata.sourceLabel?.trim();
+  return sourceLabel
+    ? `${MCP_TOOL_TITLE_PREFIX} · ${sourceLabel}`
+    : MCP_TOOL_TITLE_PREFIX;
+}
+
+export function parseAgentToolTitle(
+  title: string | null | undefined
+): AgentToolMetadata | undefined {
+  const trimmed = title?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed === MCP_TOOL_TITLE_PREFIX) {
+    return { source: "mcp" };
+  }
+
+  const prefix = `${MCP_TOOL_TITLE_PREFIX} · `;
+  if (!trimmed.startsWith(prefix)) {
+    return undefined;
+  }
+
+  const sourceLabel = trimmed.slice(prefix.length).trim();
   return {
-    ...page,
-    domain: page.domain || getPageDomain(page.url),
+    source: "mcp",
+    sourceLabel: sourceLabel || undefined,
   };
 }
 
-function requirePageId(pageId: number | undefined): number {
-  if (!pageId || pageId <= 0) {
-    throw new Error("pageId is required.");
+const HUNTLY_MCP_FETCH: typeof fetch = (input, init) =>
+  fetch(input, {
+    ...init,
+    credentials: "include",
+  });
+
+function mergeAgentTools(
+  target: AgentToolSet,
+  incoming: AgentToolSet,
+  metadata: AgentToolMetadata,
+  sourceLabel: string
+): void {
+  for (const [toolName, toolDefinition] of Object.entries(incoming)) {
+    if (target[toolName]) {
+      console.warn(
+        `[agentTools] Skipping MCP tool "${toolName}" from ${sourceLabel} because the name is already registered.`
+      );
+      continue;
+    }
+
+    target[toolName] = toolDefinition;
+    registerAgentToolMetadata(toolName, metadata);
   }
-  return pageId;
 }
 
+async function closeMcpClients(clients: MCPClient[]): Promise<void> {
+  await Promise.allSettled(clients.map((client) => client.close()));
+}
+
+async function loadMcpTools(options: {
+  transport: MCPClientConfig["transport"];
+  sourceLabel: string;
+  tools: AgentToolSet;
+  clients: MCPClient[];
+}): Promise<void> {
+  try {
+    const client = await createMCPClient({
+      transport: options.transport,
+      onUncaughtError(error) {
+        console.error(
+          `[agentTools] Uncaught MCP error from ${options.sourceLabel}`,
+          error
+        );
+      },
+    });
+
+    const mcpTools = await client.tools();
+    mergeAgentTools(
+      options.tools,
+      mcpTools,
+      { source: "mcp", sourceLabel: options.sourceLabel },
+      options.sourceLabel
+    );
+    options.clients.push(client);
+  } catch (error) {
+    console.error(
+      `[agentTools] Failed to load MCP tools from ${options.sourceLabel}`,
+      error
+    );
+  }
+}
 // ---------------------------------------------------------------------------
 // Tool definitions
 // ---------------------------------------------------------------------------
@@ -163,172 +240,51 @@ export const getPageSelectionTool = tool({
   },
 });
 
-export const savePageToHuntlyTool = tool({
-  description:
-    "Save the current browser tab to Huntly and add it to the user's library. Use this when the user asks to save, capture, or add the current page to Huntly.",
-  inputSchema: z.object({}),
-  async execute() {
-    try {
-      const page = await getActiveParsedPage();
-      const saveResponse = parseJson(await saveArticle(page));
-      const pageId = extractSavedPageId(saveResponse);
-      if (!pageId) {
-        return {
-          error: "Failed to save page.",
-          response: saveResponse,
-        };
-      }
-
-      const operateResult = await savePageToLibrary(pageId);
-      notifyBadgeRefresh();
-
-      return {
-        pageId,
-        title: page.title,
-        url: page.url,
-        operateResult,
-      };
-    } catch (err: any) {
-      return {
-        error: err?.message || "Failed to save current page to Huntly.",
-      };
-    }
-  },
-});
-
-export const searchHuntlyTool = tool({
-  description:
-    "Search saved Huntly content by keyword. Returns matching pages with title, URL, metadata, and library state.",
-  inputSchema: z.object({
-    query: z.string().min(1).describe("Search keywords."),
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(20)
-      .optional()
-      .describe("Maximum number of results to return."),
-    queryOptions: z
-      .string()
-      .optional()
-      .describe(
-        "Optional Huntly search filters, such as title-only or library filters."
-      ),
-  }),
-  async execute({ query, limit = 5, queryOptions }) {
-    try {
-      const baseUri = await getApiBaseUrl();
-      if (!baseUri) {
-        return { error: "Huntly server URL is not configured." };
-      }
-
-      const normalizedQuery = query.trim();
-      if (!normalizedQuery) {
-        return { error: "query is required." };
-      }
-
-      const response = parseJson(
-        await postData(baseUri, "search", {
-          q: normalizedQuery,
-          size: Math.min(limit, 20),
-          queryOptions,
-        })
-      );
-      const items = Array.isArray(response?.items) ? response.items : [];
-
-      return {
-        query: normalizedQuery,
-        totalHits: response?.totalHits ?? items.length,
-        costSeconds: response?.costSeconds,
-        results: items.slice(0, limit).map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          url: item.url,
-          description: item.description,
-          author: item.author,
-          siteName: item.siteName,
-          domain: item.domain,
-          librarySaveStatus: item.librarySaveStatus,
-          starred: item.starred,
-          readLater: item.readLater,
-          markRead: item.markRead,
-          recordAt: item.recordAt,
-          connectedAt: item.connectedAt,
-        })),
-      };
-    } catch (err: any) {
-      return {
-        error: err?.message || "Failed to search Huntly.",
-      };
-    }
-  },
-});
-
-export const huntlyApiTool = tool({
-  description:
-    "Perform common Huntly page operations by page id, including star, archive, read-later, delete, and detail lookup.",
-  inputSchema: z.object({
-    action: z.enum([
-      "get_page_detail",
-      "star_page",
-      "unstar_page",
-      "archive_page",
-      "save_to_library",
-      "remove_from_library",
-      "read_later",
-      "unread_later",
-      "delete_page",
-    ]),
-    pageId: z.number().int().positive().optional(),
-  }),
-  async execute({ action, pageId }) {
-    try {
-      const id = requirePageId(pageId);
-      switch (action) {
-        case "get_page_detail":
-          return await getPageDetail(id);
-        case "star_page":
-          notifyBadgeRefresh();
-          return await starPage(id);
-        case "unstar_page":
-          notifyBadgeRefresh();
-          return await unStarPage(id);
-        case "archive_page":
-          notifyBadgeRefresh();
-          return await archivePage(id);
-        case "save_to_library":
-          notifyBadgeRefresh();
-          return await savePageToLibrary(id);
-        case "remove_from_library":
-          notifyBadgeRefresh();
-          return await removePageFromLibrary(id);
-        case "read_later":
-          notifyBadgeRefresh();
-          return await readLaterPage(id);
-        case "unread_later":
-          notifyBadgeRefresh();
-          return await unReadLaterPage(id);
-        case "delete_page":
-          await deletePage(id);
-          notifyBadgeRefresh();
-          return { deleted: true, pageId: id };
-      }
-    } catch (err: any) {
-      return {
-        error: err?.message || "Failed to call Huntly API.",
-      };
-    }
-  },
-});
-
 // ---------------------------------------------------------------------------
-// All tools as a record (for AI SDK streamText)
+// Local tools and dynamic MCP tool context
 // ---------------------------------------------------------------------------
 
-export const ALL_AGENT_TOOLS = {
+export const LOCAL_AGENT_TOOLS: AgentToolSet = {
   get_page_content: getPageContentTool,
   get_page_selection: getPageSelectionTool,
-  save_page_to_huntly: savePageToHuntlyTool,
-  search_huntly: searchHuntlyTool,
-  huntly_api: huntlyApiTool,
 };
+
+export async function createAgentToolContext(): Promise<{
+  tools: AgentToolSet;
+  close: () => Promise<void>;
+}> {
+  const tools: AgentToolSet = { ...LOCAL_AGENT_TOOLS };
+  const clients: MCPClient[] = [];
+
+  try {
+    const settings = await readSyncStorageSettings();
+    const huntlyServerUrl = normalizeUrl(settings.serverUrl);
+
+    if (huntlyServerUrl) {
+      await loadMcpTools({
+        transport: {
+          type: "sse",
+          url: `${huntlyServerUrl}${HUNTLY_MCP_SSE_PATH}`,
+          fetch: HUNTLY_MCP_FETCH,
+        },
+        sourceLabel: "Huntly server MCP",
+        tools,
+        clients,
+      });
+    }
+  } catch (error) {
+    console.error("[agentTools] Failed to prepare agent tools", error);
+    await closeMcpClients(clients);
+    return {
+      tools: { ...LOCAL_AGENT_TOOLS },
+      close: async () => {},
+    };
+  }
+
+  return {
+    tools,
+    close: async () => {
+      await closeMcpClients(clients);
+    },
+  };
+}
