@@ -10,6 +10,7 @@ import { HighlightedPromptText } from "./HighlightedPromptText";
 import { IconButton } from "./IconButton";
 import { ModelDropdown } from "./ModelDropdown";
 import { SlashPromptMenu } from "./SlashPromptMenu";
+import { useI18n } from "../../i18n";
 
 function getPastedImageFiles(
   clipboardData: DataTransfer | null
@@ -98,6 +99,7 @@ export const Composer: FC<ComposerProps> = ({
   onThinkingModeToggle,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
   const attachmentProcessing = Boolean(attachmentProcessingLabel);
   const submitDisabled =
     (!inputText.trim() && attachments.length === 0) ||
@@ -166,12 +168,12 @@ export const Composer: FC<ComposerProps> = ({
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <IconButton
               active={historyOpen}
-              label="Chat history"
+              label={t("common.history")}
               onClick={onToggleHistory}
             >
               <History className="size-4" />
             </IconButton>
-            <IconButton label="New chat" onClick={onNewChat}>
+            <IconButton label={t("common.newChat")} onClick={onNewChat}>
               <SquarePen className="size-4" />
             </IconButton>
           </div>
@@ -233,7 +235,7 @@ export const Composer: FC<ComposerProps> = ({
                   ? "text-transparent caret-[#2f261f]"
                   : "text-[#2f261f]",
               ].join(" ")}
-              placeholder="Ask anything, drop files here, or type / for prompts"
+              placeholder={t("sidepanel.composer.placeholder")}
               onChange={onInputChange}
               onKeyDown={onKeyDown}
               onPaste={handlePaste}
@@ -261,8 +263,8 @@ export const Composer: FC<ComposerProps> = ({
               <button
                 type="button"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#a34020] text-[#fffaf4] transition-colors hover:bg-[#8c351a]"
-                aria-label="Stop"
-                title="Stop"
+                aria-label={t("common.stop")}
+                title={t("common.stop")}
                 onClick={onCancel}
               >
                 <Square className="size-4 fill-current" />
@@ -272,8 +274,8 @@ export const Composer: FC<ComposerProps> = ({
                 type="submit"
                 disabled={submitDisabled}
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2f261f] text-[#fffaf4] transition-colors hover:bg-[#46382d] disabled:cursor-not-allowed disabled:bg-[#d7cbbb] disabled:text-[#5f5347]"
-                aria-label="Send"
-                title={attachmentProcessing ? "Processing attachment" : "Send"}
+                aria-label={t("common.send")}
+                title={attachmentProcessing ? t("sidepanel.composer.processingAttachment") : t("common.send")}
               >
                 <ArrowUp className="size-4" />
               </button>

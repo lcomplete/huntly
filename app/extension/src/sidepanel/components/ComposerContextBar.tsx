@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { Loader2, Plus, X } from "lucide-react";
 import type { TabContext } from "../utils/tabContext";
 import { TabFavicon } from "./TabFavicon";
+import { useI18n } from "../../i18n";
 
 interface ComposerContextBarProps {
   tabContext: TabContext | null;
@@ -20,7 +21,8 @@ export const ComposerContextBar: FC<ComposerContextBarProps> = ({
   onAttachContext,
   onDetachContext,
 }) => {
-  const label = contextError || tabContext?.title || "Current tab";
+  const { t } = useI18n();
+  const label = contextError || tabContext?.title || t("sidepanel.context.currentTab");
   const containerClassName = [
     "mr-3 flex min-w-0 max-w-[min(360px,calc(100%-120px))] items-center gap-1.5 rounded-lg bg-[#fffaf4]/80 px-1.5 py-1 pr-3 shadow-[0_6px_18px_rgba(64,48,31,0.06)] transition-colors",
     contextAttached
@@ -53,8 +55,8 @@ export const ComposerContextBar: FC<ComposerContextBarProps> = ({
     return (
       <button
         type="button"
-        aria-label="Add current tab context"
-        title="Add current tab context"
+        aria-label={t("sidepanel.context.addCurrentTab")}
+        title={t("sidepanel.context.addCurrentTab")}
         disabled={contextLoading || !tabContext}
         className={[
           containerClassName,
@@ -79,8 +81,8 @@ export const ComposerContextBar: FC<ComposerContextBarProps> = ({
       <div className="flex h-6 w-6 shrink-0 items-center justify-center">
         <button
           type="button"
-          aria-label="Remove attached context"
-          title="Remove attached context"
+          aria-label={t("sidepanel.context.removeAttached")}
+          title={t("sidepanel.context.removeAttached")}
           className="flex h-6 w-6 items-center justify-center rounded-md text-[#75695b] transition-colors hover:bg-[#f1e8da] hover:text-[#2f261f]"
           onClick={onDetachContext}
         >

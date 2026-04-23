@@ -91,9 +91,6 @@ When updating the project's README, ensure all language versions are updated con
 - `README.md` (English)
 - `README.zh.md` (Chinese)
 
-## UI Language Guidelines
-All user interface text must be written in English. This applies to button labels, menu items, tooltips, error messages, notifications, form labels, and any user-facing strings across all clients (browser extension, web client, desktop app).
-
 ## LLM Reply Guidelines
 
 使用与用户发送的消息相同的语言进行回复。

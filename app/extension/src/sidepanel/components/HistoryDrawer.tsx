@@ -23,6 +23,7 @@ import {
 import type { SessionMetadata } from "../types";
 import {
   DATE_GROUP_ORDER,
+  DEFAULT_SESSION_TITLE,
   getSessionListDate,
   groupSessionsByDate,
   hasUnreadMessages,
@@ -30,6 +31,7 @@ import {
 import { getFocusableElements, useOutsideClick } from "../utils/dom";
 import { IconButton } from "./IconButton";
 import { SmartMoment } from "./SmartMoment";
+import { useI18n } from "../../i18n";
 
 interface HistoryDrawerProps {
   open: boolean;
@@ -60,6 +62,7 @@ export const HistoryDrawer: FC<HistoryDrawerProps> = ({
   showArchived,
   onToggleShowArchived,
 }) => {
+  const { t } = useI18n();
   const drawerRootRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -262,7 +265,28 @@ export const HistoryDrawer: FC<HistoryDrawerProps> = ({
 
   if (!rendered) return null;
 
-  const emptyLabel = showArchived ? "No archived chats" : "No recent chats";
+  const emptyLabel = showArchived
+    ? t("sidepanel.history.noArchived")
+    : t("sidepanel.history.noRecent");
+
+  const translateDateGroupLabel = (label: string) => {
+    switch (label) {
+      case "Pinned":
+        return t("sidepanel.history.group.pinned");
+      case "Today":
+        return t("sidepanel.history.group.today");
+      case "Yesterday":
+        return t("sidepanel.history.group.yesterday");
+      case "Last 7 days":
+        return t("sidepanel.history.group.last7");
+      case "Last 30 days":
+        return t("sidepanel.history.group.last30");
+      case "Older":
+        return t("sidepanel.history.group.older");
+      default:
+        return label;
+    }
+  };
 
   return (
     <div
@@ -286,7 +310,7 @@ export const HistoryDrawer: FC<HistoryDrawerProps> = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Chat history"
+        aria-label={t("common.history")}
         tabIndex={-1}
         style={
           minDrawerHeight ? { minHeight: `${minDrawerHeight}px` } : undefined
@@ -299,17 +323,23 @@ export const HistoryDrawer: FC<HistoryDrawerProps> = ({
         <div className="flex items-center justify-between px-3 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-[#2f261f]">
             <MessageSquare className="size-4" />
-            {showArchived ? "Archived chats" : "Chats"}
+            {showArchived
+              ? t("sidepanel.history.archivedChats")
+              : t("sidepanel.history.chats")}
           </div>
           <div className="flex items-center gap-1">
             <IconButton
-              label={showArchived ? "Show active chats" : "Show archived chats"}
+              label={
+                showArchived
+                  ? t("sidepanel.history.showActive")
+                  : t("sidepanel.history.showArchived")
+              }
               active={showArchived}
               onClick={onToggleShowArchived}
             >
               <Filter className="size-4" />
             </IconButton>
-            <IconButton label="Close history" onClick={onClose}>
+            <IconButton label={t("sidepanel.history.close")} onClick={onClose}>
               <X className="size-4" />
             </IconButton>
           </div>
@@ -327,7 +357,7 @@ export const HistoryDrawer: FC<HistoryDrawerProps> = ({
               ).map((label) => (
                 <div key={label}>
                   <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-[#6f6254]">
-                    {label}
+                    {translateDateGroupLabel(label)}
                   </div>
                   <div className="space-y-1">
                     {groupedSessions.get(label)!.map((session) => (
@@ -422,8 +452,11 @@ const SessionRow: FC<SessionRowProps> = ({
   onConfirmDelete,
   onCancelDelete,
 }) => {
+  const { t } = useI18n();
   const listDate = getSessionListDate(session);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const displayTitle =
+    session.title === DEFAULT_SESSION_TITLE ? t("common.newChat") : session.title;
 
   useEffect(() => {
     if (!renaming) return;
@@ -465,12 +498,12 @@ const SessionRow: FC<SessionRowProps> = ({
               }
             }}
             className="min-w-0 flex-1 rounded-md border border-[#d8cfbf] bg-[#fffaf4] px-2 py-1 text-sm text-[#2f261f] shadow-inner focus:border-[#9a4f2c] focus:outline-none focus:ring-1 focus:ring-[#9a4f2c]"
-            aria-label="Rename chat"
+            aria-label={t("sidepanel.history.renameChat")}
           />
           <button
             type="button"
-            aria-label="Save chat name"
-            title="Save"
+            aria-label={t("sidepanel.history.saveChatName")}
+            title={t("common.save")}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#2f261f] transition-colors hover:bg-[#e0d3bd]"
             onClick={onRenameCommit}
           >
@@ -478,8 +511,8 @@ const SessionRow: FC<SessionRowProps> = ({
           </button>
           <button
             type="button"
-            aria-label="Cancel rename"
-            title="Cancel"
+            aria-label={t("sidepanel.cancelEdit")}
+            title={t("common.cancel")}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#6f6254] transition-colors hover:bg-[#eee7dc] hover:text-[#2f261f]"
             onClick={onRenameCancel}
           >
@@ -503,18 +536,18 @@ const SessionRow: FC<SessionRowProps> = ({
                   unread ? "font-semibold" : "font-medium",
                 ].join(" ")}
               >
-                {session.title}
+                {displayTitle}
               </div>
               {unread ? (
                 <span className="shrink-0 rounded-full bg-[#2f6fed] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
-                  Unread
+                  {t("common.unread")}
                 </span>
               ) : null}
             </div>
             <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#6f6254]">
-              <span>{session.messageCount} msgs</span>
+              <span>{t("sidepanel.history.messageCount", { count: session.messageCount })}</span>
               <span className="inline-flex min-w-0 items-center gap-1">
-                <SmartMoment dt={listDate} timeTypeLabel="Last message" />
+                <SmartMoment dt={listDate} timeTypeLabel={t("sidepanel.history.lastMessage")} />
               </span>
             </div>
           </button>
@@ -565,6 +598,7 @@ const SessionMenu: FC<SessionMenuProps> = ({
   onConfirmDelete,
   onCancelDelete,
 }) => {
+  const { t } = useI18n();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -587,14 +621,16 @@ const SessionMenu: FC<SessionMenuProps> = ({
 
   const pinned = Boolean(session.pinned);
   const archived = Boolean(session.archived);
+  const menuTitle =
+    session.title === DEFAULT_SESSION_TITLE ? t("common.newChat") : session.title;
 
   return (
     <div ref={wrapperRef} className="relative mr-1 shrink-0">
       <button
         ref={buttonRef}
         type="button"
-        aria-label={`More actions for ${session.title}`}
-        title="More actions"
+        aria-label={t("sidepanel.history.moreActionsFor", { title: menuTitle })}
+        title={t("sidepanel.history.moreActions")}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -622,13 +658,13 @@ const SessionMenu: FC<SessionMenuProps> = ({
           id={menuId}
           ref={menuRef}
           role="menu"
-          aria-label="Chat actions"
+          aria-label={t("sidepanel.history.chatActions")}
           className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-[#d9cfbf] bg-[#fffaf4] shadow-[0_16px_42px_rgba(64,48,31,0.16)]"
           onClick={(event) => event.stopPropagation()}
         >
           <MenuItem
             icon={<Pencil className="size-4 text-[#6f6254]" />}
-            label="Rename"
+            label={t("common.rename")}
             onClick={() => {
               onRename();
               handleClose();
@@ -642,7 +678,7 @@ const SessionMenu: FC<SessionMenuProps> = ({
                 <Pin className="size-4 text-[#6f6254]" />
               )
             }
-            label={pinned ? "Unpin" : "Pin"}
+            label={pinned ? t("common.unpin") : t("common.pin")}
             onClick={() => {
               onTogglePinned();
               handleClose();
@@ -656,7 +692,7 @@ const SessionMenu: FC<SessionMenuProps> = ({
                 <Archive className="size-4 text-[#6f6254]" />
               )
             }
-            label={archived ? "Unarchive" : "Archive"}
+            label={archived ? t("common.unarchive") : t("common.archive")}
             onClick={() => {
               onToggleArchived();
               handleClose();
@@ -666,7 +702,7 @@ const SessionMenu: FC<SessionMenuProps> = ({
           {pendingDelete ? (
             <MenuItem
               icon={<Check className="size-4 text-[#a34020]" />}
-              label="Click to confirm"
+              label={t("sidepanel.history.clickToConfirm")}
               danger
               onClick={() => {
                 onConfirmDelete();
@@ -676,7 +712,7 @@ const SessionMenu: FC<SessionMenuProps> = ({
           ) : (
             <MenuItem
               icon={<Trash className="size-4 text-[#a34020]" />}
-              label="Delete"
+              label={t("common.delete")}
               danger
               onClick={onRequestDelete}
             />

@@ -8,6 +8,7 @@ import { getDisplayMessage } from "../utils/messageParts";
 import { HighlightedPromptText } from "./HighlightedPromptText";
 import { IconButton } from "./IconButton";
 import { PageContextBadge } from "./PageContextBadge";
+import { useI18n } from "../../i18n";
 
 interface UserMessageProps {
   editingText?: string;
@@ -31,6 +32,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
   onSaveEdit,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { t } = useI18n();
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
   const copyResetTimeoutRef = useRef<number | null>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
@@ -115,7 +117,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
             ))}
 
             {attachments.map((attachment, index) => {
-              const label = attachment.filename || "Attachment";
+              const label = attachment.filename || t("sidepanel.attachment");
               const size = formatFileSize(attachment.size);
               const isImage = attachment.mediaType?.startsWith("image/");
 
@@ -124,7 +126,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
                   key={attachment.id || `${label}-${index}`}
                   type="button"
                   className="relative h-20 w-20 overflow-hidden rounded-xl border border-[#d8cfbf] bg-[#fffaf4]/80 shadow-[0_6px_18px_rgba(64,48,31,0.08)]"
-                  aria-label={`Preview ${label}`}
+                  aria-label={t("sidepanel.previewLabel", { label })}
                   title={label}
                   onClick={() => setPreviewUrl(attachment.dataUrl!)}
                 >
@@ -157,9 +159,9 @@ const UserMessageImpl: FC<UserMessageProps> = ({
             {isEditing ? (
               <textarea
                 ref={editInputRef}
-                aria-label="Edit message text"
+                aria-label={t("sidepanel.editMessageText")}
                 className="min-h-[104px] w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-6 text-[#332a22] outline-none placeholder:text-[#8f8172]"
-                placeholder="Edit message"
+                placeholder={t("sidepanel.editMessage")}
                 rows={1}
                 value={editingText}
                 onChange={(event) => onEditingTextChange?.(event.target.value)}
@@ -202,7 +204,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
               <>
                 <IconButton
                   className={footerButtonClassName}
-                  label="Cancel edit"
+                  label={t("sidepanel.cancelEdit")}
                   onClick={onCancelEdit}
                 >
                   <X className="size-4" />
@@ -210,7 +212,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
                 <IconButton
                   className={footerButtonClassName}
                   disabled={!canSaveEdit || isRunning}
-                  label="Save edit"
+                  label={t("sidepanel.saveEdit")}
                   onClick={() => onSaveEdit?.(message.id)}
                 >
                   <Check className="size-4" />
@@ -222,7 +224,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
                   active={copyFeedbackVisible}
                   className={footerButtonClassName}
                   disabled={!text}
-                  label={copyFeedbackVisible ? "Copied" : "Copy"}
+                  label={copyFeedbackVisible ? t("common.copied") : t("common.copy")}
                   onClick={handleCopy}
                 >
                   {copyFeedbackVisible ? (
@@ -235,7 +237,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
                   <IconButton
                     className={footerButtonClassName}
                     disabled={isRunning}
-                    label="Edit message"
+                    label={t("sidepanel.editMessage")}
                     onClick={() => onEdit(message.id)}
                   >
                     <PencilLine className="size-4" />
@@ -253,7 +255,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
           >
             <button
               type="button"
-              aria-label="Close preview"
+              aria-label={t("sidepanel.closePreview")}
               className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#2f261f]/60 text-white transition-colors hover:bg-[#2f261f]/90"
               onClick={() => setPreviewUrl(null)}
             >
@@ -261,7 +263,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
             </button>
             <img
               src={previewUrl}
-              alt="Preview"
+              alt={t("sidepanel.previewLabel", { label: t("sidepanel.attachment") })}
               className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-lg"
               onClick={(event) => event.stopPropagation()}
             />

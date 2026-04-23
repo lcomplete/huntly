@@ -2,6 +2,7 @@ import React, { useMemo, useState, type FC } from "react";
 import { ChevronDown, Wrench } from "lucide-react";
 import type { ChatPart } from "../types";
 import { prettyPrint } from "../utils/format";
+import { useI18n } from "../../i18n";
 
 interface ToolCallBlockProps {
   part: ChatPart;
@@ -15,6 +16,7 @@ interface TruncatedJsonProps {
 
 const TruncatedJson: FC<TruncatedJsonProps> = ({ value }) => {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useI18n();
   const text = useMemo(() => prettyPrint(value), [value]);
   const isTruncated = text.length > JSON_PREVIEW_LIMIT;
   const visible =
@@ -32,8 +34,10 @@ const TruncatedJson: FC<TruncatedJsonProps> = ({ value }) => {
           onClick={() => setExpanded((value) => !value)}
         >
           {expanded
-            ? "Show less"
-            : `Show all (${text.length.toLocaleString()} chars)`}
+            ? t("common.showLess")
+            : t("sidepanel.toolCall.showAllChars", {
+                count: text.length.toLocaleString(),
+              })}
         </button>
       )}
     </>
@@ -41,6 +45,7 @@ const TruncatedJson: FC<TruncatedJsonProps> = ({ value }) => {
 };
 
 const ToolCallBlockImpl: FC<ToolCallBlockProps> = ({ part }) => {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const complete = part.result !== undefined;
   const error = Boolean(part.isError);
@@ -60,13 +65,13 @@ const ToolCallBlockImpl: FC<ToolCallBlockProps> = ({ part }) => {
         {part.toolSource === "mcp" && (
           <span
             className="shrink-0 rounded bg-[#efe8dc] px-1.5 py-0.5 text-[10px] font-medium text-[#7b6f62]"
-            title={part.toolSourceLabel || "MCP tool"}
+            title={part.toolSourceLabel || t("sidepanel.toolCall.mcpTool")}
           >
             MCP
           </span>
         )}
         <span className="min-w-0 flex-1 truncate font-medium">
-          {part.toolName || "Tool call"}
+          {part.toolName || t("sidepanel.toolCall.toolCall")}
         </span>
         <span
           className={[
@@ -78,7 +83,7 @@ const ToolCallBlockImpl: FC<ToolCallBlockProps> = ({ part }) => {
               : "bg-[#f1e4d2] text-[#9a5a30]",
           ].join(" ")}
         >
-          {error ? "Error" : complete ? "Done" : "Running"}
+          {error ? t("common.error") : complete ? t("common.done") : t("common.running")}
         </span>
         <ChevronDown
           className={[
@@ -91,14 +96,14 @@ const ToolCallBlockImpl: FC<ToolCallBlockProps> = ({ part }) => {
         <div className="space-y-3 border-t border-[#e7ded0] p-3">
           <div>
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#6f6254]">
-              Input
+              {t("common.input")}
             </div>
             <TruncatedJson value={input} />
           </div>
           {part.result !== undefined && (
             <div>
               <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#6f6254]">
-                Output
+                {t("common.output")}
               </div>
               <TruncatedJson value={part.result} />
             </div>

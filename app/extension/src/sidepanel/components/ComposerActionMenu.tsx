@@ -10,6 +10,7 @@ import { Paperclip, Plus, Sparkles } from "lucide-react";
 import type { SlashPrompt } from "../types";
 import { getFocusableElements, useOutsideClick } from "../utils/dom";
 import { IconButton } from "./IconButton";
+import { useI18n } from "../../i18n";
 
 interface ComposerActionMenuProps {
   prompts: SlashPrompt[];
@@ -23,6 +24,7 @@ export const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
   onPromptSelect,
 }) => {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const menuId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -56,7 +58,7 @@ export const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
       <IconButton
         ref={buttonRef}
         active={open}
-        label="Add"
+        label={t("sidepanel.actionMenu.add")}
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}
         aria-haspopup="menu"
@@ -70,7 +72,7 @@ export const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
           id={menuId}
           ref={menuRef}
           role="menu"
-          aria-label="Add content"
+          aria-label={t("sidepanel.actionMenu.addContent")}
           className="absolute bottom-full left-0 z-50 mb-2 w-[min(320px,calc(100vw-88px))] overflow-hidden rounded-xl border border-[#d9cfbf] bg-[#fffaf4] shadow-[0_16px_42px_rgba(64,48,31,0.16)]"
         >
           <div className="p-1.5">
@@ -84,14 +86,14 @@ export const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
               }}
             >
               <Paperclip className="size-4 shrink-0 text-[#6f6254]" />
-              <span className="font-medium">Add photos and files</span>
+              <span className="font-medium">{t("sidepanel.actionMenu.addFiles")}</span>
             </button>
           </div>
 
           {prompts.length > 0 && (
             <div className="border-t border-[#e7ded0]">
               <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-[#6f6254]">
-                Prompts
+                {t("sidepanel.actionMenu.prompts")}
               </div>
               <div className="max-h-52 overflow-y-auto py-1">
                 {prompts.map((prompt) => (

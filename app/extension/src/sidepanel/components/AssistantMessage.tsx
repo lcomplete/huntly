@@ -8,6 +8,7 @@ import { LinkCardsBlock } from "./LinkCardsBlock";
 import { MarkdownContent } from "./MarkdownContent";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { ToolCallBlock } from "./ToolCallBlock";
+import { useI18n } from "../../i18n";
 
 interface AssistantMessageProps {
   message: ChatMessage;
@@ -24,6 +25,7 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
   thinkingMode,
   onRegenerate,
 }) => {
+  const { t } = useI18n();
   const hasReasoningText = message.parts.some(
     (part) => part.type === "reasoning" && part.text?.trim()
   );
@@ -68,7 +70,7 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
     <div className="group flex gap-3">
       <div className="min-w-0 flex-1">
         {showThinkingPreview && (
-          <ReasoningBlock streaming={true} text="Thinking..." />
+          <ReasoningBlock streaming={true} text={`${t("common.thinking")}...`} />
         )}
 
         {message.parts.map((part, index) => {
@@ -126,7 +128,7 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
               disabled={!text}
               active={copyFeedbackVisible}
               className={footerButtonClassName}
-              label={copyFeedbackVisible ? "Copied" : "Copy"}
+              label={copyFeedbackVisible ? t("common.copied") : t("common.copy")}
               onClick={handleCopy}
             >
               {copyFeedbackVisible ? (
@@ -138,7 +140,7 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
             {onRegenerate && (
               <IconButton
                 className={footerButtonClassName}
-                label="Retry response"
+                label={t("sidepanel.retryResponse")}
                 onClick={() => onRegenerate(message.id)}
               >
                 <RotateCcw className="size-4" />

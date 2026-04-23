@@ -19,6 +19,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CodeIcon from "@mui/icons-material/Code";
 import ArticleIcon from "@mui/icons-material/Article";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import { useI18n } from "../i18n";
 
 // Ensure portal-based menus render above the shadow DOM overlay.
 const MENU_Z_INDEX = 2147483647;
@@ -71,6 +72,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
   title = "huntly-export",
   menuContainer,
 }) => {
+  const { t } = useI18n();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [exportSource, setExportSource] = useState<ExportSource>("original");
   const [isExporting, setIsExporting] = useState(false);
@@ -120,7 +122,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       exportAsPdf(element, title);
     } catch (error) {
       console.error("Failed to export PDF:", error);
-      alert("Failed to export PDF. Please try again.");
+      alert(t("export.error.pdf"));
     } finally {
       setIsExporting(false);
       handleClose();
@@ -136,7 +138,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       await exportAsImage(element, sanitizeFilename(title));
     } catch (error) {
       console.error("Failed to export image:", error);
-      alert("Failed to export image. Please try again.");
+      alert(t("export.error.image"));
     } finally {
       setIsExporting(false);
       handleClose();
@@ -153,7 +155,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       handleClose();
     } catch (error) {
       console.error("Failed to copy image:", error);
-      alert("Failed to copy image. Please try again.");
+      alert(t("export.error.copyImage"));
     } finally {
       setIsExporting(false);
     }
@@ -168,7 +170,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       handleClose();
     } catch (error) {
       console.error("Failed to copy markdown:", error);
-      alert("Failed to copy markdown. Please try again.");
+      alert(t("export.error.copyMarkdown"));
     } finally {
       setIsExporting(false);
     }
@@ -182,7 +184,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       exportAsMarkdown(markdown, sanitizeFilename(title), title);
     } catch (error) {
       console.error("Failed to export markdown:", error);
-      alert("Failed to export markdown. Please try again.");
+      alert(t("export.error.markdown"));
     } finally {
       setIsExporting(false);
       handleClose();
@@ -246,11 +248,11 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         >
           <ToggleButton value="original">
             <ArticleIcon sx={{ fontSize: 14, mr: 0.5 }} />
-            Original
+            {t("export.original")}
           </ToggleButton>
           <ToggleButton value="ai">
             <AutoAwesomeIcon sx={{ fontSize: 14, mr: 0.5 }} />
-            AI
+            {t("export.ai")}
           </ToggleButton>
         </ToggleButtonGroup>
       )}
@@ -277,7 +279,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           },
         }}
       >
-        Export
+        {t("export.button")}
       </Button>
 
       <Menu
@@ -309,21 +311,21 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           <ListItemIcon sx={{ minWidth: 28 }}>
             <PictureAsPdfIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Export as PDF</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>{t("export.asPdf")}</ListItemText>
         </MenuItem>
 
         <MenuItem onClick={handleExportImage} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
           <ListItemIcon sx={{ minWidth: 28 }}>
             <ImageIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Export as Image</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>{t("export.asImage")}</ListItemText>
         </MenuItem>
 
         <MenuItem onClick={handleExportMarkdown} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
           <ListItemIcon sx={{ minWidth: 28 }}>
             <CodeIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Export as Markdown</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>{t("export.asMarkdown")}</ListItemText>
         </MenuItem>
 
         <Divider />
@@ -332,14 +334,14 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           <ListItemIcon sx={{ minWidth: 28 }}>
             <ContentCopyIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Copy Image</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>{t("export.copyImage")}</ListItemText>
         </MenuItem>
 
         <MenuItem onClick={handleCopyMarkdown} disabled={isExporting} sx={{ py: 0.75, minHeight: "auto" }}>
           <ListItemIcon sx={{ minWidth: 28 }}>
             <CodeIcon sx={{ fontSize: 16 }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>Copy Markdown</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: 13 }}>{t("export.copyMarkdown")}</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

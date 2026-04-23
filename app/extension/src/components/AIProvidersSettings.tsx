@@ -18,6 +18,7 @@ import {
   getAIProvidersStorage,
 } from '../ai/storage';
 import { AIProviderDialog } from './AIProviderDialog';
+import { useI18n } from '../i18n';
 
 const PROVIDER_ICONS: Record<ProviderType, React.ReactNode> = {
   openai: (
@@ -83,6 +84,7 @@ const PROVIDER_ICONS: Record<ProviderType, React.ReactNode> = {
 };
 
 export const AIProvidersSettings: React.FC = () => {
+  const { t } = useI18n();
   const [providers, setProviders] = useState<
     Record<ProviderType, AIProviderConfig | null>
   >(DEFAULT_AI_STORAGE.providers);
@@ -113,13 +115,27 @@ export const AIProvidersSettings: React.FC = () => {
 
   // Filter out huntly-server from the visible providers
   const visibleProviders = PROVIDER_ORDER.filter((type) => type !== 'huntly-server');
+  const providerDescriptions: Record<ProviderType, string> = {
+    openai: t('aiProviders.providerDescription.openai'),
+    anthropic: t('aiProviders.providerDescription.anthropic'),
+    google: t('aiProviders.providerDescription.google'),
+    deepseek: t('aiProviders.providerDescription.deepseek'),
+    qwen: t('aiProviders.providerDescription.qwen'),
+    zhipu: t('aiProviders.providerDescription.zhipu'),
+    minimax: t('aiProviders.providerDescription.minimax'),
+    groq: t('aiProviders.providerDescription.groq'),
+    ollama: t('aiProviders.providerDescription.ollama'),
+    'azure-openai': t('aiProviders.providerDescription.azureOpenAI'),
+    'azure-ai': t('aiProviders.providerDescription.azureAI'),
+    'huntly-server': t('aiProviders.providerDescription.huntlyServer'),
+  };
 
   return (
     <div className="settings-section">
       <div className="section-header">
-        <h2 className="section-title">AI Service Providers</h2>
+        <h2 className="section-title">{t('aiProviders.title')}</h2>
         <p className="section-description">
-          API keys are stored locally and never sent to Huntly servers.
+          {t('aiProviders.description')}
         </p>
       </div>
 
@@ -193,7 +209,7 @@ export const AIProvidersSettings: React.FC = () => {
                     color="text.secondary"
                     sx={{ display: 'block', lineHeight: 1.3 }}
                   >
-                    {meta.description}
+                    {providerDescriptions[type]}
                   </Typography>
                 </Box>
               </Box>
@@ -207,7 +223,15 @@ export const AIProvidersSettings: React.FC = () => {
               >
                 {hasConfig && config ? (
                   <Chip
-                    label={`${config.enabledModels.length} model${config.enabledModels.length > 1 ? 's' : ''}`}
+                    label={
+                      config.enabledModels.length === 1
+                        ? t('aiProviders.models.single', {
+                            count: config.enabledModels.length,
+                          })
+                        : t('aiProviders.models.multiple', {
+                            count: config.enabledModels.length,
+                          })
+                    }
                     size="small"
                     color={isEnabled ? 'primary' : 'default'}
                     variant="outlined"
@@ -220,7 +244,7 @@ export const AIProvidersSettings: React.FC = () => {
                   variant={hasConfig ? 'outlined' : 'contained'}
                   onClick={() => handleOpenDialog(type)}
                 >
-                  {hasConfig ? 'Edit' : 'Setup'}
+                  {hasConfig ? t('common.edit') : t('common.setup')}
                 </Button>
               </Box>
             </Paper>

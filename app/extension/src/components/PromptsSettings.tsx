@@ -36,6 +36,7 @@ import {
   getBrowserLanguage,
   findLanguageByEnglish,
 } from '../storage';
+import { useI18n } from '../i18n';
 
 interface PromptDialogProps {
   open: boolean;
@@ -55,6 +56,8 @@ const ViewPromptDialog: React.FC<ViewPromptDialogProps> = ({
   prompt,
   onClose,
 }) => {
+  const { t } = useI18n();
+
   if (!prompt) return null;
 
   return (
@@ -75,7 +78,7 @@ const ViewPromptDialog: React.FC<ViewPromptDialogProps> = ({
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('common.close')}</Button>
       </DialogActions>
     </Dialog>
   );
@@ -87,6 +90,7 @@ const PromptDialog: React.FC<PromptDialogProps> = ({
   onClose,
   onSave,
 }) => {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
 
@@ -108,12 +112,12 @@ const PromptDialog: React.FC<PromptDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{prompt ? 'Edit Prompt' : 'Add Prompt'}</DialogTitle>
+      <DialogTitle>{prompt ? t('prompts.dialogEditTitle') : t('prompts.dialogAddTitle')}</DialogTitle>
       <DialogContent>
         <TextField
           autoFocus
           margin="dense"
-          label="Name"
+          label={t('prompts.nameLabel')}
           fullWidth
           variant="outlined"
           value={name}
@@ -122,24 +126,24 @@ const PromptDialog: React.FC<PromptDialogProps> = ({
         />
         <TextField
           margin="dense"
-          label="Content"
+          label={t('prompts.contentLabel')}
           fullWidth
           variant="outlined"
           multiline
           rows={8}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          helperText="Use {lang} as a placeholder for the output language"
+          helperText={t('prompts.contentHelper')}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button
           onClick={handleSave}
           variant="contained"
           disabled={!name.trim() || !content.trim()}
         >
-          Save
+          {t('common.save')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -147,6 +151,7 @@ const PromptDialog: React.FC<PromptDialogProps> = ({
 };
 
 export const PromptsSettings: React.FC = () => {
+  const { t } = useI18n();
   const [defaultTargetLanguage, setDefaultTargetLanguage] = useState('');
   const [savedLanguage, setSavedLanguage] = useState('');  // Track last saved language
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -182,7 +187,7 @@ export const PromptsSettings: React.FC = () => {
       prompts: promptsList,
       huntlyShortcutsEnabled: settings.huntlyShortcutsEnabled,
     });
-    setSnackbarMessage('Settings saved');
+    setSnackbarMessage(t('common.settingsSaved'));
     setSnackbarOpen(true);
   };
 
@@ -268,8 +273,8 @@ export const PromptsSettings: React.FC = () => {
   return (
     <div className="settings-section">
       <div className="section-header">
-        <h2 className="section-title">Prompts</h2>
-        <p className="section-description">Configure prompts for AI processing.</p>
+        <h2 className="section-title">{t('prompts.title')}</h2>
+        <p className="section-description">{t('prompts.description')}</p>
       </div>
 
       {/* Default Output Language */}
@@ -318,10 +323,10 @@ export const PromptsSettings: React.FC = () => {
           renderInput={(params) => (
             <TextField
               {...params}
-              label="Output Language"
+              label={t('prompts.outputLanguageLabel')}
               size="small"
-              placeholder="Type or select a language"
-              helperText="The language for AI-generated content output"
+              placeholder={t('prompts.outputLanguagePlaceholder')}
+              helperText={t('prompts.outputLanguageHelper')}
             />
           )}
           sx={{ width: '100%' }}
@@ -339,7 +344,7 @@ export const PromptsSettings: React.FC = () => {
           }}
         >
           <Typography variant="subtitle1" fontWeight={600}>
-            Prompts
+            {t('prompts.userPromptsTitle')}
           </Typography>
           <Button
             startIcon={<AddIcon />}
@@ -347,7 +352,7 @@ export const PromptsSettings: React.FC = () => {
             variant="contained"
             onClick={handleAddPrompt}
           >
-            Add
+            {t('common.add')}
           </Button>
         </Box>
 
@@ -360,9 +365,9 @@ export const PromptsSettings: React.FC = () => {
               color: 'text.secondary',
             }}
           >
-            <Typography>No prompts yet</Typography>
+            <Typography>{t('prompts.emptyTitle')}</Typography>
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Click &quot;Add&quot; to create your own prompt
+              {t('prompts.emptyDescription')}
             </Typography>
           </Paper>
         ) : (
@@ -440,11 +445,11 @@ export const PromptsSettings: React.FC = () => {
       <Box sx={{ mt: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <Typography variant="subtitle1" fontWeight={600}>
-            System Prompts
+            {t('prompts.systemPromptsTitle')}
           </Typography>
           <Chip
             icon={<LockIcon sx={{ fontSize: 14 }} />}
-            label="Built-in"
+            label={t('common.builtIn')}
             size="small"
             variant="outlined"
             color="default"
@@ -501,7 +506,7 @@ export const PromptsSettings: React.FC = () => {
                       edge="end"
                       size="small"
                       onClick={() => handleViewPrompt(prompt)}
-                      title="View"
+                      title={t('common.view')}
                     >
                       <VisibilityIcon fontSize="small" />
                     </IconButton>

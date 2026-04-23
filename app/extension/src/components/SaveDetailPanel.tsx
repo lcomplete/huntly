@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Alert,
   Box,
@@ -44,6 +44,7 @@ import { ContentParserType, readSyncStorageSettings } from "../storage";
 import { parseDocument } from "../parser/contentParser";
 import { useShadowContainer } from "./shadowContainerContext";
 import type { SxProps, Theme } from "@mui/material/styles";
+import { useI18n } from "../i18n";
 
 // Shared style constants
 const FORM_ROW_SX: SxProps<Theme> = {
@@ -122,11 +123,6 @@ interface DbPageState {
   starred?: boolean;
   readLater?: boolean;
 }
-
-const PARSER_OPTIONS: { value: ContentParserType; label: string }[] = [
-  { value: "readability", label: "Readability" },
-  { value: "defuddle", label: "Defuddle" },
-];
 
 function flattenTree(tree: any): CollectionOption[] {
   if (!tree) return [];
@@ -224,6 +220,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
   onDeleted,
   onOperateResultChanged,
 }) => {
+  const { language, t } = useI18n();
   const menuContainer = useShadowContainer();
   const [title, setTitle] = useState(page.title || "");
   const [description, setDescription] = useState(page.description || "");
@@ -244,6 +241,19 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
 
   const originalTitle = useRef(page.title || "");
   const originalDesc = useRef(page.description || "");
+  const parserOptions = useMemo(
+    () => [
+      {
+        value: "readability" as const,
+        label: t("general.contentParser.readability.title"),
+      },
+      {
+        value: "defuddle" as const,
+        label: t("general.contentParser.defuddle.title"),
+      },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     setCurrentResult(operateResult);
@@ -306,7 +316,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         }
       } catch (error) {
         if (!canceled) {
-          showError("Failed to load saved details from database.", error);
+          showError(t("saveDetail.error.loadDetails"), error);
         }
       } finally {
         if (!canceled) {
@@ -318,7 +328,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
     return () => {
       canceled = true;
     };
-  }, [pageId]);
+  }, [pageId, t]);
 
   useEffect(() => {
     if (!saveError && !saveSuccess) return;
@@ -341,10 +351,10 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
           setCollectionOptions(flattenTree(tree));
         }
       }).catch((error) => {
-        showError("Failed to load collections.", error);
+        showError(t("saveDetail.error.loadCollections"), error);
       });
     }
-  }, [collectionTree, showError]);
+  }, [collectionTree, showError, t]);
 
   const updateResult = useCallback(
     (result: PageOperateResult) => {
@@ -364,10 +374,10 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         updateResult(result);
         originalTitle.current = title;
       } catch (error) {
-        showError("Auto-save failed for title.", error);
+        showError(t("saveDetail.error.saveTitle"), error);
       }
     }
-  }, [title, pageId, showError, updateResult]);
+  }, [title, pageId, showError, t, updateResult]);
 
   const handleDescriptionSave = useCallback(async () => {
     if (description !== originalDesc.current) {
@@ -377,10 +387,10 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         updateResult(result);
         originalDesc.current = description;
       } catch (error) {
-        showError("Auto-save failed for description.", error);
+        showError(t("saveDetail.error.saveDescription"), error);
       }
     }
-  }, [description, pageId, showError, updateResult]);
+  }, [description, pageId, showError, t, updateResult]);
 
 
   const handleCollectionChange = useCallback(async (collectionId: number | null) => {
@@ -391,9 +401,9 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
       await updatePageCollection(pageId, collectionId);
     } catch (error) {
       setSelectedCollectionId(previousCollectionId);
-      showError("Auto-save failed for collection.", error);
+      showError(t("saveDetail.error.saveCollection"), error);
     }
-  }, [pageId, selectedCollectionId, showError]);
+  }, [pageId, selectedCollectionId, showError, t]);
 
   const handleReadLater = useCallback(async () => {
     try {
@@ -403,9 +413,9 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         : await readLaterPage(pageId);
       updateResult(result);
     } catch (error) {
-      showError("Failed to update read later status.", error);
+      showError(t("saveDetail.error.updateReadLater"), error);
     }
-  }, [currentResult?.readLater, pageId, showError, updateResult]);
+  }, [currentResult?.readLater, pageId, showError, t, updateResult]);
 
   const handleStar = useCallback(async () => {
     try {
@@ -415,9 +425,9 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         : await starPage(pageId);
       updateResult(result);
     } catch (error) {
-      showError("Failed to update starred status.", error);
+      showError(t("saveDetail.error.updateStar"), error);
     }
-  }, [currentResult?.starred, pageId, showError, updateResult]);
+  }, [currentResult?.starred, pageId, showError, t, updateResult]);
 
   const handleArchive = useCallback(async () => {
     try {
@@ -430,9 +440,9 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         updateResult(result);
       }
     } catch (error) {
-      showError("Failed to update archive status.", error);
+      showError(t("saveDetail.error.updateArchive"), error);
     }
-  }, [currentResult?.librarySaveStatus, pageId, showError, updateResult]);
+  }, [currentResult?.librarySaveStatus, pageId, showError, t, updateResult]);
 
   const handleRemoveFromLibrary = useCallback(async () => {
     try {
@@ -441,16 +451,16 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
       updateResult(result);
       onDeleted?.();
     } catch (error) {
-      showError("Failed to remove from my list.", error);
+      showError(t("saveDetail.error.removeFromList"), error);
     }
-  }, [onDeleted, pageId, showError, updateResult]);
+  }, [onDeleted, pageId, showError, t, updateResult]);
 
   const parsePageWithParser = useCallback((parserType: ContentParserType): Promise<PageModel> => {
     return new Promise((resolve, reject) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tab = tabs[0];
         if (!tab?.id) {
-          reject(new Error("No active tab available."));
+          reject(new Error(t("saveDetail.error.noActiveTab")));
           return;
         }
         chrome.tabs.sendMessage(tab.id, {
@@ -462,14 +472,14 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
             return;
           }
           if (!response?.page) {
-            reject(new Error("Parser did not return a valid page."));
+            reject(new Error(t("saveDetail.error.invalidPage")));
             return;
           }
           resolve(response.page as PageModel);
         });
       });
     });
-  }, []);
+  }, [t]);
 
   const handleResaveDetails = useCallback(async () => {
     setResavingDetail(true);
@@ -508,13 +518,13 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
       if (dbPage) {
         applyDbPageState(dbPage);
       }
-      setSaveSuccess("Re-saved successfully.");
+      setSaveSuccess(t("saveDetail.success.resave"));
     } catch (error) {
-      showError("Failed to re-save content.", error);
+      showError(t("saveDetail.error.resave"), error);
     } finally {
       setResavingDetail(false);
     }
-  }, [applyDbPageState, page, pageId, parsePageWithParser, selectedParser, showError, updateResult]);
+  }, [applyDbPageState, page, pageId, parsePageWithParser, selectedParser, showError, t, updateResult]);
 
   const resolvedFavicon =
     faviconUrl || `https://www.google.com/s2/favicons?domain=${page.domain}&sz=32`;
@@ -581,7 +591,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
             value={title}
             onChange={setTitle}
             onSave={handleTitleSave}
-            placeholder="Add title"
+            placeholder={t("saveDetail.titlePlaceholder")}
             fontWeight={600}
             fontSize="0.95rem"
             maxLines={3}
@@ -591,7 +601,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
               value={description}
               onChange={setDescription}
               onSave={handleDescriptionSave}
-              placeholder="Add description"
+              placeholder={t("saveDetail.descriptionPlaceholder")}
               fontSize="0.82rem"
               color="rgba(0,0,0,0.55)"
               maxLines={2}
@@ -652,7 +662,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
           }}>
             <CircularProgress size={16} />
             <Typography variant="caption" color="text.secondary">
-              Loading saved details...
+              {t("saveDetail.loading")}
             </Typography>
           </Box>
         )}
@@ -679,12 +689,12 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         />
 
         {/* Collection */}
-        <FormRow label="Collection">
+        <FormRow label={t("saveDetail.collection")}>
           <FormControl size="small" sx={{ flex: 1, minWidth: 180 }}>
-            <InputLabel>Collection</InputLabel>
+            <InputLabel>{t("saveDetail.collection")}</InputLabel>
             <Select
               value={selectedCollectionId ?? "unsorted"}
-              label="Collection"
+              label={t("saveDetail.collection")}
               onChange={(e) => {
                 const val = e.target.value;
                 handleCollectionChange(val === "unsorted" ? null : Number(val));
@@ -695,7 +705,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
                   return (
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <FolderOffOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                      <span>Unsorted</span>
+                      <span>{t("saveDetail.unsorted")}</span>
                     </Box>
                   );
                 }
@@ -732,7 +742,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
                   }}
                 >
                   <FolderOffOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                  Unsorted
+                  {t("saveDetail.unsorted")}
                 </MenuItem>,
                 ...collectionOptions.map((opt, idx) =>
                   opt.isGroup ? (
@@ -771,14 +781,14 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         </FormRow>
 
         {page.contentType !== 4 && (
-          <FormRow label="Content">
+          <FormRow label={t("saveDetail.content")}>
             <Box sx={{ flex: 1, display: "flex", gap: 1.2, alignItems: "center", flexWrap: "wrap" }}>
               <FormControl size="small" sx={{ minWidth: 130 }}>
-                <InputLabel id="save-detail-parser-label">Parser</InputLabel>
+                <InputLabel id="save-detail-parser-label">{t("saveDetail.parser")}</InputLabel>
                 <Select
                   labelId="save-detail-parser-label"
                   value={selectedParser}
-                  label="Parser"
+                  label={t("saveDetail.parser")}
                   onChange={(e) => setSelectedParser(e.target.value as ContentParserType)}
                   MenuProps={{
                     container: menuContainer || undefined,
@@ -787,7 +797,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
                   }}
                   sx={SELECT_SX}
                 >
-                  {PARSER_OPTIONS.map((option) => (
+                  {parserOptions.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
                       {option.label}
                     </MenuItem>
@@ -815,15 +825,15 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
                   },
                 }}
               >
-                {resavingDetail ? <CircularProgress size={16} color="inherit" /> : "Re-save"}
+                {resavingDetail ? <CircularProgress size={16} color="inherit" /> : t("saveDetail.resave")}
               </Button>
             </Box>
           </FormRow>
         )}
 
         {/* Action buttons row */}
-        <FormRow label="Actions" sx={{ gap: 0, py: 1.5 }}>
-          <Tooltip title={currentResult?.readLater ? "Remove from read later" : "Read later"}>
+        <FormRow label={t("saveDetail.actions")} sx={{ gap: 0, py: 1.5 }}>
+          <Tooltip title={currentResult?.readLater ? t("popup.actions.removeFromReadLater") : t("popup.actions.readLater")}>
             <IconButton onClick={handleReadLater}>
               {currentResult?.readLater ? (
                 <BookmarkAddedIcon fontSize="small" />
@@ -832,7 +842,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
               )}
             </IconButton>
           </Tooltip>
-          <Tooltip title={currentResult?.starred ? "Remove from starred" : "Star"}>
+          <Tooltip title={currentResult?.starred ? t("popup.actions.removeFromStarred") : t("popup.actions.starPage")}>
             <IconButton onClick={handleStar}>
               {currentResult?.starred ? (
                 <StarIcon fontSize="small" />
@@ -842,7 +852,11 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
             </IconButton>
           </Tooltip>
           <Tooltip
-            title={currentResult?.librarySaveStatus === LibrarySaveStatus.Archived ? "Unarchive" : "Archive"}
+            title={
+              currentResult?.librarySaveStatus === LibrarySaveStatus.Archived
+                ? t("common.unarchive")
+                : t("popup.actions.archive")
+            }
           >
             <IconButton onClick={handleArchive}>
               {currentResult?.librarySaveStatus === LibrarySaveStatus.Archived ? (
@@ -857,15 +871,15 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
         {/* Saved date + Remove from my list */}
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pt: 1.5, pb: 0.5 }}>
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Typography sx={FORM_LABEL_SX}>Saved</Typography>
+            <Typography sx={FORM_LABEL_SX}>{t("saveDetail.saved")}</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.78rem" }}>
               {savedAt ? (
                 <>
-                  {savedAt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                  {savedAt.toLocaleDateString(language === "zh-CN" ? "zh-CN" : undefined, { year: "numeric", month: "short", day: "numeric" })}
                   ,{" "}
-                  {savedAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                  {savedAt.toLocaleTimeString(language === "zh-CN" ? "zh-CN" : undefined, { hour: "numeric", minute: "2-digit" })}
                 </>
-              ) : "Time unavailable"}
+              ) : t("saveDetail.timeUnavailable")}
             </Typography>
           </Box>
           <Button
@@ -886,7 +900,7 @@ const SaveDetailPanel: React.FC<SaveDetailPanelProps> = ({
               },
             }}
           >
-            Remove from my list
+            {t("popup.actions.removeFromMyList")}
           </Button>
         </Box>
       </Box>

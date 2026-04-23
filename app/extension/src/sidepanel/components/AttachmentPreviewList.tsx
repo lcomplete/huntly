@@ -2,6 +2,7 @@ import { useState, type FC } from "react";
 import { Loader2, Paperclip, X } from "lucide-react";
 import type { ChatPart } from "../types";
 import { formatFileSize } from "../utils/format";
+import { useI18n } from "../../i18n";
 
 interface AttachmentPreviewListProps {
   attachments: ChatPart[];
@@ -14,6 +15,7 @@ export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
   processingLabel,
   onRemove,
 }) => {
+  const { t } = useI18n();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   if (attachments.length === 0 && !processingLabel) return null;
@@ -28,7 +30,7 @@ export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
           </div>
         )}
         {attachments.map((attachment) => {
-          const label = attachment.filename || "Attachment";
+          const label = attachment.filename || t("sidepanel.attachment");
           const size = formatFileSize(attachment.size);
           const isImage = attachment.mediaType?.startsWith("image/");
           return isImage && attachment.dataUrl ? (
@@ -40,7 +42,7 @@ export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
                 type="button"
                 className="h-full w-full overflow-hidden rounded-lg"
                 onClick={() => setPreviewUrl(attachment.dataUrl!)}
-                aria-label={`Preview ${label}`}
+                aria-label={t("sidepanel.previewLabel", { label })}
                 title={label}
               >
                 <img
@@ -52,8 +54,8 @@ export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
               {attachment.id && (
                 <button
                   type="button"
-                  aria-label={`Remove ${label}`}
-                  title={`Remove ${label}`}
+                  aria-label={`${t("common.remove")} ${label}`}
+                  title={`${t("common.remove")} ${label}`}
                   className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#2f261f] text-white shadow-[0_4px_10px_rgba(64,48,31,0.2)] transition-colors hover:bg-[#46382d]"
                   onClick={() => onRemove(attachment.id!)}
                 >
@@ -76,8 +78,8 @@ export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
               {attachment.id && (
                 <button
                   type="button"
-                  aria-label={`Remove ${label}`}
-                  title={`Remove ${label}`}
+                  aria-label={`${t("common.remove")} ${label}`}
+                  title={`${t("common.remove")} ${label}`}
                   className="ml-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[#6f6254] transition-colors hover:bg-[#e9dcc7] hover:text-[#2f261f]"
                   onClick={() => onRemove(attachment.id!)}
                 >
@@ -96,7 +98,7 @@ export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
         >
           <button
             type="button"
-            aria-label="Close preview"
+            aria-label={t("sidepanel.closePreview")}
             className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#2f261f]/60 text-white transition-colors hover:bg-[#2f261f]/90"
             onClick={() => setPreviewUrl(null)}
           >
@@ -104,7 +106,7 @@ export const AttachmentPreviewList: FC<AttachmentPreviewListProps> = ({
           </button>
           <img
             src={previewUrl}
-            alt="Preview"
+            alt={t("sidepanel.previewLabel", { label: t("sidepanel.attachment") })}
             className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-lg"
             onClick={(event) => event.stopPropagation()}
           />

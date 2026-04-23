@@ -29,6 +29,7 @@ import {
   getThinkingModeEnabled,
   saveThinkingModeEnabled,
 } from "./storage";
+import { ExtensionI18nProvider, useI18n } from "./i18n";
 import { combineUrl } from "./utils";
 import PersonPinIcon from '@mui/icons-material/PersonPin';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -65,13 +66,17 @@ const ParserSelector = ({ parserType, onParserChange }: {
   parserType: ContentParserType;
   onParserChange: (parser: ContentParserType) => void;
 }) => {
+  const { t } = useI18n();
   const alternativeParser = parserType === 'readability' ? 'defuddle' : 'readability';
-  const alternativeLabel = alternativeParser === 'readability' ? 'Readability' : 'Defuddle';
+  const alternativeLabel =
+    alternativeParser === 'readability'
+      ? t("general.contentParser.readability.title")
+      : t("general.contentParser.defuddle.title");
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-        Try another parser:
+        {t("popup.parser.tryAnother")}
       </Typography>
       <Button
         size="small"
@@ -112,6 +117,7 @@ interface ActiveTabMessageResult {
 }
 
 const Popup = () => {
+  const { t } = useI18n();
   const [storageSettings, setStorageSettings] = useState<StorageSettings>(null);
   const [username, setUsername] = useState<string>(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -542,12 +548,12 @@ const Popup = () => {
           </IconButton>
         </Tooltip>
         {
-          activeOperateResult?.id ? <Tooltip title={"Delete forever"} placement={"right"}>
+          activeOperateResult?.id ? <Tooltip title={t("popup.actions.deleteForever")} placement={"right"}>
             <IconButton onClick={showDeleteDialog} className={"mt-2 bg-white shadow-heavy hover:bg-white"}
               color={"error"}>
               <DeleteForeverIcon fontSize={"small"} />
             </IconButton>
-          </Tooltip> : <Tooltip title={"Send to huntly"} placement={"right"}>
+          </Tooltip> : <Tooltip title={t("popup.actions.sendToHuntly")} placement={"right"}>
             <IconButton onClick={sendToHuntly} className={"mt-2 bg-white shadow-heavy hover:bg-white"}
             >
               <SendIcon fontSize={"small"} />
@@ -561,12 +567,12 @@ const Popup = () => {
           aria-describedby="alert-dialog-description"
         >
           <DialogTitle id="alert-dialog-title">
-            {"Are you sure you want to delete this page from database?"}
+            {t("popup.deleteDialog.title")}
           </DialogTitle>
           <DialogActions>
-            <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+            <Button onClick={handleCloseDeleteDialog}>{t("common.cancel")}</Button>
             <Button onClick={deletePageData} autoFocus color={'warning'}>
-              Delete
+              {t("common.delete")}
             </Button>
           </DialogActions>
         </Dialog>
@@ -646,15 +652,17 @@ const Popup = () => {
         </div>
         <div className={'flex items-center'}>
           {
-            !loadingUser && username && <Tooltip title={'You are signed in.'} placement={'bottom'}>
+            !loadingUser && username && <Tooltip title={t("popup.signedIn")} placement={'bottom'}>
               <IconButton onClick={openHuntly}>
                 <PersonPinIcon className={'text-sky-600'} />
               </IconButton>
             </Tooltip>
           }
-          <IconButton onClick={openOptionsPage}>
-            <SettingsOutlinedIcon className={'text-sky-600'} />
-          </IconButton>
+          <Tooltip title={t("common.setup")} placement={'bottom'}>
+            <IconButton onClick={openOptionsPage}>
+              <SettingsOutlinedIcon className={'text-sky-600'} />
+            </IconButton>
+          </Tooltip>
         </div>
       </div>
 
@@ -670,10 +678,10 @@ const Popup = () => {
             {
               showSignInPrompt && <div>
                 <div className={'mt-5'}>
-                  <Alert severity={'info'}>Please sign in to start.</Alert>
+                  <Alert severity={'info'}>{t("popup.signIn.prompt")}</Alert>
                 </div>
                 <div className={'mt-5 mb-10'}>
-                  <Button fullWidth={true} color={"primary"} variant={'contained'} onClick={openSignIn}>Sign In</Button>
+                  <Button fullWidth={true} color={"primary"} variant={'contained'} onClick={openSignIn}>{t("popup.signIn.button")}</Button>
                 </div>
               </div>
             }
@@ -684,13 +692,13 @@ const Popup = () => {
                 {serverConnectionFailed && (
                   <div className={'mb-2'}>
                     <Alert severity={'warning'}>
-                      Cannot connect to Huntly server.
+                      {t("popup.server.unreachable")}
                     </Alert>
                   </div>
                 )}
                 {loadingUser && storageSettings?.serverUrl && !serverConnectionFailed && (
                   <div className={'mb-2'}>
-                    <Alert severity={'info'}>Checking Huntly account...</Alert>
+                    <Alert severity={'info'}>{t("popup.server.checkingAccount")}</Alert>
                   </div>
                 )}
                 {/* RSS Feed Subscription Interface */}
@@ -707,7 +715,7 @@ const Popup = () => {
                 {!isRssFeed && (
                   <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                     <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2, flexShrink: 0 }}>
-                      <Tabs value={activeTab} onChange={handleTabChange} aria-label="huntly tabs" variant="fullWidth" sx={{
+                      <Tabs value={activeTab} onChange={handleTabChange} aria-label={t("popup.tabs.aria")} variant="fullWidth" sx={{
                         minHeight: '36px',
                         '& .MuiTab-root': {
                           minHeight: '36px',
@@ -716,8 +724,8 @@ const Popup = () => {
                           fontSize: '0.9rem'
                         }
                       }}>
-                        <Tab label="Article" />
-                        <Tab label="Snippet" />
+                        <Tab label={t("popup.tabs.article")} />
+                        <Tab label={t("popup.tabs.snippet")} />
                       </Tabs>
                     </Box>
 
@@ -731,7 +739,7 @@ const Popup = () => {
                       {
                         !parsingArticle && !page && <div>
                           <Alert severity={'warning'} sx={{ mb: 2 }}>
-                            This webpage doesn't look like an article page.
+                            {t("popup.article.notArticle")}
                           </Alert>
                           <ParserSelector
                             parserType={parserType}
@@ -752,9 +760,9 @@ const Popup = () => {
                       {
                         !checkingSnippet && !snippetPage && <div className={'mt-4'}>
                           <Alert severity="info" action={
-                            <Button color="inherit" size="small" onClick={checkSnippetSelection}>Retry</Button>
+                            <Button color="inherit" size="small" onClick={checkSnippetSelection}>{t("common.retry")}</Button>
                           }>
-                            Please select content on the page first.
+                            {t("popup.snippet.selectContent")}
                           </Alert>
                         </div>
                       }
@@ -766,16 +774,16 @@ const Popup = () => {
                         {
                           activeTab === 1 && isRestoredSnippet && <div className={'mb-2'}>
                             <Alert severity={'info'}>
-                              Showing your last snippet from this page.
+                              {t("popup.snippet.restored")}
                             </Alert>
                           </div>
                         }
                         {
                           storageSettings?.serverUrl && username && !loadingUser && !isHuntlySite && activeOperateResult && activeOperateResult.id > 0 && <div className={'mb-2'}>
                             <Alert severity={'success'}>
-                              {activeTab === 0 ? 'This webpage has been hunted.' : 'This snippet has been saved.'}
+                              {activeTab === 0 ? t("popup.saved.article") : t("popup.saved.snippet")}
                               <a href={combineUrl(storageSettings.serverUrl, "/page/" + activeOperateResult.id)} target={'_blank'}
-                                className={'ml-1'}>view</a>
+                                className={'ml-1'}>{t("common.view")}</a>
                             </Alert>
                           </div>
                         }
@@ -808,13 +816,13 @@ const Popup = () => {
                                 {storageSettings?.serverUrl && username && !loadingUser && !isHuntlySite && !serverConnectionFailed && <div className={'grow shrink-0 pl-2 flex items-center'}>
                                   {
                                     activeOperateResult?.readLater ? (
-                                      <Tooltip title={"Remove from read later"}>
+                                      <Tooltip title={t("popup.actions.removeFromReadLater")}>
                                         <IconButton onClick={unReadLater}>
                                           <BookmarkAddedIcon fontSize={"small"} />
                                         </IconButton>
                                       </Tooltip>
                                     ) : (
-                                      <Tooltip title={"Read later"}>
+                                      <Tooltip title={t("popup.actions.readLater")}>
                                         <IconButton onClick={readLater}>
                                           <BookmarkBorderIcon fontSize={"small"} />
                                         </IconButton>
@@ -823,13 +831,13 @@ const Popup = () => {
                                   }
                                   {
                                     activeOperateResult?.starred ? (
-                                      <Tooltip title={"Remove from starred"}>
+                                      <Tooltip title={t("popup.actions.removeFromStarred")}>
                                         <IconButton onClick={unStar}>
                                           <StarIcon fontSize={"small"} />
                                         </IconButton>
                                       </Tooltip>
                                     ) : (
-                                      <Tooltip title={"Star page"}>
+                                      <Tooltip title={t("popup.actions.starPage")}>
                                         <IconButton onClick={star}>
                                           <StarBorderIcon fontSize={"small"} />
                                         </IconButton>
@@ -839,21 +847,21 @@ const Popup = () => {
                                   {
                                     activeOperateResult?.librarySaveStatus === LibrarySaveStatus.Archived ? (
                                       groupSaveAction(
-                                        <ArchiveIcon fontSize={'small'} />, saveToLibrary, 'Remove from archive',
-                                        <PlaylistAddCheckOutlinedIcon fontSize={'small'} />, removeFromLibrary, 'Remove from my list')
+                                        <ArchiveIcon fontSize={'small'} />, saveToLibrary, t("popup.actions.removeFromArchive"),
+                                        <PlaylistAddCheckOutlinedIcon fontSize={'small'} />, removeFromLibrary, t("popup.actions.removeFromMyList"))
                                     ) : activeOperateResult?.librarySaveStatus === LibrarySaveStatus.Saved ? (
                                       groupSaveAction(
-                                        <PlaylistAddCheckOutlinedIcon fontSize={'small'} />, removeFromLibrary, 'Remove from my list',
-                                        <ArchiveOutlinedIcon fontSize={'small'} />, archive, 'Archive'
+                                        <PlaylistAddCheckOutlinedIcon fontSize={'small'} />, removeFromLibrary, t("popup.actions.removeFromMyList"),
+                                        <ArchiveOutlinedIcon fontSize={'small'} />, archive, t("popup.actions.archive")
                                       )
                                     ) : (
                                       groupSaveAction(
-                                        <PlaylistAddOutlinedIcon fontSize={"small"} />, saveToLibrary, 'Save to my list',
-                                        <ArchiveOutlinedIcon fontSize={'small'} />, archive, 'Archive'
+                                        <PlaylistAddOutlinedIcon fontSize={"small"} />, saveToLibrary, t("popup.actions.saveToMyList"),
+                                        <ArchiveOutlinedIcon fontSize={'small'} />, archive, t("popup.actions.archive")
                                       )
                                     )
                                   }
-                                  <Tooltip title={"Edit details"}>
+                                  <Tooltip title={t("popup.actions.editDetails")}>
                                     <IconButton onClick={openSaveDetailPanel}>
                                       <EditOutlinedIcon fontSize={"small"} />
                                     </IconButton>
@@ -899,7 +907,7 @@ const Popup = () => {
                                   </CardContent>
                                   <Box sx={{ px: 1.5, pb: 1, display: 'flex', justifyContent: 'flex-end', borderLeft: '1px solid #ccc' }}>
                                     <Button variant={"text"} color={"info"} size={"small"} startIcon={<MenuBookTwoToneIcon />}
-                                      onClick={articlePreview}>Reading Mode</Button>
+                                      onClick={articlePreview}>{t("popup.readingMode")}</Button>
                                   </Box>
                                 </div>}
 
@@ -967,7 +975,9 @@ const root = createRoot(
 );
 root.render(
   <StyledEngineProvider injectFirst>
-    <CssBaseline />
-    <Popup />
+    <ExtensionI18nProvider>
+      <CssBaseline />
+      <Popup />
+    </ExtensionI18nProvider>
   </StyledEngineProvider>
 );
