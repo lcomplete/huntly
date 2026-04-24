@@ -6,12 +6,10 @@ import {
   useState,
   type FC,
 } from "react";
-import { streamText, type ChatStatus } from "ai";
+import { type ChatStatus } from "ai";
 import { ChevronDown } from "lucide-react";
 
 import {
-  buildBaseProviderOptions,
-  buildThinkingProviderOptions,
   convertUIMessagesToChatMessages,
   useHuntlyChat,
   type HuntlyUIMessage,
@@ -72,10 +70,8 @@ import {
   createCurrentPageContextPart,
   createPageContextPart,
   getDraggedImageSource,
-  getTabContext,
   onConfigChange,
   pageContextToTabContext,
-  type TabContext,
 } from "./utils/tabContext";
 import { generateId } from "./utils/ids";
 import {
@@ -84,18 +80,20 @@ import {
 } from "./utils/messageParts";
 import {
   DEFAULT_SESSION_TITLE,
-  deriveSessionTitle,
   getLatestMessage,
   sortSessionMetadataByActivity,
   getStoredLastMessageAt,
   getStoredLastMessageId,
 } from "./utils/sessions";
-import { useAutosizeTextArea } from "./utils/dom";
+import { isComposingEnterEvent, useAutosizeTextArea } from "./utils/dom";
+import { extractDroppedPayload, isImageDataUrl } from "./utils/dropPayload";
+import type { PendingSidepanelContextCommand } from "./utils/pendingContextCommand";
 import { useSessionPersistence } from "./hooks/useSessionPersistence";
-import {
-  isScrollPinnedToBottom,
-  shouldShowScrollToBottomButton,
-} from "./utils/scrollToBottom";
+import { useDragAndDropZone } from "./hooks/useDragAndDropZone";
+import { useScrollPinToBottom } from "./hooks/useScrollPinToBottom";
+import { useSidepanelContextMenu } from "./hooks/useSidepanelContextMenu";
+import { useTabContextWatcher } from "./hooks/useTabContextWatcher";
+import { useTitleGeneration } from "./hooks/useTitleGeneration";
 import { Composer } from "./components/Composer";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { MessageList } from "./components/MessageList";
@@ -107,398 +105,6 @@ import {
 import { useI18n } from "../i18n";
 
 const SCROLL_PIN_THRESHOLD_PX = 96;
-const TITLE_MAX_LENGTH = 80;
-const DROPPABLE_STRING_TYPES = new Set([
-  "text/plain",
-  "text/uri-list",
-  "text/html",
-  "text/x-moz-url",
-  "text/x-moz-url-data",
-  "DownloadURL",
-]);
-
-type PendingSelectionPageContext = {
-  title?: string;
-  content?: string;
-  url?: string;
-  faviconUrl?: string;
-  description?: string;
-  author?: string;
-  siteName?: string;
-};
-
-type PendingSidepanelContextCommand = {
-  id: string;
-} & (
-  | {
-      kind: "image";
-      source: string;
-    }
-  | {
-      kind: "page-context";
-    }
-  | {
-      kind: "selection";
-      page: PendingSelectionPageContext;
-    }
-);
-
-function isImageDataUrl(value: string): boolean {
-  return /^data:image\//i.test(value.trim());
-}
-
-function isPendingSelectionPageContext(
-  value: unknown
-): value is PendingSelectionPageContext {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      (typeof (value as PendingSelectionPageContext).content === "string" ||
-        typeof (value as PendingSelectionPageContext).content === "undefined")
-  );
-}
-
-function isPendingSidepanelContextCommand(
-  value: unknown
-): value is PendingSidepanelContextCommand {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const command = value as PendingSidepanelContextCommand;
-  if (typeof command.id !== "string" || typeof command.kind !== "string") {
-    return false;
-  }
-
-  if (command.kind === "image") {
-    return typeof command.source === "string";
-  }
-
-  if (command.kind === "page-context") {
-    return true;
-  }
-
-  if (command.kind === "selection") {
-    return isPendingSelectionPageContext(command.page);
-  }
-
-  return false;
-}
-
-function isBlobUrl(value: string): boolean {
-  return /^blob:/i.test(value.trim());
-}
-
-function isHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value.trim());
-}
-
-function looksLikeRelativeUrl(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed || /\s/.test(trimmed)) return false;
-
-  return (
-    trimmed.startsWith("/") ||
-    trimmed.startsWith("./") ||
-    trimmed.startsWith("../") ||
-    trimmed.includes("/") ||
-    /\.[a-z0-9]{2,8}(?:[?#].*)?$/i.test(trimmed)
-  );
-}
-
-function normalizeDroppedSource(
-  value: string,
-  baseUrl?: string | null
-): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  if (isHttpUrl(trimmed) || isImageDataUrl(trimmed) || isBlobUrl(trimmed)) {
-    return trimmed;
-  }
-
-  if (trimmed.startsWith("//")) {
-    try {
-      return new URL(trimmed, baseUrl || "https://example.com").toString();
-    } catch {
-      return null;
-    }
-  }
-
-  if (!baseUrl) return null;
-  if (!looksLikeRelativeUrl(trimmed)) return null;
-
-  try {
-    const resolved = new URL(trimmed, baseUrl).toString();
-    if (isHttpUrl(resolved) || isImageDataUrl(resolved) || isBlobUrl(resolved)) {
-      return resolved;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function collectUrlsFromSrcset(value: string, baseUrl?: string | null): string[] {
-  return value
-    .split(",")
-    .map((candidate) => candidate.trim().split(/\s+/)[0] || "")
-    .map((candidate) => normalizeDroppedSource(candidate, baseUrl))
-    .filter((candidate): candidate is string => Boolean(candidate));
-}
-
-function collectUrlsFromText(value: string, baseUrl?: string | null): string[] {
-  return value
-    .split(/\r?\n/)
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .map((entry) => normalizeDroppedSource(entry, baseUrl))
-    .filter((entry): entry is string => Boolean(entry));
-}
-
-function collectUrlsFromDownloadUrl(
-  value: string,
-  baseUrl?: string | null
-): string[] {
-  const match = value.match(/^[^:]+:[^:]*:(.+)$/);
-  if (!match?.[1]) return [];
-
-  const normalized = normalizeDroppedSource(match[1], baseUrl);
-  return normalized ? [normalized] : [];
-}
-
-function collectImageSourcesFromHtml(
-  html: string,
-  baseUrl?: string | null
-): string[] {
-  const sources = new Set<string>();
-
-  try {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const nodes = doc.querySelectorAll("img, source");
-
-    nodes.forEach((node) => {
-      const src = node.getAttribute("src");
-      const srcset = node.getAttribute("srcset");
-
-      const normalizedSrc = src ? normalizeDroppedSource(src, baseUrl) : null;
-      if (normalizedSrc) {
-        sources.add(normalizedSrc);
-      }
-
-      if (srcset) {
-        collectUrlsFromSrcset(srcset, baseUrl).forEach((value) =>
-          sources.add(value)
-        );
-      }
-    });
-  } catch {
-    // Ignore malformed HTML payloads from drag-and-drop.
-  }
-
-  return Array.from(sources);
-}
-
-function readDragItemAsString(item: DataTransferItem): Promise<string> {
-  return new Promise((resolve) => {
-    item.getAsString((value) => resolve(value || ""));
-  });
-}
-
-function dedupeFiles(files: File[]): File[] {
-  const seen = new Set<string>();
-  return files.filter((file) => {
-    const key = [file.name, file.size, file.type, file.lastModified].join(":");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function isComposingEnterEvent(
-  event: React.KeyboardEvent<HTMLTextAreaElement>
-): boolean {
-  if (event.key !== "Enter") return false;
-
-  const nativeEvent = event.nativeEvent as KeyboardEvent & {
-    isComposing?: boolean;
-    keyCode?: number;
-  };
-
-  return (
-    nativeEvent.isComposing === true ||
-    nativeEvent.keyCode === 229
-  );
-}
-
-async function extractDroppedPayload(
-  dataTransfer: DataTransfer,
-  baseUrl?: string | null
-): Promise<{
-  files: File[];
-  sources: string[];
-}> {
-  const items = Array.from(dataTransfer.items || []);
-  const filesFromItems = dedupeFiles(
-    items
-      .filter((item) => item.kind === "file")
-      .map((item) => item.getAsFile())
-      .filter((file): file is File => Boolean(file))
-  );
-
-  const files =
-    filesFromItems.length > 0
-      ? filesFromItems
-      : dedupeFiles(Array.from(dataTransfer.files || []));
-
-  const stringItems = await Promise.all(
-    items
-      .filter(
-        (item) =>
-          item.kind === "string" && DROPPABLE_STRING_TYPES.has(item.type)
-      )
-      .map(async (item) => ({
-        type: item.type,
-        value: (await readDragItemAsString(item)).trim(),
-      }))
-  );
-
-  const sources = new Set<string>();
-
-  for (const item of stringItems) {
-    if (!item.value) continue;
-
-    if (item.type === "text/html") {
-      collectImageSourcesFromHtml(item.value, baseUrl).forEach((value) =>
-        sources.add(value)
-      );
-      continue;
-    }
-
-    if (item.type === "DownloadURL") {
-      collectUrlsFromDownloadUrl(item.value, baseUrl).forEach((value) =>
-        sources.add(value)
-      );
-      continue;
-    }
-
-    collectUrlsFromText(item.value, baseUrl).forEach((value) =>
-      sources.add(value)
-    );
-  }
-
-  collectUrlsFromText(dataTransfer.getData("text/uri-list"), baseUrl).forEach(
-    (value) => sources.add(value)
-  );
-  collectImageSourcesFromHtml(dataTransfer.getData("text/html"), baseUrl).forEach(
-    (value) => sources.add(value)
-  );
-  collectUrlsFromText(dataTransfer.getData("text/plain"), baseUrl).forEach(
-    (value) => sources.add(value)
-  );
-  collectUrlsFromText(dataTransfer.getData("text/x-moz-url"), baseUrl).forEach(
-    (value) => sources.add(value)
-  );
-  collectUrlsFromDownloadUrl(dataTransfer.getData("DownloadURL"), baseUrl).forEach(
-    (value) => sources.add(value)
-  );
-
-  return {
-    files,
-    sources: Array.from(sources),
-  };
-}
-
-function summarizeFirstUserMessageForTitle(parts: ChatPart[]): string {
-  const segments: string[] = [];
-  const text = getDisplayMessageText(parts).replace(/\s+/g, " ").trim();
-
-  if (text) {
-    segments.push(text);
-  }
-
-  for (const part of parts) {
-    if (part.type === "page-context") {
-      const label = (part.articleTitle || part.title || part.url || "").trim();
-      if (label) {
-        segments.push(`Attached page: ${label}`);
-      }
-      continue;
-    }
-
-    if (part.type === "file") {
-      const label = (part.filename || part.mediaType || "attachment").trim();
-      if (label) {
-        segments.push(`Attachment: ${label}`);
-      }
-    }
-  }
-
-  return segments.join(" | ");
-}
-
-function normalizeGeneratedSessionTitle(value: string): string | null {
-  const firstLine = value
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find(Boolean);
-
-  if (!firstLine) return null;
-
-  const normalized = firstLine
-    .replace(/^[#>*\-\d.\s]*(?:title|conversation title)\s*:\s*/i, "")
-    .replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, "")
-    .replace(/\s+/g, " ")
-    .replace(/[.。]+$/, "")
-    .trim();
-
-  if (!normalized || normalized === DEFAULT_SESSION_TITLE) {
-    return null;
-  }
-
-  return normalized.length <= TITLE_MAX_LENGTH
-    ? normalized
-    : `${normalized.slice(0, TITLE_MAX_LENGTH - 1).trimEnd()}…`;
-}
-
-async function generateSessionTitleFromFirstMessage(
-  message: ChatMessage,
-  modelInfo: HuntlyModelInfo,
-  systemPrompt: string,
-  thinkingEnabled = false,
-  abortSignal?: AbortSignal
-): Promise<string | null> {
-  const source = summarizeFirstUserMessageForTitle(message.parts);
-  if (!source) {
-    console.warn("[SidepanelApp] Title generation skipped: empty first user message");
-    return null;
-  }
-
-  let streamError: unknown = null;
-  const result = streamText({
-    model: modelInfo.model as any,
-    system: systemPrompt,
-    prompt:
-      `First user message:\n\n${source}\n\n` +
-      "Generate one short conversation title based only on this first user message. Output only the title.",
-    maxOutputTokens: 128,
-    abortSignal,
-    providerOptions: thinkingEnabled
-      ? buildThinkingProviderOptions(modelInfo.provider)
-      : buildBaseProviderOptions(modelInfo.provider),
-    onError({ error }) {
-      streamError = error;
-    },
-  });
-
-  const generatedText = await result.text;
-  if (streamError) {
-    throw streamError;
-  }
-
-  return normalizeGeneratedSessionTitle(generatedText);
-}
 
 export const SidepanelApp: FC = () => {
   const { t } = useI18n();
@@ -510,7 +116,6 @@ export const SidepanelApp: FC = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [thinkingMode, setThinkingMode] = useState(false);
-  const [tabContext, setTabContext] = useState<TabContext | null>(null);
   const [attachedPageContext, setAttachedPageContext] =
     useState<ChatPart | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
@@ -538,20 +143,16 @@ export const SidepanelApp: FC = () => {
   );
   const currentSessionIdRef = useRef<string | null>(null);
   const configRef = useRef<SessionChatConfig | null>(null);
-  const titleGenerationAbortsRef = useRef<Map<string, AbortController>>(
-    new Map()
-  );
-  const titleGenerationKeysRef = useRef<Map<string, string>>(new Map());
   const titleGenerationSystemPromptRef = useRef(
     buildSidepanelTitleGenerationSystemPrompt("English")
   );
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const messageScrollRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageScrollPinnedRef = useRef(true);
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   const persistence = useSessionPersistence();
+  const tabContext = useTabContextWatcher({
+    paused: Boolean(attachedPageContext),
+    onRefreshed: () => setContextError(null),
+  });
 
   useAutosizeTextArea(inputRef, inputText);
 
@@ -603,39 +204,6 @@ export const SidepanelApp: FC = () => {
       )
   );
 
-  const cancelTitleGenerationFor = useCallback((sessionId: string) => {
-    titleGenerationAbortsRef.current.get(sessionId)?.abort();
-    titleGenerationAbortsRef.current.delete(sessionId);
-    titleGenerationKeysRef.current.delete(sessionId);
-  }, []);
-
-  const cancelAllTitleGenerations = useCallback(() => {
-    for (const controller of titleGenerationAbortsRef.current.values()) {
-      controller.abort();
-    }
-    titleGenerationAbortsRef.current.clear();
-    titleGenerationKeysRef.current.clear();
-  }, []);
-
-  /**
-   * Drop a pool entry that was never used (no persisted messages, idle status).
-   * Prevents accumulating empty draft Chats when the user keeps clicking
-   * "New chat" without sending anything.
-   */
-  const pruneEmptyDraft = useCallback(
-    (sessionId: string | null) => {
-      if (!sessionId) return;
-      if (sessionsDataRef.current.has(sessionId)) return;
-      if (pool.isRunning(sessionId)) return;
-      const chat = pool.get(sessionId);
-      if (chat && chat.messages.length > 0) return;
-      pool.remove(sessionId);
-      previousSessionMessagesRef.current.delete(sessionId);
-      cancelTitleGenerationFor(sessionId);
-    },
-    [cancelTitleGenerationFor, pool]
-  );
-
   const syncSessionSnapshot = useCallback(
     (updated: SessionData, immediate: boolean) => {
       sessionsDataRef.current.set(updated.id, updated);
@@ -661,149 +229,30 @@ export const SidepanelApp: FC = () => {
     [persistence]
   );
 
-  const maybeGenerateSessionTitle = useCallback(
-    (session: SessionData, chatMessages: ChatMessage[]) => {
-      const currentModel = currentModelRef.current;
-      if (
-        !currentModel ||
-        chatMessages.length === 0 ||
-        session.titleGenerationStatus === "generated"
-      ) {
-        return;
-      }
+  const titleGeneration = useTitleGeneration({
+    getCurrentModel: () => currentModelRef.current,
+    getTitleSystemPrompt: () => titleGenerationSystemPromptRef.current,
+    getSessionData: (id) => sessionsDataRef.current.get(id),
+    syncSessionSnapshot,
+  });
 
-      const firstUserMessage = chatMessages.find(
-        (message) => message.role === "user"
-      );
-      if (!firstUserMessage) {
-        return;
-      }
-
-      const sessionId = session.id;
-      const requestKey = `${sessionId}:${firstUserMessage.id || "first-user"}`;
-      if (titleGenerationKeysRef.current.get(sessionId) === requestKey) {
-        return;
-      }
-
-      // Cancel any previous attempt for this session (different first message
-      // — e.g. edited-first-message path) and start fresh. Do NOT touch other
-      // sessions' title generation runs, so parallel conversations can each
-      // generate their own title independently.
-      cancelTitleGenerationFor(sessionId);
-
-      const controller = new AbortController();
-      titleGenerationAbortsRef.current.set(sessionId, controller);
-      titleGenerationKeysRef.current.set(sessionId, requestKey);
-
-      const applyTitleResult = (
-        title: string | null,
-        reason: "llm" | "fallback"
-      ) => {
-        const currentSession = sessionsDataRef.current.get(sessionId);
-        if (!currentSession) {
-          return;
-        }
-
-        const currentFirstUserMessage = currentSession.messages.find(
-          (message) => message.role === "user"
-        );
-        const activeRequestKey = currentFirstUserMessage
-          ? `${currentSession.id}:${currentFirstUserMessage.id || "first-user"}`
-          : null;
-
-        if (activeRequestKey !== requestKey) {
-          return;
-        }
-
-        const resolvedTitle =
-          title ||
-          deriveSessionTitle(currentSession.messages, DEFAULT_SESSION_TITLE);
-        if (!resolvedTitle || resolvedTitle === DEFAULT_SESSION_TITLE) {
-          syncSessionSnapshot(
-            {
-              ...currentSession,
-              titleGenerationStatus: "failed",
-              titleGeneratedAt: undefined,
-            },
-            true
-          );
-          return;
-        }
-
-        syncSessionSnapshot(
-          {
-            ...currentSession,
-            title: resolvedTitle,
-            titleGenerationStatus: "generated",
-            titleGeneratedAt: new Date().toISOString(),
-          },
-          true
-        );
-        console.debug("[SidepanelApp] Title generation: applying title", {
-          sessionId,
-          reason,
-          title: resolvedTitle,
-        });
-      };
-
-      void (async () => {
-        let generatedTitle: string | null = null;
-
-        try {
-          generatedTitle = await generateSessionTitleFromFirstMessage(
-            firstUserMessage,
-            currentModel,
-            titleGenerationSystemPromptRef.current,
-            false,
-            controller.signal
-          );
-        } catch (error) {
-          if (!controller.signal.aborted) {
-            console.error(
-              "[SidepanelApp] Title generation failed without thinking",
-              error
-            );
-          }
-        }
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        if (!generatedTitle) {
-          try {
-            generatedTitle = await generateSessionTitleFromFirstMessage(
-              firstUserMessage,
-              currentModel,
-              titleGenerationSystemPromptRef.current,
-              true,
-              controller.signal
-            );
-          } catch (error) {
-            if (!controller.signal.aborted) {
-              console.error(
-                "[SidepanelApp] Title generation retry failed with thinking",
-                error
-              );
-            }
-          }
-        }
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        applyTitleResult(generatedTitle, generatedTitle ? "llm" : "fallback");
-      })().finally(() => {
-        if (titleGenerationAbortsRef.current.get(sessionId) === controller) {
-          titleGenerationAbortsRef.current.delete(sessionId);
-        }
-        if (titleGenerationKeysRef.current.get(sessionId) === requestKey) {
-          titleGenerationKeysRef.current.delete(sessionId);
-        }
-      });
+  /**
+   * Drop a pool entry that was never used (no persisted messages, idle status).
+   * Prevents accumulating empty draft Chats when the user keeps clicking
+   * "New chat" without sending anything.
+   */
+  const pruneEmptyDraft = useCallback(
+    (sessionId: string | null) => {
+      if (!sessionId) return;
+      if (sessionsDataRef.current.has(sessionId)) return;
+      if (pool.isRunning(sessionId)) return;
+      const chat = pool.get(sessionId);
+      if (chat && chat.messages.length > 0) return;
+      pool.remove(sessionId);
+      previousSessionMessagesRef.current.delete(sessionId);
+      titleGeneration.cancelFor(sessionId);
     },
-    [cancelTitleGenerationFor, syncSessionSnapshot]
+    [pool, titleGeneration]
   );
 
   const refreshSessions = useCallback(async () => {
@@ -922,10 +371,10 @@ export const SidepanelApp: FC = () => {
       // settles (or when not streaming at all). The inner dedupe still
       // short-circuits if the title is already generated.
       if (!isStreaming) {
-        maybeGenerateSessionTitle(updated, chatMessages);
+        titleGeneration.maybeGenerate(updated, chatMessages);
       }
     },
-    [maybeGenerateSessionTitle, syncSessionSnapshot]
+    [syncSessionSnapshot, titleGeneration]
   );
 
   // Pool event handler converts the AI SDK UI snapshot into our local
@@ -974,6 +423,17 @@ export const SidepanelApp: FC = () => {
     clearMessages,
   } = chat;
 
+  const {
+    scrollContainerRef: messageScrollRef,
+    messagesEndRef,
+    showScrollToBottom,
+    handleScroll: handleMessageScroll,
+    scrollToBottom,
+  } = useScrollPinToBottom({
+    messages,
+    thresholdPx: SCROLL_PIN_THRESHOLD_PX,
+  });
+
   // Ensure there is always an active draft session once the app has finished
   // loading, so the composer can send without waiting for a re-render after
   // creating a Chat.
@@ -994,7 +454,6 @@ export const SidepanelApp: FC = () => {
         prompts,
         savedModelId,
         savedThinkingMode,
-        tab,
         loadedSystemPrompt,
         loadedTitleGenerationSystemPrompt,
       ] = await Promise.all([
@@ -1002,7 +461,6 @@ export const SidepanelApp: FC = () => {
         loadSlashPrompts(),
         getSidepanelSelectedModelId(),
         getSidepanelThinkingModeEnabled(),
-        getTabContext(),
         loadSidepanelSystemPrompt(),
         loadSidepanelTitleGenerationSystemPrompt(),
       ]);
@@ -1011,7 +469,6 @@ export const SidepanelApp: FC = () => {
       setModels(availableModels);
       setSlashPrompts(prompts);
       setThinkingMode(savedThinkingMode);
-      setTabContext(tab);
       setSystemPrompt(loadedSystemPrompt);
       setTitleGenerationSystemPrompt(loadedTitleGenerationSystemPrompt);
 
@@ -1032,61 +489,18 @@ export const SidepanelApp: FC = () => {
   }, []);
 
   useEffect(() => {
-    if (attachedPageContext) return;
-
-    let cancelled = false;
-    const refresh = async () => {
-      const nextTabContext = await getTabContext();
-      if (!cancelled) {
-        setTabContext(nextTabContext);
-        setContextError(null);
-      }
-    };
-
-    const handleActivated = () => void refresh();
-    const handleUpdated = (
-      _tabId: number,
-      changeInfo: chrome.tabs.TabChangeInfo,
-      tab: chrome.tabs.Tab
-    ) => {
-      if (
-        tab.active &&
-        (changeInfo.title || changeInfo.url || changeInfo.status === "complete")
-      ) {
-        void refresh();
-      }
-    };
-    const handleFocusChanged = (windowId: number) => {
-      if (windowId !== chrome.windows.WINDOW_ID_NONE) void refresh();
-    };
-
-    void refresh();
-    chrome.tabs.onActivated.addListener(handleActivated);
-    chrome.tabs.onUpdated.addListener(handleUpdated);
-    chrome.windows.onFocusChanged.addListener(handleFocusChanged);
-
-    return () => {
-      cancelled = true;
-      chrome.tabs.onActivated.removeListener(handleActivated);
-      chrome.tabs.onUpdated.removeListener(handleUpdated);
-      chrome.windows.onFocusChanged.removeListener(handleFocusChanged);
-    };
-  }, [attachedPageContext]);
-
-  useEffect(() => {
     const unsubscribe = onConfigChange(async () => {
       const [
         updatedModels,
         updatedPrompts,
         updatedSystemPrompt,
         updatedTitleGenerationSystemPrompt,
-      ] =
-        await Promise.all([
-          loadModels(),
-          loadSlashPrompts(),
-          loadSidepanelSystemPrompt(),
-          loadSidepanelTitleGenerationSystemPrompt(),
-        ]);
+      ] = await Promise.all([
+        loadModels(),
+        loadSlashPrompts(),
+        loadSidepanelSystemPrompt(),
+        loadSidepanelTitleGenerationSystemPrompt(),
+      ]);
       setModels(updatedModels);
       setSlashPrompts(updatedPrompts);
       setSystemPrompt(updatedSystemPrompt);
@@ -1112,53 +526,10 @@ export const SidepanelApp: FC = () => {
     return () => {
       window.removeEventListener("pagehide", flushPendingSession);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      cancelAllTitleGenerations();
+      titleGeneration.cancelAll();
       pool.disposeAll();
     };
-  }, [cancelAllTitleGenerations, persistence, pool]);
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    messageScrollPinnedRef.current = true;
-    setShowScrollToBottom(false);
-    messagesEndRef.current?.scrollIntoView({ block: "end", behavior });
-  }, []);
-
-  const handleMessageScroll = useCallback(() => {
-    const scrollContainer = messageScrollRef.current;
-    if (!scrollContainer) return;
-
-    const distanceToBottom =
-      scrollContainer.scrollHeight -
-      scrollContainer.scrollTop -
-      scrollContainer.clientHeight;
-    const pinned = isScrollPinnedToBottom(
-      distanceToBottom,
-      SCROLL_PIN_THRESHOLD_PX
-    );
-
-    messageScrollPinnedRef.current = pinned;
-    setShowScrollToBottom(
-      shouldShowScrollToBottomButton(messages.length, pinned)
-    );
-  }, [messages.length]);
-
-  useEffect(() => {
-    if (messages.length === 0) {
-      messageScrollPinnedRef.current = true;
-      setShowScrollToBottom(false);
-      return;
-    }
-
-    if (!messageScrollPinnedRef.current) {
-      setShowScrollToBottom(
-        shouldShowScrollToBottomButton(messages.length, false)
-      );
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => scrollToBottom("auto"));
-    return () => window.cancelAnimationFrame(frame);
-  }, [messages, scrollToBottom]);
+  }, [persistence, pool, titleGeneration]);
 
   const filteredPrompts = useMemo(
     () =>
@@ -1200,7 +571,7 @@ export const SidepanelApp: FC = () => {
     async (id: string) => {
       await persistence.flush();
       persistence.markDeleted(id);
-      cancelTitleGenerationFor(id);
+      titleGeneration.cancelFor(id);
       pool.remove(id);
       sessionsDataRef.current.delete(id);
       previousSessionMessagesRef.current.delete(id);
@@ -1221,11 +592,11 @@ export const SidepanelApp: FC = () => {
       }
     },
     [
-      cancelTitleGenerationFor,
       clearInlineUserMessageEdit,
       persistence,
       pool,
       resetComposerState,
+      titleGeneration,
     ]
   );
 
@@ -1381,18 +752,18 @@ export const SidepanelApp: FC = () => {
         void markSessionOpened(id, openedAt).catch((error) => {
           console.error("[SidepanelApp] Failed to mark session opened", error);
         });
-        maybeGenerateSessionTitle(finalSession, chatMessages);
+        titleGeneration.maybeGenerate(finalSession, chatMessages);
       } catch (error) {
         console.error("[SidepanelApp] Failed to open session", error);
       }
     },
     [
       clearInlineUserMessageEdit,
-      maybeGenerateSessionTitle,
       persistence,
       pool,
       pruneEmptyDraft,
       resetComposerState,
+      titleGeneration,
     ]
   );
 
@@ -1484,9 +855,7 @@ export const SidepanelApp: FC = () => {
         return [] as string[];
       }
 
-      setAttachmentProcessingLabel(
-        t("sidepanel.processing.chatContext")
-      );
+      setAttachmentProcessingLabel(t("sidepanel.processing.chatContext"));
 
       const completedIds: string[] = [];
       try {
@@ -1539,167 +908,16 @@ export const SidepanelApp: FC = () => {
     [addAttachmentFromSource, t]
   );
 
-  // Keep the latest append callback in a ref so the runtime message listener
-  // below can stay mount-once. Re-subscribing the listener on every render
-  // re-invoked `consume_pending_sidepanel_context_commands`, which
-  // double-consumed pending commands from the background page.
-  const appendPendingContextCommandsRef = useRef(appendPendingContextCommands);
-  useEffect(() => {
-    appendPendingContextCommandsRef.current = appendPendingContextCommands;
-  }, [appendPendingContextCommands]);
+  useSidepanelContextMenu(appendPendingContextCommands);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const handleRuntimeMessage = (
-      message: unknown,
-      _sender: unknown,
-      sendResponse: (response?: unknown) => void
-    ) => {
-      const typedMessage = message as
-        | {
-            type?: string;
-            payload?: { command?: unknown };
-          }
-        | undefined;
-      if (typedMessage?.type !== "sidepanel_context_menu_command") {
-        return undefined;
-      }
-
-      const command = typedMessage.payload?.command;
-      if (!isPendingSidepanelContextCommand(command)) {
-        sendResponse({
-          success: false,
-          error: "Invalid sidepanel context command.",
-        });
-        return undefined;
-      }
-
-      void appendPendingContextCommandsRef.current([command])
-        .then((completedIds) => {
-          const completed = completedIds.includes(command.id);
-          sendResponse({
-            success: completed,
-            commandId: completed ? command.id : null,
-          });
-        })
-        .catch((error) => {
-          console.error("[SidepanelApp] Failed to handle context menu command", error);
-          sendResponse({
-            success: false,
-            error: (error as Error)?.message || "Failed to process command",
-          });
-        });
-
-      return true;
-    };
-
-    const consumePendingContextCommands = async () => {
-      try {
-        const currentWindow = await chrome.windows.getCurrent();
-        if (cancelled || typeof currentWindow.id !== "number") {
-          return;
-        }
-
-        const response = (await chrome.runtime.sendMessage({
-          type: "consume_pending_sidepanel_context_commands",
-          payload: {
-            windowId: currentWindow.id,
-          },
-        })) as unknown as { commands?: unknown } | undefined;
-        const pendingCommands = Array.isArray(response?.commands)
-          ? response.commands.filter(isPendingSidepanelContextCommand)
-          : [];
-
-        if (!cancelled && pendingCommands.length > 0) {
-          await appendPendingContextCommandsRef.current(pendingCommands);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error(
-            "[SidepanelApp] Failed to consume pending sidepanel commands",
-            error
-          );
-        }
-      }
-    };
-
-    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
-    void consumePendingContextCommands();
-
-    return () => {
-      cancelled = true;
-      chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
-    };
-  }, []);
-
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const dragDepthRef = useRef(0);
-  const internalDragRef = useRef(false);
-
-  const hasFilesOrUrl = useCallback((event: React.DragEvent) => {
-    if (internalDragRef.current) {
-      return false;
-    }
-
-    const items = Array.from(event.dataTransfer?.items || []);
-    if (items.length > 0) {
-      return items.some(
-        (item) =>
-          item.kind === "file" ||
-          (item.kind === "string" && DROPPABLE_STRING_TYPES.has(item.type))
+  const handleDropPayload = useCallback(
+    async (dataTransfer: DataTransfer) => {
+      const { files, sources } = await extractDroppedPayload(
+        dataTransfer,
+        tabContext?.url
       );
-    }
 
-    return Array.from(event.dataTransfer?.types || []).some(
-      (type) => type === "Files" || DROPPABLE_STRING_TYPES.has(type)
-    );
-  }, []);
-
-  const handleDragEnter = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      if (!hasFilesOrUrl(event)) return;
-      event.preventDefault();
-      dragDepthRef.current += 1;
-      setIsDraggingOver(true);
-    },
-    [hasFilesOrUrl]
-  );
-
-  const handleDragOver = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      if (!hasFilesOrUrl(event)) return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
-    },
-    [hasFilesOrUrl]
-  );
-
-  const handleDragLeave = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      if (!hasFilesOrUrl(event)) return;
-      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-      if (dragDepthRef.current === 0) setIsDraggingOver(false);
-    },
-    [hasFilesOrUrl]
-  );
-
-  const handleDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      if (!hasFilesOrUrl(event)) return;
-      event.preventDefault();
-      internalDragRef.current = false;
-      dragDepthRef.current = 0;
-      setIsDraggingOver(false);
-
-      const dataTransfer = event.dataTransfer;
-
-      void (async () => {
-        const { files, sources } = await extractDroppedPayload(
-          dataTransfer,
-          tabContext?.url
-        );
-
+      try {
         if (files.length > 0) {
           setAttachmentProcessingLabel(
             files.length > 1
@@ -1729,24 +947,18 @@ export const SidepanelApp: FC = () => {
         if (attached) {
           await clearDraggedImageSource();
         }
-      })().catch((error) => {
+      } catch (error) {
         console.error("[SidepanelApp] Failed to handle drop", error);
-      }).finally(() => {
+      } finally {
         setAttachmentProcessingLabel(null);
-      });
+      }
     },
-    [addAttachmentFromSource, attachFiles, hasFilesOrUrl, t, tabContext?.url]
+    [addAttachmentFromSource, attachFiles, t, tabContext?.url]
   );
 
-  const handleInternalDragStartCapture = useCallback(() => {
-    internalDragRef.current = true;
-  }, []);
-
-  const handleInternalDragEndCapture = useCallback(() => {
-    internalDragRef.current = false;
-    dragDepthRef.current = 0;
-    setIsDraggingOver(false);
-  }, []);
+  const { isDraggingOver, handlers: dragHandlers } = useDragAndDropZone({
+    onDrop: handleDropPayload,
+  });
 
   const handleAttachmentRemove = useCallback((id: string) => {
     setAttachments((previous) => previous.filter((part) => part.id !== id));
@@ -1823,13 +1035,12 @@ export const SidepanelApp: FC = () => {
 
       const activeSessionId = currentSessionIdRef.current;
       if (activeSessionId) {
-        cancelTitleGenerationFor(activeSessionId);
+        titleGeneration.cancelFor(activeSessionId);
       }
 
       clearInlineUserMessageEdit();
     },
     [
-      cancelTitleGenerationFor,
       clearInlineUserMessageEdit,
       clearMessages,
       editingUserMessageId,
@@ -1839,6 +1050,7 @@ export const SidepanelApp: FC = () => {
       prepareOutgoingText,
       sendMessage,
       setMessages,
+      titleGeneration,
     ]
   );
 
@@ -1846,11 +1058,11 @@ export const SidepanelApp: FC = () => {
     (messageId: string) => {
       const activeSessionId = currentSessionIdRef.current;
       if (activeSessionId) {
-        cancelTitleGenerationFor(activeSessionId);
+        titleGeneration.cancelFor(activeSessionId);
       }
       void regenerate(messageId);
     },
-    [cancelTitleGenerationFor, regenerate]
+    [regenerate, titleGeneration]
   );
 
   const handleAttachContext = useCallback(async () => {
@@ -2058,12 +1270,7 @@ export const SidepanelApp: FC = () => {
   return (
     <div
       className="relative flex h-full overflow-hidden bg-[#f7f3ea] text-[#2f261f]"
-      onDragEndCapture={handleInternalDragEndCapture}
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onDragStartCapture={handleInternalDragStartCapture}
+      {...dragHandlers}
     >
       <HistoryDrawer
         currentSessionId={currentSessionId}
