@@ -76,3 +76,16 @@ export function readBlobAsDataUrl(blob: Blob): Promise<string> {
     reader.readAsDataURL(blob);
   });
 }
+
+export function isComposingEnterEvent(
+  event: React.KeyboardEvent<HTMLTextAreaElement>
+): boolean {
+  if (event.key !== "Enter") return false;
+
+  const nativeEvent = event.nativeEvent as KeyboardEvent & {
+    isComposing?: boolean;
+    keyCode?: number;
+  };
+
+  return nativeEvent.isComposing === true || nativeEvent.keyCode === 229;
+}
