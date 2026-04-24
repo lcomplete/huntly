@@ -9,10 +9,13 @@ interface MessageListProps {
   messages: ChatMessage[];
   isRunning: boolean;
   thinkingMode: boolean;
+  statusAction?: "retry" | "compact" | null;
   onCancelUserMessageEdit?: () => void;
+  onCompactContext?: () => void;
   onEditUserMessage?: (messageId: string) => void;
   onEditUserMessageTextChange?: (value: string) => void;
   onRegenerate?: (messageId: string) => void;
+  onRetryLastRun?: () => void;
   onSaveUserMessageEdit?: (messageId: string) => void;
   endRef: React.RefObject<HTMLDivElement>;
 }
@@ -23,10 +26,13 @@ export const MessageList: FC<MessageListProps> = ({
   messages,
   isRunning,
   thinkingMode,
+  statusAction = null,
   onCancelUserMessageEdit,
+  onCompactContext,
   onEditUserMessage,
   onEditUserMessageTextChange,
   onRegenerate,
+  onRetryLastRun,
   onSaveUserMessageEdit,
   endRef,
 }) => {
@@ -57,7 +63,10 @@ export const MessageList: FC<MessageListProps> = ({
               isLast={isLast}
               isRunning={isRunning && isLast}
               message={message}
+              statusAction={statusAction}
+              onCompactContext={onCompactContext}
               onRegenerate={onRegenerate}
+              onRetryLastRun={onRetryLastRun}
               thinkingMode={thinkingMode}
             />
           );

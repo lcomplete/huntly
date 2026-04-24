@@ -14,10 +14,7 @@ import {
   useHuntlyChat,
   type HuntlyUIMessage,
 } from "./useHuntlyChat";
-import {
-  SessionChatPool,
-  type SessionChatConfig,
-} from "./chatPool";
+import { SessionChatPool, type SessionChatConfig } from "./chatPool";
 import type {
   ChatMessage,
   ChatPart,
@@ -51,6 +48,7 @@ import {
 import {
   getSidepanelSelectedModelId,
   getSidepanelThinkingModeEnabled,
+  readSyncStorageSettings,
   saveSidepanelSelectedModelId,
   saveSidepanelThinkingModeEnabled,
 } from "../storage";
@@ -104,6 +102,40 @@ import {
 } from "./components/Placeholders";
 import { useI18n } from "../i18n";
 
+type ChromeStorageChange = {
+  newValue?: unknown;
+};
+
+type ChromeApi = {
+  runtime?: {
+    getURL?: (path: string) => string;
+    sendMessage?: (message: unknown) => void;
+  };
+  storage?: {
+    onChanged?: {
+      addListener: (
+        handler: (
+          changes: Record<string, ChromeStorageChange>,
+          areaName: string
+        ) => void
+      ) => void;
+      removeListener: (
+        handler: (
+          changes: Record<string, ChromeStorageChange>,
+          areaName: string
+        ) => void
+      ) => void;
+    };
+  };
+  tabs?: {
+    create?: (options: { url: string }) => void;
+  };
+};
+
+function getChromeApi(): ChromeApi | undefined {
+  return (globalThis as typeof globalThis & { chrome?: ChromeApi }).chrome;
+}
+
 const SCROLL_PIN_THRESHOLD_PX = 96;
 
 export const SidepanelApp: FC = () => {
@@ -116,12 +148,18 @@ export const SidepanelApp: FC = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [thinkingMode, setThinkingMode] = useState(false);
+  const [huntlyMcpEnabled, setHuntlyMcpEnabled] = useState(false);
+  const [statusAction, setStatusAction] = useState<"retry" | "compact" | null>(
+    null
+  );
   const [attachedPageContext, setAttachedPageContext] =
     useState<ChatPart | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const [contextError, setContextError] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
-  const [editingUserMessageId, setEditingUserMessageId] = useState<string | null>(null);
+  const [editingUserMessageId, setEditingUserMessageId] = useState<
+    string | null
+  >(null);
   const [editingUserMessageText, setEditingUserMessageText] = useState("");
   const [attachments, setAttachments] = useState<ChatPart[]>([]);
   const [attachmentProcessingLabel, setAttachmentProcessingLabel] = useState<
@@ -192,6 +230,7 @@ export const SidepanelApp: FC = () => {
         messages: HuntlyUIMessage[];
         status: ChatStatus;
         error: Error | undefined;
+        rollingSummary?: SessionData["rollingSummary"];
       }
     ) => void
   >(() => {});
@@ -293,7 +332,11 @@ export const SidepanelApp: FC = () => {
   }, [refreshSessions]);
 
   const handleSessionMessagesChange = useCallback(
-    (sessionId: string, chatMessages: ChatMessage[]) => {
+    (
+      sessionId: string,
+      chatMessages: ChatMessage[],
+      rollingSummary?: SessionData["rollingSummary"]
+    ) => {
       // Empty drafts (no messages yet) are kept entirely in-memory and never
       // persisted. They are only created on the user's first send below.
       if (chatMessages.length === 0) {
@@ -326,7 +369,13 @@ export const SidepanelApp: FC = () => {
         latestMessage?.status !== prevLastMessage?.status ||
         isStreaming;
 
-      if (!latestChanged) {
+      const summaryChanged =
+        session.rollingSummary?.text !== rollingSummary?.text ||
+        session.rollingSummary?.summarizedThroughMessageId !==
+          rollingSummary?.summarizedThroughMessageId ||
+        session.rollingSummary?.version !== rollingSummary?.version;
+
+      if (!latestChanged && !summaryChanged) {
         return;
       }
 
@@ -343,9 +392,7 @@ export const SidepanelApp: FC = () => {
         ...session,
         title: (session.title || "").trim() || DEFAULT_SESSION_TITLE,
         titleGenerationStatus:
-          session.titleGenerationStatus === "generated"
-            ? "generated"
-            : "idle",
+          session.titleGenerationStatus === "generated" ? "generated" : "idle",
         titleGeneratedAt:
           session.titleGenerationStatus === "generated"
             ? session.titleGeneratedAt
@@ -356,13 +403,17 @@ export const SidepanelApp: FC = () => {
         thinkingEnabled: isActiveSession
           ? thinkingModeRef.current
           : session.thinkingEnabled,
+        rollingSummary,
         messages: chatMessages,
         updatedAt: now,
-        lastMessageAt: now,
-        lastMessageId: latestMessage?.id || prevLatestId,
-        lastOpenedAt: isActiveSession
-          ? now
-          : session.lastOpenedAt || session.updatedAt || session.createdAt,
+        lastMessageAt: latestChanged ? now : session.lastMessageAt,
+        lastMessageId: latestChanged
+          ? latestMessage?.id || prevLatestId
+          : prevLatestId,
+        lastOpenedAt:
+          latestChanged && isActiveSession
+            ? now
+            : session.lastOpenedAt || session.updatedAt || session.createdAt,
       };
 
       syncSessionSnapshot(updated, !isStreaming);
@@ -370,7 +421,7 @@ export const SidepanelApp: FC = () => {
       // Title generation is off the hot path: only fire once streaming
       // settles (or when not streaming at all). The inner dedupe still
       // short-circuits if the title is already generated.
-      if (!isStreaming) {
+      if (!isStreaming && latestChanged) {
         titleGeneration.maybeGenerate(updated, chatMessages);
       }
     },
@@ -382,8 +433,7 @@ export const SidepanelApp: FC = () => {
   // a ref so updating its closure does not require recreating the pool.
   useEffect(() => {
     poolEventHandlerRef.current = (sessionId, snapshot) => {
-      const previous =
-        previousSessionMessagesRef.current.get(sessionId) || [];
+      const previous = previousSessionMessagesRef.current.get(sessionId) || [];
       const chatMessages = convertUIMessagesToChatMessages(
         snapshot.messages,
         snapshot.status,
@@ -391,7 +441,11 @@ export const SidepanelApp: FC = () => {
         previous
       );
       previousSessionMessagesRef.current.set(sessionId, chatMessages);
-      handleSessionMessagesChange(sessionId, chatMessages);
+      handleSessionMessagesChange(
+        sessionId,
+        chatMessages,
+        snapshot.rollingSummary
+      );
     };
   }, [handleSessionMessagesChange]);
 
@@ -418,6 +472,7 @@ export const SidepanelApp: FC = () => {
     isRunning,
     sendMessage,
     regenerate,
+    retryLastRun,
     cancelRun,
     setMessages,
     clearMessages,
@@ -456,6 +511,7 @@ export const SidepanelApp: FC = () => {
         savedThinkingMode,
         loadedSystemPrompt,
         loadedTitleGenerationSystemPrompt,
+        syncSettings,
       ] = await Promise.all([
         loadModels(),
         loadSlashPrompts(),
@@ -463,6 +519,7 @@ export const SidepanelApp: FC = () => {
         getSidepanelThinkingModeEnabled(),
         loadSidepanelSystemPrompt(),
         loadSidepanelTitleGenerationSystemPrompt(),
+        readSyncStorageSettings(),
       ]);
       if (cancelled) return;
 
@@ -471,6 +528,7 @@ export const SidepanelApp: FC = () => {
       setThinkingMode(savedThinkingMode);
       setSystemPrompt(loadedSystemPrompt);
       setTitleGenerationSystemPrompt(loadedTitleGenerationSystemPrompt);
+      setHuntlyMcpEnabled(Boolean(syncSettings.serverUrl?.trim()));
 
       if (availableModels.length > 0) {
         const resolution = resolveModelSelection(
@@ -495,19 +553,43 @@ export const SidepanelApp: FC = () => {
         updatedPrompts,
         updatedSystemPrompt,
         updatedTitleGenerationSystemPrompt,
+        updatedSyncSettings,
       ] = await Promise.all([
         loadModels(),
         loadSlashPrompts(),
         loadSidepanelSystemPrompt(),
         loadSidepanelTitleGenerationSystemPrompt(),
+        readSyncStorageSettings(),
       ]);
       setModels(updatedModels);
       setSlashPrompts(updatedPrompts);
       setSystemPrompt(updatedSystemPrompt);
       setTitleGenerationSystemPrompt(updatedTitleGenerationSystemPrompt);
+      setHuntlyMcpEnabled(Boolean(updatedSyncSettings.serverUrl?.trim()));
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    const onChanged = getChromeApi()?.storage?.onChanged;
+    if (!onChanged) return;
+
+    const handler = (
+      changes: Record<string, ChromeStorageChange>,
+      areaName: string
+    ) => {
+      if (areaName !== "sync") return;
+      if (!("serverUrl" in changes)) return;
+      const nextUrl = changes.serverUrl?.newValue as string | undefined;
+      setHuntlyMcpEnabled(Boolean(nextUrl?.trim()));
+    };
+    onChanged.addListener(handler);
+    return () => onChanged.removeListener(handler);
+  }, []);
+
+  useEffect(() => {
+    setStatusAction(null);
+  }, [currentSessionId]);
 
   useEffect(() => {
     const flushPendingSession = () => {
@@ -718,7 +800,7 @@ export const SidepanelApp: FC = () => {
           };
           sessionsDataRef.current.set(id, openedSession);
           previousSessionMessagesRef.current.set(id, chatMessages);
-          pool.ensure(id, chatMessages);
+          pool.ensure(id, chatMessages, openedSession.rollingSummary);
         }
 
         const openedAt = new Date().toISOString();
@@ -875,7 +957,10 @@ export const SidepanelApp: FC = () => {
               setContextError(null);
               completedIds.push(command.id);
             } catch (error) {
-              console.error("[SidepanelApp] Failed to attach page context", error);
+              console.error(
+                "[SidepanelApp] Failed to attach page context",
+                error
+              );
               setContextError(t("sidepanel.error.readTab"));
             }
             continue;
@@ -883,7 +968,8 @@ export const SidepanelApp: FC = () => {
 
           try {
             const part = createPageContextPart(command.page, {
-              title: command.page.title || t("sidepanel.context.selectedContent"),
+              title:
+                command.page.title || t("sidepanel.context.selectedContent"),
               url: command.page.url,
               faviconUrl: command.page.faviconUrl,
             });
@@ -891,7 +977,10 @@ export const SidepanelApp: FC = () => {
             setContextError(null);
             completedIds.push(command.id);
           } catch (error) {
-            console.error("[SidepanelApp] Failed to attach selection context", error);
+            console.error(
+              "[SidepanelApp] Failed to attach selection context",
+              error
+            );
             setContextError(t("sidepanel.error.readSelection"));
           }
         }
@@ -1065,6 +1154,34 @@ export const SidepanelApp: FC = () => {
     [regenerate, titleGeneration]
   );
 
+  const handleRetryLastRun = useCallback(() => {
+    const activeSessionId = currentSessionIdRef.current;
+    if (isRunning || statusAction) {
+      return;
+    }
+    if (activeSessionId) {
+      titleGeneration.cancelFor(activeSessionId);
+    }
+    setStatusAction("retry");
+    void retryLastRun().finally(() => setStatusAction(null));
+  }, [isRunning, retryLastRun, statusAction, titleGeneration]);
+
+  const handleCompactContext = useCallback(() => {
+    const activeSessionId = currentSessionIdRef.current;
+    if (!activeSessionId || isRunning || statusAction) {
+      return;
+    }
+
+    titleGeneration.cancelFor(activeSessionId);
+    setStatusAction("compact");
+    void pool
+      .compact(activeSessionId)
+      .catch((error) => {
+        console.error("[SidepanelApp] Failed to compact context", error);
+      })
+      .finally(() => setStatusAction(null));
+  }, [isRunning, pool, statusAction, titleGeneration]);
+
   const handleAttachContext = useCallback(async () => {
     if (contextLoading || attachedPageContext) return;
 
@@ -1102,10 +1219,7 @@ export const SidepanelApp: FC = () => {
   }, [clearInlineUserMessageEdit, editingUserMessageId, messages]);
 
   const sendText = useCallback(
-    async (
-      text: string,
-      options?: { includeCurrentPageContext?: boolean }
-    ) => {
+    async (text: string, options?: { includeCurrentPageContext?: boolean }) => {
       const trimmed = text.trim();
       if (
         (!trimmed && attachments.length === 0) ||
@@ -1133,7 +1247,10 @@ export const SidepanelApp: FC = () => {
           return;
         }
       } else if (attachedPageContext) {
-        messageParts = [clonePageContextPart(attachedPageContext), ...attachments];
+        messageParts = [
+          clonePageContextPart(attachedPageContext),
+          ...attachments,
+        ];
       }
 
       const sent = sendMessage(finalText, messageParts);
@@ -1244,13 +1361,16 @@ export const SidepanelApp: FC = () => {
 
   const openModelSettings = useCallback(() => {
     try {
-      const optionsUrl = chrome.runtime.getURL("options.html");
+      const chromeApi = getChromeApi();
+      const optionsUrl = chromeApi?.runtime?.getURL?.("options.html");
+      if (!optionsUrl) return;
+
       const url = `${optionsUrl}#ai-providers`;
-      if (chrome.tabs?.create) {
-        chrome.tabs.create({ url });
+      if (chromeApi.tabs?.create) {
+        chromeApi.tabs.create({ url });
         return;
       }
-      chrome.runtime.sendMessage({ type: "open_tab", url });
+      chromeApi.runtime?.sendMessage?.({ type: "open_tab", url });
     } catch (error) {
       console.error("[SidepanelApp] Failed to open model settings", error);
     }
@@ -1297,6 +1417,16 @@ export const SidepanelApp: FC = () => {
           {messages.length === 0 ? (
             <WelcomePane
               disabled={isRunning}
+              huntlyMcpEnabled={huntlyMcpEnabled}
+              onQuickActionFillComposer={(text) => {
+                setInputText(text);
+                requestAnimationFrame(() => {
+                  const input = inputRef.current;
+                  if (!input) return;
+                  input.focus();
+                  input.setSelectionRange(text.length, text.length);
+                });
+              }}
               onQuickActionSend={(text, options) => {
                 void sendText(text, options);
               }}
@@ -1310,10 +1440,13 @@ export const SidepanelApp: FC = () => {
               endRef={messagesEndRef}
               isRunning={isRunning}
               messages={messages}
+              statusAction={statusAction}
               onCancelUserMessageEdit={handleCancelUserMessageEdit}
+              onCompactContext={handleCompactContext}
               onEditUserMessage={handleEditUserMessage}
               onEditUserMessageTextChange={handleEditUserMessageTextChange}
               onRegenerate={handleRegenerateMessage}
+              onRetryLastRun={handleRetryLastRun}
               onSaveUserMessageEdit={handleSaveUserMessageEdit}
               thinkingMode={thinkingMode}
             />

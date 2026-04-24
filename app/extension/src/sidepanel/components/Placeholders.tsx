@@ -9,10 +9,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   BookOpen,
-  Command,
+  Image as ImageIcon,
   Loader2,
-  Search,
   Sparkles,
+  Command,
 } from "lucide-react";
 
 import type { SlashPrompt } from "../types";
@@ -25,14 +25,24 @@ export const LoadingScreen: FC = () => (
   </div>
 );
 
-type WelcomeActionGroupId = "understand" | "question" | "library" | "prompts";
+type WelcomeActionGroupId =
+  | "shortcuts"
+  | "page"
+  | "image"
+  | "library";
+
+type QuickActionMode = "send" | "fill";
+type WelcomeQuickActionTone = "default" | "prompt";
 
 interface WelcomeQuickAction {
   id: string;
   label: string;
   prompt: string;
+  mode?: QuickActionMode;
+  tone?: WelcomeQuickActionTone;
   includeCurrentPageContext?: boolean;
   disabled?: boolean;
+  hint?: string;
 }
 
 interface WelcomeActionGroup {
@@ -50,150 +60,158 @@ interface WelcomeQuickActionSendOptions {
 interface WelcomePaneProps {
   slashPrompts: SlashPrompt[];
   tabContext: TabContext | null;
+  huntlyMcpEnabled: boolean;
   onQuickActionSend: (
     prompt: string,
     options?: WelcomeQuickActionSendOptions
   ) => void;
+  onQuickActionFillComposer: (prompt: string) => void;
   disabled?: boolean;
 }
 
 type TranslateFn = ReturnType<typeof useI18n>["t"];
 
+const MAX_PROMPT_CHIPS = 6;
+const MAX_STATIC_ACTIONS = 4;
+
 function buildWelcomeGroups(
   t: TranslateFn,
   slashPrompts: SlashPrompt[],
-  tabContext: TabContext | null
+  tabContext: TabContext | null,
+  huntlyMcpEnabled: boolean
 ): WelcomeActionGroup[] {
   const pageReady = Boolean(tabContext?.url);
-  const promptActions = slashPrompts.slice(0, 4).map((prompt) => ({
-    id: prompt.id,
-    label: `/${prompt.trigger}`,
-    prompt: `/${prompt.trigger}`,
-  }));
+
+  const promptActions: WelcomeQuickAction[] = slashPrompts
+    .slice(0, MAX_PROMPT_CHIPS)
+    .map((prompt) => ({
+      id: prompt.id,
+      label: `/${prompt.trigger}`,
+      prompt: `/${prompt.trigger}`,
+      tone: "prompt",
+    }));
 
   const pageActions: WelcomeQuickAction[] = [
     {
       id: "page-summary",
-      label: t("sidepanel.welcome.action.pageSummary.label"),
+      label: t("sidepanel.welcome.action.pageSummary.prompt"),
       prompt: t("sidepanel.welcome.action.pageSummary.prompt"),
       includeCurrentPageContext: true,
       disabled: !pageReady,
     },
     {
-      id: "page-takeaways",
-      label: t("sidepanel.welcome.action.pageTakeaways.label"),
-      prompt: t("sidepanel.welcome.action.pageTakeaways.prompt"),
-      includeCurrentPageContext: true,
-      disabled: !pageReady,
-    },
-    {
       id: "page-plain",
-      label: t("sidepanel.welcome.action.pageExplain.label"),
+      label: t("sidepanel.welcome.action.pageExplain.prompt"),
       prompt: t("sidepanel.welcome.action.pageExplain.prompt"),
-      includeCurrentPageContext: true,
-      disabled: !pageReady,
-    },
-    {
-      id: "page-outline",
-      label: t("sidepanel.welcome.action.pageOutline.label"),
-      prompt: t("sidepanel.welcome.action.pageOutline.prompt"),
       includeCurrentPageContext: true,
       disabled: !pageReady,
     },
   ];
 
-  const questionActions: WelcomeQuickAction[] = [
+  const selectionActions: WelcomeQuickAction[] = [
     {
-      id: "page-risks",
-      label: t("sidepanel.welcome.action.pageWeakClaims.label"),
-      prompt: t("sidepanel.welcome.action.pageWeakClaims.prompt"),
-      includeCurrentPageContext: true,
+      id: "selection-explain",
+      label: t("sidepanel.welcome.action.selectionExplain.prompt"),
+      prompt: t("sidepanel.welcome.action.selectionExplain.prompt"),
       disabled: !pageReady,
     },
     {
-      id: "page-questions",
-      label: t("sidepanel.welcome.action.pageQuestions.label"),
-      prompt: t("sidepanel.welcome.action.pageQuestions.prompt"),
-      includeCurrentPageContext: true,
+      id: "selection-translate",
+      label: t("sidepanel.welcome.action.selectionTranslate.prompt"),
+      prompt: t("sidepanel.welcome.action.selectionTranslate.prompt"),
       disabled: !pageReady,
     },
+  ];
+
+  const imageActions: WelcomeQuickAction[] = [
     {
-      id: "page-verify",
-      label: t("sidepanel.welcome.action.pageVerify.label"),
-      prompt: t("sidepanel.welcome.action.pageVerify.prompt"),
-      includeCurrentPageContext: true,
-      disabled: !pageReady,
+      id: "image-translate",
+      label: t("sidepanel.welcome.action.imageTranslate.prompt"),
+      prompt: t("sidepanel.welcome.action.imageTranslate.prompt"),
+      mode: "fill",
     },
     {
-      id: "page-angles",
-      label: t("sidepanel.welcome.action.pageAngles.label"),
-      prompt: t("sidepanel.welcome.action.pageAngles.prompt"),
-      includeCurrentPageContext: true,
-      disabled: !pageReady,
+      id: "image-describe",
+      label: t("sidepanel.welcome.action.imageDescribe.prompt"),
+      prompt: t("sidepanel.welcome.action.imageDescribe.prompt"),
+      mode: "fill",
+    },
+    {
+      id: "image-ocr",
+      label: t("sidepanel.welcome.action.imageOcr.prompt"),
+      prompt: t("sidepanel.welcome.action.imageOcr.prompt"),
+      mode: "fill",
     },
   ];
 
   const libraryActions: WelcomeQuickAction[] = [
     {
       id: "library-related",
-      label: t("sidepanel.welcome.action.libraryRelated.label"),
+      label: t("sidepanel.welcome.action.libraryRelated.prompt"),
       prompt: t("sidepanel.welcome.action.libraryRelated.prompt"),
       includeCurrentPageContext: true,
       disabled: !pageReady,
     },
     {
       id: "library-recent",
-      label: t("sidepanel.welcome.action.libraryRecent.label"),
+      label: t("sidepanel.welcome.action.libraryRecent.prompt"),
       prompt: t("sidepanel.welcome.action.libraryRecent.prompt"),
     },
     {
       id: "library-themes",
-      label: t("sidepanel.welcome.action.libraryThemes.label"),
+      label: t("sidepanel.welcome.action.libraryThemes.prompt"),
       prompt: t("sidepanel.welcome.action.libraryThemes.prompt"),
     },
     {
       id: "library-briefing",
-      label: t("sidepanel.welcome.action.libraryBriefing.label"),
+      label: t("sidepanel.welcome.action.libraryBriefing.prompt"),
       prompt: t("sidepanel.welcome.action.libraryBriefing.prompt"),
     },
   ];
 
-  return [
+  const groups: WelcomeActionGroup[] = [
     {
-      id: "prompts",
-      title: t("sidepanel.welcome.group.prompts"),
+      id: "shortcuts",
+      title: t("sidepanel.welcome.group.shortcuts"),
       icon: Sparkles,
       emptyState: t("sidepanel.welcome.empty.prompts"),
       actions: promptActions,
     },
     {
-      id: "understand",
-      title: t("sidepanel.welcome.group.understand"),
+      id: "page",
+      title: t("sidepanel.welcome.group.page"),
       icon: Command,
       emptyState: t("sidepanel.welcome.empty.page"),
-      actions: pageActions,
+      actions: [...pageActions, ...selectionActions].slice(0, MAX_STATIC_ACTIONS),
     },
     {
-      id: "question",
-      title: t("sidepanel.welcome.group.question"),
-      icon: Search,
-      emptyState: t("sidepanel.welcome.empty.page"),
-      actions: questionActions,
+      id: "image",
+      title: t("sidepanel.welcome.group.image"),
+      icon: ImageIcon,
+      emptyState: t("sidepanel.welcome.empty.image"),
+      actions: imageActions.slice(0, MAX_STATIC_ACTIONS),
     },
-    {
+  ];
+
+  if (huntlyMcpEnabled) {
+    groups.push({
       id: "library",
       title: t("sidepanel.welcome.group.library"),
       icon: BookOpen,
       emptyState: t("sidepanel.welcome.empty.library"),
-      actions: libraryActions,
-    },
-  ];
+      actions: libraryActions.slice(0, MAX_STATIC_ACTIONS),
+    });
+  }
+
+  return groups;
 }
 
 export const WelcomePane: FC<WelcomePaneProps> = ({
   slashPrompts,
   tabContext,
+  huntlyMcpEnabled,
   onQuickActionSend,
+  onQuickActionFillComposer,
   disabled = false,
 }) => {
   const { t } = useI18n();
@@ -202,8 +220,8 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
 
   const groups = useMemo(
-    () => buildWelcomeGroups(t, slashPrompts, tabContext),
-    [slashPrompts, t, tabContext]
+    () => buildWelcomeGroups(t, slashPrompts, tabContext, huntlyMcpEnabled),
+    [slashPrompts, t, tabContext, huntlyMcpEnabled]
   );
 
   const activeGroup =
@@ -237,6 +255,10 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
   const handleActionClick = (action: WelcomeQuickAction) => {
     if (disabled || action.disabled) return;
     setActiveGroupId(null);
+    if (action.mode === "fill") {
+      onQuickActionFillComposer(action.prompt);
+      return;
+    }
     onQuickActionSend(action.prompt, {
       includeCurrentPageContext: action.includeCurrentPageContext,
     });
@@ -247,10 +269,7 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
       className="flex h-full w-full items-center justify-center px-5 py-8"
       onClick={() => setActiveGroupId(null)}
     >
-      <div
-        ref={panelRef}
-        className="relative w-full max-w-[520px]"
-      >
+      <div ref={panelRef} className="relative w-full max-w-[520px]">
         <div className="text-center">
           <h1 className="font-serif text-[34px] leading-none text-[#2f261f]">
             {t("sidepanel.welcome.title")}
@@ -298,6 +317,11 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
               {activeGroup.actions.length > 0 ? (
                 activeGroup.actions.map((action) => {
                   const isActionDisabled = action.disabled || disabled;
+                  const actionTextClass = isActionDisabled
+                    ? "text-[#b19d88]"
+                    : action.tone === "prompt"
+                      ? "font-semibold text-[#9a4f2c]"
+                      : "text-[#3c3027]";
 
                   return (
                     <button
@@ -305,8 +329,8 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
                       type="button"
                       className={`w-full rounded-[18px] px-4 py-3 text-left text-[15px] font-medium leading-6 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a34020] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f3ea] ${
                         isActionDisabled
-                          ? "cursor-not-allowed text-[#b19d88]"
-                          : "text-[#3c3027] hover:bg-[#f1e8dd]"
+                          ? "cursor-not-allowed"
+                          : "cursor-pointer hover:bg-[#f1e8dd]"
                       }`}
                       disabled={isActionDisabled}
                       onClick={(event) => {
@@ -314,7 +338,7 @@ export const WelcomePane: FC<WelcomePaneProps> = ({
                         handleActionClick(action);
                       }}
                     >
-                      {action.label}
+                      <span className={actionTextClass}>{action.label}</span>
                     </button>
                   );
                 })

@@ -3,7 +3,7 @@ import { streamText } from "ai";
 import {
   buildBaseProviderOptions,
   buildThinkingProviderOptions,
-} from "../useHuntlyChat";
+} from "../providerOptions";
 import type { ChatMessage, ChatPart, HuntlyModelInfo } from "../types";
 import { getDisplayMessageText } from "./messageParts";
 import { DEFAULT_SESSION_TITLE } from "./sessions";
