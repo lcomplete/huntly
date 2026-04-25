@@ -1,8 +1,9 @@
 /**
- * IndexedDB session storage — dual-store pattern.
+ * IndexedDB session storage — split-store pattern.
  *
- * Three object stores:
- * - `sessions`: Full session data with messages
+ * Four object stores:
+ * - `sessions`: Session header data plus message refs
+ * - `session-messages`: Individual chat messages
  * - `session-metadata`: Lightweight listing data
  * - `session-attachments`: Binary attachment blobs referenced by message parts
  */
@@ -21,11 +22,38 @@ import {
 } from "./utils/sessions";
 
 const DB_NAME = "huntly-agent";
-const DB_VERSION = 2;
+const DB_VERSION = 4;
+const SESSION_RECORD_SCHEMA_VERSION = 4;
 const SESSIONS_STORE = "sessions";
+const SESSION_MESSAGES_STORE = "session-messages";
 const METADATA_STORE = "session-metadata";
 const ATTACHMENTS_STORE = "session-attachments";
+const MESSAGES_BY_SESSION_INDEX = "by-sessionId";
 const ATTACHMENTS_BY_SESSION_INDEX = "by-sessionId";
+
+type StoredMessageRef = {
+  storageKey: string;
+  messageId: string;
+  order: number;
+  signature: string;
+};
+
+type StoredSessionRecord = Omit<SessionData, "messages"> & {
+  schemaVersion: typeof SESSION_RECORD_SCHEMA_VERSION;
+  messageRefs: StoredMessageRef[];
+};
+
+type SessionHeader = Omit<SessionData, "messages">;
+
+type StoredMessageRecord = {
+  storageKey: string;
+  sessionId: string;
+  messageId: string;
+  order: number;
+  signature: string;
+  message: ChatMessage;
+  updatedAt: string;
+};
 
 type StoredAttachmentRecord = {
   id: string;
@@ -38,6 +66,13 @@ type StoredAttachmentRecord = {
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
+const CHAT_STORE_NAMES = [
+  SESSIONS_STORE,
+  SESSION_MESSAGES_STORE,
+  METADATA_STORE,
+  ATTACHMENTS_STORE,
+] as const;
+
 function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -46,33 +81,62 @@ function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
   });
 }
 
+function deleteObjectStoreIfExists(db: IDBDatabase, storeName: string): void {
+  if (db.objectStoreNames.contains(storeName)) {
+    db.deleteObjectStore(storeName);
+  }
+}
+
+function ensureObjectStores(
+  db: IDBDatabase,
+  transaction: IDBTransaction
+): void {
+  if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
+    db.createObjectStore(SESSIONS_STORE, { keyPath: "id" });
+  }
+  if (!db.objectStoreNames.contains(METADATA_STORE)) {
+    db.createObjectStore(METADATA_STORE, { keyPath: "id" });
+  }
+
+  const messagesStore = db.objectStoreNames.contains(SESSION_MESSAGES_STORE)
+    ? transaction.objectStore(SESSION_MESSAGES_STORE)
+    : db.createObjectStore(SESSION_MESSAGES_STORE, {
+        keyPath: "storageKey",
+      });
+
+  if (!messagesStore.indexNames.contains(MESSAGES_BY_SESSION_INDEX)) {
+    messagesStore.createIndex(MESSAGES_BY_SESSION_INDEX, "sessionId", {
+      unique: false,
+    });
+  }
+
+  const attachmentsStore = db.objectStoreNames.contains(ATTACHMENTS_STORE)
+    ? transaction.objectStore(ATTACHMENTS_STORE)
+    : db.createObjectStore(ATTACHMENTS_STORE, { keyPath: "id" });
+
+  if (!attachmentsStore.indexNames.contains(ATTACHMENTS_BY_SESSION_INDEX)) {
+    attachmentsStore.createIndex(ATTACHMENTS_BY_SESSION_INDEX, "sessionId", {
+      unique: false,
+    });
+  }
+}
+
 function openDatabase(): Promise<IDBDatabase> {
   if (!databasePromise) {
     databasePromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onupgradeneeded = () => {
+      request.onupgradeneeded = (event) => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
-          db.createObjectStore(SESSIONS_STORE, { keyPath: "id" });
-        }
-        if (!db.objectStoreNames.contains(METADATA_STORE)) {
-          db.createObjectStore(METADATA_STORE, { keyPath: "id" });
+        const oldVersion = event.oldVersion;
+
+        if (oldVersion > 0 && oldVersion < DB_VERSION) {
+          CHAT_STORE_NAMES.forEach((storeName) => {
+            deleteObjectStoreIfExists(db, storeName);
+          });
         }
 
-        const attachmentsStore = db.objectStoreNames.contains(ATTACHMENTS_STORE)
-          ? request.transaction!.objectStore(ATTACHMENTS_STORE)
-          : db.createObjectStore(ATTACHMENTS_STORE, { keyPath: "id" });
-
-        if (
-          !attachmentsStore.indexNames.contains(ATTACHMENTS_BY_SESSION_INDEX)
-        ) {
-          attachmentsStore.createIndex(
-            ATTACHMENTS_BY_SESSION_INDEX,
-            "sessionId",
-            { unique: false }
-          );
-        }
+        ensureObjectStores(db, request.transaction!);
       };
 
       request.onsuccess = () => resolve(request.result);
@@ -130,13 +194,53 @@ export function getMessageTextPreview(messages: ChatMessage[]): string {
   return preview.slice(0, 2000);
 }
 
-type LegacySessionTiming = {
-  lastAssistantResponseAt?: string;
-  lastAssistantMessageId?: string;
-};
-
 function getLatestMessage(messages: ChatMessage[]): ChatMessage | null {
   return messages.length > 0 ? messages[messages.length - 1] : null;
+}
+
+function toJsonSafe<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function getMessageId(message: ChatMessage, order: number): string {
+  return message.id || `message-${order}`;
+}
+
+function getMessageStorageKey(sessionId: string, messageId: string): string {
+  return `${sessionId}\u001f${messageId}`;
+}
+
+function getMessageSignature(message: ChatMessage): string {
+  return JSON.stringify(message);
+}
+
+function createMessageRef(
+  sessionId: string,
+  message: ChatMessage,
+  order: number
+): StoredMessageRef {
+  const messageId = getMessageId(message, order);
+  return {
+    storageKey: getMessageStorageKey(sessionId, messageId),
+    messageId,
+    order,
+    signature: getMessageSignature(message),
+  };
+}
+
+function createMessageRecord(
+  sessionId: string,
+  message: ChatMessage,
+  order: number,
+  updatedAt: string
+): StoredMessageRecord {
+  const ref = createMessageRef(sessionId, message, order);
+  return {
+    ...ref,
+    sessionId,
+    message,
+    updatedAt,
+  };
 }
 
 function normalizeTitleGenerationStatus(
@@ -171,7 +275,6 @@ function normalizeMessageTimestamps(session: SessionData): ChatMessage[] {
 function normalizeSessionTiming(session: SessionData): SessionData {
   const messages = normalizeMessageTimestamps(session);
   const latestMessage = getLatestMessage(messages);
-  const legacy = session as SessionData & LegacySessionTiming;
   const normalizedTitleGenerationStatus = normalizeTitleGenerationStatus(
     session.titleGenerationStatus
   );
@@ -192,19 +295,121 @@ function normalizeSessionTiming(session: SessionData): SessionData {
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
     lastMessageAt:
-      session.lastMessageAt ||
-      legacy.lastAssistantResponseAt ||
-      (latestMessage ? session.updatedAt : undefined),
-    lastMessageId:
-      session.lastMessageId ||
-      legacy.lastAssistantMessageId ||
-      latestMessage?.id,
+      session.lastMessageAt || (latestMessage ? session.updatedAt : undefined),
+    lastMessageId: session.lastMessageId || latestMessage?.id,
     lastOpenedAt:
       session.lastOpenedAt || session.updatedAt || session.createdAt,
     pinned,
     pinnedAt: pinned ? session.pinnedAt || session.updatedAt : undefined,
     archived,
     archivedAt: archived ? session.archivedAt || session.updatedAt : undefined,
+  };
+}
+
+function normalizeStoredSessionRecord(
+  record: StoredSessionRecord
+): StoredSessionRecord {
+  const normalizedTitleGenerationStatus = normalizeTitleGenerationStatus(
+    record.titleGenerationStatus
+  );
+  const pinned = Boolean(record.pinned);
+  const archived = Boolean(record.archived);
+  const latestRef = record.messageRefs[record.messageRefs.length - 1];
+
+  return {
+    id: record.id,
+    title: (record.title || "").trim() || DEFAULT_SESSION_TITLE,
+    titleGenerationStatus: normalizedTitleGenerationStatus,
+    titleGeneratedAt:
+      normalizedTitleGenerationStatus === "generated"
+        ? record.titleGeneratedAt || record.updatedAt
+        : undefined,
+    currentModelId: record.currentModelId ?? null,
+    thinkingEnabled: Boolean(record.thinkingEnabled),
+    rollingSummary: record.rollingSummary,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    lastMessageAt: record.lastMessageAt,
+    lastMessageId: record.lastMessageId || latestRef?.messageId,
+    lastOpenedAt: record.lastOpenedAt || record.updatedAt || record.createdAt,
+    pinned,
+    pinnedAt: pinned ? record.pinnedAt || record.updatedAt : undefined,
+    archived,
+    archivedAt: archived ? record.archivedAt || record.updatedAt : undefined,
+    schemaVersion: SESSION_RECORD_SCHEMA_VERSION,
+    messageRefs: record.messageRefs,
+  };
+}
+
+function createStoredSessionRecord(
+  session: SessionData,
+  messageRefs: StoredMessageRef[]
+): StoredSessionRecord {
+  const { messages: _messages, ...header } = session;
+  return normalizeStoredSessionRecord({
+    ...header,
+    schemaVersion: SESSION_RECORD_SCHEMA_VERSION,
+    messageRefs,
+  });
+}
+
+function createSessionDataFromRecord(
+  record: StoredSessionRecord,
+  messages: ChatMessage[]
+): SessionData {
+  const {
+    schemaVersion: _schemaVersion,
+    messageRefs: _messageRefs,
+    ...header
+  } = normalizeStoredSessionRecord(record);
+  return {
+    ...header,
+    messages,
+  };
+}
+
+function getSessionHeader(record: StoredSessionRecord): SessionHeader {
+  const {
+    schemaVersion: _schemaVersion,
+    messageRefs: _messageRefs,
+    ...header
+  } = normalizeStoredSessionRecord(record);
+  return header;
+}
+
+function applySessionHeader(
+  record: StoredSessionRecord,
+  header: SessionHeader
+): StoredSessionRecord {
+  return normalizeStoredSessionRecord({
+    ...record,
+    ...header,
+  });
+}
+
+function buildMetadataFromStoredRecord(
+  record: StoredSessionRecord,
+  existingMetadata?: SessionMetadata | null
+): SessionMetadata {
+  const normalized = normalizeStoredSessionRecord(record);
+  return {
+    id: normalized.id,
+    title: normalized.title,
+    titleGenerationStatus: normalized.titleGenerationStatus,
+    titleGeneratedAt: normalized.titleGeneratedAt,
+    createdAt: normalized.createdAt,
+    updatedAt: normalized.updatedAt,
+    lastMessageAt: normalized.lastMessageAt,
+    lastMessageId: normalized.lastMessageId,
+    lastOpenedAt: normalized.lastOpenedAt,
+    messageCount:
+      existingMetadata?.messageCount ?? normalized.messageRefs.length,
+    preview: existingMetadata?.preview ?? "",
+    currentModelId: normalized.currentModelId,
+    pinned: normalized.pinned,
+    pinnedAt: normalized.pinnedAt,
+    archived: normalized.archived,
+    archivedAt: normalized.archivedAt,
   };
 }
 
@@ -317,11 +522,52 @@ async function getAttachmentsForSession(
     | [];
 }
 
+async function getMessageKeysForSession(
+  messageStore: IDBObjectStore,
+  sessionId: string
+): Promise<string[]> {
+  const index = messageStore.index(MESSAGES_BY_SESSION_INDEX);
+  const keys = (await requestToPromise(
+    index.getAllKeys(sessionId)
+  )) as IDBValidKey[];
+
+  return keys.map((key) => String(key));
+}
+
+async function getMessagesFromRefs(
+  messageStore: IDBObjectStore,
+  record: StoredSessionRecord
+): Promise<ChatMessage[]> {
+  const normalized = normalizeStoredSessionRecord(record);
+  const messageRecords = await Promise.all(
+    normalized.messageRefs.map(async (ref) => {
+      return ((await requestToPromise(messageStore.get(ref.storageKey))) ||
+        null) as StoredMessageRecord | null;
+    })
+  );
+
+  return messageRecords
+    .map((messageRecord, index) => {
+      const ref = normalized.messageRefs[index];
+      if (!messageRecord) {
+        throw new Error(`Missing stored message ${ref.messageId}`);
+      }
+      return {
+        message: messageRecord.message,
+        order: ref.order,
+      };
+    })
+    .sort((a, b) => a.order - b.order)
+    .map((entry) => entry.message);
+}
+
 async function hydrateSessionAttachments(
   session: SessionData,
   attachments: StoredAttachmentRecord[]
 ): Promise<SessionData> {
-  const attachmentMap = new Map(attachments.map((attachment) => [attachment.id, attachment]));
+  const attachmentMap = new Map(
+    attachments.map((attachment) => [attachment.id, attachment])
+  );
   const dataUrlCache = new Map<string, Promise<string>>();
 
   const messages = await Promise.all(
@@ -397,26 +643,81 @@ export function buildSessionMetadata(session: SessionData): SessionMetadata {
 export async function saveSession(session: SessionData): Promise<void> {
   const normalizedSession = normalizeSessionTiming(session);
   const serialized = await serializeSessionAttachments(normalizedSession);
-  const metadata = buildSessionMetadata(serialized.session);
-  const safeSession: SessionData = JSON.parse(
-    JSON.stringify(serialized.session)
+  const safeMessages = toJsonSafe(serialized.session.messages);
+  const safeSessionForMetadata: SessionData = {
+    ...serialized.session,
+    messages: safeMessages,
+  };
+  const messageRecords = safeMessages.map((message, order) =>
+    createMessageRecord(
+      serialized.session.id,
+      message,
+      order,
+      serialized.session.updatedAt
+    )
   );
-  const safeMetadata: SessionMetadata = JSON.parse(JSON.stringify(metadata));
+  const messageRefs = messageRecords.map(
+    ({ storageKey, messageId, order, signature }) => ({
+      storageKey,
+      messageId,
+      order,
+      signature,
+    })
+  );
+  const sessionRecord = createStoredSessionRecord(
+    safeSessionForMetadata,
+    messageRefs
+  );
+  const metadata = buildSessionMetadata(safeSessionForMetadata);
+  const safeSessionRecord = toJsonSafe(sessionRecord);
+  const safeMetadata = toJsonSafe(metadata);
+  const safeMessageRecords = toJsonSafe(messageRecords);
   await withTransaction(
-    [SESSIONS_STORE, METADATA_STORE, ATTACHMENTS_STORE],
+    [SESSIONS_STORE, SESSION_MESSAGES_STORE, METADATA_STORE, ATTACHMENTS_STORE],
     "readwrite",
     async (stores) => {
+      const existingSession =
+        ((await requestToPromise(
+          stores[SESSIONS_STORE].get(safeSessionRecord.id)
+        )) as StoredSessionRecord | null) || null;
+      const existingRefs = existingSession ? existingSession.messageRefs : [];
+      const existingRefsByKey = new Map(
+        existingRefs.map((ref) => [ref.storageKey, ref])
+      );
+      const nextMessageKeys = new Set(
+        safeMessageRecords.map((messageRecord) => messageRecord.storageKey)
+      );
+      const removedMessageKeys = existingRefs
+        .map((ref) => ref.storageKey)
+        .filter((key) => !nextMessageKeys.has(key));
+      const changedMessageRecords = safeMessageRecords.filter(
+        (messageRecord) => {
+          const existingRef = existingRefsByKey.get(messageRecord.storageKey);
+          return (
+            !existingRef ||
+            existingRef.order !== messageRecord.order ||
+            existingRef.signature !== messageRecord.signature
+          );
+        }
+      );
+
       const existingAttachmentIds = await getAttachmentIdsForSession(
         stores[ATTACHMENTS_STORE],
-        safeSession.id
+        safeSessionRecord.id
       );
       const removedAttachmentIds = existingAttachmentIds.filter(
         (id) => !serialized.referencedAttachmentIds.has(id)
       );
 
       await Promise.all([
-        requestToPromise(stores[SESSIONS_STORE].put(safeSession)),
+        requestToPromise(stores[SESSIONS_STORE].put(safeSessionRecord)),
         requestToPromise(stores[METADATA_STORE].put(safeMetadata)),
+        ...changedMessageRecords.map((messageRecord) =>
+          requestToPromise(stores[SESSION_MESSAGES_STORE].put(messageRecord))
+        ),
+        ...removedMessageKeys.map((messageKey) =>
+          requestToPromise(stores[SESSION_MESSAGES_STORE].delete(messageKey))
+        ),
         ...serialized.attachments.map((attachment) =>
           requestToPromise(stores[ATTACHMENTS_STORE].put(attachment))
         ),
@@ -432,15 +733,20 @@ export async function getSession(
   sessionId: string
 ): Promise<SessionData | null> {
   return withTransaction(
-    [SESSIONS_STORE, ATTACHMENTS_STORE],
+    [SESSIONS_STORE, SESSION_MESSAGES_STORE, ATTACHMENTS_STORE],
     "readonly",
     async (stores) => {
-      const session =
+      const storedSession =
         ((await requestToPromise(
           stores[SESSIONS_STORE].get(sessionId)
-        )) as SessionData | null) || null;
+        )) as StoredSessionRecord | null) || null;
 
-      if (!session) return null;
+      if (!storedSession) return null;
+
+      const session = createSessionDataFromRecord(
+        storedSession,
+        await getMessagesFromRefs(stores[SESSION_MESSAGES_STORE], storedSession)
+      );
 
       const attachments = await getAttachmentsForSession(
         stores[ATTACHMENTS_STORE],
@@ -458,79 +764,74 @@ export async function markSessionOpened(
   sessionId: string,
   openedAt: string
 ): Promise<void> {
-  await withTransaction([SESSIONS_STORE, METADATA_STORE], "readwrite", async (stores) => {
-    const [storedSessionResult, storedMetadataResult] = await Promise.all([
-      requestToPromise(stores[SESSIONS_STORE].get(sessionId)),
-      requestToPromise(stores[METADATA_STORE].get(sessionId)),
-    ]);
+  await withTransaction(
+    [SESSIONS_STORE, METADATA_STORE],
+    "readwrite",
+    async (stores) => {
+      const [storedSessionResult, storedMetadataResult] = await Promise.all([
+        requestToPromise(stores[SESSIONS_STORE].get(sessionId)),
+        requestToPromise(stores[METADATA_STORE].get(sessionId)),
+      ]);
 
-    const storedSession = (storedSessionResult as SessionData | null) || null;
-    const storedMetadata =
-      (storedMetadataResult as SessionMetadata | null) || null;
+      const storedSession =
+        (storedSessionResult as StoredSessionRecord | null) || null;
+      const storedMetadata =
+        (storedMetadataResult as SessionMetadata | null) || null;
 
-    if (!storedSession && !storedMetadata) {
-      return;
+      if (!storedSession) {
+        return;
+      }
+
+      const normalizedSession = normalizeStoredSessionRecord({
+        ...storedSession,
+        lastOpenedAt: openedAt,
+      });
+      const metadata = buildMetadataFromStoredRecord(
+        normalizedSession,
+        storedMetadata
+      );
+
+      await Promise.all([
+        requestToPromise(
+          stores[SESSIONS_STORE].put(toJsonSafe(normalizedSession))
+        ),
+        requestToPromise(stores[METADATA_STORE].put(toJsonSafe(metadata))),
+      ]);
     }
-
-    const normalizedSession = storedSession
-      ? normalizeSessionTiming({
-          ...storedSession,
-          lastOpenedAt: openedAt,
-        })
-      : null;
-
-    const metadata = normalizedSession
-      ? buildSessionMetadata(normalizedSession)
-      : storedMetadata
-      ? {
-          ...storedMetadata,
-          lastOpenedAt: openedAt,
-        }
-      : null;
-
-    await Promise.all([
-      normalizedSession
-        ? requestToPromise(
-            stores[SESSIONS_STORE].put(
-              JSON.parse(JSON.stringify(normalizedSession))
-            )
-          )
-        : Promise.resolve(undefined),
-      metadata
-        ? requestToPromise(
-            stores[METADATA_STORE].put(JSON.parse(JSON.stringify(metadata)))
-          )
-        : Promise.resolve(undefined),
-    ]);
-  });
+  );
 }
 
 async function patchStoredSession(
   sessionId: string,
-  patch: (session: SessionData) => SessionData | null
+  patch: (session: SessionHeader) => SessionHeader | null
 ): Promise<SessionMetadata | null> {
   return withTransaction(
     [SESSIONS_STORE, METADATA_STORE],
     "readwrite",
     async (stores) => {
-      const stored = (await requestToPromise(
-        stores[SESSIONS_STORE].get(sessionId)
-      )) as SessionData | null;
+      const [storedResult, storedMetadataResult] = await Promise.all([
+        requestToPromise(stores[SESSIONS_STORE].get(sessionId)),
+        requestToPromise(stores[METADATA_STORE].get(sessionId)),
+      ]);
+
+      const stored = (storedResult as StoredSessionRecord | null) || null;
+      const storedMetadata =
+        (storedMetadataResult as SessionMetadata | null) || null;
+
       if (!stored) return null;
 
-      const nextSession = patch(stored);
-      if (!nextSession) return null;
+      const nextHeader = patch(getSessionHeader(stored));
+      if (!nextHeader) return null;
 
-      const normalized = normalizeSessionTiming(nextSession);
-      const metadata = buildSessionMetadata(normalized);
+      const normalized = applySessionHeader(stored, nextHeader);
+      const metadata = buildMetadataFromStoredRecord(
+        normalized,
+        storedMetadata
+      );
 
       await Promise.all([
-        requestToPromise(
-          stores[SESSIONS_STORE].put(JSON.parse(JSON.stringify(normalized)))
-        ),
-        requestToPromise(
-          stores[METADATA_STORE].put(JSON.parse(JSON.stringify(metadata)))
-        ),
+        requestToPromise(stores[SESSIONS_STORE].put(toJsonSafe(normalized))),
+        requestToPromise(stores[METADATA_STORE].put(toJsonSafe(metadata))),
       ]);
 
       return metadata;
@@ -582,70 +883,24 @@ export async function setSessionArchived(
 }
 
 export async function listSessionMetadata(): Promise<SessionMetadata[]> {
-  const metadata = await withTransaction([METADATA_STORE], "readonly", async (stores) => {
+  return withTransaction([METADATA_STORE], "readonly", async (stores) => {
     const metadata = ((await requestToPromise(
       stores[METADATA_STORE].getAll()
     )) || []) as SessionMetadata[];
 
     return sortSessionMetadataByActivity(metadata);
   });
-
-  const staleMetadata = metadata.filter((session) => {
-    const trimmedTitle = (session.title || "").trim();
-    return (
-      !trimmedTitle ||
-      trimmedTitle === DEFAULT_SESSION_TITLE ||
-      session.titleGenerationStatus === undefined
-    );
-  });
-
-  if (staleMetadata.length === 0) {
-    return metadata;
-  }
-
-  return withTransaction([METADATA_STORE, SESSIONS_STORE], "readwrite", async (stores) => {
-    const sessionsById = new Map(
-      (
-        await Promise.all(
-          staleMetadata.map(async (session) => {
-            const storedSession =
-              ((await requestToPromise(
-                stores[SESSIONS_STORE].get(session.id)
-              )) as SessionData | null) || null;
-            return [session.id, storedSession] as const;
-          })
-        )
-      ).filter((entry): entry is readonly [string, SessionData] => Boolean(entry[1]))
-    );
-
-    const repairedMetadata = metadata.map((session) =>
-      reconcileSessionMetadata(session, sessionsById.get(session.id))
-    );
-
-    const changedMetadata = repairedMetadata.filter(
-      (session, index) =>
-        session.title !== metadata[index].title ||
-        session.titleGenerationStatus !== metadata[index].titleGenerationStatus ||
-        session.titleGeneratedAt !== metadata[index].titleGeneratedAt
-    );
-
-    if (changedMetadata.length > 0) {
-      await Promise.all(
-        changedMetadata.map((session) =>
-          requestToPromise(stores[METADATA_STORE].put(JSON.parse(JSON.stringify(session))))
-        )
-      );
-    }
-
-    return sortSessionMetadataByActivity(repairedMetadata);
-  });
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
   await withTransaction(
-    [SESSIONS_STORE, METADATA_STORE, ATTACHMENTS_STORE],
+    [SESSIONS_STORE, SESSION_MESSAGES_STORE, METADATA_STORE, ATTACHMENTS_STORE],
     "readwrite",
     async (stores) => {
+      const messageKeys = await getMessageKeysForSession(
+        stores[SESSION_MESSAGES_STORE],
+        sessionId
+      );
       const attachmentIds = await getAttachmentIdsForSession(
         stores[ATTACHMENTS_STORE],
         sessionId
@@ -654,6 +909,9 @@ export async function deleteSession(sessionId: string): Promise<void> {
       await Promise.all([
         requestToPromise(stores[SESSIONS_STORE].delete(sessionId)),
         requestToPromise(stores[METADATA_STORE].delete(sessionId)),
+        ...messageKeys.map((messageKey) =>
+          requestToPromise(stores[SESSION_MESSAGES_STORE].delete(messageKey))
+        ),
         ...attachmentIds.map((attachmentId) =>
           requestToPromise(stores[ATTACHMENTS_STORE].delete(attachmentId))
         ),

@@ -12,6 +12,34 @@ import type { SlashPrompt } from "../sidepanel/types";
   }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+jest.mock("../i18n", () => ({
+  useI18n: () => ({
+    language: "en",
+    setLanguage: jest.fn(),
+    t: (key: string) => {
+      const labels: Record<string, string> = {
+        "sidepanel.welcome.action.imageDescribe.prompt": "Describe image",
+        "sidepanel.welcome.action.imageOcr.prompt": "Read text in image",
+        "sidepanel.welcome.action.imageTranslate.prompt": "Translate image",
+        "sidepanel.welcome.action.pageExplain.prompt": "Explain page",
+        "sidepanel.welcome.action.pageSummary.prompt": "Summarize page",
+        "sidepanel.welcome.action.selectionExplain.prompt": "Explain selection",
+        "sidepanel.welcome.action.selectionTranslate.prompt":
+          "Translate selection",
+        "sidepanel.welcome.empty.image": "Attach an image to continue.",
+        "sidepanel.welcome.empty.page": "Open a page to continue.",
+        "sidepanel.welcome.empty.prompts": "No prompts yet.",
+        "sidepanel.welcome.group.image": "Images",
+        "sidepanel.welcome.group.page": "Page",
+        "sidepanel.welcome.group.shortcuts": "Prompts",
+        "sidepanel.welcome.title": "Huntly",
+      };
+
+      return labels[key] || key;
+    },
+  }),
+}));
+
 function renderWelcomePane(
   overrides: Partial<React.ComponentProps<typeof WelcomePane>> = {}
 ) {
@@ -33,7 +61,9 @@ function renderWelcomePane(
       url: "https://example.com/article",
       title: "Example article",
     },
+    huntlyMcpEnabled: false,
     onQuickActionSend: jest.fn(),
+    onQuickActionFillComposer: jest.fn(),
     disabled: false,
     ...overrides,
   };

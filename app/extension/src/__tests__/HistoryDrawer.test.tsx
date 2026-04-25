@@ -15,6 +15,47 @@ jest.mock("../sidepanel/components/SmartMoment", () => ({
   SmartMoment: () => <span>just now</span>,
 }));
 
+jest.mock("../i18n", () => ({
+  useI18n: () => ({
+    language: "en",
+    setLanguage: jest.fn(),
+    t: (key: string, values?: Record<string, unknown>) => {
+      if (key === "sidepanel.history.moreActionsFor") {
+        return `More actions for ${values?.title}`;
+      }
+      if (key === "sidepanel.history.messageCount") {
+        return `${values?.count} messages`;
+      }
+
+      const labels: Record<string, string> = {
+        "common.archive": "Archive",
+        "common.delete": "Delete",
+        "common.pin": "Pin",
+        "common.rename": "Rename",
+        "common.save": "Save",
+        "common.unarchive": "Unarchive",
+        "common.unpin": "Unpin",
+        "sidepanel.cancelEdit": "Cancel edit",
+        "sidepanel.history.chatActions": "Chat actions",
+        "sidepanel.history.clickToConfirm": "Click to confirm",
+        "sidepanel.history.close": "Close history",
+        "sidepanel.history.group.last30": "Last 30 days",
+        "sidepanel.history.group.last7": "Last 7 days",
+        "sidepanel.history.group.older": "Older",
+        "sidepanel.history.group.pinned": "Pinned",
+        "sidepanel.history.group.today": "Today",
+        "sidepanel.history.group.yesterday": "Yesterday",
+        "sidepanel.history.lastMessage": "Last message",
+        "sidepanel.history.moreActions": "More actions",
+        "sidepanel.history.renameChat": "Rename chat",
+        "sidepanel.history.saveChatName": "Save chat name",
+      };
+
+      return labels[key] || key;
+    },
+  }),
+}));
+
 function createSession(
   id: string,
   overrides: Partial<SessionMetadata> = {}
@@ -167,7 +208,9 @@ describe("HistoryDrawer", () => {
     });
     flushAnimationFrames();
 
-    const renameInput = container.querySelector('input[aria-label="Rename chat"]');
+    const renameInput = container.querySelector(
+      'input[aria-label="Rename chat"]'
+    );
     if (!(renameInput instanceof HTMLInputElement)) {
       throw new Error("Rename input not found");
     }

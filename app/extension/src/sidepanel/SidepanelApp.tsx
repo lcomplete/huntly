@@ -388,13 +388,18 @@ export const SidepanelApp: FC = () => {
         ? getModelKey(currentModelRef.current)
         : null;
 
+      const titleGenerationStatus =
+        session.titleGenerationStatus === "generated" ||
+        session.titleGenerationStatus === "failed"
+          ? session.titleGenerationStatus
+          : "idle";
+
       const updated: SessionData = {
         ...session,
         title: (session.title || "").trim() || DEFAULT_SESSION_TITLE,
-        titleGenerationStatus:
-          session.titleGenerationStatus === "generated" ? "generated" : "idle",
+        titleGenerationStatus,
         titleGeneratedAt:
-          session.titleGenerationStatus === "generated"
+          titleGenerationStatus === "generated"
             ? session.titleGeneratedAt
             : undefined,
         currentModelId: isActiveSession
@@ -418,10 +423,10 @@ export const SidepanelApp: FC = () => {
 
       syncSessionSnapshot(updated, !isStreaming);
 
-      // Title generation is off the hot path: only fire once streaming
-      // settles (or when not streaming at all). The inner dedupe still
-      // short-circuits if the title is already generated.
-      if (!isStreaming && latestChanged) {
+      // Title generation is off the hot path: start as soon as the first user
+      // message is present instead of waiting for the assistant stream to end.
+      // The hook dedupes repeated streaming snapshots for the same first turn.
+      if (latestChanged) {
         titleGeneration.maybeGenerate(updated, chatMessages);
       }
     },
@@ -1453,14 +1458,14 @@ export const SidepanelApp: FC = () => {
           )}
         </div>
 
-        <div className="shrink-0 bg-[#f7f3ea]/95 px-4 pb-4 pt-3">
+        <div className="relative shrink-0 bg-[#f7f3ea]/95 px-4 pb-4 pt-3">
           {showScrollToBottom && (
-            <div className="mb-2 flex justify-end">
+            <div className="pointer-events-none absolute bottom-full right-4 z-10 mb-2">
               <button
                 type="button"
                 aria-label={t("sidepanel.scrollToBottom")}
                 title={t("sidepanel.scrollToBottom")}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d8cfbf] bg-[#fffaf4] text-[#5f5347] shadow-[0_8px_24px_rgba(64,48,31,0.14)] transition-colors hover:bg-[#f4efe6] hover:text-[#2f261f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a34020] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f3ea]"
+                className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d8cfbf] bg-[#fffaf4] text-[#5f5347] shadow-[0_8px_24px_rgba(64,48,31,0.14)] transition-colors hover:bg-[#f4efe6] hover:text-[#2f261f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a34020] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f3ea]"
                 onClick={() => scrollToBottom("smooth")}
               >
                 <ChevronDown className="size-5" />

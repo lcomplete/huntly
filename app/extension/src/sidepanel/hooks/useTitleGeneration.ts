@@ -49,6 +49,7 @@ export function useTitleGeneration(
 
   const abortsRef = useRef<Map<string, AbortController>>(new Map());
   const keysRef = useRef<Map<string, string>>(new Map());
+  const settledKeysRef = useRef<Map<string, string>>(new Map());
 
   const optionsRef = useRef(options);
   useEffect(() => {
@@ -59,6 +60,7 @@ export function useTitleGeneration(
     abortsRef.current.get(sessionId)?.abort();
     abortsRef.current.delete(sessionId);
     keysRef.current.delete(sessionId);
+    settledKeysRef.current.delete(sessionId);
   }, []);
 
   const cancelAll = useCallback(() => {
@@ -67,6 +69,7 @@ export function useTitleGeneration(
     }
     abortsRef.current.clear();
     keysRef.current.clear();
+    settledKeysRef.current.clear();
   }, []);
 
   const maybeGenerate = useCallback(
@@ -92,6 +95,9 @@ export function useTitleGeneration(
       if (keysRef.current.get(sessionId) === requestKey) {
         return;
       }
+      if (settledKeysRef.current.get(sessionId) === requestKey) {
+        return;
+      }
 
       // Cancel any previous attempt for this session (e.g. edited first
       // message) and start fresh. Do NOT touch other sessions — parallel
@@ -101,6 +107,10 @@ export function useTitleGeneration(
       const controller = new AbortController();
       abortsRef.current.set(sessionId, controller);
       keysRef.current.set(sessionId, requestKey);
+
+      const markRequestSettled = () => {
+        settledKeysRef.current.set(sessionId, requestKey);
+      };
 
       const applyTitleResult = (title: string | null) => {
         const currentSession = optionsRef.current.getSessionData(sessionId);
@@ -125,6 +135,7 @@ export function useTitleGeneration(
           title ||
           deriveSessionTitle(currentSession.messages, DEFAULT_SESSION_TITLE);
         if (!resolvedTitle || resolvedTitle === DEFAULT_SESSION_TITLE) {
+          markRequestSettled();
           optionsRef.current.syncSessionSnapshot(
             {
               ...currentSession,
@@ -136,6 +147,7 @@ export function useTitleGeneration(
           return;
         }
 
+        markRequestSettled();
         optionsRef.current.syncSessionSnapshot(
           {
             ...currentSession,

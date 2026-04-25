@@ -15,6 +15,14 @@ jest.mock("../sidepanel/components/AttachmentPreviewList", () => ({
   AttachmentPreviewList: () => null,
 }));
 
+jest.mock("../i18n", () => ({
+  useI18n: () => ({
+    language: "en",
+    setLanguage: jest.fn(),
+    t: (key: string) => key,
+  }),
+}));
+
 jest.mock("../sidepanel/components/ComposerActionMenu", () => ({
   ComposerActionMenu: () => null,
 }));
@@ -28,7 +36,13 @@ jest.mock("../sidepanel/components/HighlightedPromptText", () => ({
 }));
 
 jest.mock("../sidepanel/components/IconButton", () => ({
-  IconButton: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+  IconButton: ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
     <button type="button" onClick={onClick}>
       {children}
     </button>
@@ -48,7 +62,9 @@ const noop = () => {};
 const slashPrompts: SlashPrompt[] = [];
 const models: HuntlyModelInfo[] = [];
 
-function renderComposer(overrides: Partial<React.ComponentProps<typeof Composer>> = {}) {
+function renderComposer(
+  overrides: Partial<React.ComponentProps<typeof Composer>> = {}
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
