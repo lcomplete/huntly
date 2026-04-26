@@ -21,10 +21,23 @@ interface PersistenceAPI {
  * free of ref-juggling for persistence concerns.
  */
 export function useSessionPersistence(): PersistenceAPI {
-  const pendingRef = useRef<SessionData | null>(null);
+  const pendingBySessionRef = useRef<Map<string, SessionData>>(new Map());
   const timerRef = useRef<number | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
   const deletedIdsRef = useRef<Set<string>>(new Set());
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const clearTimerIfIdle = useCallback(() => {
+    if (pendingBySessionRef.current.size === 0) {
+      clearTimer();
+    }
+  }, [clearTimer]);
 
   const enqueueSave = useCallback((session: SessionData): Promise<void> => {
     queueRef.current = queueRef.current
@@ -46,61 +59,59 @@ export function useSessionPersistence(): PersistenceAPI {
   }, []);
 
   const cancelPending = useCallback(() => {
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    pendingRef.current = null;
-  }, []);
+    clearTimer();
+    pendingBySessionRef.current.clear();
+  }, [clearTimer]);
 
   const persist = useCallback(
     (session: SessionData, immediate: boolean) => {
       if (immediate) {
-        cancelPending();
+        pendingBySessionRef.current.delete(session.id);
+        clearTimerIfIdle();
         enqueueSave(session);
         return;
       }
 
-      pendingRef.current = session;
+      pendingBySessionRef.current.set(session.id, session);
       if (timerRef.current !== null) return;
 
       timerRef.current = window.setTimeout(() => {
-        const pending = pendingRef.current;
-        pendingRef.current = null;
+        const pendingSessions = Array.from(pendingBySessionRef.current.values());
+        pendingBySessionRef.current.clear();
         timerRef.current = null;
 
-        if (pending) enqueueSave(pending);
+        pendingSessions.forEach((pendingSession) => {
+          enqueueSave(pendingSession);
+        });
       }, SAVE_DEBOUNCE_MS);
     },
-    [cancelPending, enqueueSave]
+    [clearTimerIfIdle, enqueueSave]
   );
 
   const markDeleted = useCallback(
     (id: string) => {
       deletedIdsRef.current.add(id);
-      if (pendingRef.current?.id === id) {
-        cancelPending();
-      }
+      pendingBySessionRef.current.delete(id);
+      clearTimerIfIdle();
     },
-    [cancelPending]
+    [clearTimerIfIdle]
   );
 
   const flush = useCallback(async () => {
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+    clearTimer();
 
-    const pending = pendingRef.current;
-    pendingRef.current = null;
+    const pendingSessions = Array.from(pendingBySessionRef.current.values());
+    pendingBySessionRef.current.clear();
 
-    if (pending) {
-      await enqueueSave(pending);
+    if (pendingSessions.length > 0) {
+      await Promise.all(
+        pendingSessions.map((pendingSession) => enqueueSave(pendingSession))
+      );
       return;
     }
 
     await queueRef.current.catch(() => undefined);
-  }, [enqueueSave]);
+  }, [clearTimer, enqueueSave]);
 
   useEffect(() => {
     return () => {

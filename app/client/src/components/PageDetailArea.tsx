@@ -1,5 +1,5 @@
 import {useQuery, useQueryClient} from "@tanstack/react-query";
-import {ArticleShortcutControllerApiFactory, PageControllerApiFactory, PageDetail, PageHighlightControllerApiFactory, PageHighlightDto} from "../api";
+import {ArticleShortcutControllerApiFactory, PageControllerApiFactory, PageDetail, PageHighlightControllerApiFactory, PageHighlightDto, PageItem} from "../api";
 import Loading from "../components/Loading";
 import {PageQueryKey} from "../domain/pageQueryKey";
 import * as React from "react";
@@ -13,7 +13,7 @@ import PageOperationButtons, {PageOperateEvent, PageOperation} from "../componen
 import {Box, Chip, CircularProgress, IconButton, Menu, MenuItem, Paper, Snackbar, Tooltip, Typography} from "@mui/material";
 import { useSnackbar } from 'notistack';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
-import {setDocTitle} from "../common/docUtils";
+import {getPageDisplayTitle, setDocTitle} from "../common/docUtils";
 import ScreenSearchDesktopOutlinedIcon from '@mui/icons-material/ScreenSearchDesktopOutlined';
 import ScreenSearchDesktopRoundedIcon from '@mui/icons-material/ScreenSearchDesktopRounded';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -29,6 +29,12 @@ import TableOfContents, { getTocItems } from './TableOfContents';
 import ListIcon from '@mui/icons-material/List';
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import TweetRoot from "./Tweet/TweetRoot";
+import {TweetProperties} from "../interfaces/tweetProperties";
 
 // 引入 TurndownService
 import TurndownService from 'turndown';
@@ -96,7 +102,7 @@ const PageDetailArea = ({
   } = useQuery(queryKey, async () => (await PageControllerApiFactory().getPageDetailByIdUsingGET(id)).data, {
     onSuccess: (data) => {
       if (data && data.page) {
-        setDocTitle(data.page.title);
+        setDocTitle(getPageDisplayTitle(data.page) || t('page:article'));
         if (data.pageContents) {
           const rawContent = data.pageContents.find((content) => content.articleContentCategory === 0);
           setIsFullContent(rawContent != null);
@@ -118,11 +124,119 @@ const PageDetailArea = ({
     siteName = detail.source.siteName;
   }
 
+  const isTweet = detail?.page.contentType === 1 || detail?.page.contentType === 3;
+  const tweetProps = React.useMemo(() => {
+    if (!isTweet || !detail?.page.pageJsonProperties) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(detail.page.pageJsonProperties) as TweetProperties;
+    } catch (parseError) {
+      console.error('Failed to parse tweet properties for page detail', parseError);
+      return null;
+    }
+  }, [detail?.page.pageJsonProperties, isTweet]);
+  const isTweetDetail = isTweet && !!tweetProps;
+  const tweetStatus = React.useMemo(
+    () => (tweetProps?.retweetedTweet || tweetProps || null),
+    [tweetProps]
+  );
+
   const tocItems = React.useMemo(
     () => (detail?.page.content ? getTocItems(detail.page.content) : []),
     [detail?.page.content]
   );
-  const hasToc = tocItems.length > 2;
+  const hasToc = !isTweetDetail && tocItems.length > 2;
+
+  const processedSection = showProcessedSection ? (
+    <Paper elevation={0} className={"p-4 mb-5 bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 transition-all duration-300 rounded-lg"}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center">
+          <div className="mr-2 bg-gradient-to-r from-blue-400 to-cyan-500 p-1.5 rounded-md text-white flex items-center justify-center">
+            <LightbulbOutlinedIcon fontSize="small" />
+          </div>
+          <Typography variant={"body2"} component={"div"} className={"font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-transparent bg-clip-text"}>
+            {processedTitle}
+          </Typography>
+        </div>
+        {isProcessingContent && (
+          <CircularProgress size={18} className="text-cyan-500" />
+        )}
+      </div>
+
+      {/* 错误提示区域 */}
+      {processingError && (
+        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-center">
+            <div className="mr-2 bg-red-500 p-1 rounded-full text-white flex items-center justify-center w-5 h-5">
+              <span className="text-xs">!</span>
+            </div>
+            <Typography variant={"body2"} className="text-red-700">
+              {processingError}
+            </Typography>
+          </div>
+        </div>
+      )}
+
+      <Typography variant={"body2"} component={"div"} className={"markdown-content"}>
+        {isProcessingContent && !processedContent && !processingError ? (
+          <div className="flex flex-col space-y-2 h-12 animate-pulse">
+            <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-full opacity-70"></div>
+            <div className="h-2 bg-gradient-to-r from-sky-100 to-blue-100 rounded-full w-5/6 opacity-70"></div>
+            <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-4/6 opacity-70"></div>
+          </div>
+        ) : processedContent ? (
+          <div className={`prose prose-sm max-w-none`}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                code({node, inline, className, children, ...props}) {
+                  return (
+                    <code className={`${className} bg-gray-100 rounded px-1`} {...props}>
+                      {children}
+                    </code>
+                  )
+                },
+                pre({node, children, ...props}) {
+                  return (
+                    <pre className="bg-gray-100 rounded p-2 overflow-auto" {...props}>
+                      {children}
+                    </pre>
+                  )
+                },
+                table({node, children, ...props}) {
+                  return (
+                    <div className="overflow-auto">
+                      <table className="border-collapse border border-gray-300" {...props}>
+                        {children}
+                      </table>
+                    </div>
+                  )
+                },
+                th({node, children, ...props}) {
+                  return (
+                    <th className="border border-gray-300 px-4 py-2 bg-gray-100" {...props}>
+                      {children}
+                    </th>
+                  )
+                },
+                td({node, children, ...props}) {
+                  return (
+                    <td className="border border-gray-300 px-4 py-2" {...props}>
+                      {children}
+                    </td>
+                  )
+                }
+              }}
+            >
+              {processedContent}
+            </ReactMarkdown>
+          </div>
+        ) : null}
+      </Typography>
+    </Paper>
+  ) : null;
 
   useEffect(() => {
     PageControllerApiFactory().recordReadPageUsingPOST(id).then(() => {
@@ -586,168 +700,117 @@ const PageDetailArea = ({
           </div>
 
           <div className={'pl-4 pr-4 mb-4'}>
-            <article className={styles["markdown-body"]}>
-              <Typography variant={"h1"} sx={{marginBottom: 1}}>
-                <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'!text-inherit'}>
-                  {detail.page.title}
-                </a>
-                {detail.page.contentType === 4 && (
-                  <Chip
-                    icon={<TextSnippetOutlinedIcon style={{fontSize: 16}} />}
-                    label={t('page:snippet')}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      ml: 2,
-                      verticalAlign: 'middle',
-                      height: 22,
-                      fontSize: '12px',
-                      color: 'text.secondary',
-                      borderColor: 'rgba(0, 0, 0, 0.12)',
-                      bgcolor: '#f9fafb',
-                      '& .MuiChip-label': {
-                        px: 0.8,
-                        pb: 0.1
-                      }
-                    }}
-                  />
-                )}
-              </Typography>
+            <article className={isTweetDetail ? undefined : styles["markdown-body"]}>
+              {isTweetDetail ? processedSection : null}
 
-              {/* Site info and time - moved below title */}
-              <div className={'flex items-center gap-2 mb-4 text-sm text-slate-500'}>
-                <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'hover:text-slate-700 transition-colors flex items-center gap-1.5'}>
-                  {iconUrl && (
-                    <CardMedia component={'img'} image={iconUrl}
-                               sx={{ width: 14, height: 14, borderRadius: '2px' }}/>
-                  )}
-                  <span className={'hover:underline'}>{siteName}</span>
-                </a>
-                <span className={'text-slate-300'}>•</span>
-                <span className={'text-slate-400'}>
-                  <SmartMoment dt={detail.page.connectorId ? detail.page.connectedAt : detail.page.createdAt} />
-                </span>
-              </div>
-
-              {showProcessedSection && (
-                <Paper elevation={0} className={"p-4 mb-5 bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 transition-all duration-300 rounded-lg"}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="mr-2 bg-gradient-to-r from-blue-400 to-cyan-500 p-1.5 rounded-md text-white flex items-center justify-center">
-                        <LightbulbOutlinedIcon fontSize="small" />
-                      </div>
-                      <Typography variant={"body2"} component={"div"} className={"font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-transparent bg-clip-text"}>
-                        {processedTitle}
-                      </Typography>
+              {isTweetDetail ? (
+                <div className={'mb-4'}>
+                  <TweetRoot tweetProps={tweetProps} page={detail.page as PageItem}/>
+                  {tweetStatus && (
+                    <div className={'flex items-center flex-wrap mt-3 text-sm text-slate-500'}>
+                      <span className={'mr-5 flex items-center'}>
+                        <CardMedia component={ChatBubbleOutlineIcon} sx={{ width: 16, height: 16 }} />
+                        <span className={'ml-1'}>{tweetStatus.replyCount || 0}</span>
+                      </span>
+                      <span className={'mr-5 flex items-center'}>
+                        <CardMedia component={RepeatIcon} sx={{ width: 16, height: 16 }} />
+                        <span className={'ml-1'}>{(tweetStatus.retweetCount || 0) + (tweetStatus.quoteCount || 0)}</span>
+                      </span>
+                      <span className={'mr-5 flex items-center'}>
+                        <CardMedia component={FavoriteBorderIcon} sx={{ width: 16, height: 16 }} />
+                        <span className={'ml-1'}>{tweetStatus.favoriteCount || 0}</span>
+                      </span>
+                      {tweetStatus.viewCount > 0 && (
+                        <span className={'flex items-center'}>
+                          <CardMedia component={BarChartIcon} sx={{ width: 16, height: 16 }} />
+                          <span className={'ml-1'}>{tweetStatus.viewCount}</span>
+                        </span>
+                      )}
                     </div>
-                    {isProcessingContent && (
-                      <CircularProgress size={18} className="text-cyan-500" />
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Typography variant={"h1"} sx={{marginBottom: 1}}>
+                    <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'!text-inherit'}>
+                      {detail.page.title}
+                    </a>
+                    {detail.page.contentType === 4 && (
+                      <Chip
+                        icon={<TextSnippetOutlinedIcon style={{fontSize: 16}} />}
+                        label={t('page:snippet')}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          ml: 2,
+                          verticalAlign: 'middle',
+                          height: 22,
+                          fontSize: '12px',
+                          color: 'text.secondary',
+                          borderColor: 'rgba(0, 0, 0, 0.12)',
+                          bgcolor: '#f9fafb',
+                          '& .MuiChip-label': {
+                            px: 0.8,
+                            pb: 0.1
+                          }
+                        }}
+                      />
                     )}
-                  </div>
-                  
-                  {/* 错误提示区域 */}
-                  {processingError && (
-                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
-                      <div className="flex items-center">
-                        <div className="mr-2 bg-red-500 p-1 rounded-full text-white flex items-center justify-center w-5 h-5">
-                          <span className="text-xs">!</span>
-                        </div>
-                        <Typography variant={"body2"} className="text-red-700">
-                          {processingError}
-                        </Typography>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <Typography variant={"body2"} component={"div"} className={"markdown-content"}>
-                    {isProcessingContent && !processedContent && !processingError ? (
-                      <div className="flex flex-col space-y-2 h-12 animate-pulse">
-                        <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-full opacity-70"></div>
-                        <div className="h-2 bg-gradient-to-r from-sky-100 to-blue-100 rounded-full w-5/6 opacity-70"></div>
-                        <div className="h-2 bg-gradient-to-r from-blue-100 to-sky-100 rounded-full w-4/6 opacity-70"></div>
-                      </div>
-                    ) : processedContent ? (
-                      <div className={`prose prose-sm max-w-none`}>
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            code({node, inline, className, children, ...props}) {
-                              return (
-                                <code className={`${className} bg-gray-100 rounded px-1`} {...props}>
-                                  {children}
-                                </code>
-                              )
-                            },
-                            pre({node, children, ...props}) {
-                              return (
-                                <pre className="bg-gray-100 rounded p-2 overflow-auto" {...props}>
-                                  {children}
-                                </pre>
-                              )
-                            },
-                            table({node, children, ...props}) {
-                              return (
-                                <div className="overflow-auto">
-                                  <table className="border-collapse border border-gray-300" {...props}>
-                                    {children}
-                                  </table>
-                                </div>
-                              )
-                            },
-                            th({node, children, ...props}) {
-                              return (
-                                <th className="border border-gray-300 px-4 py-2 bg-gray-100" {...props}>
-                                  {children}
-                                </th>
-                              )
-                            },
-                            td({node, children, ...props}) {
-                              return (
-                                <td className="border border-gray-300 px-4 py-2" {...props}>
-                                  {children}
-                                </td>
-                              )
-                            }
-                          }}
-                        >
-                          {processedContent}
-                        </ReactMarkdown>
-                      </div>
-                    ) : null}
                   </Typography>
-                </Paper>
+
+                  {/* Site info and time - moved below title */}
+                  <div className={'flex items-center gap-2 mb-4 text-sm text-slate-500'}>
+                    <a href={detail.page.url} target={"_blank"} rel="noreferrer" className={'hover:text-slate-700 transition-colors flex items-center gap-1.5'}>
+                      {iconUrl && (
+                        <CardMedia component={'img'} image={iconUrl}
+                                   sx={{ width: 14, height: 14, borderRadius: '2px' }}/>
+                      )}
+                      <span className={'hover:underline'}>{siteName}</span>
+                    </a>
+                    <span className={'text-slate-300'}>•</span>
+                    <span className={'text-slate-400'}>
+                      <SmartMoment dt={detail.page.connectorId ? detail.page.connectedAt : detail.page.createdAt} />
+                    </span>
+                  </div>
+                </>
               )}
 
-              {/* 高亮列表组件 */}
-              <PageHighlightList
-                highlights={highlights}
-                onHighlightClick={handleHighlightClick}
-                onHighlightDeleted={refetchHighlights}
-              />
-              
-              {/* 使用高亮文本组件替代原来的HTML内容渲染 */}
-              <Typography variant={"body1"} component={'div'} className="page-content">
-                <TextHighlighter
-                  pageId={detail.page.id || 0}
-                  content={detail.page.content || ''}
-                  highlights={highlights}
-                  onHighlightCreated={handleHighlightCreated}
-                  onHighlightDeleted={handleHighlightDeleted}
-                  showSuccessMessage={(message) => {
-                    enqueueSnackbar(message, {
-                      variant: "success",
-                      anchorOrigin: { vertical: "bottom", horizontal: "center" }
-                    });
-                  }}
-                  showErrorMessage={(message) => {
-                    enqueueSnackbar(message, {
-                      variant: "error",
-                      anchorOrigin: { vertical: "bottom", horizontal: "center" }
-                    });
-                  }}
-                  highlightModeEnabled={highlightMode}
-                />
-              </Typography>
+              {!isTweetDetail ? processedSection : null}
+
+              {!isTweetDetail ? (
+                <>
+                  {/* 高亮列表组件 */}
+                  <PageHighlightList
+                    highlights={highlights}
+                    onHighlightClick={handleHighlightClick}
+                    onHighlightDeleted={refetchHighlights}
+                  />
+
+                  {/* 使用高亮文本组件替代原来的HTML内容渲染 */}
+                  <Typography variant={"body1"} component={'div'} className="page-content">
+                    <TextHighlighter
+                      pageId={detail.page.id || 0}
+                      content={detail.page.content || ''}
+                      highlights={highlights}
+                      onHighlightCreated={handleHighlightCreated}
+                      onHighlightDeleted={handleHighlightDeleted}
+                      showSuccessMessage={(message) => {
+                        enqueueSnackbar(message, {
+                          variant: "success",
+                          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+                        });
+                      }}
+                      showErrorMessage={(message) => {
+                        enqueueSnackbar(message, {
+                          variant: "error",
+                          anchorOrigin: { vertical: "bottom", horizontal: "center" }
+                        });
+                      }}
+                      highlightModeEnabled={highlightMode}
+                    />
+                  </Typography>
+                </>
+              ) : null}
             </article>
           </div>
         </Paper>

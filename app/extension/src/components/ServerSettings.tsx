@@ -15,12 +15,14 @@ import {
   Snackbar,
   Switch,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import LockIcon from '@mui/icons-material/Lock';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -296,6 +298,15 @@ export const ServerSettings: React.FC<ServerSettingsProps> = ({
           >
             {t('server.help')}
           </a>
+          <Tooltip title={t('server.optionalTooltip')} arrow>
+            <IconButton
+              size="small"
+              aria-label={t('server.optionalTooltipLabel')}
+              sx={{ ml: 0.5, p: 0.5, color: 'text.secondary', verticalAlign: 'middle' }}
+            >
+              <HelpOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </p>
       </div>
 

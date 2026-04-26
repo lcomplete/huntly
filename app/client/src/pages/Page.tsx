@@ -11,6 +11,7 @@ import {useQuery} from "@tanstack/react-query";
 import {PageControllerApiFactory} from "../api";
 import {PageQueryKey} from "../domain/pageQueryKey";
 import { useTranslation } from "react-i18next";
+import {getPageDisplayTitle} from "../common/docUtils";
 
 const Page = () => {
   const {id} = useParams<"id">();
@@ -34,8 +35,13 @@ const Page = () => {
     }
   }
 
+  const pageDisplayTitle = React.useMemo(
+    () => getPageDisplayTitle(detail?.page),
+    [detail?.page]
+  );
+
   const articleNavLabel = {
-    labelText: detail?.page?.title || t('page:article'),
+    labelText: pageDisplayTitle || t('page:article'),
     labelIcon: ArticleOutlinedIcon,
   };
 
