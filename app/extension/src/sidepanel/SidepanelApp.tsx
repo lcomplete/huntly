@@ -84,7 +84,11 @@ import {
   getStoredLastMessageId,
 } from "./utils/sessions";
 import { isComposingEnterEvent, useAutosizeTextArea } from "./utils/dom";
-import { extractDroppedPayload, isImageDataUrl } from "./utils/dropPayload";
+import {
+  extractDroppedPayload,
+  isImageDataUrl,
+  isImageFile,
+} from "./utils/dropPayload";
 import type { PendingSidepanelContextCommand } from "./utils/pendingContextCommand";
 import { useSessionPersistence } from "./hooks/useSessionPersistence";
 import { useDragAndDropZone } from "./hooks/useDragAndDropZone";
@@ -892,8 +896,8 @@ export const SidepanelApp: FC = () => {
     });
   }, []);
 
-  const attachFiles = useCallback(async (files: File[] | FileList) => {
-    const selectedFiles = Array.from(files);
+  const attachImages = useCallback(async (files: File[] | FileList) => {
+    const selectedFiles = Array.from(files).filter(isImageFile);
     if (selectedFiles.length === 0) return false;
 
     const parts = await Promise.all(selectedFiles.map(createAttachmentPart));
@@ -903,24 +907,24 @@ export const SidepanelApp: FC = () => {
 
   const handleAttachmentFiles = useCallback(
     (files: File[] | FileList) => {
-      const selectedFiles = Array.from(files);
+      const selectedFiles = Array.from(files).filter(isImageFile);
       if (selectedFiles.length === 0) return;
 
       setAttachmentProcessingLabel(
         selectedFiles.length > 1
-          ? t("sidepanel.processing.attachments")
-          : t("sidepanel.processing.attachment")
+          ? t("sidepanel.processing.images")
+          : t("sidepanel.processing.image")
       );
 
-      void attachFiles(selectedFiles)
+      void attachImages(selectedFiles)
         .catch((error) => {
-          console.error("[SidepanelApp] Failed to read attachment", error);
+          console.error("[SidepanelApp] Failed to read image attachment", error);
         })
         .finally(() => {
           setAttachmentProcessingLabel(null);
         });
     },
-    [attachFiles, t]
+    [attachImages, t]
   );
 
   const addAttachmentFromSource = useCallback(async (source: string) => {
@@ -1015,10 +1019,10 @@ export const SidepanelApp: FC = () => {
         if (files.length > 0) {
           setAttachmentProcessingLabel(
             files.length > 1
-              ? t("sidepanel.processing.droppedFiles")
-              : t("sidepanel.processing.droppedFile")
+              ? t("sidepanel.processing.droppedImages")
+              : t("sidepanel.processing.droppedImage")
           );
-          await attachFiles(files);
+          await attachImages(files);
           return;
         }
 
@@ -1047,7 +1051,7 @@ export const SidepanelApp: FC = () => {
         setAttachmentProcessingLabel(null);
       }
     },
-    [addAttachmentFromSource, attachFiles, t, tabContext?.url]
+    [addAttachmentFromSource, attachImages, t, tabContext?.url]
   );
 
   const { isDraggingOver, handlers: dragHandlers } = useDragAndDropZone({

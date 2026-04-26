@@ -112,7 +112,13 @@ function renderComposer(
     throw new Error("Composer textarea not found");
   }
 
+  const fileInput = container.querySelector('input[type="file"]');
+  if (!(fileInput instanceof HTMLInputElement)) {
+    throw new Error("Composer file input not found");
+  }
+
   return {
+    fileInput,
     textarea,
     cleanup: () => {
       act(() => {
@@ -175,6 +181,40 @@ describe("Composer", () => {
 
     expect(onAttachmentFiles).toHaveBeenCalledWith([pastedImage]);
     expect(dispatchResult).toBe(false);
+
+    cleanup();
+  });
+
+  it("limits the upload picker to images", () => {
+    const { fileInput, cleanup } = renderComposer();
+
+    expect(fileInput.accept).toBe("image/*");
+
+    cleanup();
+  });
+
+  it("keeps non-image file paste behavior unchanged", () => {
+    const onAttachmentFiles = jest.fn();
+    const pastedDocument = new File(["document-bytes"], "notes.pdf", {
+      type: "application/pdf",
+    });
+    const { textarea, cleanup } = renderComposer({ onAttachmentFiles });
+
+    const pasteEvent = createClipboardEvent({
+      items: createDataTransferItemList([
+        {
+          kind: "file",
+          type: pastedDocument.type,
+          getAsFile: () => pastedDocument,
+        } as DataTransferItem,
+      ]),
+      files: createFileList([pastedDocument]),
+    });
+
+    const dispatchResult = textarea.dispatchEvent(pasteEvent);
+
+    expect(onAttachmentFiles).not.toHaveBeenCalled();
+    expect(dispatchResult).toBe(true);
 
     cleanup();
   });

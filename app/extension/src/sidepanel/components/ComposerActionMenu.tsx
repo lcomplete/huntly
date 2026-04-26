@@ -6,7 +6,7 @@ import {
   useState,
   type FC,
 } from "react";
-import { Paperclip, Plus, Sparkles } from "lucide-react";
+import { ImagePlus, Plus, Sparkles } from "lucide-react";
 import type { SlashPrompt } from "../types";
 import { getFocusableElements, useOutsideClick } from "../utils/dom";
 import { IconButton } from "./IconButton";
@@ -85,8 +85,10 @@ export const ComposerActionMenu: FC<ComposerActionMenuProps> = ({
                 setOpen(false);
               }}
             >
-              <Paperclip className="size-4 shrink-0 text-[#6f6254]" />
-              <span className="font-medium">{t("sidepanel.actionMenu.addFiles")}</span>
+              <ImagePlus className="size-4 shrink-0 text-[#6f6254]" />
+              <span className="font-medium">
+                {t("sidepanel.actionMenu.addImages")}
+              </span>
             </button>
           </div>
 

@@ -2,6 +2,7 @@ import { useMemo, useRef, type FC } from "react";
 import { ArrowUp, History, Square, SquarePen } from "lucide-react";
 import type { ChatPart, HuntlyModelInfo, SlashPrompt } from "../types";
 import type { TabContext } from "../utils/tabContext";
+import { isImageFile } from "../utils/dropPayload";
 import { getTriggeredPromptPrefix } from "../utils/messageParts";
 import { AttachmentPreviewList } from "./AttachmentPreviewList";
 import { ComposerActionMenu } from "./ComposerActionMenu";
@@ -20,17 +21,15 @@ function getPastedImageFiles(
   }
 
   const filesFromItems = Array.from(clipboardData.items || [])
-    .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+    .filter((item) => item.kind === "file")
     .map((item) => item.getAsFile())
-    .filter((file): file is File => Boolean(file));
+    .filter((file): file is File => Boolean(file && isImageFile(file)));
 
   if (filesFromItems.length > 0) {
     return filesFromItems;
   }
 
-  return Array.from(clipboardData.files || []).filter((file) =>
-    file.type.startsWith("image/")
-  );
+  return Array.from(clipboardData.files || []).filter(isImageFile);
 }
 
 interface ComposerProps {
@@ -183,6 +182,7 @@ export const Composer: FC<ComposerProps> = ({
         <input
           ref={fileInputRef}
           type="file"
+          accept="image/*"
           className="hidden"
           multiple
           onChange={(event) => {

@@ -64,6 +64,10 @@ type PendingSidepanelContextCommand = {
       page: PendingSelectionPageContext;
     }
 );
+type SidepanelContextCommandResponse = {
+  success?: boolean;
+  commandId?: string | null;
+};
 const pendingSidepanelContextCommands =
   new Map<number, PendingSidepanelContextCommand[]>();
 const SAVED_BADGE_TEXT = "✓";
@@ -903,17 +907,17 @@ const CONTEXT_MENU_SIDE_PANEL_PAGE = "huntly_side_panel_page";
 const CONTEXT_MENU_SIDE_PANEL_IMAGE = "huntly_side_panel_image";
 const CONTEXT_MENU_READING_MODE_ACTION = "huntly_reading_mode_action";
 const CONTEXT_MENU_SIDE_PANEL_ACTION = "huntly_side_panel_action";
-const CONTEXT_MENU_PAGE_CONTEXTS: chrome.contextMenus.ContextType[] = [
+const CONTEXT_MENU_PAGE_CONTEXTS: string[] = [
   "page",
   "selection",
 ];
-const CONTEXT_MENU_IMAGE_CONTEXTS: chrome.contextMenus.ContextType[] = [
+const CONTEXT_MENU_IMAGE_CONTEXTS: string[] = [
   "image",
 ];
-const CONTEXT_MENU_ACTION_CONTEXTS: chrome.contextMenus.ContextType[] = [
+const CONTEXT_MENU_ACTION_CONTEXTS: string[] = [
   "action",
 ];
-const CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS: chrome.contextMenus.ContextType[] = [
+const CONTEXT_MENU_PAGE_AND_IMAGE_CONTEXTS: string[] = [
   ...CONTEXT_MENU_PAGE_CONTEXTS,
   ...CONTEXT_MENU_IMAGE_CONTEXTS,
 ];
@@ -1073,13 +1077,13 @@ async function handleImageSidePanelContextMenuClick(
   }
 
   try {
-    const response = await chrome.runtime.sendMessage({
+    const response = (await chrome.runtime.sendMessage({
       type: "sidepanel_context_menu_command",
       payload: {
         command,
         windowId: targetTab.windowId,
       },
-    });
+    })) as unknown as SidepanelContextCommandResponse | undefined;
 
     if (response?.success && response.commandId === command.id) {
       return;
@@ -1147,13 +1151,13 @@ async function handlePageSidePanelContextMenuClick(
   }
 
   try {
-    const response = await chrome.runtime.sendMessage({
+    const response = (await chrome.runtime.sendMessage({
       type: "sidepanel_context_menu_command",
       payload: {
         command,
         windowId: targetTab.windowId,
       },
-    });
+    })) as unknown as SidepanelContextCommandResponse | undefined;
 
     if (response?.success && response.commandId === command.id) {
       return;

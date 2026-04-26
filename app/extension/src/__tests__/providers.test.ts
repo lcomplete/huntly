@@ -3,7 +3,7 @@ import {
   getOllamaBaseUrl,
   getOllamaOpenAIBaseUrl,
 } from "../ai/openAICompatibleProviders";
-import { getEffectiveApiFormat } from "../ai/types";
+import { getEffectiveApiFormat, PROVIDER_REGISTRY } from "../ai/types";
 
 describe("providers helpers", () => {
   it("returns configured or default OpenAI-compatible base url", () => {
@@ -63,5 +63,14 @@ describe("providers helpers", () => {
     expect(
       getEffectiveApiFormat({ type: "openai", apiFormat: "anthropic" })
     ).toBe("openai");
+  });
+
+  it("includes DeepSeek V4 preset models without changing the existing default", () => {
+    expect(PROVIDER_REGISTRY.deepseek.defaultModels.map((model) => model.id)).toEqual([
+      "deepseek-chat",
+      "deepseek-reasoner",
+      "deepseek-v4-flash",
+      "deepseek-v4-pro",
+    ]);
   });
 });

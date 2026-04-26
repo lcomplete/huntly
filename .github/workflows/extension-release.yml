@@ -66,26 +66,58 @@ jobs:
           cache-dependency-path: "app/extension/yarn.lock"
 
       - name: Setup yarn
-        run: npm install -g yarn --version 1.22.19
+        run: npm install -g yarn@1.22.19
 
       - name: Install extension dependencies
         run: |
           cd app/extension
-          yarn install
+          yarn install --frozen-lockfile
 
-      - name: Create extension bundle (Chrome)
+      - name: Typecheck extension
         run: |
           cd app/extension
-          yarn build
+          yarn typecheck
+
+      - name: Create extension package (Chrome)
+        run: |
+          cd app/extension
+          yarn zip
         env:
           CI: false
+          EXTENSION_VERSION: ${{ needs.create-release.outputs.version }}
+
+      - name: Verify extension package
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import zipfile
+
+          version = os.environ["EXTENSION_VERSION"]
+          manifest_path = "app/extension/dist/manifest.json"
+          zip_path = f"app/extension/dist/huntly-{version}-chrome.zip"
+
+          with open(manifest_path, encoding="utf-8") as manifest_file:
+              manifest = json.load(manifest_file)
+
+          if manifest.get("version") != version:
+              raise SystemExit(
+                  f"Manifest version {manifest.get('version')} does not match tag version {version}"
+              )
+
+          with zipfile.ZipFile(zip_path) as archive:
+              names = set(archive.namelist())
+              if "manifest.json" not in names:
+                  raise SystemExit("Extension zip must contain manifest.json at the archive root")
+          PY
+        env:
           EXTENSION_VERSION: ${{ needs.create-release.outputs.version }}
 
       - name: Package release files
         run: |
           mkdir -p release
-          cd app/extension
-          zip -r ../../release/huntly-chrome-extension-${{ needs.create-release.outputs.version }}.zip ./dist/*
+          cp app/extension/dist/huntly-${{ needs.create-release.outputs.version }}-chrome.zip \
+            release/huntly-chrome-extension-${{ needs.create-release.outputs.version }}.zip
 
       - name: Upload Chrome extension to release
         uses: actions/upload-release-asset@v1

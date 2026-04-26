@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState, type DragEvent } from "react";
 
-import { DROPPABLE_STRING_TYPES } from "../utils/dropPayload";
+import { DROPPABLE_STRING_TYPES, isImageFile } from "../utils/dropPayload";
 
 interface UseDragAndDropZoneOptions {
   /**
@@ -23,6 +23,13 @@ export interface DragZoneHandlers {
 interface UseDragAndDropZoneResult {
   isDraggingOver: boolean;
   handlers: DragZoneHandlers;
+}
+
+function isImageDataTransferItem(item: DataTransferItem): boolean {
+  if (item.kind !== "file") return false;
+  const file = item.getAsFile();
+  if (file) return isImageFile(file);
+  return item.type ? item.type.startsWith("image/") : true;
 }
 
 /**
@@ -49,7 +56,7 @@ export function useDragAndDropZone(
       if (items.length > 0) {
         return items.some(
           (item) =>
-            item.kind === "file" ||
+            isImageDataTransferItem(item) ||
             (item.kind === "string" && DROPPABLE_STRING_TYPES.has(item.type))
         );
       }

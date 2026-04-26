@@ -1,6 +1,6 @@
 {
   "name": "huntly",
-  "version": "1.0.0",
+  "version": "0.5.5",
   "description": "Huntly - Automatic saving browsed contents",
   "main": "index.js",
   "scripts": {

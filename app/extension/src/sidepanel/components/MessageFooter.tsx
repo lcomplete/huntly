@@ -16,14 +16,15 @@ function parseMessageDate(value?: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function formatFooterDate(value?: string): {
+type FooterDateLabels = {
   shortLabel: string;
   fullLabel: string;
-} | null;
-function formatFooterDate(value: string | undefined, language: string): {
-  shortLabel: string;
-  fullLabel: string;
-} | null {
+};
+
+function formatFooterDate(
+  value: string | undefined,
+  language: string
+): FooterDateLabels | null {
   const parsed = parseMessageDate(value);
   if (!parsed) return null;
 

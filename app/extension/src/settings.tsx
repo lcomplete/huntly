@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import './options.css';
 import {Alert, Button, Divider, FormControlLabel, IconButton, Snackbar, Switch, TextField} from "@mui/material";
 import * as yup from 'yup';
-import {FieldArray, Form, Formik, getIn} from "formik";
+import {FieldArray, Formik, getIn} from "formik";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from '@mui/icons-material/Add';
 import {ContentParserType, readSyncStorageSettings, ServerUrlItem, StorageSettings, DefaultStorageSettings} from "./storage";
@@ -94,8 +94,8 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
               }
             );
           }}>
-          {({values, touched, errors, handleChange, handleBlur, isValid}) => (
-            <Form noValidate autoComplete="off">
+          {({values, touched, errors, handleChange, handleBlur, handleSubmit, isValid}) => (
+            <form noValidate autoComplete="off" onSubmit={handleSubmit}>
               <FieldArray name="settings">
                 {({push, remove}) => (
                   <div>
@@ -192,7 +192,7 @@ export const Settings = ({onOptionsChange}: SettingsProps) => {
               >
                 save
               </Button>
-            </Form>
+            </form>
           )}
         </Formik>}
 

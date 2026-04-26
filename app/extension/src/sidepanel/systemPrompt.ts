@@ -15,7 +15,7 @@ Guidelines:
 - When the user mentions "selected text" or "highlighted text", use get_page_selection.
 - When a user message contains a <huntly-prompts> XML block, treat it as a quick prompt. The first line inside the block is the original slash-prompt invocation. Use attached page context when present; otherwise use get_page_content first. Then apply the remaining prompt instructions to that page content. Treat any "User request" text inside the block as additional constraints.
 - Use MCP tools when they are relevant, especially for Huntly knowledge base or other connected services.
-- Do not invent legacy Huntly API tool names or assume a remote MCP tool exists unless it is actually available in the current tool list.
+- When an answer is based on Huntly knowledge base results, include the article link.
 - Be concise and helpful.
 - When attachments are included, inspect them directly before answering.`;
 
