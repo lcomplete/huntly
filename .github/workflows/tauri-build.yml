@@ -1,40 +1,49 @@
 name: huntly tauri build workflow
 
 on:
-  # This line enables manual triggering of this workflow.
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20.10.0"
+  YARN_VERSION: "1.22.19"
+  JDK_VERSION: "11"
 
 jobs:
   build-server-jar:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set Node.js (client)
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "20.10.0"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
           cache-dependency-path: "app/client/yarn.lock"
 
       - name: Setup yarn
-        run: npm install -g yarn --version 1.22.19
+        run: npm install -g yarn@${{ env.YARN_VERSION }}
 
       - name: Build client
         run: |
           cd app/client
           yarn install --frozen-lockfile
           yarn build
+        env:
+          CI: false
 
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: ${{ env.JDK_VERSION }}
           distribution: "temurin"
 
       - name: Cache maven dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: cache-maven-dependencies
         with:
@@ -45,7 +54,7 @@ jobs:
       - name: Build server jar
         run: |
           cd app/server
-          mvn -B clean package
+          ./mvnw -B clean package
         env:
           CI: false
 
@@ -53,11 +62,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: huntly-server-jar
-          path: app/server/huntly-server/target/huntly-*.jar
+          path: app/server/huntly-server/target/huntly-server-*.jar
+          if-no-files-found: error
 
   tauri-build:
-    permissions:
-      contents: write
     needs: build-server-jar
     strategy:
       fail-fast: false
@@ -66,7 +74,7 @@ jobs:
           - platform: macos-14
             tauri_target: aarch64-apple-darwin
           - platform: windows-2022
-            tauri_target: i686-pc-windows-msvc
+            tauri_target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
     defaults:
       run:
@@ -74,7 +82,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
@@ -88,24 +96,24 @@ jobs:
         run: rustup target add ${{ matrix.tauri_target }}
 
       - name: Set Node.js (tauri)
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "20.10.0"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
           cache-dependency-path: "app/tauri/yarn.lock"
 
       - name: Setup yarn
-        run: npm install -g yarn --version 1.22.19
+        run: npm install -g yarn@${{ env.YARN_VERSION }}
 
       - name: Install tauri dependencies
         run: |
           cd app/tauri
           yarn install --frozen-lockfile
 
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: ${{ env.JDK_VERSION }}
           distribution: "temurin"
 
       - name: Download server jar
@@ -114,22 +122,46 @@ jobs:
           name: huntly-server-jar
           path: app/tauri/src-tauri/server_bin
 
-      - name: Move to server_bin
+      - name: Move server jar into bundle resources
         run: |
-          mv app/tauri/src-tauri/server_bin/huntly-*.jar app/tauri/src-tauri/server_bin/huntly-server.jar
+          jar_path=$(find app/tauri/src-tauri/server_bin -name 'huntly-server-*.jar' -not -name '*.original' | head -n 1)
+          if [ -z "$jar_path" ]; then
+            echo "No huntly-server jar found"
+            exit 1
+          fi
+          mv "$jar_path" app/tauri/src-tauri/server_bin/huntly-server.jar
 
-      - name: jlink
+      - name: Build embedded JRE
         run: |
-          cd app/tauri/src-tauri/server_bin/
-          jlink --module-path $JAVA_HOME/jmods --add-modules java.compiler,java.sql,java.naming,java.management,java.instrument,java.rmi,java.desktop,jdk.internal.vm.compiler.management,java.xml.crypto,java.scripting,java.security.jgss,jdk.httpserver,java.net.http,jdk.naming.dns,jdk.crypto.cryptoki,jdk.unsupported --verbose --strip-debug --compress 2 --no-header-files --no-man-pages --output jre11
+          cd app/tauri/src-tauri/server_bin
+          rm -rf jre11
+          jlink --module-path "$JAVA_HOME/jmods" --add-modules java.compiler,java.sql,java.naming,java.management,java.instrument,java.rmi,java.desktop,jdk.internal.vm.compiler.management,java.xml.crypto,java.scripting,java.security.jgss,jdk.httpserver,java.net.http,jdk.naming.dns,jdk.crypto.cryptoki,jdk.unsupported --strip-debug --compress 2 --no-header-files --no-man-pages --output jre11
+
+      - name: Prepare Tauri config
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          import os
+
+          pubkey = os.environ.get("TAURI_UPDATER_PUBKEY", "")
+          updater = {"active": False} if not pubkey else {"pubkey": pubkey}
+          config = {"plugins": {"updater": updater}}
+
+          print("TAURI_CONFIG<<EOF")
+          print(json.dumps(config))
+          print("EOF")
+          PY
+        env:
+          TAURI_UPDATER_PUBKEY: ${{ secrets[format('TAURI_{0}', 'UPDATER_PUBKEY')] }}
 
       - name: Build the app
         run: |
           cd app/tauri
-          yarn tauri build --target ${{ matrix.tauri_target }}
+          yarn tauri:build --target ${{ matrix.tauri_target }}
 
       - name: Upload the build artifact
         uses: actions/upload-artifact@v4
         with:
           name: tauri-build-${{ matrix.platform }}
           path: app/tauri/src-tauri/target/${{ matrix.tauri_target }}/release/bundle
+          if-no-files-found: error

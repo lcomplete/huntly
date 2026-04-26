@@ -58,7 +58,7 @@
       "dialog": false,
       "pubkey": "",
       "endpoints": [
-        "https://github.com/lcomplete/huntly/releases/latest/download/latest.json"
+        "https://github.com/lcomplete/huntly/releases/download/tauri%2Flatest/latest.json"
       ]
     }
   }

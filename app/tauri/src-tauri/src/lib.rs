@@ -1,26 +1,32 @@
 use reqwest::StatusCode;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 use std::sync::Mutex;
-use tauri::{
-    command, AppHandle,
-    menu::{MenuBuilder, MenuItemBuilder},
-    tray::{MouseButton, MouseButtonState, TrayIconEvent},
-    Manager, RunEvent, WindowEvent,
-};
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
+use tauri::{
+    command,
+    menu::{MenuBuilder, MenuItemBuilder},
+    tray::{MouseButton, MouseButtonState, TrayIconEvent},
+    AppHandle, Manager, RunEvent, WindowEvent,
+};
 use tauri_plugin_autostart::MacosLauncher;
-
 
 #[macro_use]
 extern crate lazy_static;
 
-
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
+const SERVER_JAR_FILE_NAME: &str = "huntly-server.jar";
+const SERVER_JAR_RESOURCE_PATH: &str = "server_bin/huntly-server.jar";
+const SERVER_JAR_DATA_DIR: &str = "server_bin";
+const GITHUB_RELEASES_API: &str =
+    "https://api.github.com/repos/lcomplete/huntly/releases?per_page=100";
+const GITHUB_USER_AGENT: &str = "Huntly-Tauri";
 
 lazy_static! {
     static ref SPRING_BOOT_PROCESS: Mutex<Option<Child>> = Mutex::new(None);
@@ -34,6 +40,8 @@ struct Settings {
     auto_start_up: bool,
     #[serde(default = "default_auto_update")]
     auto_update: bool,
+    #[serde(default = "default_server_auto_update")]
+    server_auto_update: bool,
     #[serde(default = "default_show_tray_icon")]
     show_tray_icon: bool,
     #[serde(default = "default_show_dock_icon")]
@@ -52,6 +60,10 @@ fn default_auto_update() -> bool {
     false
 }
 
+fn default_server_auto_update() -> bool {
+    false
+}
+
 fn default_show_dock_icon() -> bool {
     true
 }
@@ -62,6 +74,47 @@ struct ServerInfo {
     java_version: Option<String>,
     jar_path: Option<String>,
     java_path: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct ServerUpdateInfo {
+    current_version: Option<String>,
+    latest_version: Option<String>,
+    latest_tag: Option<String>,
+    available: bool,
+    notes: Option<String>,
+    date: Option<String>,
+    asset_name: Option<String>,
+    asset_size: Option<u64>,
+    release_url: Option<String>,
+}
+
+#[derive(Clone)]
+struct ServerRelease {
+    version: String,
+    tag_name: String,
+    notes: Option<String>,
+    published_at: Option<String>,
+    html_url: Option<String>,
+    asset: GithubReleaseAsset,
+}
+
+#[derive(serde::Deserialize)]
+struct GithubRelease {
+    tag_name: String,
+    draft: bool,
+    prerelease: bool,
+    body: Option<String>,
+    published_at: Option<String>,
+    html_url: Option<String>,
+    assets: Vec<GithubReleaseAsset>,
+}
+
+#[derive(Clone, serde::Deserialize)]
+struct GithubReleaseAsset {
+    name: String,
+    browser_download_url: String,
+    size: Option<u64>,
 }
 
 fn show_main_window(app: &AppHandle) {
@@ -110,6 +163,7 @@ fn get_default_settings() -> Settings {
         listen_public: false,
         auto_start_up: false,
         auto_update: false,
+        server_auto_update: false,
         show_tray_icon: true,
         show_dock_icon: true,
     }
@@ -145,16 +199,7 @@ fn has_server_jar(app: AppHandle) -> bool {
 }
 
 fn server_jar_exists(app: &AppHandle) -> bool {
-    if server_jar_disabled_by_env() {
-        return false;
-    }
-    app.path()
-        .resolve(
-            "server_bin/huntly-server.jar",
-            tauri::path::BaseDirectory::Resource,
-        )
-        .map(|p| p.exists())
-        .unwrap_or(false)
+    active_server_jar_path(app).is_some()
 }
 
 fn server_jar_disabled_by_env() -> bool {
@@ -166,74 +211,300 @@ fn server_jar_disabled_by_env() -> bool {
 
 #[command]
 fn get_server_info(app: AppHandle) -> ServerInfo {
+    collect_server_info(&app)
+}
+
+fn collect_server_info(app: &AppHandle) -> ServerInfo {
+    let java_path_buf = active_java_path(app);
+    let jar_path_buf = active_server_jar_path(app);
+
+    let java_version = java_path_buf.as_ref().and_then(read_java_version);
+    let jar_version = jar_path_buf.as_ref().and_then(read_server_jar_version);
+
+    ServerInfo {
+        jar_version,
+        java_version,
+        jar_path: jar_path_buf.as_ref().map(canonicalize),
+        java_path: java_path_buf.as_ref().map(canonicalize),
+    }
+}
+
+fn active_java_path(app: &AppHandle) -> Option<PathBuf> {
     let mut java_resource_path = "server_bin/jre11/bin/java.exe";
     if cfg!(not(target_os = "windows")) {
         java_resource_path = "server_bin/jre11/bin/java";
     }
 
-    let java_path = app
-        .path()
+    app.path()
         .resolve(java_resource_path, tauri::path::BaseDirectory::Resource)
         .ok()
         .filter(|p| p.exists())
-        .map(|p| canonicalize(&p));
+}
 
-    let jar_path = app
-        .path()
+fn active_server_jar_path(app: &AppHandle) -> Option<PathBuf> {
+    if server_jar_disabled_by_env() {
+        return None;
+    }
+
+    if let Ok(app_data_dir) = app.path().app_data_dir() {
+        let writable_jar = app_data_dir
+            .join(SERVER_JAR_DATA_DIR)
+            .join(SERVER_JAR_FILE_NAME);
+        if writable_jar.exists() {
+            return Some(writable_jar);
+        }
+    }
+
+    app.path()
         .resolve(
-            "server_bin/huntly-server.jar",
+            SERVER_JAR_RESOURCE_PATH,
             tauri::path::BaseDirectory::Resource,
         )
         .ok()
         .filter(|p| p.exists())
-        .map(|p| canonicalize(&p));
+}
 
-    // Get Java version by running java -version
-    let java_version = java_path.as_ref().and_then(|jp| {
-        let output = Command::new(jp)
-            .arg("-version")
-            .output()
-            .ok()?;
-        // java -version outputs to stderr
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        // Parse version from first line, e.g. "openjdk version \"11.0.21\" 2023-10-17"
-        stderr
-            .lines()
-            .next()
-            .and_then(|line| {
-                if let Some(start) = line.find('"') {
-                    if let Some(end) = line[start + 1..].find('"') {
-                        return Some(line[start + 1..start + 1 + end].to_string());
-                    }
-                }
-                None
-            })
-    });
+fn writable_server_jar_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let server_bin_dir = app_data_dir.join(SERVER_JAR_DATA_DIR);
+    std::fs::create_dir_all(&server_bin_dir).map_err(|e| e.to_string())?;
+    Ok(server_bin_dir.join(SERVER_JAR_FILE_NAME))
+}
 
-    // Get JAR version from MANIFEST.MF (Implementation-Version)
-    let jar_version = jar_path.as_ref().and_then(|jp| {
-        use std::fs::File;
-        use std::io::{BufRead, BufReader};
-        use zip::ZipArchive;
-
-        let file = File::open(jp).ok()?;
-        let mut archive = ZipArchive::new(file).ok()?;
-        let manifest = archive.by_name("META-INF/MANIFEST.MF").ok()?;
-        let reader = BufReader::new(manifest);
-        for line in reader.lines().map_while(Result::ok) {
-            if line.starts_with("Implementation-Version:") {
-                return Some(line.replace("Implementation-Version:", "").trim().to_string());
+fn read_java_version(java_path: &PathBuf) -> Option<String> {
+    let output = Command::new(java_path).arg("-version").output().ok()?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    stderr.lines().next().and_then(|line| {
+        if let Some(start) = line.find('"') {
+            if let Some(end) = line[start + 1..].find('"') {
+                return Some(line[start + 1..start + 1 + end].to_string());
             }
         }
         None
-    });
+    })
+}
 
-    ServerInfo {
-        jar_version,
-        java_version,
-        jar_path,
-        java_path,
+fn read_server_jar_version(jar_path: &PathBuf) -> Option<String> {
+    use zip::ZipArchive;
+
+    let file = File::open(jar_path).ok()?;
+    let mut archive = ZipArchive::new(file).ok()?;
+
+    if let Ok(manifest) = archive.by_name("META-INF/MANIFEST.MF") {
+        let reader = BufReader::new(manifest);
+        for line in reader.lines().map_while(Result::ok) {
+            if let Some(version) = line.strip_prefix("Implementation-Version:") {
+                return Some(version.trim().to_string());
+            }
+        }
     }
+
+    if let Ok(properties) =
+        archive.by_name("META-INF/maven/com.huntly/huntly-server/pom.properties")
+    {
+        let reader = BufReader::new(properties);
+        for line in reader.lines().map_while(Result::ok) {
+            if let Some(version) = line.strip_prefix("version=") {
+                return Some(version.trim().to_string());
+            }
+        }
+    }
+
+    None
+}
+
+#[command]
+async fn check_server_update(app: AppHandle) -> Result<ServerUpdateInfo, String> {
+    let current_version =
+        active_server_jar_path(&app).and_then(|path| read_server_jar_version(&path));
+    let release = fetch_latest_server_release().await?;
+    let available = current_version
+        .as_deref()
+        .map(|current| is_version_newer(&release.version, current))
+        .unwrap_or(true);
+
+    Ok(ServerUpdateInfo {
+        current_version,
+        latest_version: Some(release.version),
+        latest_tag: Some(release.tag_name),
+        available,
+        notes: release.notes,
+        date: release.published_at,
+        asset_name: Some(release.asset.name),
+        asset_size: release.asset.size,
+        release_url: release.html_url,
+    })
+}
+
+#[command]
+async fn install_server_update(app: AppHandle) -> Result<ServerInfo, String> {
+    if server_jar_disabled_by_env() {
+        return Err("Server bundle updates are disabled by HUNTLY_NO_SERVER_JAR.".to_string());
+    }
+
+    let current_version =
+        active_server_jar_path(&app).and_then(|path| read_server_jar_version(&path));
+    let release = fetch_latest_server_release().await?;
+    let available = current_version
+        .as_deref()
+        .map(|current| is_version_newer(&release.version, current))
+        .unwrap_or(true);
+
+    if !available {
+        return Ok(collect_server_info(&app));
+    }
+
+    let client = github_client()?;
+    let bytes = client
+        .get(&release.asset.browser_download_url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?
+        .bytes()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let dest_path = writable_server_jar_path(&app)?;
+    let temp_path = dest_path.with_extension("jar.download");
+    let backup_path = dest_path.with_extension("jar.bak");
+
+    std::fs::write(&temp_path, bytes.as_ref()).map_err(|e| e.to_string())?;
+
+    let downloaded_version = read_server_jar_version(&temp_path)
+        .ok_or_else(|| "Downloaded server JAR does not include version metadata.".to_string())?;
+    if normalize_version(&downloaded_version) != normalize_version(&release.version) {
+        let _ = std::fs::remove_file(&temp_path);
+        return Err(format!(
+            "Downloaded server JAR version {} does not match release version {}.",
+            downloaded_version, release.version
+        ));
+    }
+
+    if backup_path.exists() {
+        std::fs::remove_file(&backup_path).map_err(|e| e.to_string())?;
+    }
+    if dest_path.exists() {
+        std::fs::rename(&dest_path, &backup_path).map_err(|e| e.to_string())?;
+    }
+
+    if let Err(e) = std::fs::rename(&temp_path, &dest_path) {
+        if backup_path.exists() {
+            let _ = std::fs::rename(&backup_path, &dest_path);
+        }
+        let _ = std::fs::remove_file(&temp_path);
+        return Err(e.to_string());
+    }
+
+    if backup_path.exists() {
+        let _ = std::fs::remove_file(&backup_path);
+    }
+
+    Ok(collect_server_info(&app))
+}
+
+async fn fetch_latest_server_release() -> Result<ServerRelease, String> {
+    let client = github_client()?;
+    let releases: Vec<GithubRelease> = client
+        .get(GITHUB_RELEASES_API)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    releases
+        .into_iter()
+        .find_map(main_server_release)
+        .ok_or_else(|| "No main Huntly release with a server JAR asset was found.".to_string())
+}
+
+fn github_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .user_agent(GITHUB_USER_AGENT)
+        .build()
+        .map_err(|e| e.to_string())
+}
+
+fn main_server_release(release: GithubRelease) -> Option<ServerRelease> {
+    if release.draft || release.prerelease {
+        return None;
+    }
+
+    let version = main_release_version(&release.tag_name)?;
+    let asset = release
+        .assets
+        .into_iter()
+        .find(|asset| is_server_jar_asset(&asset.name, &version))?;
+
+    Some(ServerRelease {
+        version,
+        tag_name: release.tag_name,
+        notes: release.body,
+        published_at: release.published_at,
+        html_url: release.html_url,
+        asset,
+    })
+}
+
+fn main_release_version(tag_name: &str) -> Option<String> {
+    if tag_name.contains('/') {
+        return None;
+    }
+    let version = tag_name.strip_prefix('v')?;
+    let version_parts: Vec<&str> = version.split('.').collect();
+    if version_parts.len() < 3
+        || !version_parts.iter().take(3).all(|part| {
+            part.chars()
+                .next()
+                .map(|ch| ch.is_ascii_digit())
+                .unwrap_or(false)
+        })
+    {
+        return None;
+    }
+    Some(version.to_string())
+}
+
+fn is_server_jar_asset(asset_name: &str, version: &str) -> bool {
+    asset_name == SERVER_JAR_FILE_NAME
+        || asset_name == format!("huntly-server-{}.jar", version)
+        || (asset_name.starts_with("huntly-server-") && asset_name.ends_with(".jar"))
+}
+
+fn normalize_version(version: &str) -> String {
+    version.trim().trim_start_matches('v').to_string()
+}
+
+fn is_version_newer(latest: &str, current: &str) -> bool {
+    let latest_parts = version_numbers(latest);
+    let current_parts = version_numbers(current);
+    let max_len = latest_parts.len().max(current_parts.len()).max(3);
+
+    for index in 0..max_len {
+        let latest_part = *latest_parts.get(index).unwrap_or(&0);
+        let current_part = *current_parts.get(index).unwrap_or(&0);
+        if latest_part > current_part {
+            return true;
+        }
+        if latest_part < current_part {
+            return false;
+        }
+    }
+
+    false
+}
+
+fn version_numbers(version: &str) -> Vec<u64> {
+    normalize_version(version)
+        .split(|ch: char| !ch.is_ascii_digit())
+        .filter(|part| !part.is_empty())
+        .filter_map(|part| part.parse::<u64>().ok())
+        .collect()
 }
 
 #[command]
@@ -249,9 +520,9 @@ fn set_dock_visible(app: AppHandle, visible: bool) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         if visible {
-            app.set_activation_policy(ActivationPolicy::Regular);
+            let _ = app.set_activation_policy(ActivationPolicy::Regular);
         } else {
-            app.set_activation_policy(ActivationPolicy::Accessory);
+            let _ = app.set_activation_policy(ActivationPolicy::Accessory);
         }
     }
     #[cfg(not(target_os = "macos"))]
@@ -320,30 +591,18 @@ fn handle_start_server(app: &AppHandle) -> Result<(), String> {
     } else {
         "127.0.0.1"
     };
-    let mut java_resource_path = "server_bin/jre11/bin/java.exe";
-    if cfg!(not(target_os = "windows")) {
-        java_resource_path = "server_bin/jre11/bin/java";
-    }
-    let java_path = app
-        .path()
-        .resolve(java_resource_path, tauri::path::BaseDirectory::Resource)
-        .map_err(|e| e.to_string())?;
-    let file_path = app
-        .path()
-        .resolve(
-            "server_bin/huntly-server.jar",
-            tauri::path::BaseDirectory::Resource,
-        )
-        .map_err(|e| e.to_string())?;
+    let java_path =
+        active_java_path(app).ok_or_else(|| "Embedded Java runtime not found.".to_string())?;
+    let file_path = active_server_jar_path(app).ok_or_else(|| {
+        "Server bundle not found. This desktop client was built without the Huntly server."
+            .to_string()
+    })?;
 
     if server_jar_disabled_by_env() || !file_path.exists() {
         return Err(
             "Server bundle not found. This desktop client was built without the Huntly server."
                 .to_string(),
         );
-    }
-    if !java_path.exists() {
-        return Err("Embedded Java runtime not found.".to_string());
     }
 
     println!("java path:{}", canonicalize(&java_path));
@@ -564,40 +823,38 @@ fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tray.set_menu(Some(menu))?;
         tray.set_show_menu_on_left_click(false)?;
 
-        tray.on_menu_event(move |app, event| {
-            match event.id().as_ref() {
-                "config" => {
-                    show_main_window(app);
-                }
-                "open" => {
-                    open_server_url_internal(app);
-                }
-                "open_dir" => {
-                    if let Err(e) = open_data_dir_internal(app) {
-                        eprintln!("Failed to open data directory: {}", e);
-                    }
-                }
-                "restart" => {
-                    handle_stop_server(app);
-                    if let Err(e) = handle_start_server(app) {
-                        eprintln!("Failed to start server: {}", e);
-                    }
-                }
-                "start" => {
-                    handle_stop_server(app);
-                    if let Err(e) = handle_start_server(app) {
-                        eprintln!("Failed to start server: {}", e);
-                    }
-                }
-                "stop" => {
-                    handle_stop_server(app);
-                }
-                "quit" => {
-                    handle_stop_server(app);
-                    app.exit(0);
-                }
-                _ => {}
+        tray.on_menu_event(move |app, event| match event.id().as_ref() {
+            "config" => {
+                show_main_window(app);
             }
+            "open" => {
+                open_server_url_internal(app);
+            }
+            "open_dir" => {
+                if let Err(e) = open_data_dir_internal(app) {
+                    eprintln!("Failed to open data directory: {}", e);
+                }
+            }
+            "restart" => {
+                handle_stop_server(app);
+                if let Err(e) = handle_start_server(app) {
+                    eprintln!("Failed to start server: {}", e);
+                }
+            }
+            "start" => {
+                handle_stop_server(app);
+                if let Err(e) = handle_start_server(app) {
+                    eprintln!("Failed to start server: {}", e);
+                }
+            }
+            "stop" => {
+                handle_stop_server(app);
+            }
+            "quit" => {
+                handle_stop_server(app);
+                app.exit(0);
+            }
+            _ => {}
         });
 
         tray.on_tray_icon_event(|tray, event| {
@@ -649,6 +906,8 @@ pub fn run() {
             read_settings,
             has_server_jar,
             get_server_info,
+            check_server_update,
+            install_server_update,
             set_tray_visible,
             set_dock_visible,
             open_server_url,

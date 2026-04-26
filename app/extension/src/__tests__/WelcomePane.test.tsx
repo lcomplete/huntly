@@ -104,4 +104,63 @@ describe("WelcomePane", () => {
 
     cleanup();
   });
+
+  it("sends shortcut prompts with current page context", () => {
+    const onQuickActionSend = jest.fn();
+    const { container, cleanup } = renderWelcomePane({ onQuickActionSend });
+
+    const promptGroupButton = Array.from(
+      container.querySelectorAll("button")
+    ).find((element) => element.textContent?.includes("Prompts"));
+    if (!(promptGroupButton instanceof HTMLButtonElement)) {
+      throw new Error("Prompts group button not found");
+    }
+
+    act(() => {
+      promptGroupButton.click();
+    });
+
+    const shortcutButton = Array.from(container.querySelectorAll("button")).find(
+      (element) => element.textContent?.includes("/summarize")
+    );
+    if (!(shortcutButton instanceof HTMLButtonElement)) {
+      throw new Error("Shortcut prompt button not found");
+    }
+
+    act(() => {
+      shortcutButton.click();
+    });
+
+    expect(onQuickActionSend).toHaveBeenCalledWith("/summarize", {
+      includeCurrentPageContext: true,
+    });
+
+    cleanup();
+  });
+
+  it("disables shortcut prompts when page context is unavailable", () => {
+    const { container, cleanup } = renderWelcomePane({ tabContext: null });
+
+    const promptGroupButton = Array.from(
+      container.querySelectorAll("button")
+    ).find((element) => element.textContent?.includes("Prompts"));
+    if (!(promptGroupButton instanceof HTMLButtonElement)) {
+      throw new Error("Prompts group button not found");
+    }
+
+    act(() => {
+      promptGroupButton.click();
+    });
+
+    const shortcutButton = Array.from(container.querySelectorAll("button")).find(
+      (element) => element.textContent?.includes("/summarize")
+    );
+    if (!(shortcutButton instanceof HTMLButtonElement)) {
+      throw new Error("Shortcut prompt button not found");
+    }
+
+    expect(shortcutButton.disabled).toBe(true);
+
+    cleanup();
+  });
 });

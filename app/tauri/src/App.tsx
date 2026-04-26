@@ -21,6 +21,7 @@ type AppSettings = {
   listen_public: boolean;
   auto_start_up: boolean;
   auto_update: boolean;
+  server_auto_update: boolean;
   show_tray_icon: boolean;
   show_dock_icon: boolean;
 };
@@ -45,12 +46,42 @@ type UpdateState = {
   installed: boolean;
 };
 
+type ServerJarUpdateInfo = {
+  current_version: string | null;
+  latest_version: string | null;
+  latest_tag: string | null;
+  available: boolean;
+  notes: string | null;
+  date: string | null;
+  asset_name: string | null;
+  asset_size: number | null;
+  release_url: string | null;
+};
+
+type ServerUpdateState = {
+  checking: boolean;
+  installing: boolean;
+  available: boolean;
+  latestVersion: string | null;
+  currentVersion: string | null;
+  latestTag: string | null;
+  notes: string | null;
+  date: string | null;
+  assetName: string | null;
+  assetSize: number | null;
+  releaseUrl: string | null;
+  lastCheckedAt: string | null;
+  error: string | null;
+  installed: boolean;
+};
+
 function App() {
   const defaultSettings: AppSettings = {
     port: 31234,
     listen_public: false,
     auto_start_up: false,
     auto_update: false,
+    server_auto_update: false,
     show_tray_icon: true,
     show_dock_icon: true,
   };
@@ -76,8 +107,25 @@ function App() {
     error: null,
     installed: false,
   });
+  const [serverUpdateState, setServerUpdateState] = useState<ServerUpdateState>({
+    checking: false,
+    installing: false,
+    available: false,
+    latestVersion: null,
+    currentVersion: null,
+    latestTag: null,
+    notes: null,
+    date: null,
+    assetName: null,
+    assetSize: null,
+    releaseUrl: null,
+    lastCheckedAt: null,
+    error: null,
+    installed: false,
+  });
   const updateRef = useRef<Awaited<ReturnType<typeof check>> | null>(null);
   const autoUpdateTriggeredRef = useRef(false);
+  const autoServerUpdateTriggeredRef = useRef(false);
 
   useEffect(() => {
     invoke<boolean>("has_server_jar")
@@ -120,6 +168,16 @@ function App() {
     autoUpdateTriggeredRef.current = true;
     handleCheckForUpdates({ autoInstall: true });
   }, [settings.auto_update]);
+
+  useEffect(() => {
+    if (!settings.server_auto_update) {
+      autoServerUpdateTriggeredRef.current = false;
+      return;
+    }
+    if (autoServerUpdateTriggeredRef.current) return;
+    autoServerUpdateTriggeredRef.current = true;
+    handleCheckServerUpdate({ autoInstall: true });
+  }, [settings.server_auto_update]);
 
   function startServer() {
     setServerError(null);
@@ -188,6 +246,7 @@ function App() {
       listen_public: yup.boolean().required(),
       auto_start_up: yup.boolean().required(),
       auto_update: yup.boolean().required(),
+      server_auto_update: yup.boolean().required(),
     }),
     onSubmit: () => undefined,
   });
@@ -262,7 +321,25 @@ function App() {
     };
     await persistSettings(next, { restartServer: false });
     if (event.target.checked) {
+      autoUpdateTriggeredRef.current = true;
       await handleCheckForUpdates({ autoInstall: true });
+    } else {
+      autoUpdateTriggeredRef.current = false;
+    }
+  }
+
+  async function handleServerAutoUpdateChange(event: ChangeEvent<HTMLInputElement>) {
+    formSettings.handleChange(event);
+    const next = {
+      ...formSettings.values,
+      server_auto_update: event.target.checked,
+    };
+    await persistSettings(next, { restartServer: false });
+    if (event.target.checked) {
+      autoServerUpdateTriggeredRef.current = true;
+      await handleCheckServerUpdate({ autoInstall: true });
+    } else {
+      autoServerUpdateTriggeredRef.current = false;
     }
   }
 
@@ -310,7 +387,7 @@ function App() {
         date: update.date ?? null,
       }));
 
-      if (options.autoInstall && settings.auto_update) {
+      if (options.autoInstall) {
         await handleInstallUpdate(update);
       }
     } catch (e: any) {
@@ -349,6 +426,95 @@ function App() {
         installing: false,
         error: e?.toString() ?? "Failed to install update",
       }));
+    }
+  }
+
+  async function handleCheckServerUpdate(
+    options: { autoInstall?: boolean } = {}
+  ) {
+    setServerUpdateState((prev) => ({
+      ...prev,
+      checking: true,
+      error: null,
+      installed: false,
+      lastCheckedAt: new Date().toISOString(),
+    }));
+    try {
+      const info = await invoke<ServerJarUpdateInfo>("check_server_update");
+      setServerUpdateState((prev) => ({
+        ...prev,
+        checking: false,
+        available: info.available,
+        latestVersion: info.latest_version,
+        currentVersion: info.current_version ?? serverInfo?.jar_version ?? null,
+        latestTag: info.latest_tag,
+        notes: info.notes,
+        date: info.date,
+        assetName: info.asset_name,
+        assetSize: info.asset_size,
+        releaseUrl: info.release_url,
+      }));
+
+      if (options.autoInstall && info.available) {
+        await handleInstallServerUpdate();
+      }
+    } catch (e: any) {
+      setServerUpdateState((prev) => ({
+        ...prev,
+        checking: false,
+        available: false,
+        latestVersion: null,
+        latestTag: null,
+        notes: null,
+        date: null,
+        assetName: null,
+        assetSize: null,
+        releaseUrl: null,
+        error: e?.toString() ?? "Failed to check for server updates",
+      }));
+    }
+  }
+
+  async function handleInstallServerUpdate() {
+    setServerUpdateState((prev) => ({
+      ...prev,
+      installing: true,
+      error: null,
+    }));
+
+    const shouldRestartServer = isServerRunning === true || isServerStarting;
+    let stoppedServer = false;
+    try {
+      if (shouldRestartServer) {
+        setIsServerStarting(false);
+        await invoke("stop_server");
+        stoppedServer = true;
+        setIsServerRunning(false);
+      }
+
+      const info = await invoke<ServerInfo>("install_server_update");
+      setServerInfo(info);
+      setServerBundleAvailable(true);
+      setServerUpdateState((prev) => ({
+        ...prev,
+        installing: false,
+        available: false,
+        currentVersion: info.jar_version ?? prev.latestVersion,
+        installed: true,
+      }));
+
+      if (shouldRestartServer) {
+        startServer();
+      }
+    } catch (e: any) {
+      setServerUpdateState((prev) => ({
+        ...prev,
+        installing: false,
+        error: e?.toString() ?? "Failed to install server update",
+      }));
+      if (shouldRestartServer && stoppedServer) {
+        startServer();
+      }
     }
   }
 
@@ -424,12 +590,17 @@ function App() {
         <SettingsTab
           formSettings={formSettings}
           updateState={updateState}
+          serverUpdateState={serverUpdateState}
+          serverJarVersion={serverInfo?.jar_version ?? null}
           onAutoStartUpChange={handleAutoStartUpChange}
           onShowTrayIconChange={handleShowTrayIconChange}
           onShowDockIconChange={handleShowDockIconChange}
           onAutoUpdateChange={handleAutoUpdateChange}
+          onServerAutoUpdateChange={handleServerAutoUpdateChange}
           onCheckForUpdates={() => handleCheckForUpdates()}
           onInstallUpdate={() => handleInstallUpdate()}
+          onCheckServerUpdate={() => handleCheckServerUpdate()}
+          onInstallServerUpdate={() => handleInstallServerUpdate()}
         />
       </div>
     </div>

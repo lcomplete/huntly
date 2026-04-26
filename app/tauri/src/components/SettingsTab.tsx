@@ -12,6 +12,7 @@ import {
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import GitHubIcon from "@mui/icons-material/GitHub";
+import DownloadIcon from "@mui/icons-material/Download";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-shell";
@@ -31,33 +32,61 @@ type UpdateState = {
   installed: boolean;
 };
 
+type ServerUpdateState = {
+  checking: boolean;
+  installing: boolean;
+  available: boolean;
+  latestVersion: string | null;
+  currentVersion: string | null;
+  latestTag: string | null;
+  notes: string | null;
+  date: string | null;
+  assetName: string | null;
+  assetSize: number | null;
+  releaseUrl: string | null;
+  lastCheckedAt: string | null;
+  error: string | null;
+  installed: boolean;
+};
+
 interface SettingsTabProps {
   formSettings: {
     values: {
       auto_start_up: boolean;
       auto_update: boolean;
+      server_auto_update: boolean;
       show_tray_icon?: boolean;
       show_dock_icon?: boolean;
     };
   };
   updateState: UpdateState;
+  serverUpdateState: ServerUpdateState;
+  serverJarVersion: string | null;
   onAutoStartUpChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onShowTrayIconChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onShowDockIconChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onAutoUpdateChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onServerAutoUpdateChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onCheckForUpdates: () => void;
   onInstallUpdate: () => void;
+  onCheckServerUpdate: () => void;
+  onInstallServerUpdate: () => void;
 }
 
 export default function SettingsTab({
   formSettings,
   updateState,
+  serverUpdateState,
+  serverJarVersion,
   onAutoStartUpChange,
   onShowTrayIconChange,
   onShowDockIconChange,
   onAutoUpdateChange,
+  onServerAutoUpdateChange,
   onCheckForUpdates,
   onInstallUpdate,
+  onCheckServerUpdate,
+  onInstallServerUpdate,
 }: SettingsTabProps) {
   const [appVersion, setAppVersion] = useState<string | null>(null);
 
@@ -129,9 +158,9 @@ export default function SettingsTab({
         </Typography>
         <div className="setting-row">
           <div className="flex-1">
-            <div className="setting-title">Check for Updates</div>
+            <div className="setting-title">Desktop App Updates</div>
             <div className="setting-sub">
-              Manually check for new versions of Huntly.
+              Check for new versions of the Huntly desktop app.
             </div>
           </div>
           <Box className="flex flex-wrap gap-2">
@@ -147,7 +176,7 @@ export default function SettingsTab({
                 )
               }
             >
-              {updateState.checking ? "Checking..." : "Check now"}
+              {updateState.checking ? "Checking..." : "Check App"}
             </Button>
             {updateState.available && (
               <Button
@@ -157,7 +186,9 @@ export default function SettingsTab({
                 startIcon={
                   updateState.installing ? (
                     <CircularProgress size={16} color="inherit" />
-                  ) : undefined
+                  ) : (
+                    <DownloadIcon />
+                  )
                 }
               >
                 {updateState.installing ? "Installing..." : "Download & Install"}
@@ -176,6 +207,59 @@ export default function SettingsTab({
             checked={!!formSettings.values.auto_update}
             name={"auto_update"}
             onChange={onAutoUpdateChange}
+          />
+        </div>
+        <div className="setting-row">
+          <div className="flex-1">
+            <div className="setting-title">Server JAR Updates</div>
+            <div className="setting-sub">
+              Check the server JAR from main Huntly releases.
+            </div>
+          </div>
+          <Box className="flex flex-wrap gap-2">
+            <Button
+              variant="outlined"
+              onClick={onCheckServerUpdate}
+              disabled={serverUpdateState.checking || serverUpdateState.installing}
+              startIcon={
+                serverUpdateState.checking ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <RefreshIcon />
+                )
+              }
+            >
+              {serverUpdateState.checking ? "Checking..." : "Check JAR"}
+            </Button>
+            {serverUpdateState.available && (
+              <Button
+                variant="contained"
+                onClick={onInstallServerUpdate}
+                disabled={serverUpdateState.installing}
+                startIcon={
+                  serverUpdateState.installing ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <DownloadIcon />
+                  )
+                }
+              >
+                {serverUpdateState.installing ? "Installing..." : "Download & Install"}
+              </Button>
+            )}
+          </Box>
+        </div>
+        <div className="setting-row">
+          <div className="flex-1">
+            <div className="setting-title">Automatic Server JAR Updates</div>
+            <div className="setting-sub">
+              Download newer server JARs independently of desktop app updates.
+            </div>
+          </div>
+          <Switch
+            checked={!!formSettings.values.server_auto_update}
+            name={"server_auto_update"}
+            onChange={onServerAutoUpdateChange}
           />
         </div>
         <Box sx={{ mt: 1 }}>
@@ -213,6 +297,36 @@ export default function SettingsTab({
               {updateState.notes}
             </Typography>
           )}
+          {serverUpdateState.error && (
+            <Alert severity="error" sx={{ mt: 1, borderRadius: 2 }}>
+              {serverUpdateState.error}
+            </Alert>
+          )}
+          {!serverUpdateState.error && serverUpdateState.available && (
+            <Alert severity="info" sx={{ mt: 1, borderRadius: 2 }}>
+              Server JAR update available: v{serverUpdateState.latestVersion}
+              {serverUpdateState.currentVersion
+                ? ` (current v${serverUpdateState.currentVersion})`
+                : ""}
+            </Alert>
+          )}
+          {!serverUpdateState.error &&
+            !serverUpdateState.available &&
+            serverUpdateState.lastCheckedAt &&
+            !serverUpdateState.checking && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Server JAR is up to date. Last checked{" "}
+                {new Date(serverUpdateState.lastCheckedAt).toLocaleString()}.
+              </Typography>
+            )}
+          {serverUpdateState.installed && (
+            <Alert severity="success" sx={{ mt: 1, borderRadius: 2 }}>
+              Server JAR updated to v{serverUpdateState.currentVersion ?? serverUpdateState.latestVersion}.
+            </Alert>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Server JAR Version: {serverJarVersion ? `v${serverJarVersion}` : "N/A"}
+          </Typography>
         </Box>
       </Box>
 
