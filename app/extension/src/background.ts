@@ -1022,18 +1022,6 @@ function openSidePanelForContextMenuClick(tab?: chrome.tabs.Tab): boolean {
     return false;
   }
 
-  if (typeof tab.id === "number" && typeof sidePanelApi.setOptions === "function") {
-    void sidePanelApi
-      .setOptions({
-        tabId: tab.id,
-        path: "sidepanel.html",
-        enabled: true,
-      })
-      .catch((error: unknown) => {
-        log("Failed to configure side panel:", error);
-      });
-  }
-
   void sidePanelApi.open({ windowId: tab.windowId }).catch((error: unknown) => {
     log("Failed to open side panel:", error);
   });
