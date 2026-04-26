@@ -9,10 +9,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   BookOpen,
+  Globe,
   Image as ImageIcon,
   Loader2,
   Sparkles,
-  Command,
 } from "lucide-react";
 
 import type { SlashPrompt } from "../types";
@@ -180,7 +180,7 @@ function buildWelcomeGroups(
     {
       id: "page",
       title: t("sidepanel.welcome.group.page"),
-      icon: Command,
+      icon: Globe,
       emptyState: t("sidepanel.welcome.empty.page"),
       actions: [...pageActions, ...selectionActions].slice(0, MAX_STATIC_ACTIONS),
     },
