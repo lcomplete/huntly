@@ -11,6 +11,33 @@ export function isImageDataUrl(value: string): boolean {
   return /^data:image\//i.test(value.trim());
 }
 
+const IMAGE_EXTENSION_MEDIA_TYPES: Record<string, string> = {
+  avif: "image/avif",
+  bmp: "image/bmp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  svg: "image/svg+xml",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  webp: "image/webp",
+};
+
+export function getImageFileMediaType(file: File): string | null {
+  const mediaType = file.type.trim().toLowerCase();
+  if (mediaType.startsWith("image/")) return mediaType;
+
+  const extension = file.name.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  return extension ? IMAGE_EXTENSION_MEDIA_TYPES[extension] || null : null;
+}
+
+export function isImageFile(file: File): boolean {
+  return Boolean(getImageFileMediaType(file));
+}
+
 export function isBlobUrl(value: string): boolean {
   return /^blob:/i.test(value.trim());
 }
@@ -142,6 +169,10 @@ function dedupeFiles(files: File[]): File[] {
   });
 }
 
+function imageFilesOnly(files: File[]): File[] {
+  return files.filter(isImageFile);
+}
+
 export interface DroppedPayload {
   files: File[];
   sources: string[];
@@ -152,17 +183,19 @@ export async function extractDroppedPayload(
   baseUrl?: string | null
 ): Promise<DroppedPayload> {
   const items = Array.from(dataTransfer.items || []);
-  const filesFromItems = dedupeFiles(
-    items
-      .filter((item) => item.kind === "file")
-      .map((item) => item.getAsFile())
-      .filter((file): file is File => Boolean(file))
+  const filesFromItems = imageFilesOnly(
+    dedupeFiles(
+      items
+        .filter((item) => item.kind === "file")
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => Boolean(file))
+    )
   );
 
   const files =
     filesFromItems.length > 0
       ? filesFromItems
-      : dedupeFiles(Array.from(dataTransfer.files || []));
+      : imageFilesOnly(dedupeFiles(Array.from(dataTransfer.files || [])));
 
   const stringItems = await Promise.all(
     items

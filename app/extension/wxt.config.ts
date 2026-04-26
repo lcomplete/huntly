@@ -9,6 +9,9 @@ const icons = {
 
 const devServerPort = process.env.WXT_DEV_PORT;
 const devServerOrigin = process.env.WXT_DEV_ORIGIN;
+const extensionVersion =
+  process.env.EXTENSION_VERSION || process.env.npm_package_version || "0.5.5";
+
 function disablePageRefresh(server: WxtDevServer) {
   const originalOn = server.ws.on.bind(server.ws);
 
@@ -64,7 +67,7 @@ export default defineConfig({
     },
   }),
   manifest: ({ browser }) => ({
-    version: process.env.EXTENSION_VERSION || "0.5.4",
+    version: extensionVersion,
     name: "__MSG_extensionName__",
     description: "__MSG_extensionDescription__",
     default_locale: "en",

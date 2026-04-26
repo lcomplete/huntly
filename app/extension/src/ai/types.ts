@@ -115,18 +115,21 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
   deepseek: {
     type: 'deepseek',
     displayName: 'DeepSeek',
-    description: 'DeepSeek V3.2 (chat and reasoner modes)',
+    description: 'DeepSeek Chat, Reasoner, V4 Flash, and V4 Pro',
     icon: 'deepseek',
     requiresApiKey: true,
     supportsCustomUrl: true,
     defaultBaseUrl: 'https://api.deepseek.com',
     nativeApiFormat: 'openai',
     defaultModels: [
-      // DeepSeek official API only supports these two model IDs
-      // deepseek-chat: Non-thinking mode (V3.2)
-      // deepseek-reasoner: Thinking mode (V3.2 R1)
+      // Keep the existing defaults first so new installs preserve the current
+      // default selection, then expose the newer V4 presets.
+      // deepseek-chat: Chat mode
+      // deepseek-reasoner: Reasoning mode
       { id: 'deepseek-chat' },
       { id: 'deepseek-reasoner' },
+      { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+      { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro' },
     ],
   },
   groq: {

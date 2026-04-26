@@ -1,3 +1,5 @@
+/// <reference types="chrome" />
+
 export {}
 
 declare global {

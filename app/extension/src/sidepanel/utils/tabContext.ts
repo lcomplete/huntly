@@ -1,6 +1,7 @@
 import TurndownService from "turndown";
 import type { ChatPart } from "../types";
 import { readFileAsDataUrl } from "./dom";
+import { getImageFileMediaType } from "./dropPayload";
 import { generateId } from "./ids";
 
 export type TabContext = { title: string; url: string; faviconUrl?: string };
@@ -145,11 +146,16 @@ export function clonePageContextPart(part: ChatPart): ChatPart {
 }
 
 export async function createAttachmentPart(file: File): Promise<ChatPart> {
+  const mediaType = getImageFileMediaType(file);
+  if (!mediaType) {
+    throw new Error("Only image attachments are supported.");
+  }
+
   return {
     id: generateId(),
     type: "file",
     filename: file.name,
-    mediaType: file.type || "application/octet-stream",
+    mediaType,
     size: file.size,
     dataUrl: await readFileAsDataUrl(file),
   };

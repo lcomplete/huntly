@@ -1,6 +1,18 @@
 import { defineBackground } from "wxt/utils/define-background";
 import { initBackground } from "../src/background";
 
+type RegisteredContentScript = {
+  id: string;
+  matches: string[];
+  js: string[];
+  runAt: "document_start" | "document_end" | "document_idle";
+};
+
+type DynamicScriptingApi = typeof chrome.scripting & {
+  getRegisteredContentScripts?: () => Promise<Array<{ id: string }>>;
+  registerContentScripts?: (scripts: RegisteredContentScript[]) => Promise<void>;
+};
+
 /**
  * In WXT dev mode, content scripts are not declared in the manifest.
  * They are dynamically registered via the dev server WebSocket.
@@ -18,15 +30,16 @@ async function ensureContentScriptsRegistered(): Promise<void> {
   }
 
   // Dev build without content_scripts in manifest - register them dynamically
-  if (!chrome.scripting?.registerContentScripts) {
+  const scripting = chrome.scripting as DynamicScriptingApi | undefined;
+  if (!scripting?.registerContentScripts || !scripting.getRegisteredContentScripts) {
     return; // API not available
   }
 
   try {
-    const registered = await chrome.scripting.getRegisteredContentScripts();
+    const registered = await scripting.getRegisteredContentScripts();
     const registeredIds = new Set(registered.map((cs) => cs.id));
 
-    const scriptsToRegister: chrome.scripting.RegisteredContentScript[] = [];
+    const scriptsToRegister: RegisteredContentScript[] = [];
 
     if (!registeredIds.has("huntly:content")) {
       scriptsToRegister.push({
@@ -47,7 +60,7 @@ async function ensureContentScriptsRegistered(): Promise<void> {
     }
 
     if (scriptsToRegister.length > 0) {
-      await chrome.scripting.registerContentScripts(scriptsToRegister);
+      await scripting.registerContentScripts(scriptsToRegister);
       console.log("[Huntly] Registered content scripts as fallback:", scriptsToRegister.map((s) => s.id));
     }
   } catch (error) {
