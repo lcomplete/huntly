@@ -1,0 +1,318 @@
+name: huntly tauri release workflow
+
+on:
+  push:
+    tags: [ 'tauri/v*.*.*' ]
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20.10.0"
+  YARN_VERSION: "1.22.19"
+  JDK_VERSION: "11"
+  TAURI_UPDATER_ENDPOINT: "https://github.com/lcomplete/huntly/releases/download/tauri%2Flatest/latest.json"
+
+jobs:
+  create-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag_name: ${{ steps.get_version.outputs.tag_name }}
+      release_notes: ${{ steps.tag.outputs.message }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#tauri/v}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Get tag message
+        id: tag
+        run: |
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "message<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$(git tag -l --format='%(contents)' $TAG_NAME)" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          draft: false
+          name: Desktop ${{ steps.get_version.outputs.version }}
+          tag: ${{ steps.get_version.outputs.tag_name }}
+          body: "${{ steps.tag.outputs.message }}"
+
+  build-server-jar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Node.js (client)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+          cache-dependency-path: "app/client/yarn.lock"
+
+      - name: Setup yarn
+        run: npm install -g yarn@${{ env.YARN_VERSION }}
+
+      - name: Build client
+        run: |
+          cd app/client
+          yarn install --frozen-lockfile
+          yarn build
+        env:
+          CI: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JDK_VERSION }}
+          distribution: "temurin"
+
+      - name: Cache maven dependencies
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-maven-dependencies
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build server jar
+        run: |
+          cd app/server
+          ./mvnw -B clean package
+        env:
+          CI: false
+
+      - name: Upload server jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: huntly-server-jar
+          path: app/server/huntly-server/target/huntly-server-*.jar
+          if-no-files-found: error
+
+  tauri-build:
+    needs: [create-release, build-server-jar]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-14
+            tauri_target: aarch64-apple-darwin
+            updater_platform: darwin-aarch64
+            artifact_suffix: macos-aarch64
+          - platform: windows-2022
+            tauri_target: x86_64-pc-windows-msvc
+            updater_platform: windows-x86_64
+            artifact_suffix: windows-x86_64
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Rust setup
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'app/tauri/src-tauri -> app/tauri/src-tauri/target'
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.tauri_target }}
+
+      - name: Set Node.js (tauri)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+          cache-dependency-path: "app/tauri/yarn.lock"
+
+      - name: Setup yarn
+        run: npm install -g yarn@${{ env.YARN_VERSION }}
+
+      - name: Install tauri dependencies
+        run: |
+          cd app/tauri
+          yarn install --frozen-lockfile
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JDK_VERSION }}
+          distribution: "temurin"
+
+      - name: Download server jar
+        uses: actions/download-artifact@v4
+        with:
+          name: huntly-server-jar
+          path: app/tauri/src-tauri/server_bin
+
+      - name: Move server jar into bundle resources
+        run: |
+          jar_path=$(find app/tauri/src-tauri/server_bin -name 'huntly-server-*.jar' -not -name '*.original' | head -n 1)
+          if [ -z "$jar_path" ]; then
+            echo "No huntly-server jar found"
+            exit 1
+          fi
+          mv "$jar_path" app/tauri/src-tauri/server_bin/huntly-server.jar
+
+      - name: Build embedded JRE
+        run: |
+          cd app/tauri/src-tauri/server_bin
+          rm -rf jre11
+          jlink --module-path "$JAVA_HOME/jmods" --add-modules java.compiler,java.sql,java.naming,java.management,java.instrument,java.rmi,java.desktop,jdk.internal.vm.compiler.management,java.xml.crypto,java.scripting,java.security.jgss,jdk.httpserver,java.net.http,jdk.naming.dns,jdk.crypto.cryptoki,jdk.unsupported --strip-debug --compress 2 --no-header-files --no-man-pages --output jre11
+
+      - name: Prepare Tauri release config
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          import os
+
+          pubkey = os.environ.get("TAURI_UPDATER_PUBKEY", "")
+          if not pubkey:
+              raise SystemExit("TAURI_UPDATER_PUBKEY secret is required for tauri releases")
+
+          config = {
+              "version": os.environ["TAURI_VERSION"],
+              "plugins": {
+                  "updater": {
+                      "pubkey": pubkey,
+                      "endpoints": [os.environ["TAURI_UPDATER_ENDPOINT"]],
+                  }
+              },
+          }
+
+          print("TAURI_CONFIG<<EOF")
+          print(json.dumps(config))
+          print("EOF")
+          PY
+        env:
+          TAURI_VERSION: ${{ needs.create-release.outputs.version }}
+          TAURI_UPDATER_PUBKEY: ${{ secrets[format('TAURI_{0}', 'UPDATER_PUBKEY')] }}
+
+      - name: Build the app
+        run: |
+          cd app/tauri
+          yarn tauri:build --target ${{ matrix.tauri_target }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets[format('TAURI_{0}', 'SIGNING_PRIVATE_KEY')] }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets[format('TAURI_{0}', 'SIGNING_PRIVATE_KEY_PASSWORD')] }}
+
+      - name: Collect release artifacts
+        run: |
+          mkdir -p release/${{ matrix.updater_platform }}
+          find app/tauri/src-tauri/target/${{ matrix.tauri_target }}/release/bundle -type f \( \
+            -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.tar.gz' -o -name '*.zip' -o -name '*.sig' \
+          \) -exec cp {} release/${{ matrix.updater_platform }}/ \;
+
+      - name: Upload platform artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-release-${{ matrix.artifact_suffix }}
+          path: release/${{ matrix.updater_platform }}
+          if-no-files-found: error
+
+  publish-release:
+    needs: [create-release, tauri-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: tauri-release-*
+          path: release-assets
+
+      - name: Upload desktop bundles
+        run: |
+          while IFS= read -r -d '' file; do
+            gh release upload "$TAG_NAME" "$file" --clobber
+          done < <(find release-assets -type f -print0)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+          TAG_NAME: ${{ needs.create-release.outputs.tag_name }}
+
+      - name: Generate updater manifest
+        run: |
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+          from pathlib import Path
+          from urllib.parse import quote
+
+          tag_name = os.environ["TAG_NAME"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          platforms = {}
+
+          for sig_path in Path("release-assets").rglob("*.sig"):
+              asset_path = sig_path.with_suffix("")
+              if not asset_path.exists():
+                  continue
+              platform = sig_path.parent.name
+              signature = sig_path.read_text(encoding="utf-8").strip()
+              asset_name = asset_path.name
+              tag_path = quote(tag_name, safe="")
+              asset_url = f"https://github.com/{repo}/releases/download/{tag_path}/{quote(asset_name)}"
+              platforms[platform] = {
+                  "signature": signature,
+                  "url": asset_url,
+              }
+
+          if not platforms:
+              raise SystemExit("No signed updater artifacts were found. Check TAURI_SIGNING_PRIVATE_KEY.")
+
+          manifest = {
+              "version": os.environ["TAURI_VERSION"],
+              "notes": os.environ.get("RELEASE_NOTES", ""),
+              "pub_date": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
+              "platforms": platforms,
+          }
+
+          Path("latest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+          PY
+        env:
+          TAG_NAME: ${{ needs.create-release.outputs.tag_name }}
+          TAURI_VERSION: ${{ needs.create-release.outputs.version }}
+          RELEASE_NOTES: ${{ needs.create-release.outputs.release_notes }}
+
+      - name: Upload updater manifest to version release
+        run: gh release upload "$TAG_NAME" latest.json --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.create-release.outputs.tag_name }}
+
+      - name: Update tauri latest release
+        run: |
+          if gh release view tauri/latest >/dev/null 2>&1; then
+            gh release upload tauri/latest latest.json --clobber
+            gh release edit tauri/latest --title "Huntly Desktop Latest" --notes "Latest Huntly desktop updater manifest."
+          else
+            gh release create tauri/latest latest.json --title "Huntly Desktop Latest" --notes "Latest Huntly desktop updater manifest."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

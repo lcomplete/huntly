@@ -89,6 +89,8 @@ function buildWelcomeGroups(
       label: `/${prompt.trigger}`,
       prompt: `/${prompt.trigger}`,
       tone: "prompt",
+      includeCurrentPageContext: true,
+      disabled: !pageReady,
     }));
 
   const pageActions: WelcomeQuickAction[] = [

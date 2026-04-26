@@ -15,9 +15,9 @@ jobs:
       - name: Set Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20.19.0"
+          node-version: "22.13.0"
           cache: "yarn"
-          cache-dependency-path: "app/client/yarn.lock"
+          cache-dependency-path: "app/extension/yarn.lock"
       
       - name: Setup yarn
         run: npm install -g yarn --version 1.22.19

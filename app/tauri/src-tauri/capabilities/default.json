@@ -5,6 +5,7 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "updater:default",
     "shell:allow-open",
     "autostart:default",
     "fs:default",
