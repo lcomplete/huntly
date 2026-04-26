@@ -23,6 +23,7 @@ import {
 
 const DB_NAME = "huntly-agent";
 const DB_VERSION = 4;
+const SPLIT_STORES_DB_VERSION = 4;
 const SESSION_RECORD_SCHEMA_VERSION = 4;
 const SESSIONS_STORE = "sessions";
 const SESSION_MESSAGES_STORE = "session-messages";
@@ -35,7 +36,6 @@ type StoredMessageRef = {
   storageKey: string;
   messageId: string;
   order: number;
-  signature: string;
 };
 
 type StoredSessionRecord = Omit<SessionData, "messages"> & {
@@ -50,7 +50,6 @@ type StoredMessageRecord = {
   sessionId: string;
   messageId: string;
   order: number;
-  signature: string;
   message: ChatMessage;
   updatedAt: string;
 };
@@ -66,25 +65,12 @@ type StoredAttachmentRecord = {
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
-const CHAT_STORE_NAMES = [
-  SESSIONS_STORE,
-  SESSION_MESSAGES_STORE,
-  METADATA_STORE,
-  ATTACHMENTS_STORE,
-] as const;
-
 function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () =>
       reject(request.error || new Error("IndexedDB request failed"));
   });
-}
-
-function deleteObjectStoreIfExists(db: IDBDatabase, storeName: string): void {
-  if (db.objectStoreNames.contains(storeName)) {
-    db.deleteObjectStore(storeName);
-  }
 }
 
 function ensureObjectStores(
@@ -129,14 +115,13 @@ function openDatabase(): Promise<IDBDatabase> {
       request.onupgradeneeded = (event) => {
         const db = request.result;
         const oldVersion = event.oldVersion;
+        const transaction = request.transaction!;
 
-        if (oldVersion > 0 && oldVersion < DB_VERSION) {
-          CHAT_STORE_NAMES.forEach((storeName) => {
-            deleteObjectStoreIfExists(db, storeName);
-          });
+        ensureObjectStores(db, transaction);
+
+        if (oldVersion > 0 && oldVersion < SPLIT_STORES_DB_VERSION) {
+          migrateLegacySessionRecords(transaction);
         }
-
-        ensureObjectStores(db, request.transaction!);
       };
 
       request.onsuccess = () => resolve(request.result);
@@ -210,8 +195,12 @@ function getMessageStorageKey(sessionId: string, messageId: string): string {
   return `${sessionId}\u001f${messageId}`;
 }
 
-function getMessageSignature(message: ChatMessage): string {
-  return JSON.stringify(message);
+function getFallbackAttachmentId(
+  sessionId: string,
+  messageId: string,
+  partIndex: number
+): string {
+  return `${sessionId}\u001f${messageId}\u001fattachment-${partIndex}`;
 }
 
 function createMessageRef(
@@ -224,7 +213,6 @@ function createMessageRef(
     storageKey: getMessageStorageKey(sessionId, messageId),
     messageId,
     order,
-    signature: getMessageSignature(message),
   };
 }
 
@@ -457,13 +445,19 @@ async function serializeSessionAttachments(
   const referencedAttachmentIds = new Set<string>();
 
   const messages = await Promise.all(
-    session.messages.map(async (message) => ({
+    session.messages.map(async (message, messageOrder) => ({
       ...message,
       parts: await Promise.all(
-        message.parts.map(async (part) => {
+        message.parts.map(async (part, partIndex) => {
           if (part.type !== "file") return part;
 
-          const attachmentId = part.attachmentId || crypto.randomUUID();
+          const attachmentId =
+            part.attachmentId ||
+            getFallbackAttachmentId(
+              session.id,
+              getMessageId(message, messageOrder),
+              partIndex
+            );
           referencedAttachmentIds.add(attachmentId);
 
           if (part.dataUrl && !attachmentRecords.has(attachmentId)) {
@@ -636,6 +630,110 @@ export function buildSessionMetadata(session: SessionData): SessionMetadata {
   };
 }
 
+function isLegacySessionRecord(record: unknown): record is SessionData {
+  return Boolean(
+    record &&
+      typeof record === "object" &&
+      Array.isArray((record as { messages?: unknown }).messages)
+  );
+}
+
+function buildStoredSessionArtifacts(session: SessionData): {
+  sessionRecord: StoredSessionRecord;
+  metadata: SessionMetadata;
+  messageRecords: StoredMessageRecord[];
+} {
+  const safeMessages = toJsonSafe(session.messages);
+  const safeSession: SessionData = {
+    ...session,
+    messages: safeMessages,
+  };
+  const messageRecords = safeMessages.map((message, order) =>
+    createMessageRecord(safeSession.id, message, order, safeSession.updatedAt)
+  );
+  const messageRefs = messageRecords.map(
+    ({ storageKey, messageId, order }) => ({
+      storageKey,
+      messageId,
+      order,
+    })
+  );
+
+  return {
+    sessionRecord: createStoredSessionRecord(safeSession, messageRefs),
+    metadata: buildSessionMetadata(safeSession),
+    messageRecords,
+  };
+}
+
+function getFirstMessageRefDivergenceIndex(
+  existingRefs: StoredMessageRef[],
+  messageRecords: StoredMessageRecord[]
+): number {
+  const comparableLength = Math.min(existingRefs.length, messageRecords.length);
+
+  for (let index = 0; index < comparableLength; index += 1) {
+    const existingRef = existingRefs[index];
+    const messageRecord = messageRecords[index];
+    if (
+      existingRef.storageKey !== messageRecord.storageKey ||
+      existingRef.messageId !== messageRecord.messageId ||
+      existingRef.order !== messageRecord.order
+    ) {
+      return index;
+    }
+  }
+
+  return existingRefs.length === messageRecords.length ? -1 : comparableLength;
+}
+
+function getMessageRecordsToPut(
+  existingRefs: StoredMessageRef[],
+  messageRecords: StoredMessageRecord[]
+): StoredMessageRecord[] {
+  if (messageRecords.length === 0) {
+    return [];
+  }
+
+  const divergenceIndex = getFirstMessageRefDivergenceIndex(
+    existingRefs,
+    messageRecords
+  );
+
+  if (divergenceIndex !== -1) {
+    return messageRecords.slice(divergenceIndex);
+  }
+
+  return [messageRecords[messageRecords.length - 1]];
+}
+
+function migrateLegacySessionRecords(transaction: IDBTransaction): void {
+  const sessionStore = transaction.objectStore(SESSIONS_STORE);
+  const messageStore = transaction.objectStore(SESSION_MESSAGES_STORE);
+  const metadataStore = transaction.objectStore(METADATA_STORE);
+  const getAllSessionsRequest = sessionStore.getAll();
+
+  getAllSessionsRequest.onsuccess = () => {
+    const storedSessions = (getAllSessionsRequest.result || []) as unknown[];
+
+    storedSessions.forEach((storedSession) => {
+      if (!isLegacySessionRecord(storedSession)) {
+        return;
+      }
+
+      const artifacts = buildStoredSessionArtifacts(
+        normalizeSessionTiming(storedSession)
+      );
+
+      sessionStore.put(toJsonSafe(artifacts.sessionRecord));
+      metadataStore.put(toJsonSafe(artifacts.metadata));
+      artifacts.messageRecords.forEach((messageRecord) => {
+        messageStore.put(toJsonSafe(messageRecord));
+      });
+    });
+  };
+}
+
 // ---------------------------------------------------------------------------
 // CRUD operations
 // ---------------------------------------------------------------------------
@@ -643,32 +741,8 @@ export function buildSessionMetadata(session: SessionData): SessionMetadata {
 export async function saveSession(session: SessionData): Promise<void> {
   const normalizedSession = normalizeSessionTiming(session);
   const serialized = await serializeSessionAttachments(normalizedSession);
-  const safeMessages = toJsonSafe(serialized.session.messages);
-  const safeSessionForMetadata: SessionData = {
-    ...serialized.session,
-    messages: safeMessages,
-  };
-  const messageRecords = safeMessages.map((message, order) =>
-    createMessageRecord(
-      serialized.session.id,
-      message,
-      order,
-      serialized.session.updatedAt
-    )
-  );
-  const messageRefs = messageRecords.map(
-    ({ storageKey, messageId, order, signature }) => ({
-      storageKey,
-      messageId,
-      order,
-      signature,
-    })
-  );
-  const sessionRecord = createStoredSessionRecord(
-    safeSessionForMetadata,
-    messageRefs
-  );
-  const metadata = buildSessionMetadata(safeSessionForMetadata);
+  const { messageRecords, metadata, sessionRecord } =
+    buildStoredSessionArtifacts(serialized.session);
   const safeSessionRecord = toJsonSafe(sessionRecord);
   const safeMetadata = toJsonSafe(metadata);
   const safeMessageRecords = toJsonSafe(messageRecords);
@@ -681,24 +755,15 @@ export async function saveSession(session: SessionData): Promise<void> {
           stores[SESSIONS_STORE].get(safeSessionRecord.id)
         )) as StoredSessionRecord | null) || null;
       const existingRefs = existingSession ? existingSession.messageRefs : [];
-      const existingRefsByKey = new Map(
-        existingRefs.map((ref) => [ref.storageKey, ref])
-      );
       const nextMessageKeys = new Set(
         safeMessageRecords.map((messageRecord) => messageRecord.storageKey)
       );
       const removedMessageKeys = existingRefs
         .map((ref) => ref.storageKey)
         .filter((key) => !nextMessageKeys.has(key));
-      const changedMessageRecords = safeMessageRecords.filter(
-        (messageRecord) => {
-          const existingRef = existingRefsByKey.get(messageRecord.storageKey);
-          return (
-            !existingRef ||
-            existingRef.order !== messageRecord.order ||
-            existingRef.signature !== messageRecord.signature
-          );
-        }
+      const messageRecordsToPut = getMessageRecordsToPut(
+        existingRefs,
+        safeMessageRecords
       );
 
       const existingAttachmentIds = await getAttachmentIdsForSession(
@@ -712,7 +777,7 @@ export async function saveSession(session: SessionData): Promise<void> {
       await Promise.all([
         requestToPromise(stores[SESSIONS_STORE].put(safeSessionRecord)),
         requestToPromise(stores[METADATA_STORE].put(safeMetadata)),
-        ...changedMessageRecords.map((messageRecord) =>
+        ...messageRecordsToPut.map((messageRecord) =>
           requestToPromise(stores[SESSION_MESSAGES_STORE].put(messageRecord))
         ),
         ...removedMessageKeys.map((messageKey) =>
