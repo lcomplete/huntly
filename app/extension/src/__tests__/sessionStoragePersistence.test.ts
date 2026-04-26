@@ -249,6 +249,38 @@ function createRunningSession(text: string) {
   };
 }
 
+function createTwoTurnSession(secondQuestion = "Follow-up") {
+  return {
+    ...createSession("Question", "First answer"),
+    messages: [
+      {
+        id: "user-1",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Question" }],
+        status: "complete" as const,
+      },
+      {
+        id: "assistant-1",
+        role: "assistant" as const,
+        parts: [{ type: "text" as const, text: "First answer" }],
+        status: "complete" as const,
+      },
+      {
+        id: "user-2",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: secondQuestion }],
+        status: "complete" as const,
+      },
+      {
+        id: "assistant-2",
+        role: "assistant" as const,
+        parts: [{ type: "text" as const, text: "Second answer" }],
+        status: "complete" as const,
+      },
+    ],
+  };
+}
+
 describe("sessionStorage persistence layout", () => {
   let fakeIndexedDB: FakeIndexedDB;
 
@@ -275,7 +307,15 @@ describe("sessionStorage persistence layout", () => {
     expect(sessionRecord.schemaVersion).toBe(4);
     expect(sessionRecord.messages).toBeUndefined();
     expect(sessionRecord.messageRefs).toHaveLength(2);
+    expect(sessionRecord.messageRefs).toEqual([
+      expect.not.objectContaining({ signature: expect.anything() }),
+      expect.not.objectContaining({ signature: expect.anything() }),
+    ]);
     expect(messageRecords.size).toBe(2);
+    expect(Array.from(messageRecords.values())).toEqual([
+      expect.not.objectContaining({ signature: expect.anything() }),
+      expect.not.objectContaining({ signature: expect.anything() }),
+    ]);
 
     const restored = await getSession("session-1");
     expect(restored?.messages.map((message) => message.id)).toEqual([
@@ -284,7 +324,7 @@ describe("sessionStorage persistence layout", () => {
     ]);
   });
 
-  it("only rewrites changed message rows on later saves", async () => {
+  it("only rewrites the latest message row on streaming saves", async () => {
     const { saveSession } = await import("../sidepanel/sessionStorage");
 
     await saveSession(createSession("Question", "First chunk"));
@@ -303,6 +343,39 @@ describe("sessionStorage persistence layout", () => {
       records.find((record) => record.message.id === "assistant-1")?.message
         .parts[0].text
     ).toBe("Second chunk");
+  });
+
+  it("rewrites only the divergent suffix after a history edit", async () => {
+    const { saveSession } = await import("../sidepanel/sessionStorage");
+
+    await saveSession(createTwoTurnSession());
+
+    const db = fakeIndexedDB.databases.get("huntly-agent")!;
+    const messageStore = db.stores.get("session-messages")!;
+    messageStore.putCount = 0;
+
+    const edited = createTwoTurnSession("Edited follow-up");
+    edited.messages[2] = {
+      ...edited.messages[2],
+      id: "user-2-edited",
+    };
+    edited.messages[3] = {
+      ...edited.messages[3],
+      id: "assistant-2-edited",
+    };
+
+    await saveSession(edited);
+
+    expect(messageStore.putCount).toBe(2);
+    const storedIds = Array.from(messageStore.records.values()).map(
+      (record) => (record as { message: { id: string } }).message.id
+    );
+    expect(storedIds).toEqual([
+      "user-1",
+      "assistant-1",
+      "user-2-edited",
+      "assistant-2-edited",
+    ]);
   });
 
   it("keeps history metadata and stored messages after a run completes", async () => {
@@ -328,43 +401,81 @@ describe("sessionStorage persistence layout", () => {
     expect(restored?.messages[1].parts[0].text).toBe("Final answer");
   });
 
-  it("resets older chat stores before writing the current schema", async () => {
+  it("migrates older chat stores without dropping persisted data", async () => {
     const legacyDb = new FakeDatabase();
-    legacyDb.version = 3;
+    legacyDb.version = 2;
     legacyDb.createObjectStore("sessions", { keyPath: "id" });
     legacyDb.createObjectStore("session-metadata", { keyPath: "id" });
+    legacyDb.createObjectStore("session-attachments", { keyPath: "id" });
     legacyDb.stores.get("sessions")!.records.set("legacy-session", {
+      ...createSession("Legacy question", "Legacy answer"),
       id: "legacy-session",
-      messages: [],
+      title: "Legacy chat",
+      createdAt: "2026-04-24T08:00:00.000Z",
+      updatedAt: "2026-04-24T08:00:01.000Z",
+      lastMessageAt: "2026-04-24T08:00:01.000Z",
+      lastOpenedAt: "2026-04-24T08:00:01.000Z",
     });
     legacyDb.stores.get("session-metadata")!.records.set("legacy-session", {
       id: "legacy-session",
       title: "Legacy chat",
       createdAt: "2026-04-24T08:00:00.000Z",
-      updatedAt: "2026-04-24T08:00:00.000Z",
-      messageCount: 0,
+      updatedAt: "2026-04-24T08:00:01.000Z",
+      messageCount: 2,
       preview: "",
       currentModelId: null,
     });
+    legacyDb.stores
+      .get("session-attachments")!
+      .records.set("legacy-attachment", {
+        id: "legacy-attachment",
+        sessionId: "legacy-session",
+        blob: { size: 17, type: "text/plain" } as unknown as Blob,
+        createdAt: "2026-04-24T08:00:01.000Z",
+        mediaType: "text/plain",
+        size: 17,
+      });
     fakeIndexedDB.databases.set("huntly-agent", legacyDb);
 
-    const { listSessionMetadata, saveSession } = await import(
+    const { getSession, listSessionMetadata, saveSession } = await import(
       "../sidepanel/sessionStorage"
     );
 
-    await saveSession(createSession("Question", "Answer"));
-
     const db = fakeIndexedDB.databases.get("huntly-agent")!;
+    const restoredLegacy = await getSession("legacy-session");
+
     expect(db.version).toBe(4);
-    expect(db.stores.get("sessions")!.records.has("legacy-session")).toBe(
-      false
-    );
+    const migratedSession = db.stores
+      .get("sessions")!
+      .records.get("legacy-session") as Record<string, unknown>;
+    expect(migratedSession.messages).toBeUndefined();
+    expect(migratedSession.messageRefs).toHaveLength(2);
+    expect(db.stores.get("session-messages")!.records.size).toBe(2);
     expect(
-      db.stores.get("session-metadata")!.records.has("legacy-session")
-    ).toBe(false);
+      db.stores.get("session-attachments")!.records.has("legacy-attachment")
+    ).toBe(true);
+
+    expect(restoredLegacy?.title).toBe("Legacy chat");
+    expect(restoredLegacy?.messages.map((message) => message.id)).toEqual([
+      "user-1",
+      "assistant-1",
+    ]);
+    expect(restoredLegacy?.messages[1].parts[0].text).toBe("Legacy answer");
 
     const metadata = await listSessionMetadata();
-    expect(metadata.map((session) => session.id)).toEqual(["session-1"]);
-    expect(metadata[0].preview).toBe("Question\nAnswer");
+    expect(metadata).toHaveLength(1);
+    expect(metadata[0].id).toBe("legacy-session");
+    expect(metadata[0].preview).toBe("Legacy question\nLegacy answer");
+
+    await saveSession(createSession("Question", "Answer"));
+
+    const mergedMetadata = await listSessionMetadata();
+    expect(mergedMetadata).toHaveLength(2);
+    expect(mergedMetadata.map((session) => session.id)).toEqual(
+      expect.arrayContaining(["legacy-session", "session-1"])
+    );
+    expect(
+      (await getSession("legacy-session"))?.messages[1].parts[0].text
+    ).toBe("Legacy answer");
   });
 });
