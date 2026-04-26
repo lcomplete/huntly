@@ -281,6 +281,47 @@ function createTwoTurnSession(secondQuestion = "Follow-up") {
   };
 }
 
+function createTwoTurnSessionWithAttachment(secondAnswer = "Second answer") {
+  return {
+    ...createSession("Question", "First answer"),
+    messages: [
+      {
+        id: "user-1",
+        role: "user" as const,
+        parts: [
+          { type: "text" as const, text: "Question" },
+          {
+            type: "file" as const,
+            filename: "note.txt",
+            mediaType: "text/plain",
+            dataUrl: "data:text/plain;base64,SGVsbG8=",
+            size: 5,
+          },
+        ],
+        status: "complete" as const,
+      },
+      {
+        id: "assistant-1",
+        role: "assistant" as const,
+        parts: [{ type: "text" as const, text: "First answer" }],
+        status: "complete" as const,
+      },
+      {
+        id: "user-2",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Follow-up" }],
+        status: "complete" as const,
+      },
+      {
+        id: "assistant-2",
+        role: "assistant" as const,
+        parts: [{ type: "text" as const, text: secondAnswer }],
+        status: "complete" as const,
+      },
+    ],
+  };
+}
+
 describe("sessionStorage persistence layout", () => {
   let fakeIndexedDB: FakeIndexedDB;
 
@@ -376,6 +417,57 @@ describe("sessionStorage persistence layout", () => {
       "user-2-edited",
       "assistant-2-edited",
     ]);
+  });
+
+  it("keeps earlier attachment refs stable when only the latest message rewrites", async () => {
+    const { saveSession } = await import("../sidepanel/sessionStorage");
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = jest.fn(async () => ({
+      ok: true,
+      blob: async () =>
+        ({ size: 5, type: "text/plain" }) as unknown as Blob,
+    })) as unknown as typeof fetch;
+
+    try {
+      await saveSession(createTwoTurnSessionWithAttachment());
+
+      const db = fakeIndexedDB.databases.get("huntly-agent")!;
+      const messageStore = db.stores.get("session-messages")!;
+      const attachmentStore = db.stores.get("session-attachments")!;
+      const storedUserMessage = messageStore.records.get(
+        "session-1\u001fuser-1"
+      ) as {
+        message: { parts: Array<{ type: string; attachmentId?: string }> };
+      };
+      const firstAttachmentId = storedUserMessage.message.parts[1].attachmentId;
+
+      expect(firstAttachmentId).toBeDefined();
+      expect(attachmentStore.records.has(firstAttachmentId!)).toBe(true);
+
+      messageStore.putCount = 0;
+
+      await saveSession(
+        createTwoTurnSessionWithAttachment("Updated second answer")
+      );
+
+      expect(messageStore.putCount).toBe(1);
+
+      const updatedUserMessage = messageStore.records.get(
+        "session-1\u001fuser-1"
+      ) as {
+        message: { parts: Array<{ type: string; attachmentId?: string }> };
+      };
+      const updatedAttachmentId =
+        updatedUserMessage.message.parts[1].attachmentId;
+
+      expect(updatedAttachmentId).toBe(firstAttachmentId);
+      expect(Array.from(attachmentStore.records.keys())).toEqual([
+        firstAttachmentId,
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("keeps history metadata and stored messages after a run completes", async () => {

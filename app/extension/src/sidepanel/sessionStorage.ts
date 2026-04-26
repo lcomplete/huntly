@@ -195,6 +195,14 @@ function getMessageStorageKey(sessionId: string, messageId: string): string {
   return `${sessionId}\u001f${messageId}`;
 }
 
+function getFallbackAttachmentId(
+  sessionId: string,
+  messageId: string,
+  partIndex: number
+): string {
+  return `${sessionId}\u001f${messageId}\u001fattachment-${partIndex}`;
+}
+
 function createMessageRef(
   sessionId: string,
   message: ChatMessage,
@@ -437,13 +445,19 @@ async function serializeSessionAttachments(
   const referencedAttachmentIds = new Set<string>();
 
   const messages = await Promise.all(
-    session.messages.map(async (message) => ({
+    session.messages.map(async (message, messageOrder) => ({
       ...message,
       parts: await Promise.all(
-        message.parts.map(async (part) => {
+        message.parts.map(async (part, partIndex) => {
           if (part.type !== "file") return part;
 
-          const attachmentId = part.attachmentId || crypto.randomUUID();
+          const attachmentId =
+            part.attachmentId ||
+            getFallbackAttachmentId(
+              session.id,
+              getMessageId(message, messageOrder),
+              partIndex
+            );
           referencedAttachmentIds.add(attachmentId);
 
           if (part.dataUrl && !attachmentRecords.has(attachmentId)) {
