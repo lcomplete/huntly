@@ -22,6 +22,17 @@ interface AssistantMessageProps {
   onRetryLastRun?: () => void;
 }
 
+function findLastResponseTextIndex(message: ChatMessage): number {
+  for (let index = message.parts.length - 1; index >= 0; index -= 1) {
+    const part = message.parts[index];
+    if (part.type === "text" && part.text?.trim()) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
 const AssistantMessageImpl: FC<AssistantMessageProps> = ({
   message,
   isLast,
@@ -39,9 +50,18 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
   const hasOnlyStatusParts =
     message.parts.length > 0 &&
     message.parts.every((part) => part.type === "status");
+  const text = useMemo(() => getMessageText(message.parts), [message.parts]);
+  const lastResponseTextIndex = useMemo(
+    () => findLastResponseTextIndex(message),
+    [message]
+  );
   const showThinkingPreview =
     thinkingMode && isLast && isRunning && !hasReasoningText;
-  const text = useMemo(() => getMessageText(message.parts), [message.parts]);
+  const showPreparingResponse =
+    isLast &&
+    isRunning &&
+    (lastResponseTextIndex === -1 ||
+      lastResponseTextIndex < message.parts.length - 1);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
   const copyResetTimeoutRef = useRef<number | null>(null);
   const footerButtonClassName =
@@ -139,11 +159,17 @@ const AssistantMessageImpl: FC<AssistantMessageProps> = ({
           return null;
         })}
 
-        {isLast && isRunning && message.parts.length === 0 && (
-          <div className="flex h-8 items-center gap-1">
-            <span className="claude-dot" />
-            <span className="claude-dot [animation-delay:120ms]" />
-            <span className="claude-dot [animation-delay:240ms]" />
+        {showPreparingResponse && (
+          <div
+            role="status"
+            aria-label={t("common.loading")}
+            className="inline-flex h-8 items-center justify-center px-1"
+          >
+            <span aria-hidden="true" className="flex items-center gap-1">
+              <span className="claude-dot" />
+              <span className="claude-dot [animation-delay:120ms]" />
+              <span className="claude-dot [animation-delay:240ms]" />
+            </span>
           </div>
         )}
 
