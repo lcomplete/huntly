@@ -68,6 +68,14 @@ export interface ProviderMeta {
    * endpoints for the same provider (qwen / zhipu / minimax currently).
    */
   supportsCustomApiFormat?: boolean;
+  /**
+   * Some OpenAI-compatible providers need the preview/background pipeline to
+   * use the raw chat-completions stream path so request-body flags such as
+   * `enable_thinking` can be sent explicitly.
+   *
+   * Only meaningful when the effective API format is `openai`.
+   */
+  requiresRawOpenAICompatibleStream?: boolean;
 }
 
 // Model information
@@ -264,6 +272,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     nativeApiFormat: 'openai',
     supportsCustomApiFormat: true,
+    requiresRawOpenAICompatibleStream: true,
     defaultModels: [
       { id: 'qwen3.5-plus' },
       { id: 'qwen3-max' },
@@ -288,6 +297,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     nativeApiFormat: 'openai',
     supportsCustomApiFormat: true,
+    requiresRawOpenAICompatibleStream: true,
     defaultModels: [
       { id: 'glm-5' },
       { id: 'glm-4.7' },
@@ -313,6 +323,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     defaultBaseUrl: 'https://api.minimax.chat/v1',
     nativeApiFormat: 'openai',
     supportsCustomApiFormat: true,
+    requiresRawOpenAICompatibleStream: true,
     defaultModels: [
       { id: 'MiniMax-M2.5' },
       { id: 'MiniMax-M2.5-highspeed' },

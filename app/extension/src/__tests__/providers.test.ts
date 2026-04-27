@@ -2,6 +2,7 @@ import {
   getOpenAICompatibleBaseUrl,
   getOllamaBaseUrl,
   getOllamaOpenAIBaseUrl,
+  usesRawOpenAICompatibleStream,
 } from "../ai/openAICompatibleProviders";
 import { getEffectiveApiFormat, PROVIDER_REGISTRY } from "../ai/types";
 
@@ -42,6 +43,64 @@ describe("providers helpers", () => {
     expect(getOllamaOpenAIBaseUrl("http://localhost:11434/v1")).toBe(
       "http://localhost:11434/v1"
     );
+  });
+
+  it("uses raw OpenAI-compatible streaming for providers that need explicit thinking control", () => {
+    expect(
+      usesRawOpenAICompatibleStream({
+        type: "qwen",
+        enabled: true,
+        apiKey: "test",
+        baseUrl: "",
+        enabledModels: ["qwen3.5-plus"],
+        updatedAt: Date.now(),
+      })
+    ).toBe(true);
+
+    expect(
+      usesRawOpenAICompatibleStream({
+        type: "zhipu",
+        enabled: true,
+        apiKey: "test",
+        baseUrl: "",
+        enabledModels: ["glm-5"],
+        updatedAt: Date.now(),
+      })
+    ).toBe(true);
+
+    expect(
+      usesRawOpenAICompatibleStream({
+        type: "openai",
+        enabled: true,
+        apiKey: "test",
+        baseUrl: "https://api.openai.com/v1",
+        enabledModels: ["gpt-4.1"],
+        updatedAt: Date.now(),
+      })
+    ).toBe(false);
+
+    expect(
+      usesRawOpenAICompatibleStream({
+        type: "openai",
+        enabled: true,
+        apiKey: "test",
+        baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        enabledModels: ["qwen-plus"],
+        updatedAt: Date.now(),
+      })
+    ).toBe(false);
+
+    expect(
+      usesRawOpenAICompatibleStream({
+        type: "qwen",
+        enabled: true,
+        apiKey: "test",
+        baseUrl: "",
+        enabledModels: ["qwen3.5-plus"],
+        updatedAt: Date.now(),
+        apiFormat: "anthropic",
+      })
+    ).toBe(false);
   });
 
   it("falls back to the provider native format when no override is given", () => {

@@ -1,4 +1,8 @@
-import { AIProviderConfig, PROVIDER_REGISTRY } from "./types";
+import {
+  AIProviderConfig,
+  getEffectiveApiFormat,
+  PROVIDER_REGISTRY,
+} from "./types";
 
 function trimTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");
@@ -10,6 +14,24 @@ export function getProviderBaseUrl(config: AIProviderConfig): string | undefined
     PROVIDER_REGISTRY[config.type]?.defaultBaseUrl ||
     undefined
   );
+}
+
+export function usesRawOpenAICompatibleStream(
+  config: AIProviderConfig
+): boolean {
+  const format = getEffectiveApiFormat({
+    type: config.type,
+    apiFormat: config.apiFormat,
+  });
+  if (format !== "openai") {
+    return false;
+  }
+
+  if (PROVIDER_REGISTRY[config.type]?.requiresRawOpenAICompatibleStream) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
