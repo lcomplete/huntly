@@ -11,6 +11,7 @@ import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import { Icon } from "@iconify/react";
 import { Box, SvgIconProps } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { formatAdvancedSearchText } from "../domain/searchSyntax";
 
 // Custom icon component for collections that can display emoji, iconify icons, or default folder
 const CollectionIconComponent = React.forwardRef<SVGSVGElement, SvgIconProps & { collectionIcon?: string | null }>(
@@ -124,7 +125,7 @@ const CollectionList = () => {
     // Add trailing space so users can directly type additional keywords
     const searchText = useMemo(() => {
         if (!isUnsorted && collection?.name) {
-            return `collection:${collection.name} `;
+            return formatAdvancedSearchText('collection:', collection.name);
         }
         return undefined;
     }, [isUnsorted, collection?.name]);
