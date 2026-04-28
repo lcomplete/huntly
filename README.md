@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/lcomplete-huntly-badge.png)](https://mseep.ai/app/lcomplete-huntly)
+
 **English** | [中文](./README.zh.md)
 
 <div align="center">
