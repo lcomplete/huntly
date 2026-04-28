@@ -43,6 +43,12 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -303,7 +309,7 @@ public class LuceneService implements DisposableBean {
         List<PageItem> pageItems = new ArrayList<>();
         searchResult.setItems(pageItems);
         List<String> words = segmentWords(keyword, true);
-        SearchOption option = parseSearchOption(searchQuery.getQueryOptions());
+        SearchOption option = resolveSearchOption(searchQuery);
 
         try {
             Directory dir = getDirectory();
@@ -379,6 +385,11 @@ public class LuceneService implements DisposableBean {
                         if (query != null) {
                             boolQueryBuilder.add(query, BooleanClause.Occur.MUST);
                         }
+                    }
+
+                    Query dateRangeQuery = buildSearchDateRangeQuery(searchQuery);
+                    if (dateRangeQuery != null) {
+                        boolQueryBuilder.add(dateRangeQuery, BooleanClause.Occur.MUST);
                     }
 
                     for (AdvancedSearch advancedSearch : completeSearch.advancedSearches) {
@@ -546,42 +557,49 @@ public class LuceneService implements DisposableBean {
         return tokens;
     }
 
+    SearchOption resolveSearchOption(SearchQuery searchQuery) {
+        SearchOption option = parseSearchOption(searchQuery != null ? searchQuery.getQueryOptions() : null);
+        if (searchQuery == null) {
+            return option;
+        }
+
+        SearchOption.Type type = parseSearchType(searchQuery.getContentType());
+        if (type != null) {
+            option.setType(type);
+        }
+
+        SearchOption.Library library = parseLibraryFilter(searchQuery.getLibraryFilter());
+        if (library != null) {
+            option.setLibrary(library);
+        }
+
+        if (searchQuery.getAlreadyRead() != null) {
+            option.setAlreadyRead(searchQuery.getAlreadyRead());
+        }
+        if (searchQuery.getSearchTitleOnly() != null) {
+            option.setOnlySearchTitle(searchQuery.getSearchTitleOnly());
+        }
+        return option;
+    }
+
     private SearchOption parseSearchOption(String options) {
         SearchOption option = new SearchOption();
         if (StringUtils.isNotBlank(options)) {
             String[] keywords = options.split(",");
             for (String key : keywords) {
-                switch (key) {
-                    case "tweet":
-                        option.setType(SearchOption.Type.TWEET);
-                        break;
-                    case "github":
-                        option.setType(SearchOption.Type.GITHUB_STARRED_REPO);
-                        break;
-                    case "browser":
-                        option.setType(SearchOption.Type.BROWSER_HISTORY);
-                        break;
-                    case "feeds":
-                        option.setType(SearchOption.Type.FEEDS);
-                        break;
-                    case "highlights":
-                        option.setLibrary(SearchOption.Library.HIGHLIGHTS);
-                        break;
-                    case "list":
-                        option.setLibrary(SearchOption.Library.MY_LIST);
-                        break;
-                    case "starred":
-                        option.setLibrary(SearchOption.Library.STARRED);
-                        break;
-                    case "archive":
-                        option.setLibrary(SearchOption.Library.ARCHIVE);
-                        break;
-                    case "later":
-                        option.setLibrary(SearchOption.Library.READ_LATER);
-                        break;
-                    case "unsorted":
-                        option.setLibrary(SearchOption.Library.UNSORTED);
-                        break;
+                SearchOption.Type type = parseSearchType(key);
+                if (type != null) {
+                    option.setType(type);
+                    continue;
+                }
+
+                SearchOption.Library library = parseLibraryFilter(key);
+                if (library != null) {
+                    option.setLibrary(library);
+                    continue;
+                }
+
+                switch (StringUtils.lowerCase(StringUtils.trimToEmpty(key))) {
                     case "read":
                         option.setAlreadyRead(true);
                         break;
@@ -594,6 +612,108 @@ public class LuceneService implements DisposableBean {
             }
         }
         return option;
+    }
+
+    private SearchOption.Type parseSearchType(String contentType) {
+        switch (StringUtils.lowerCase(StringUtils.trimToEmpty(contentType))) {
+            case "tweet":
+                return SearchOption.Type.TWEET;
+            case "github":
+                return SearchOption.Type.GITHUB_STARRED_REPO;
+            case "browser":
+                return SearchOption.Type.BROWSER_HISTORY;
+            case "feeds":
+                return SearchOption.Type.FEEDS;
+            default:
+                return null;
+        }
+    }
+
+    private SearchOption.Library parseLibraryFilter(String libraryFilter) {
+        switch (StringUtils.lowerCase(StringUtils.trimToEmpty(libraryFilter))) {
+            case "highlights":
+                return SearchOption.Library.HIGHLIGHTS;
+            case "list":
+                return SearchOption.Library.MY_LIST;
+            case "starred":
+                return SearchOption.Library.STARRED;
+            case "archive":
+                return SearchOption.Library.ARCHIVE;
+            case "later":
+                return SearchOption.Library.READ_LATER;
+            case "unsorted":
+                return SearchOption.Library.UNSORTED;
+            default:
+                return null;
+        }
+    }
+
+    Query buildSearchDateRangeQuery(SearchQuery searchQuery) {
+        SearchDateRange dateRange = resolveSearchDateRange(searchQuery);
+        if (dateRange == null) {
+            return null;
+        }
+        if (dateRange.getEndEpochSecond() < dateRange.getStartEpochSecond()) {
+            return new MatchNoDocsQuery("Invalid search date range");
+        }
+        return LongPoint.newRangeQuery(dateRange.getDocField(), dateRange.getStartEpochSecond(), dateRange.getEndEpochSecond());
+    }
+
+    SearchDateRange resolveSearchDateRange(SearchQuery searchQuery) {
+        if (searchQuery == null || (StringUtils.isBlank(searchQuery.getStartDate()) && StringUtils.isBlank(searchQuery.getEndDate()))) {
+            return null;
+        }
+
+        Instant start = parseSearchDate(searchQuery.getStartDate(), 0);
+        Instant end = parseSearchDate(searchQuery.getEndDate(), 1);
+        long startEpochSecond = start != null ? start.getEpochSecond() : Long.MIN_VALUE;
+        long endEpochSecond = end != null ? end.getEpochSecond() - 1 : Long.MAX_VALUE;
+        return new SearchDateRange()
+                .setDocField(resolveSearchDateField(searchQuery.getDateField()))
+                .setStartEpochSecond(startEpochSecond)
+                .setEndEpochSecond(endEpochSecond);
+    }
+
+    private String resolveSearchDateField(String dateField) {
+        switch (StringUtils.lowerCase(StringUtils.trimToEmpty(dateField))) {
+            case "collected_at":
+            case "collectedat":
+            case "collected":
+                return DocFields.COLLECTED_AT;
+            case "last_read_at":
+            case "lastreadat":
+            case "read_at":
+            case "readat":
+            case "read":
+                return DocFields.LAST_READ_AT;
+            case "created_at":
+            case "createdat":
+            case "created":
+            default:
+                return DocFields.CREATED_AT;
+        }
+    }
+
+    private Instant parseSearchDate(String date, int plusDay) {
+        if (StringUtils.isBlank(date)) {
+            return null;
+        }
+        if (date.contains("T") || date.contains(":")) {
+            return parseSearchDateTime(date);
+        }
+        return LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().plus(plusDay, ChronoUnit.DAYS);
+    }
+
+    private Instant parseSearchDateTime(String dateTime) {
+        try {
+            return Instant.parse(dateTime);
+        } catch (DateTimeParseException e) {
+            try {
+                return OffsetDateTime.parse(dateTime).toInstant();
+            } catch (DateTimeParseException offsetException) {
+                return LocalDateTime.parse(dateTime).atZone(ZoneId.systemDefault()).toInstant();
+            }
+        }
     }
 
     private List<String> segmentWords(String keyword, boolean useSmart) {
@@ -650,5 +770,14 @@ public class LuceneService implements DisposableBean {
         private String docField;
         private String keyword;
         private List<String> words;
+    }
+
+    @Getter
+    @Setter
+    @Accessors(chain = true)
+    static class SearchDateRange {
+        private String docField;
+        private long startEpochSecond;
+        private long endEpochSecond;
     }
 }

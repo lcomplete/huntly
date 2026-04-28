@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, type FC } from "react";
-import { Check, Copy, Paperclip, PencilLine, X } from "lucide-react";
+import { Check, Copy, Paperclip, PencilLine, RotateCcw, X } from "lucide-react";
 import { MessageFooter } from "./MessageFooter";
 import type { ChatMessage } from "../types";
 import { useAutosizeTextArea } from "../utils/dom";
@@ -18,6 +18,7 @@ interface UserMessageProps {
   onCancelEdit?: () => void;
   onEdit?: (messageId: string) => void;
   onEditingTextChange?: (value: string) => void;
+  onRetry?: (messageId: string) => void;
   onSaveEdit?: (messageId: string) => void;
 }
 
@@ -29,6 +30,7 @@ const UserMessageImpl: FC<UserMessageProps> = ({
   onCancelEdit,
   onEdit,
   onEditingTextChange,
+  onRetry,
   onSaveEdit,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -36,9 +38,10 @@ const UserMessageImpl: FC<UserMessageProps> = ({
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
   const copyResetTimeoutRef = useRef<number | null>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
-  const display = useMemo(() => getDisplayMessage(message.parts), [
-    message.parts,
-  ]);
+  const display = useMemo(
+    () => getDisplayMessage(message.parts),
+    [message.parts]
+  );
   const text = display.text;
   const pageContexts = message.parts.filter(
     (part) => part.type === "page-context"
@@ -52,7 +55,9 @@ const UserMessageImpl: FC<UserMessageProps> = ({
   const bubbleClassName = isEditing
     ? "w-full rounded-xl border border-[#d8cfbf] bg-[#fffdf9] px-4 py-3 text-[15px] leading-6 text-[#332a22] shadow-[0_8px_24px_rgba(64,48,31,0.06)] focus-within:border-[#c28b63] focus-within:ring-2 focus-within:ring-[#c28b63]/20"
     : "max-w-full rounded-2xl bg-[#e9dcc7] px-4 py-3 text-[15px] leading-6 text-[#332a22] shadow-sm";
-  const canSaveEdit = Boolean(editingText.trim() || attachments.length > 0 || pageContexts.length > 0);
+  const canSaveEdit = Boolean(
+    editingText.trim() || attachments.length > 0 || pageContexts.length > 0
+  );
 
   useAutosizeTextArea(editInputRef, isEditing ? editingText : text);
 
@@ -224,7 +229,9 @@ const UserMessageImpl: FC<UserMessageProps> = ({
                   active={copyFeedbackVisible}
                   className={footerButtonClassName}
                   disabled={!text}
-                  label={copyFeedbackVisible ? t("common.copied") : t("common.copy")}
+                  label={
+                    copyFeedbackVisible ? t("common.copied") : t("common.copy")
+                  }
                   onClick={handleCopy}
                 >
                   {copyFeedbackVisible ? (
@@ -233,6 +240,16 @@ const UserMessageImpl: FC<UserMessageProps> = ({
                     <Copy className="size-4" />
                   )}
                 </IconButton>
+                {onRetry && (
+                  <IconButton
+                    className={footerButtonClassName}
+                    disabled={isRunning}
+                    label={t("sidepanel.retryResponse")}
+                    onClick={() => onRetry(message.id)}
+                  >
+                    <RotateCcw className="size-4" />
+                  </IconButton>
+                )}
                 {onEdit && (
                   <IconButton
                     className={footerButtonClassName}
@@ -263,7 +280,9 @@ const UserMessageImpl: FC<UserMessageProps> = ({
             </button>
             <img
               src={previewUrl}
-              alt={t("sidepanel.previewLabel", { label: t("sidepanel.attachment") })}
+              alt={t("sidepanel.previewLabel", {
+                label: t("sidepanel.attachment"),
+              })}
               className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-lg"
               onClick={(event) => event.stopPropagation()}
             />

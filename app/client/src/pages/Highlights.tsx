@@ -314,13 +314,13 @@ const Highlights: React.FC = () => {
 
   React.useEffect(() => {
     setDocTitle(t('page:myHighlightsTitle'));
-  }, []);
+  }, [t]);
 
   React.useEffect(() => {
     if (selectedPageId === 0) {
       setDocTitle(t('page:myHighlightsTitle'));
     }
-  }, [selectedPageId]);
+  }, [selectedPageId, t]);
 
   const allHighlights = data?.pages.flatMap(page => page?.content || []) || [];
   const totalCount = data?.pages[0]?.totalElements || 0;

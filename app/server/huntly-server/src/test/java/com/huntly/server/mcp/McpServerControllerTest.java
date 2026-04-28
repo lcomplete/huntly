@@ -2,6 +2,7 @@ package com.huntly.server.mcp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huntly.server.domain.entity.GlobalSetting;
+import com.huntly.server.mcp.tool.McpTool;
 import com.huntly.server.service.GlobalSettingService;
 import com.huntly.server.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class McpServerControllerTest {
@@ -30,11 +32,12 @@ class McpServerControllerTest {
     private static final String SESSION_ID = "session-1";
 
     private MockMvc mockMvc;
+    private McpToolRegistry toolRegistry;
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        McpToolRegistry toolRegistry = mock(McpToolRegistry.class);
+        toolRegistry = mock(McpToolRegistry.class);
         GlobalSettingService globalSettingService = mock(GlobalSettingService.class);
         userService = mock(UserService.class);
 
@@ -108,5 +111,39 @@ class McpServerControllerTest {
                 .andExpect(status().isUnauthorized());
 
         verify(userService, never()).existsByUsername("anonymousUser");
+    }
+
+    @Test
+    void testToolReturnsStructuredErrorWhenToolThrowsError() throws Exception {
+        when(toolRegistry.hasTool("broken_tool")).thenReturn(true);
+        when(toolRegistry.getTool("broken_tool")).thenReturn(new McpTool() {
+            @Override
+            public String getName() {
+                return "broken_tool";
+            }
+
+            @Override
+            public String getDescription() {
+                return "Broken test tool";
+            }
+
+            @Override
+            public Map<String, Object> getInputSchema() {
+                return Map.of("type", "object");
+            }
+
+            @Override
+            public Object execute(Map<String, Object> arguments) {
+                throw new AssertionError("simulated tool failure");
+            }
+        });
+
+        mockMvc.perform(post("/api/mcp/tools/test")
+                        .principal(() -> "huntly-user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"broken_tool\",\"arguments\":{}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error").value("Tool execution failed: simulated tool failure"));
     }
 }

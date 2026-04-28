@@ -42,6 +42,8 @@ public class McpPageItem {
     private Long voteScore;
     private Integer connectorId;
     private String connectorName;
+    private Long collectionId;
+    private String collectedAt;
 
     // Tweet-specific fields
     private Long favoriteCount;

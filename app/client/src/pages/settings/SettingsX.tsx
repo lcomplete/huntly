@@ -3,6 +3,7 @@ import XSetting from "../../components/SettingModal/XSetting";
 import SubHeader from "../../components/SubHeader";
 import SvgIcon, { SvgIconProps } from "@mui/material/SvgIcon";
 import "../../styles/settings.css";
+import { useTranslation } from "react-i18next";
 
 // X (Twitter) Icon Component - same as in PrimaryNavigation
 function XIcon(props: SvgIconProps) {
@@ -14,11 +15,13 @@ function XIcon(props: SvgIconProps) {
 }
 
 const SettingsX = () => {
+  const { t } = useTranslation('navigation');
+
   return (
     <MainContainer>
       <SubHeader
-        documentTitle="X Settings"
-        navLabel={{ labelText: 'X', labelIcon: XIcon }}
+        documentTitle={t('x')}
+        navLabel={{ labelText: t('x'), labelIcon: XIcon }}
         buttonOptions={{ markRead: false }}
       />
       <div className="settings-page-content p-6 max-w-4xl">

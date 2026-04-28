@@ -15,6 +15,20 @@ public class SearchQuery {
     private String q;
     
     private String queryOptions;
+
+    private String contentType;
+
+    private String libraryFilter;
+
+    private Boolean alreadyRead;
+
+    private Boolean searchTitleOnly;
+
+    private String startDate;
+
+    private String endDate;
+
+    private String dateField;
     
     private Integer page;
     

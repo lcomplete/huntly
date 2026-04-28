@@ -111,7 +111,9 @@ public class McpUtils {
                 .id(pageItem.getId())
                 .url(pageItem.getUrl())
                 .huntlyUrl(buildHuntlyUrl(pageItem.getId()))
-                .contentType(contentType);
+                .contentType(contentType)
+                .collectionId(pageItem.getCollectionId())
+                .collectedAt(pageItem.getCollectedAt() != null ? pageItem.getCollectedAt().toString() : null);
 
         // For tweets, use content field instead of title; for articles, use title
         if (isTweet) {
@@ -179,7 +181,9 @@ public class McpUtils {
                 .markRead(pageItem.getMarkRead())
                 .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
                 .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null)
-                .voteScore(pageItem.getVoteScore());
+                .voteScore(pageItem.getVoteScore())
+                .collectionId(pageItem.getCollectionId())
+                .collectedAt(pageItem.getCollectedAt() != null ? pageItem.getCollectedAt().toString() : null);
 
         // Parse tweet-specific fields
         parseTweetProperties(pageItem.getPageJsonProperties(), builder);
@@ -203,7 +207,9 @@ public class McpUtils {
                 .readLater(pageItem.getReadLater())
                 .markRead(pageItem.getMarkRead())
                 .recordAt(pageItem.getRecordAt() != null ? pageItem.getRecordAt().toString() : null)
-                .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null);
+                .publishedAt(pageItem.getConnectedAt() != null ? pageItem.getConnectedAt().toString() : null)
+                .collectionId(pageItem.getCollectionId())
+                .collectedAt(pageItem.getCollectedAt() != null ? pageItem.getCollectedAt().toString() : null);
 
         if (!titleOnly) {
             builder.author(pageItem.getAuthor())
@@ -246,7 +252,9 @@ public class McpUtils {
                 .recordAt(page.getConnectedAt() != null ? page.getConnectedAt().toString() : null)
                 .publishedAt(page.getConnectedAt() != null ? page.getConnectedAt().toString() : null)
                 .voteScore(page.getVoteScore())
-                .connectorId(page.getConnectorId());
+                .connectorId(page.getConnectorId())
+                .collectionId(page.getCollectionId())
+                .collectedAt(page.getCollectedAt() != null ? page.getCollectedAt().toString() : null);
 
         if (isTweet) {
             // Parse tweet text using the same logic as frontend Tweet.tsx

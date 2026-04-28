@@ -23,7 +23,7 @@ import SearchIcon from "@mui/icons-material/Search";
 export default function Search() {
   const {ref: inViewRef, inView} = useInView();
   const {enqueueSnackbar} = useSnackbar();
-  const { t } = useTranslation(['search']);
+  const { t } = useTranslation(['search', 'navigation']);
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q');
   const options = searchParams.get("op");
@@ -32,6 +32,7 @@ export default function Search() {
   const [draftQuery, setDraftQuery] = useState('');
   const [draftOptions, setDraftOptions] = useState<string[]>([]);
   const [focusSignal, setFocusSignal] = useState(0);
+  const searchDocumentTitle = t('navigation:search');
 
   // Quick search suggestions with their keywords
   const quickSearchSuggestions = [
@@ -50,11 +51,11 @@ export default function Search() {
 
   useEffect(() => {
     if (hasSearchQuery) {
-      setDocTitle(q + " - Search");
+      setDocTitle(`${q} - ${searchDocumentTitle}`);
     } else {
-      setDocTitle("Search");
+      setDocTitle(searchDocumentTitle);
     }
-  }, [q, hasSearchQuery]);
+  }, [q, hasSearchQuery, searchDocumentTitle]);
 
   const query: SearchQuery = {q, size: 10, queryOptions: options};
   const queryKey = [PageQueryKey.Search, query];

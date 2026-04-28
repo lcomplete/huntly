@@ -52,6 +52,7 @@ export const MessageList: FC<MessageListProps> = ({
                 onCancelEdit={onCancelUserMessageEdit}
                 onEdit={onEditUserMessage}
                 onEditingTextChange={onEditUserMessageTextChange}
+                onRetry={onRegenerate}
                 onSaveEdit={onSaveUserMessageEdit}
               />
             );
