@@ -78,9 +78,7 @@ public class McpServerController {
             return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).build();
         }
 
-        String toolName = (String) request.get("name");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> arguments = (Map<String, Object>) request.get("arguments");
+        String toolName = request.get("name") instanceof String ? (String) request.get("name") : null;
 
         Map<String, Object> response = new HashMap<>();
 
@@ -92,7 +90,7 @@ public class McpServerController {
 
         try {
             McpTool tool = toolRegistry.getTool(toolName);
-            Object result = tool.execute(arguments != null ? arguments : new HashMap<>());
+            Object result = executeTool(tool, getToolArguments(request.get("arguments")));
             response.put("success", true);
             response.put("result", result);
             return ResponseEntity.ok(response);
@@ -240,17 +238,16 @@ public class McpServerController {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> handleToolCall(Map<String, Object> params) {
-        String toolName = (String) params.get("name");
-        Map<String, Object> arguments = (Map<String, Object>) params.get("arguments");
+        String toolName = params != null && params.get("name") instanceof String ? (String) params.get("name") : null;
+        Map<String, Object> arguments = getToolArguments(params != null ? params.get("arguments") : null);
 
         if (!toolRegistry.hasTool(toolName)) {
             throw new IllegalArgumentException("Unknown tool: " + toolName);
         }
 
         McpTool tool = toolRegistry.getTool(toolName);
-        Object result = tool.execute(arguments != null ? arguments : new HashMap<>());
+        Object result = executeTool(tool, arguments);
 
         // Detect error-shaped payloads (Map with "error" key)
         boolean isError = result instanceof Map && ((Map<?, ?>) result).containsKey("error");
@@ -269,6 +266,34 @@ public class McpServerController {
         response.put("isError", isError);
 
         return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getToolArguments(Object arguments) {
+        if (arguments == null) {
+            return new HashMap<>();
+        }
+        if (!(arguments instanceof Map)) {
+            throw new IllegalArgumentException("Tool arguments must be a JSON object");
+        }
+        return (Map<String, Object>) arguments;
+    }
+
+    private Object executeTool(McpTool tool, Map<String, Object> arguments) {
+        try {
+            return tool.execute(arguments != null ? arguments : new HashMap<>());
+        } catch (Throwable e) {
+            if (e instanceof VirtualMachineError || e instanceof ThreadDeath) {
+                throw e;
+            }
+            throw new IllegalStateException("Tool execution failed: " + getThrowableMessage(e), e);
+        }
+    }
+
+    private String getThrowableMessage(Throwable throwable) {
+        return StringUtils.isNotBlank(throwable.getMessage())
+                ? throwable.getMessage()
+                : throwable.getClass().getSimpleName();
     }
 
     private void sendEvent(SseEmitter emitter, String eventName, Object data) throws IOException {

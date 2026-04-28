@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 import {
   isScrollPinnedToBottom,
@@ -39,7 +45,24 @@ export function useScrollPinToBottom<T>(
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     pinnedRef.current = true;
     setShowScrollToBottom(false);
-    messagesEndRef.current?.scrollIntoView({ block: "end", behavior });
+
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) {
+      messagesEndRef.current?.scrollIntoView({ block: "end", behavior });
+      return;
+    }
+
+    const top = Math.max(
+      scrollContainer.scrollHeight - scrollContainer.clientHeight,
+      0
+    );
+
+    if (behavior === "auto" || typeof scrollContainer.scrollTo !== "function") {
+      scrollContainer.scrollTop = top;
+      return;
+    }
+
+    scrollContainer.scrollTo({ top, behavior });
   }, []);
 
   const handleScroll = useCallback(() => {
@@ -58,7 +81,7 @@ export function useScrollPinToBottom<T>(
     );
   }, [messages.length, thresholdPx]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (messages.length === 0) {
       pinnedRef.current = true;
       setShowScrollToBottom(false);
@@ -72,8 +95,7 @@ export function useScrollPinToBottom<T>(
       return;
     }
 
-    const frame = window.requestAnimationFrame(() => scrollToBottom("auto"));
-    return () => window.cancelAnimationFrame(frame);
+    scrollToBottom("auto");
   }, [messages, scrollToBottom]);
 
   return {

@@ -49,6 +49,7 @@ const Page = () => {
     <MainContainer>
       <SubHeader
         navLabel={articleNavLabel}
+        documentTitle={pageDisplayTitle || t('page:article')}
         buttonOptions={{ markRead: false, viewSwitch: false }}
         hideSearchOnMobile={true}
       />

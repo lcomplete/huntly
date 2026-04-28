@@ -2,7 +2,7 @@ export function isScrollPinnedToBottom(
   distanceToBottom: number,
   thresholdPx: number
 ): boolean {
-  return distanceToBottom < thresholdPx;
+  return distanceToBottom <= thresholdPx;
 }
 
 export function shouldShowScrollToBottomButton(

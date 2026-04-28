@@ -249,6 +249,7 @@ const Home = () => {
     <MainContainer>
       <SubHeader
         navLabel={navLabels.home}
+        documentTitle={t('navigation:home')}
         buttonOptions={{ markRead: false, viewSwitch: false }}
       />
       <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: '100vw', overflowX: 'hidden' }}>

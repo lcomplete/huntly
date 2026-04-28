@@ -89,6 +89,7 @@ type HuntlyChatInstance = Chat<HuntlyUIMessage> & {
 };
 
 const CHAT_POLL_INTERVAL_MS = 100;
+const AGENT_TOOL_LOOP_MAX_STEPS = 50;
 
 function isChatRunning(status: ChatStatus): boolean {
   return status === "submitted" || status === "streaming";
@@ -274,14 +275,14 @@ export class SessionChatPool {
     messages: HuntlyUIMessage[],
     abortSignal: AbortSignal
   ): Promise<ReadableStream<any>> {
-    const toolContext = await createAgentToolContext();
+    const toolContext = await createAgentToolContext({ abortSignal });
 
     try {
       const agent = new ToolLoopAgent({
         model: config.modelInfo.model,
         instructions: config.systemPrompt,
         tools: toolContext.tools as any,
-        stopWhen: stepCountIs(5),
+        stopWhen: stepCountIs(AGENT_TOOL_LOOP_MAX_STEPS),
         maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
         providerOptions: config.thinkingEnabled
           ? buildThinkingProviderOptions(config.modelInfo.provider)

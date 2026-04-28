@@ -7,7 +7,7 @@ import {useInView} from "react-intersection-observer";
 import React, {ReactElement, useEffect, useState, useRef, useCallback, useMemo} from "react";
 import {Button} from "@mui/material";
 import Loading from "./Loading";
-import {NavLabel} from "./Navigation/shared/NavLabels";
+import {getTranslatedLabel, NavLabel} from "./Navigation/shared/NavLabels";
 import SubHeader, {ButtonOptions} from "./SubHeader";
 import {PageOperateEvent, PageOperation} from "./PageOperationButtons";
 import {PageQueryKey} from "../domain/pageQueryKey";
@@ -80,7 +80,7 @@ const PageList = (props: PageListProps) => {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const { markReadOnScroll } = useGlobalSettings();
-  const { t } = useTranslation(['page']);
+  const { t, i18n } = useTranslation(['page', 'navigation']);
 
   // ============ Basic State ============
   const selectedPageId = safeInt(params.get("p"));
@@ -436,11 +436,11 @@ const PageList = (props: PageListProps) => {
 
   useEffect(() => {
     if (selectedPageId === 0) {
-      setDocTitle(navLabel.labelText);
+      setDocTitle(getTranslatedLabel(navLabel));
     } else {
       setLastVisitPageId(selectedPageId);
     }
-  }, [selectedPageId, navLabel]);
+  }, [selectedPageId, navLabel, i18n.language]);
 
   useEffect(() => {
     if (inView && !isLoading && !isFetchingNextPage) {

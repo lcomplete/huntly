@@ -140,7 +140,7 @@ function getChromeApi(): ChromeApi | undefined {
   return (globalThis as typeof globalThis & { chrome?: ChromeApi }).chrome;
 }
 
-const SCROLL_PIN_THRESHOLD_PX = 96;
+const SCROLL_PIN_THRESHOLD_PX = 160;
 
 export const SidepanelApp: FC = () => {
   const { t } = useI18n();

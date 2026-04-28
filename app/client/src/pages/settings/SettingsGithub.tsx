@@ -3,13 +3,16 @@ import { GithubSetting } from "../../components/SettingModal/GithubSetting";
 import SubHeader from "../../components/SubHeader";
 import GitHubIcon from '@mui/icons-material/GitHub';
 import "../../styles/settings.css";
+import { useTranslation } from "react-i18next";
 
 const SettingsGithub = () => {
+  const { t } = useTranslation('settings');
+
   return (
     <MainContainer>
       <SubHeader
-        documentTitle="GitHub Settings"
-        navLabel={{ labelText: 'GitHub', labelIcon: GitHubIcon }}
+        documentTitle={t('github')}
+        navLabel={{ labelText: t('github'), labelIcon: GitHubIcon }}
         buttonOptions={{ markRead: false }}
       />
       <div className="settings-page-content p-6 max-w-4xl">
