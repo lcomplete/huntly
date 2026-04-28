@@ -29,6 +29,7 @@ class SearchContentToolTest {
         Map<String, Object> query = asMap(properties.get("query"));
         Map<String, Object> libraryFilter = asMap(properties.get("library_filter"));
         Map<String, Object> dateField = asMap(properties.get("date_field"));
+        Map<String, Object> page = asMap(properties.get("page"));
 
         assertThat(tool.getDescription())
                 .contains("collection:\"Daily Reads\"")
@@ -40,6 +41,7 @@ class SearchContentToolTest {
         assertThat(properties).containsKeys("start_date", "end_date", "date_field");
         assertThat(asList(dateField.get("enum"))).contains("created_at", "collected_at", "last_read_at");
         assertThat(properties).containsKey("page");
+        assertThat(page.get("maximum")).isEqualTo(20);
     }
 
     @Test
@@ -94,6 +96,31 @@ class SearchContentToolTest {
 
         List<McpPageItem> items = asPageItems(response.get("items"));
         assertThat(items).extracting(McpPageItem::getId).containsExactly(7L);
+    }
+
+    @Test
+    void executeClampsPageToSafeMaximumForLuceneCollection() {
+        LuceneService luceneService = mock(LuceneService.class);
+        SearchContentTool tool = new SearchContentTool(luceneService, new McpUtils());
+        PageSearchResult searchResult = new PageSearchResult();
+        searchResult.setItems(List.of());
+        when(luceneService.searchPages(any(SearchQuery.class))).thenReturn(searchResult);
+
+        Object rawResponse = tool.execute(Map.of(
+                "query", "machine learning",
+                "limit", 500,
+                "page", Integer.MAX_VALUE
+        ));
+
+        ArgumentCaptor<SearchQuery> queryCaptor = ArgumentCaptor.forClass(SearchQuery.class);
+        verify(luceneService).searchPages(queryCaptor.capture());
+        SearchQuery searchQuery = queryCaptor.getValue();
+        assertThat(searchQuery.getSize()).isEqualTo(500);
+        assertThat(searchQuery.getPage()).isEqualTo(20);
+
+        Map<String, Object> response = asMap(rawResponse);
+        assertThat(response.get("page")).isEqualTo(20);
+        assertThat(response.get("page_size")).isEqualTo(500);
     }
 
     @SuppressWarnings("unchecked")

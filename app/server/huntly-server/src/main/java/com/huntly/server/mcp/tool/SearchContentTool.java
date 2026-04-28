@@ -4,6 +4,7 @@ import com.huntly.interfaces.external.dto.PageSearchResult;
 import com.huntly.interfaces.external.query.SearchQuery;
 import com.huntly.server.mcp.McpUtils;
 import com.huntly.server.service.LuceneService;
+import com.huntly.server.util.PageSizeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,10 @@ import java.util.stream.Collectors;
  */
 @Component
 public class SearchContentTool implements McpTool {
+
+    private static final int MAX_LIMIT = PageSizeUtils.MAX_PAGE_SIZE;
+    private static final int MAX_LUCENE_RESULT_WINDOW = 10_000;
+    private static final int MAX_PAGE = Math.max(1, MAX_LUCENE_RESULT_WINDOW / MAX_LIMIT);
 
     private final LuceneService luceneService;
     private final McpUtils mcpUtils;
@@ -84,14 +89,15 @@ public class SearchContentTool implements McpTool {
         properties.put("limit", Map.of(
                 "type", "integer",
                 "minimum", 1,
-                "maximum", 500,
+                "maximum", MAX_LIMIT,
                 "description", "Number of results to return, max 500"
         ));
         properties.put("page", Map.of(
                 "type", "integer",
                 "minimum", 1,
+                "maximum", MAX_PAGE,
                 "default", 1,
-                "description", "Page number for search results, starting from 1. Use with limit to inspect additional pages."
+                "description", "Page number for search results, starting from 1. Use with limit to inspect additional pages. Capped to " + MAX_PAGE + " so Lucene collection stays bounded when limit is at its maximum."
         ));
         properties.put("title_only", Map.of(
                 "type", "boolean",
@@ -114,8 +120,8 @@ public class SearchContentTool implements McpTool {
         String startDate = mcpUtils.getStringArg(arguments, "start_date");
         String endDate = mcpUtils.getStringArg(arguments, "end_date");
         String dateField = mcpUtils.getStringArg(arguments, "date_field");
-        int limit = Math.min(Math.max(mcpUtils.getIntArg(arguments, "limit", 50), 1), 500);
-        int page = Math.max(mcpUtils.getIntArg(arguments, "page", 1), 1);
+        int limit = Math.min(Math.max(mcpUtils.getIntArg(arguments, "limit", 50), 1), MAX_LIMIT);
+        int page = Math.min(Math.max(mcpUtils.getIntArg(arguments, "page", 1), 1), MAX_PAGE);
         boolean titleOnly = mcpUtils.getBoolArg(arguments, "title_only", false);
 
         if (StringUtils.isBlank(query)) {
