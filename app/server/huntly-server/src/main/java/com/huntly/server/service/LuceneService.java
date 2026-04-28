@@ -447,11 +447,11 @@ public class LuceneService implements DisposableBean {
         return searchResult;
     }
 
-    private CompleteSearch extractCompleteSearch(String keyword) {
+    CompleteSearch extractCompleteSearch(String keyword) {
         CompleteSearch completeSearch = new CompleteSearch();
         completeSearch.setAdvancedSearches(new ArrayList<>());
         completeSearch.setCollectionIds(new ArrayList<>());
-        String[] keywords = keyword.split(" ");
+        List<String> keywords = splitSearchTokens(keyword);
         List<String> simpleWords = new ArrayList<>();
         for (String key : keywords) {
             if (StringUtils.isBlank(key)) {
@@ -482,12 +482,68 @@ public class LuceneService implements DisposableBean {
     private AdvancedSearch extractAdvancedSearch(String key, String docField, String seperator) {
         AdvancedSearch advancedSearch = new AdvancedSearch();
         advancedSearch.setDocField(docField);
-        String[] parts = key.split(seperator);
-        if (parts.length == 2) {
-            advancedSearch.setKeyword(parts[1]);
-        }
+        advancedSearch.setKeyword(extractAdvancedSearchKeyword(key, seperator));
         advancedSearch.words = segmentWords(advancedSearch.getKeyword(), true);
         return advancedSearch;
+    }
+
+    static String extractAdvancedSearchKeyword(String key, String separator) {
+        int separatorIndex = key.indexOf(separator);
+        if (separatorIndex < 0) {
+            return "";
+        }
+        return key.substring(separatorIndex + separator.length()).trim();
+    }
+
+    static List<String> splitSearchTokens(String keyword) {
+        List<String> tokens = new ArrayList<>();
+        if (StringUtils.isBlank(keyword)) {
+            return tokens;
+        }
+
+        StringBuilder token = new StringBuilder();
+        boolean inQuotes = false;
+        boolean escaping = false;
+
+        for (int i = 0; i < keyword.length(); i++) {
+            char current = keyword.charAt(i);
+
+            if (escaping) {
+                token.append(current);
+                escaping = false;
+                continue;
+            }
+
+            if (inQuotes && current == '\\') {
+                escaping = true;
+                continue;
+            }
+
+            if (current == '"') {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (!inQuotes && Character.isWhitespace(current)) {
+                if (token.length() > 0) {
+                    tokens.add(token.toString());
+                    token.setLength(0);
+                }
+                continue;
+            }
+
+            token.append(current);
+        }
+
+        if (escaping) {
+            token.append('\\');
+        }
+
+        if (token.length() > 0) {
+            tokens.add(token.toString());
+        }
+
+        return tokens;
     }
 
     private SearchOption parseSearchOption(String options) {
@@ -542,6 +598,9 @@ public class LuceneService implements DisposableBean {
 
     private List<String> segmentWords(String keyword, boolean useSmart) {
         List<String> words = new ArrayList<>();
+        if (StringUtils.isBlank(keyword)) {
+            return words;
+        }
         StringReader sr = new StringReader(keyword);
         IKSegmenter segmenter = new IKSegmenter(sr, useSmart);
         Lexeme lexeme = null;
