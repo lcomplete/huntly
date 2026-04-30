@@ -98,7 +98,7 @@ jobs:
       - name: Build with Maven
         run: |
           cd app/server
-          mvn clean package
+          mvn -Drevision=${{ steps.get_version.outputs.version-without-v }} clean package
         env:
           CI: false
 

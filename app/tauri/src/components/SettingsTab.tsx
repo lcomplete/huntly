@@ -19,6 +19,10 @@ import { open } from "@tauri-apps/plugin-shell";
 
 const GITHUB_URL = "https://github.com/lcomplete/huntly";
 
+function formatCheckedAt(value: string) {
+  return new Date(value).toLocaleString();
+}
+
 type UpdateState = {
   checking: boolean;
   installing: boolean;
@@ -94,6 +98,26 @@ export default function SettingsTab({
     getVersion().then(setAppVersion).catch(() => setAppVersion(null));
   }, []);
 
+  const showAppUpToDate =
+    !updateState.error &&
+    !updateState.available &&
+    !updateState.installed &&
+    !!updateState.lastCheckedAt &&
+    !updateState.checking;
+  const showServerJarUpToDate =
+    !serverUpdateState.error &&
+    !serverUpdateState.available &&
+    !serverUpdateState.installed &&
+    !!serverUpdateState.lastCheckedAt &&
+    !serverUpdateState.checking;
+  const showAppUpdateStatus =
+    !!updateState.error || updateState.available || updateState.installed || showAppUpToDate;
+  const showServerJarUpdateStatus =
+    !!serverUpdateState.error ||
+    serverUpdateState.available ||
+    serverUpdateState.installed ||
+    showServerJarUpToDate;
+
   return (
     <Paper
       className={"max-w-[760px] mx-auto my-6 p-8 page-shell reveal reveal-2"}
@@ -161,7 +185,51 @@ export default function SettingsTab({
             <div className="setting-title">Desktop App Updates</div>
             <div className="setting-sub">
               Check for new versions of the Huntly desktop app.
+              {appVersion && (
+                <span className="block mt-1">
+                  Current version: v{appVersion}
+                </span>
+              )}
             </div>
+            {showAppUpdateStatus && (
+              <Box sx={{ mt: 1.25 }} aria-live="polite">
+                {updateState.error && (
+                  <Alert severity="error" sx={{ borderRadius: 2 }}>
+                    {updateState.error}
+                  </Alert>
+                )}
+                {!updateState.error && updateState.available && (
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    Update available: v{updateState.version}
+                    {updateState.date ? ` (${updateState.date})` : ""}
+                  </Alert>
+                )}
+                {showAppUpToDate && updateState.lastCheckedAt && (
+                  <Alert
+                    severity="success"
+                    variant="outlined"
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Desktop app is up to date. Last checked{" "}
+                    {formatCheckedAt(updateState.lastCheckedAt)}.
+                  </Alert>
+                )}
+                {updateState.installed && (
+                  <Alert severity="success" sx={{ borderRadius: 2 }}>
+                    Update installed. Restart Huntly to finish.
+                  </Alert>
+                )}
+                {updateState.notes && updateState.available && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1, whiteSpace: "pre-line" }}
+                  >
+                    {updateState.notes}
+                  </Typography>
+                )}
+              </Box>
+            )}
           </div>
           <Box className="flex flex-wrap gap-2">
             <Button
@@ -214,7 +282,43 @@ export default function SettingsTab({
             <div className="setting-title">Server JAR Updates</div>
             <div className="setting-sub">
               Check the server JAR from main Huntly releases.
+              <span className="block mt-1">
+                Current JAR: {serverJarVersion ? `v${serverJarVersion}` : "N/A"}
+              </span>
             </div>
+            {showServerJarUpdateStatus && (
+              <Box sx={{ mt: 1.25 }} aria-live="polite">
+                {serverUpdateState.error && (
+                  <Alert severity="error" sx={{ borderRadius: 2 }}>
+                    {serverUpdateState.error}
+                  </Alert>
+                )}
+                {!serverUpdateState.error && serverUpdateState.available && (
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    Server JAR update available: v{serverUpdateState.latestVersion}
+                    {serverUpdateState.currentVersion
+                      ? ` (current v${serverUpdateState.currentVersion})`
+                      : ""}
+                  </Alert>
+                )}
+                {showServerJarUpToDate && serverUpdateState.lastCheckedAt && (
+                  <Alert
+                    severity="success"
+                    variant="outlined"
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Server JAR is up to date. Last checked{" "}
+                    {formatCheckedAt(serverUpdateState.lastCheckedAt)}.
+                  </Alert>
+                )}
+                {serverUpdateState.installed && (
+                  <Alert severity="success" sx={{ borderRadius: 2 }}>
+                    Server JAR updated to v
+                    {serverUpdateState.currentVersion ?? serverUpdateState.latestVersion}.
+                  </Alert>
+                )}
+              </Box>
+            )}
           </div>
           <Box className="flex flex-wrap gap-2">
             <Button
@@ -253,7 +357,7 @@ export default function SettingsTab({
           <div className="flex-1">
             <div className="setting-title">Automatic Server JAR Updates</div>
             <div className="setting-sub">
-              Download newer server JARs independently of desktop app updates.
+              Check daily and download newer server JARs independently of desktop app updates.
             </div>
           </div>
           <Switch
@@ -262,72 +366,6 @@ export default function SettingsTab({
             onChange={onServerAutoUpdateChange}
           />
         </div>
-        <Box sx={{ mt: 1 }}>
-          {updateState.error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
-              {updateState.error}
-            </Alert>
-          )}
-          {!updateState.error && updateState.available && (
-            <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Update available: v{updateState.version}
-              {updateState.date ? ` (${updateState.date})` : ""}
-            </Alert>
-          )}
-          {!updateState.error &&
-            !updateState.available &&
-            updateState.lastCheckedAt &&
-            !updateState.checking && (
-              <Typography variant="body2" color="text.secondary">
-                You are up to date. Last checked{" "}
-                {new Date(updateState.lastCheckedAt).toLocaleString()}.
-              </Typography>
-            )}
-          {updateState.installed && (
-            <Alert severity="success" sx={{ mt: 1, borderRadius: 2 }}>
-              Update installed. Restart Huntly to finish.
-            </Alert>
-          )}
-          {updateState.notes && updateState.available && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 1, whiteSpace: "pre-line" }}
-            >
-              {updateState.notes}
-            </Typography>
-          )}
-          {serverUpdateState.error && (
-            <Alert severity="error" sx={{ mt: 1, borderRadius: 2 }}>
-              {serverUpdateState.error}
-            </Alert>
-          )}
-          {!serverUpdateState.error && serverUpdateState.available && (
-            <Alert severity="info" sx={{ mt: 1, borderRadius: 2 }}>
-              Server JAR update available: v{serverUpdateState.latestVersion}
-              {serverUpdateState.currentVersion
-                ? ` (current v${serverUpdateState.currentVersion})`
-                : ""}
-            </Alert>
-          )}
-          {!serverUpdateState.error &&
-            !serverUpdateState.available &&
-            serverUpdateState.lastCheckedAt &&
-            !serverUpdateState.checking && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Server JAR is up to date. Last checked{" "}
-                {new Date(serverUpdateState.lastCheckedAt).toLocaleString()}.
-              </Typography>
-            )}
-          {serverUpdateState.installed && (
-            <Alert severity="success" sx={{ mt: 1, borderRadius: 2 }}>
-              Server JAR updated to v{serverUpdateState.currentVersion ?? serverUpdateState.latestVersion}.
-            </Alert>
-          )}
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Server JAR Version: {serverJarVersion ? `v${serverJarVersion}` : "N/A"}
-          </Typography>
-        </Box>
       </Box>
 
       <Box className="section-card mt-4">

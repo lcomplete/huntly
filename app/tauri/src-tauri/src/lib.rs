@@ -1,4 +1,4 @@
-use reqwest::StatusCode;
+use reqwest::{StatusCode, Url};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 #[cfg(target_os = "windows")]
@@ -12,9 +12,10 @@ use tauri::{
     command,
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
-    AppHandle, Manager, RunEvent, WindowEvent,
+    AppHandle, Manager, ResourceId, RunEvent, Webview, WindowEvent,
 };
 use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_updater::UpdaterExt;
 
 #[macro_use]
 extern crate lazy_static;
@@ -22,11 +23,14 @@ extern crate lazy_static;
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const SERVER_JAR_FILE_NAME: &str = "huntly-server.jar";
+const SERVER_JAR_VERSION_FILE_NAME: &str = "huntly-server.version";
 const SERVER_JAR_RESOURCE_PATH: &str = "server_bin/huntly-server.jar";
 const SERVER_JAR_DATA_DIR: &str = "server_bin";
 const GITHUB_RELEASES_API: &str =
     "https://api.github.com/repos/lcomplete/huntly/releases?per_page=100";
 const GITHUB_USER_AGENT: &str = "Huntly-Tauri";
+const TAURI_RELEASE_TAG_PREFIX: &str = "tauri/v";
+const TAURI_UPDATE_MANIFEST_FILE_NAME: &str = "latest.json";
 
 lazy_static! {
     static ref SPRING_BOOT_PROCESS: Mutex<Option<Child>> = Mutex::new(None);
@@ -87,6 +91,17 @@ struct ServerUpdateInfo {
     asset_name: Option<String>,
     asset_size: Option<u64>,
     release_url: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TauriUpdateMetadata {
+    rid: ResourceId,
+    current_version: String,
+    version: String,
+    date: Option<String>,
+    body: Option<String>,
+    raw_json: serde_json::Value,
 }
 
 #[derive(Clone)]
@@ -219,7 +234,7 @@ fn collect_server_info(app: &AppHandle) -> ServerInfo {
     let jar_path_buf = active_server_jar_path(app);
 
     let java_version = java_path_buf.as_ref().and_then(read_java_version);
-    let jar_version = jar_path_buf.as_ref().and_then(read_server_jar_version);
+    let jar_version = current_server_jar_version(app);
 
     ServerInfo {
         jar_version,
@@ -271,6 +286,52 @@ fn writable_server_jar_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(server_bin_dir.join(SERVER_JAR_FILE_NAME))
 }
 
+fn writable_server_jar_version_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let server_bin_dir = app_data_dir.join(SERVER_JAR_DATA_DIR);
+    std::fs::create_dir_all(&server_bin_dir).map_err(|e| e.to_string())?;
+    Ok(server_bin_dir.join(SERVER_JAR_VERSION_FILE_NAME))
+}
+
+fn current_server_jar_version(app: &AppHandle) -> Option<String> {
+    let jar_path = active_server_jar_path(app)?;
+    if is_writable_server_jar_path(app, &jar_path) {
+        return read_server_jar_release_version(app).or_else(|| read_server_jar_version(&jar_path));
+    }
+
+    read_server_jar_version(&jar_path)
+}
+
+fn is_writable_server_jar_path(app: &AppHandle, jar_path: &Path) -> bool {
+    app.path()
+        .app_data_dir()
+        .map(|app_data_dir| {
+            jar_path
+                == app_data_dir
+                    .join(SERVER_JAR_DATA_DIR)
+                    .join(SERVER_JAR_FILE_NAME)
+        })
+        .unwrap_or(false)
+}
+
+fn read_server_jar_release_version(app: &AppHandle) -> Option<String> {
+    let version_path = app
+        .path()
+        .app_data_dir()
+        .ok()?
+        .join(SERVER_JAR_DATA_DIR)
+        .join(SERVER_JAR_VERSION_FILE_NAME);
+    let version = std::fs::read_to_string(version_path)
+        .ok()?
+        .trim()
+        .to_string();
+    if version.is_empty() {
+        None
+    } else {
+        Some(version)
+    }
+}
+
 fn read_java_version(java_path: &PathBuf) -> Option<String> {
     let output = Command::new(java_path).arg("-version").output().ok()?;
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -315,8 +376,7 @@ fn read_server_jar_version(jar_path: &PathBuf) -> Option<String> {
 
 #[command]
 async fn check_server_update(app: AppHandle) -> Result<ServerUpdateInfo, String> {
-    let current_version =
-        active_server_jar_path(&app).and_then(|path| read_server_jar_version(&path));
+    let current_version = current_server_jar_version(&app);
     let release = fetch_latest_server_release().await?;
     let available = current_version
         .as_deref()
@@ -342,8 +402,7 @@ async fn install_server_update(app: AppHandle) -> Result<ServerInfo, String> {
         return Err("Server bundle updates are disabled by HUNTLY_NO_SERVER_JAR.".to_string());
     }
 
-    let current_version =
-        active_server_jar_path(&app).and_then(|path| read_server_jar_version(&path));
+    let current_version = current_server_jar_version(&app);
     let release = fetch_latest_server_release().await?;
     let available = current_version
         .as_deref()
@@ -369,12 +428,15 @@ async fn install_server_update(app: AppHandle) -> Result<ServerInfo, String> {
     let dest_path = writable_server_jar_path(&app)?;
     let temp_path = dest_path.with_extension("jar.download");
     let backup_path = dest_path.with_extension("jar.bak");
+    let version_path = writable_server_jar_version_path(&app)?;
 
     std::fs::write(&temp_path, bytes.as_ref()).map_err(|e| e.to_string())?;
 
     let downloaded_version = read_server_jar_version(&temp_path)
         .ok_or_else(|| "Downloaded server JAR does not include version metadata.".to_string())?;
-    if normalize_version(&downloaded_version) != normalize_version(&release.version) {
+    if normalize_version(&downloaded_version) != normalize_version(&release.version)
+        && !is_server_jar_asset_for_version(&release.asset.name, &release.version)
+    {
         let _ = std::fs::remove_file(&temp_path);
         return Err(format!(
             "Downloaded server JAR version {} does not match release version {}.",
@@ -401,12 +463,102 @@ async fn install_server_update(app: AppHandle) -> Result<ServerInfo, String> {
         let _ = std::fs::remove_file(&backup_path);
     }
 
+    std::fs::write(&version_path, format!("{}\n", release.version)).map_err(|e| e.to_string())?;
+
     Ok(collect_server_info(&app))
 }
 
+#[command]
+async fn check_tauri_update(webview: Webview) -> Result<Option<TauriUpdateMetadata>, String> {
+    let manifest_url = match fetch_latest_tauri_update_manifest_url().await? {
+        Some(manifest_url) => manifest_url,
+        None => return Ok(None),
+    };
+
+    let endpoint = Url::parse(&manifest_url).map_err(|e| e.to_string())?;
+    let updater = webview
+        .updater_builder()
+        .endpoints(vec![endpoint])
+        .map_err(|e| e.to_string())?
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let update = match updater.check().await {
+        Ok(update) => update,
+        Err(tauri_plugin_updater::Error::ReleaseNotFound) => return Ok(None),
+        Err(e) => return Err(e.to_string()),
+    };
+
+    if let Some(update) = update {
+        let current_version = update.current_version.clone();
+        let version = update.version.clone();
+        let date = update
+            .raw_json
+            .get("pub_date")
+            .and_then(|value| value.as_str())
+            .map(ToString::to_string);
+        let body = update.body.clone();
+        let raw_json = update.raw_json.clone();
+        let rid = webview.resources_table().add(update);
+
+        Ok(Some(TauriUpdateMetadata {
+            rid,
+            current_version,
+            version,
+            date,
+            body,
+            raw_json,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
+async fn fetch_latest_tauri_update_manifest_url() -> Result<Option<String>, String> {
+    let releases = fetch_github_releases().await?;
+    Ok(releases.into_iter().find_map(tauri_update_manifest_url))
+}
+
+fn tauri_update_manifest_url(release: GithubRelease) -> Option<String> {
+    if release.draft || release.prerelease || tauri_release_version(&release.tag_name).is_none() {
+        return None;
+    }
+
+    release
+        .assets
+        .into_iter()
+        .find(|asset| asset.name == TAURI_UPDATE_MANIFEST_FILE_NAME)
+        .map(|asset| asset.browser_download_url)
+}
+
+fn tauri_release_version(tag_name: &str) -> Option<String> {
+    let version = tag_name.strip_prefix(TAURI_RELEASE_TAG_PREFIX)?;
+    let version_parts: Vec<&str> = version.split('.').collect();
+    if version_parts.len() < 3
+        || !version_parts.iter().take(3).all(|part| {
+            part.chars()
+                .next()
+                .map(|ch| ch.is_ascii_digit())
+                .unwrap_or(false)
+        })
+    {
+        return None;
+    }
+    Some(version.to_string())
+}
+
 async fn fetch_latest_server_release() -> Result<ServerRelease, String> {
+    let releases = fetch_github_releases().await?;
+
+    releases
+        .into_iter()
+        .find_map(main_server_release)
+        .ok_or_else(|| "No main Huntly release with a server JAR asset was found.".to_string())
+}
+
+async fn fetch_github_releases() -> Result<Vec<GithubRelease>, String> {
     let client = github_client()?;
-    let releases: Vec<GithubRelease> = client
+    client
         .get(GITHUB_RELEASES_API)
         .send()
         .await
@@ -415,12 +567,7 @@ async fn fetch_latest_server_release() -> Result<ServerRelease, String> {
         .map_err(|e| e.to_string())?
         .json()
         .await
-        .map_err(|e| e.to_string())?;
-
-    releases
-        .into_iter()
-        .find_map(main_server_release)
-        .ok_or_else(|| "No main Huntly release with a server JAR asset was found.".to_string())
+        .map_err(|e| e.to_string())
 }
 
 fn github_client() -> Result<reqwest::Client, String> {
@@ -471,9 +618,11 @@ fn main_release_version(tag_name: &str) -> Option<String> {
 }
 
 fn is_server_jar_asset(asset_name: &str, version: &str) -> bool {
-    asset_name == SERVER_JAR_FILE_NAME
-        || asset_name == format!("huntly-server-{}.jar", version)
-        || (asset_name.starts_with("huntly-server-") && asset_name.ends_with(".jar"))
+    asset_name == SERVER_JAR_FILE_NAME || is_server_jar_asset_for_version(asset_name, version)
+}
+
+fn is_server_jar_asset_for_version(asset_name: &str, version: &str) -> bool {
+    asset_name == format!("huntly-server-{}.jar", normalize_version(version))
 }
 
 fn normalize_version(version: &str) -> String {
@@ -906,6 +1055,7 @@ pub fn run() {
             read_settings,
             has_server_jar,
             get_server_info,
+            check_tauri_update,
             check_server_update,
             install_server_update,
             set_tray_visible,

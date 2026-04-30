@@ -12,9 +12,12 @@ import {
 import SettingsIcon from "@mui/icons-material/Settings";
 import DnsIcon from "@mui/icons-material/Dns";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
-import { check } from "@tauri-apps/plugin-updater";
+import { Update } from "@tauri-apps/plugin-updater";
 import ServerTab from "./components/ServerTab";
 import SettingsTab from "./components/SettingsTab";
+
+const SERVER_AUTO_UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const SERVER_AUTO_UPDATE_LAST_CHECK_KEY = "huntly.serverAutoUpdate.lastCheckedAt";
 
 type AppSettings = {
   port: number;
@@ -44,6 +47,15 @@ type UpdateState = {
   lastCheckedAt: string | null;
   error: string | null;
   installed: boolean;
+};
+
+type TauriUpdateMetadata = {
+  rid: number;
+  currentVersion: string;
+  version: string;
+  date?: string;
+  body?: string;
+  rawJson: Record<string, unknown>;
 };
 
 type ServerJarUpdateInfo = {
@@ -123,9 +135,14 @@ function App() {
     error: null,
     installed: false,
   });
-  const updateRef = useRef<Awaited<ReturnType<typeof check>> | null>(null);
+  const updateRef = useRef<Update | null>(null);
   const autoUpdateTriggeredRef = useRef(false);
-  const autoServerUpdateTriggeredRef = useRef(false);
+  const serverAutoUpdateInFlightRef = useRef(false);
+  const checkServerUpdateRef = useRef(handleCheckServerUpdate);
+
+  useEffect(() => {
+    checkServerUpdateRef.current = handleCheckServerUpdate;
+  });
 
   useEffect(() => {
     invoke<boolean>("has_server_jar")
@@ -170,13 +187,59 @@ function App() {
   }, [settings.auto_update]);
 
   useEffect(() => {
-    if (!settings.server_auto_update) {
-      autoServerUpdateTriggeredRef.current = false;
-      return;
+    if (!settings.server_auto_update) return;
+
+    let cancelled = false;
+    let timeoutId: number | undefined;
+
+    const scheduleNextCheck = (delay: number) => {
+      timeoutId = window.setTimeout(runScheduledCheck, Math.max(delay, 0));
+    };
+
+    const getLastCheckedAt = () => {
+      const storedValue = window.localStorage.getItem(
+        SERVER_AUTO_UPDATE_LAST_CHECK_KEY
+      );
+      const lastCheckedAt = storedValue ? Number(storedValue) : 0;
+      return Number.isFinite(lastCheckedAt) && lastCheckedAt > 0
+        ? lastCheckedAt
+        : 0;
+    };
+
+    const recordCheckAttempt = () => {
+      window.localStorage.setItem(
+        SERVER_AUTO_UPDATE_LAST_CHECK_KEY,
+        Date.now().toString()
+      );
+    };
+
+    async function runScheduledCheck() {
+      if (cancelled || serverAutoUpdateInFlightRef.current) return;
+
+      const elapsed = Math.max(Date.now() - getLastCheckedAt(), 0);
+      if (elapsed < SERVER_AUTO_UPDATE_INTERVAL_MS) {
+        scheduleNextCheck(SERVER_AUTO_UPDATE_INTERVAL_MS - elapsed);
+        return;
+      }
+
+      serverAutoUpdateInFlightRef.current = true;
+      recordCheckAttempt();
+      try {
+        await checkServerUpdateRef.current({ autoInstall: true });
+      } finally {
+        serverAutoUpdateInFlightRef.current = false;
+        if (!cancelled) {
+          scheduleNextCheck(SERVER_AUTO_UPDATE_INTERVAL_MS);
+        }
+      }
     }
-    if (autoServerUpdateTriggeredRef.current) return;
-    autoServerUpdateTriggeredRef.current = true;
-    handleCheckServerUpdate({ autoInstall: true });
+
+    runScheduledCheck();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [settings.server_auto_update]);
 
   function startServer() {
@@ -334,13 +397,10 @@ function App() {
       ...formSettings.values,
       server_auto_update: event.target.checked,
     };
-    await persistSettings(next, { restartServer: false });
     if (event.target.checked) {
-      autoServerUpdateTriggeredRef.current = true;
-      await handleCheckServerUpdate({ autoInstall: true });
-    } else {
-      autoServerUpdateTriggeredRef.current = false;
+      window.localStorage.removeItem(SERVER_AUTO_UPDATE_LAST_CHECK_KEY);
     }
+    await persistSettings(next, { restartServer: false });
   }
 
   async function handleListenPublicChange(event: ChangeEvent<HTMLInputElement>) {
@@ -363,7 +423,8 @@ function App() {
       lastCheckedAt: new Date().toISOString(),
     }));
     try {
-      const update = await check();
+      const metadata = await invoke<TauriUpdateMetadata | null>("check_tauri_update");
+      const update = metadata ? new Update(metadata) : null;
       updateRef.current = update;
       if (!update) {
         setUpdateState((prev) => ({
