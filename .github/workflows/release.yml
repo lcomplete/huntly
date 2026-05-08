@@ -142,6 +142,7 @@ jobs:
           mv app/client/build release/huntly-client
           cd release
           zip -r huntly-client-${{ steps.get_version.outputs.version-without-v }}.zip ./huntly-client/*
+          sha256sum huntly-server.jar > huntly-server-${{ steps.get_version.outputs.version-without-v }}.jar.sha256
 
       - name: Upload client-build to release
         id: upload-client-asset
@@ -164,3 +165,14 @@ jobs:
           asset_path: release/huntly-server.jar
           asset_name: huntly-server-${{ steps.get_version.outputs.version-without-v }}.jar
           asset_content_type: application/java-archive
+
+      - name: Upload server checksum to release
+        id: upload-server-checksum-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: release/huntly-server-${{ steps.get_version.outputs.version-without-v }}.jar.sha256
+          asset_name: huntly-server-${{ steps.get_version.outputs.version-without-v }}.jar.sha256
+          asset_content_type: text/plain

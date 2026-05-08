@@ -684,13 +684,6 @@
   dependencies:
     "@tauri-apps/api" "^2.8.0"
 
-"@tauri-apps/plugin-fs@^2.0.0":
-  version "2.4.4"
-  resolved "https://registry.npmmirror.com/@tauri-apps/plugin-fs/-/plugin-fs-2.4.4.tgz#b5111e02ca8b632588ff192bb0be6dd4eb2c9a63"
-  integrity sha512-MTorXxIRmOnOPT1jZ3w96vjSuScER38ryXY88vl5F0uiKdnvTKKTtaEjTEo8uPbl4e3gnUtfsDVwC7h77GQLvQ==
-  dependencies:
-    "@tauri-apps/api" "^2.8.0"
-
 "@tauri-apps/plugin-shell@^2.0.0":
   version "2.3.3"
   resolved "https://registry.npmmirror.com/@tauri-apps/plugin-shell/-/plugin-shell-2.3.3.tgz#ddbd9253d55e18343c6179243fd4fd2075bf15e8"

@@ -12,7 +12,7 @@
   "app": {
     "withGlobalTauri": false,
     "security": {
-      "csp": null
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost"
     },
     "windows": [
       {
@@ -54,7 +54,7 @@
       "open": true
     },
     "updater": {
-      "active": true,
+      "active": false,
       "dialog": false,
       "pubkey": "",
       "endpoints": [

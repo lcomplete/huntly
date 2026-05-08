@@ -366,7 +366,7 @@ export default function ServerTab({
                   <div className="flex-1">
                     <div className="setting-title">Listen on public network</div>
                     <div className="setting-sub">
-                      Allow access from your local network.
+                      Allow access from your local network. Only enable this on trusted networks.
                     </div>
                   </div>
                   <Switch
@@ -376,6 +376,11 @@ export default function ServerTab({
                     disabled={!canManageServer}
                   />
                 </div>
+                {formSettings.values.listen_public && (
+                  <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 2 }}>
+                    Devices on your local network can reach Huntly while this is enabled.
+                  </Alert>
+                )}
               </Box>
 
               <Box className="section-card">

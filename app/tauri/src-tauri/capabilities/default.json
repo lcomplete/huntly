@@ -8,20 +8,6 @@
     "updater:default",
     "shell:allow-open",
     "autostart:default",
-    "fs:default",
-    {
-      "identifier": "fs:allow-read",
-      "allow": [{"path": "$APPDATA/**"}, {"path": "$HOME/**"}]
-    },
-    {
-      "identifier": "fs:allow-write",
-      "allow": [{"path": "$APPDATA/**"}, {"path": "$HOME/**"}]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [{"path": "$APPDATA/**"}, {"path": "$HOME/**"}]
-    },
-    "fs:allow-mkdir",
     "dialog:default",
     "dialog:allow-open"
   ]

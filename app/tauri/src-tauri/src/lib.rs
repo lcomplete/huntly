@@ -1,4 +1,5 @@
 use reqwest::{StatusCode, Url};
+use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 #[cfg(target_os = "windows")]
@@ -24,6 +25,7 @@ extern crate lazy_static;
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const SERVER_JAR_FILE_NAME: &str = "huntly-server.jar";
 const SERVER_JAR_VERSION_FILE_NAME: &str = "huntly-server.version";
+const SERVER_JWT_SECRET_FILE_NAME: &str = "server.jwt.secret";
 const SERVER_JAR_RESOURCE_PATH: &str = "server_bin/huntly-server.jar";
 const SERVER_JAR_DATA_DIR: &str = "server_bin";
 const GITHUB_RELEASES_API: &str =
@@ -112,6 +114,7 @@ struct ServerRelease {
     published_at: Option<String>,
     html_url: Option<String>,
     asset: GithubReleaseAsset,
+    sha256_asset: GithubReleaseAsset,
 }
 
 #[derive(serde::Deserialize)]
@@ -140,36 +143,36 @@ fn show_main_window(app: &AppHandle) {
     }
 }
 
-pub(crate) fn get_app_data_dir(app: &AppHandle) -> String {
-    let app_dir = app.path().app_data_dir().unwrap();
+pub(crate) fn get_app_data_dir(app: &AppHandle) -> Result<String, String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     if !app_dir.exists() {
-        std::fs::create_dir_all(&app_dir).unwrap();
+        std::fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
     }
-    app_dir.to_str().unwrap().to_owned()
+    path_to_string(app_dir)
 }
 
-fn get_settings_path(app: &AppHandle) -> String {
-    let app_dir = app.path().app_config_dir().unwrap();
+fn get_settings_path(app: &AppHandle) -> Result<String, String> {
+    let app_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     if !app_dir.exists() {
-        std::fs::create_dir(&app_dir).unwrap();
+        std::fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
     }
     let path = app_dir.join("app.settings.json");
-    path.to_str().unwrap().to_owned()
+    path_to_string(path)
 }
 
 #[command]
-fn save_settings(app: AppHandle, settings: Settings) {
-    let settings_str = serde_json::to_string(&settings).unwrap();
-    std::fs::write(get_settings_path(&app), settings_str).unwrap();
+fn save_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
+    let settings_str = serde_json::to_string(&settings).map_err(|e| e.to_string())?;
+    std::fs::write(get_settings_path(&app)?, settings_str).map_err(|e| e.to_string())
 }
 
 #[command]
-fn read_settings(app: AppHandle) -> String {
+fn read_settings(app: AppHandle) -> Result<String, String> {
     std_read_settings(&app)
 }
 
-fn std_read_settings(app: &AppHandle) -> String {
-    std::fs::read_to_string(get_settings_path(app)).unwrap()
+fn std_read_settings(app: &AppHandle) -> Result<String, String> {
+    std::fs::read_to_string(get_settings_path(app)?).map_err(|e| e.to_string())
 }
 
 fn get_default_settings() -> Settings {
@@ -185,8 +188,24 @@ fn get_default_settings() -> Settings {
 }
 
 pub(crate) fn get_settings(app: &AppHandle) -> Settings {
-    let settings_str = std_read_settings(app);
-    serde_json::from_str(&settings_str).unwrap()
+    match try_get_settings(app) {
+        Ok(settings) => settings,
+        Err(e) => {
+            eprintln!("Failed to read Huntly settings, using defaults: {}", e);
+            get_default_settings()
+        }
+    }
+}
+
+fn try_get_settings(app: &AppHandle) -> Result<Settings, String> {
+    let settings_str = std_read_settings(app)?;
+    serde_json::from_str(&settings_str).map_err(|e| e.to_string())
+}
+
+fn path_to_string(path: PathBuf) -> Result<String, String> {
+    path.into_os_string()
+        .into_string()
+        .map_err(|_| "Path contains invalid UTF-8.".to_string())
 }
 
 #[command]
@@ -291,6 +310,28 @@ fn writable_server_jar_version_path(app: &AppHandle) -> Result<PathBuf, String> 
     let server_bin_dir = app_data_dir.join(SERVER_JAR_DATA_DIR);
     std::fs::create_dir_all(&server_bin_dir).map_err(|e| e.to_string())?;
     Ok(server_bin_dir.join(SERVER_JAR_VERSION_FILE_NAME))
+}
+
+fn server_jwt_secret_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&app_data_dir).map_err(|e| e.to_string())?;
+    Ok(app_data_dir.join(SERVER_JWT_SECRET_FILE_NAME))
+}
+
+fn get_or_create_server_jwt_secret(app: &AppHandle) -> Result<String, String> {
+    let secret_path = server_jwt_secret_path(app)?;
+    if let Ok(secret) = std::fs::read_to_string(&secret_path) {
+        let secret = secret.trim().to_string();
+        if secret.len() >= 64 && secret.chars().all(|ch| ch.is_ascii_hexdigit()) {
+            return Ok(secret);
+        }
+    }
+
+    let mut bytes = [0u8; 64];
+    getrandom::getrandom(&mut bytes).map_err(|e| e.to_string())?;
+    let secret = hex_encode(&bytes);
+    std::fs::write(&secret_path, format!("{}\n", secret)).map_err(|e| e.to_string())?;
+    Ok(secret)
 }
 
 fn current_server_jar_version(app: &AppHandle) -> Option<String> {
@@ -424,6 +465,12 @@ async fn install_server_update(app: AppHandle) -> Result<ServerInfo, String> {
         .bytes()
         .await
         .map_err(|e| e.to_string())?;
+
+    let expected_sha256 = fetch_sha256_checksum(&client, &release.sha256_asset).await?;
+    let actual_sha256 = sha256_hex(bytes.as_ref());
+    if actual_sha256 != expected_sha256 {
+        return Err("Downloaded server JAR checksum does not match the release checksum.".to_string());
+    }
 
     let dest_path = writable_server_jar_path(&app)?;
     let temp_path = dest_path.with_extension("jar.download");
@@ -585,8 +632,14 @@ fn main_server_release(release: GithubRelease) -> Option<ServerRelease> {
     let version = main_release_version(&release.tag_name)?;
     let asset = release
         .assets
-        .into_iter()
-        .find(|asset| is_server_jar_asset(&asset.name, &version))?;
+        .iter()
+        .find(|asset| is_server_jar_asset(&asset.name, &version))?
+        .clone();
+    let sha256_asset = release
+        .assets
+        .iter()
+        .find(|candidate| is_server_jar_sha256_asset(&candidate.name, &asset.name))?
+        .clone();
 
     Some(ServerRelease {
         version,
@@ -595,7 +648,37 @@ fn main_server_release(release: GithubRelease) -> Option<ServerRelease> {
         published_at: release.published_at,
         html_url: release.html_url,
         asset,
+        sha256_asset,
     })
+}
+
+async fn fetch_sha256_checksum(
+    client: &reqwest::Client,
+    asset: &GithubReleaseAsset,
+) -> Result<String, String> {
+    let checksum = client
+        .get(&asset.browser_download_url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?
+        .text()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let digest = checksum
+        .split_whitespace()
+        .next()
+        .ok_or_else(|| "Server JAR checksum file is empty.".to_string())?
+        .trim()
+        .to_ascii_lowercase();
+
+    if digest.len() != 64 || !digest.chars().all(|ch| ch.is_ascii_hexdigit()) {
+        return Err("Server JAR checksum file does not contain a valid SHA-256 digest.".to_string());
+    }
+
+    Ok(digest)
 }
 
 fn main_release_version(tag_name: &str) -> Option<String> {
@@ -623,6 +706,25 @@ fn is_server_jar_asset(asset_name: &str, version: &str) -> bool {
 
 fn is_server_jar_asset_for_version(asset_name: &str, version: &str) -> bool {
     asset_name == format!("huntly-server-{}.jar", normalize_version(version))
+}
+
+fn is_server_jar_sha256_asset(asset_name: &str, jar_asset_name: &str) -> bool {
+    asset_name == format!("{}.sha256", jar_asset_name)
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    hex_encode(&digest)
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push(HEX[(byte >> 4) as usize] as char);
+        encoded.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    encoded
 }
 
 fn normalize_version(version: &str) -> String {
@@ -688,12 +790,12 @@ fn open_server_url_internal(app: &AppHandle) {
 }
 
 fn open_data_dir_internal(app: &AppHandle) -> Result<(), String> {
-    let data_dir = get_app_data_dir(app);
+    let data_dir = get_app_data_dir(app)?;
     #[cfg(target_os = "windows")]
     {
         Command::new("explorer")
             .creation_flags(CREATE_NO_WINDOW)
-            .raw_arg(&format!("/open,\"{}\"", data_dir))
+            .arg(&data_dir)
             .spawn()
             .map(|_| ())
             .map_err(|e| e.to_string())?;
@@ -764,17 +866,19 @@ fn handle_start_server(app: &AppHandle) -> Result<(), String> {
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
     println!("Starting Spring Boot application... ");
-    let data_dir = get_app_data_dir(app);
+    let data_dir = get_app_data_dir(app)?;
+    let jwt_secret = get_or_create_server_jwt_secret(app)?;
     println!("data dir:{}", data_dir);
     #[cfg(target_os = "windows")]
     {
         let child = cmd
-            .raw_arg("-jar")
-            .raw_arg(format!("\"{}\"", canonicalize(&file_path)))
-            .raw_arg(format!("--server.port={}", port))
-            .raw_arg(format!("--server.address={}", server_address))
-            .raw_arg(format!("--huntly.dataDir=\"{}/\"", data_dir))
-            .raw_arg(format!("--huntly.luceneDir=\"{}/lucene\"", data_dir))
+            .arg("-jar")
+            .arg(canonicalize(&file_path))
+            .arg(format!("--server.port={}", port))
+            .arg(format!("--server.address={}", server_address))
+            .arg(format!("--huntly.dataDir={}/", data_dir))
+            .arg(format!("--huntly.luceneDir={}/lucene", data_dir))
+            .arg(format!("--huntly.jwtSecret={}", jwt_secret))
             .spawn()
             .map_err(|e| e.to_string())?;
         let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
@@ -789,6 +893,7 @@ fn handle_start_server(app: &AppHandle) -> Result<(), String> {
             .arg(format!("--server.address={}", server_address))
             .arg(format!("--huntly.dataDir={}/", data_dir))
             .arg(format!("--huntly.luceneDir={}/lucene", data_dir))
+            .arg(format!("--huntly.jwtSecret={}", jwt_secret))
             .spawn()
             .map_err(|e| e.to_string())?;
         let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
@@ -817,10 +922,7 @@ fn stop_server(app: AppHandle) {
     handle_stop_server(&app);
 }
 
-fn handle_stop_server(app: &AppHandle) {
-    let settings = get_settings(app);
-    let port = settings.port;
-
+fn handle_stop_server(_app: &AppHandle) {
     let mut spring_boot_process = SPRING_BOOT_PROCESS.lock().unwrap();
     let child = spring_boot_process.take();
 
@@ -841,83 +943,10 @@ fn handle_stop_server(app: &AppHandle) {
             }
         }
     } else {
-        // Process handle not available (e.g., app restarted while server was running).
-        // Try to find and kill the process by port.
-        kill_process_by_port(port);
+        eprintln!("No tracked Huntly server process was running.");
     }
 
     println!("Backend gracefully shutdown.");
-}
-
-/// Finds and kills the process listening on the specified port.
-#[cfg(target_os = "macos")]
-fn kill_process_by_port(port: u16) {
-    // Use lsof to find PID listening on the port
-    let output = Command::new("lsof")
-        .args(["-t", "-i", &format!(":{}", port)])
-        .output();
-
-    if let Ok(output) = output {
-        let pids_str = String::from_utf8_lossy(&output.stdout);
-        for pid_str in pids_str.lines() {
-            if let Ok(pid) = pid_str.trim().parse::<i32>() {
-                println!("Killing process {} on port {}", pid, port);
-                // Send SIGTERM first for graceful shutdown
-                let _ = Command::new("kill").arg(pid.to_string()).output();
-                // Wait a bit, then force kill if still running
-                std::thread::sleep(std::time::Duration::from_millis(500));
-                let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
-            }
-        }
-    }
-}
-
-#[cfg(target_os = "windows")]
-fn kill_process_by_port(port: u16) {
-    // Use netstat to find PID listening on the port
-    let output = Command::new("netstat")
-        .creation_flags(CREATE_NO_WINDOW)
-        .args(["-ano"])
-        .output();
-
-    if let Ok(output) = output {
-        let output_str = String::from_utf8_lossy(&output.stdout);
-        let port_pattern = format!(":{}", port);
-        for line in output_str.lines() {
-            if line.contains(&port_pattern) && line.contains("LISTENING") {
-                // Extract PID from the last column
-                if let Some(pid_str) = line.split_whitespace().last() {
-                    if let Ok(pid) = pid_str.parse::<u32>() {
-                        println!("Killing process {} on port {}", pid, port);
-                        let _ = Command::new("taskkill")
-                            .creation_flags(CREATE_NO_WINDOW)
-                            .args(["/F", "/PID", &pid.to_string()])
-                            .output();
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
-fn kill_process_by_port(port: u16) {
-    // Linux: use fuser or lsof
-    let output = Command::new("fuser")
-        .args([&format!("{}/tcp", port)])
-        .output();
-
-    if let Ok(output) = output {
-        let pids_str = String::from_utf8_lossy(&output.stdout);
-        for pid_str in pids_str.split_whitespace() {
-            if let Ok(pid) = pid_str.trim().parse::<i32>() {
-                println!("Killing process {} on port {}", pid, port);
-                let _ = Command::new("kill").arg(pid.to_string()).output();
-                std::thread::sleep(std::time::Duration::from_millis(500));
-                let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
-            }
-        }
-    }
 }
 
 #[cfg(target_os = "windows")]
@@ -1028,21 +1057,22 @@ pub fn run() {
     let mut app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec!["--silently"]),
         ))
         .setup(|app| {
-            let settings_path = get_settings_path(&app.handle());
+            let settings_path = get_settings_path(&app.handle()).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::Other, e)
+            })?;
             let metadata_settings = std::fs::metadata(&settings_path);
             match metadata_settings {
                 Ok(_) => {}
                 Err(_) => {
                     let default_settings = get_default_settings();
-                    let settings_str = serde_json::to_string(&default_settings).unwrap();
-                    std::fs::write(&settings_path, settings_str).unwrap();
+                    let settings_str = serde_json::to_string(&default_settings)?;
+                    std::fs::write(&settings_path, settings_str)?;
                 }
             }
 

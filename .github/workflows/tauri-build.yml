@@ -144,7 +144,7 @@ jobs:
           import os
 
           pubkey = os.environ.get("TAURI_UPDATER_PUBKEY", "")
-          updater = {"active": False} if not pubkey else {"pubkey": pubkey}
+          updater = {"active": False} if not pubkey else {"active": True, "pubkey": pubkey}
           config = {"plugins": {"updater": updater}}
 
           print("TAURI_CONFIG<<EOF")

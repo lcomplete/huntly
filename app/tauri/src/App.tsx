@@ -18,6 +18,7 @@ import SettingsTab from "./components/SettingsTab";
 
 const SERVER_AUTO_UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const SERVER_AUTO_UPDATE_LAST_CHECK_KEY = "huntly.serverAutoUpdate.lastCheckedAt";
+const SERVER_START_TIMEOUT_MS = 30 * 1000;
 
 type AppSettings = {
   port: number;
@@ -106,6 +107,7 @@ function App() {
   const [isServerStarting, setIsServerStarting] = useState<boolean>(false);
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
   const timerRef = useRef<number>();
+  const serverStartTimeoutRef = useRef<number>();
   const [activeTab, setActiveTab] = useState(0);
   const [updateState, setUpdateState] = useState<UpdateState>({
     checking: false,
@@ -173,6 +175,8 @@ function App() {
           disable();
         }
       }
+    }).catch((e) => {
+      setServerError(e?.toString() ?? "Failed to read settings");
     });
   }, []);
 
@@ -244,9 +248,15 @@ function App() {
 
   function startServer() {
     setServerError(null);
+    setIsServerStarting(true);
+    clearServerStartTimeout();
     invoke("start_server")
-      .then((result) => {
-        setIsServerStarting(true);
+      .then(() => {
+        serverStartTimeoutRef.current = window.setTimeout(() => {
+          setIsServerStarting(false);
+          setIsServerRunning(false);
+          setServerError("Server did not become ready within 30 seconds.");
+        }, SERVER_START_TIMEOUT_MS);
       })
       .catch((e) => {
         setIsServerStarting(false);
@@ -258,6 +268,7 @@ function App() {
   function stopServer() {
     setServerError(null);
     setIsServerStarting(false);
+    clearServerStartTimeout();
     invoke("stop_server")
       .then(() => {
         setIsServerRunning(false);
@@ -277,6 +288,7 @@ function App() {
       .then((result) => {
         console.log(result);
         if (result) {
+          clearServerStartTimeout();
           setIsServerStarting(false);
           setIsServerRunning(true);
         } else {
@@ -296,8 +308,14 @@ function App() {
     timerRef.current = window.setTimeout(checkServerRunning, 0);
     return () => {
       clearTimeout(timerRef.current);
+      clearServerStartTimeout();
     };
   }, [serverBundleAvailable]);
+
+  function clearServerStartTimeout() {
+    clearTimeout(serverStartTimeoutRef.current);
+    serverStartTimeoutRef.current = undefined;
+  }
 
   const formSettings = useFormik({
     enableReinitialize: true,
@@ -314,15 +332,38 @@ function App() {
     onSubmit: () => undefined,
   });
 
+  function normalizeSettings(values: AppSettings): AppSettings | null {
+    const port = Number(values.port);
+    if (!Number.isInteger(port) || port < 80 || port > 65535) {
+      return null;
+    }
+    return {
+      ...values,
+      port,
+    };
+  }
+
   async function persistSettings(
     values: AppSettings,
     options: { restartServer: boolean } = {
       restartServer: false,
     }
-  ) {
-    await invoke("save_settings", { settings: values });
-    if (settings.auto_start_up !== values.auto_start_up) {
-      if (values.auto_start_up) {
+  ): Promise<boolean> {
+    const normalizedValues = normalizeSettings(values);
+    if (!normalizedValues) {
+      setServerError("Server port must be an integer between 80 and 65535.");
+      return false;
+    }
+
+    try {
+      await invoke("save_settings", { settings: normalizedValues });
+    } catch (e: any) {
+      setServerError(e?.toString() ?? "Failed to save settings");
+      return false;
+    }
+
+    if (settings.auto_start_up !== normalizedValues.auto_start_up) {
+      if (normalizedValues.auto_start_up) {
         enable();
       } else {
         disable();
@@ -330,17 +371,23 @@ function App() {
     }
     if (
       options.restartServer &&
-      settings.port !== values.port &&
+      settings.port !== normalizedValues.port &&
       isServerRunning
     ) {
       restartServer();
     }
-    setSettings(values);
+    setSettings(normalizedValues);
+    return true;
   }
 
   async function handlePortBlur(event: FocusEvent<HTMLInputElement>) {
     formSettings.handleBlur(event);
-    await persistSettings(formSettings.values, { restartServer: true });
+    const next = {
+      ...formSettings.values,
+      port: Number(event.currentTarget.value),
+    };
+    formSettings.setFieldValue("port", next.port, false);
+    await persistSettings(next, { restartServer: true });
   }
 
   async function handleAutoStartUpChange(event: ChangeEvent<HTMLInputElement>) {
@@ -359,9 +406,9 @@ function App() {
       ...formSettings.values,
       show_tray_icon: showTrayIcon,
     };
-    await persistSettings(next, { restartServer: false });
-    // Immediately apply tray visibility
-    invoke("set_tray_visible", { visible: showTrayIcon });
+    if (await persistSettings(next, { restartServer: false })) {
+      invoke("set_tray_visible", { visible: showTrayIcon });
+    }
   }
 
   async function handleShowDockIconChange(event: ChangeEvent<HTMLInputElement>) {
@@ -371,9 +418,9 @@ function App() {
       ...formSettings.values,
       show_dock_icon: showDockIcon,
     };
-    await persistSettings(next, { restartServer: false });
-    // Immediately apply dock visibility
-    invoke("set_dock_visible", { visible: showDockIcon });
+    if (await persistSettings(next, { restartServer: false })) {
+      invoke("set_dock_visible", { visible: showDockIcon });
+    }
   }
 
   async function handleAutoUpdateChange(event: ChangeEvent<HTMLInputElement>) {
@@ -382,7 +429,7 @@ function App() {
       ...formSettings.values,
       auto_update: event.target.checked,
     };
-    await persistSettings(next, { restartServer: false });
+    if (!(await persistSettings(next, { restartServer: false }))) return;
     if (event.target.checked) {
       autoUpdateTriggeredRef.current = true;
       await handleCheckForUpdates({ autoInstall: true });
@@ -580,6 +627,7 @@ function App() {
   }
 
   function restartServer() {
+    clearServerStartTimeout();
     invoke("stop_server").then(() => startServer());
   }
 
