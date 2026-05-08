@@ -3,7 +3,7 @@ name: Docker Build on Self-hosted Runner
 on:
   push:
     branches:
-      - dev
+      - main
   workflow_dispatch:
 
 jobs:
