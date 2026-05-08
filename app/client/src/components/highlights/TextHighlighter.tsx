@@ -481,10 +481,20 @@ const TextHighlighter: React.FC<TextHighlighterProps> = ({
     });
   };
 
-  // 监听鼠标抬起事件
+  // 监听文本选择事件，兼容桌面与移动端
   useEffect(() => {
-    const handleMouseUp = () => {
-      setTimeout(handleSelection, 10); // 小延迟确保选择完成
+    let selectionTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // 防抖触发：移动端长按选词以及拖动选区把手时 selectionchange 会高频触发，
+    // 需等浏览器最终落定后再计算偏移量
+    const scheduleHandleSelection = () => {
+      if (selectionTimer) {
+        clearTimeout(selectionTimer);
+      }
+      selectionTimer = setTimeout(() => {
+        selectionTimer = null;
+        handleSelection();
+      }, 80);
     };
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -495,14 +505,24 @@ const TextHighlighter: React.FC<TextHighlighterProps> = ({
 
     const currentRef = contentRef.current;
     if (currentRef) {
-      currentRef.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('click', handleClickOutside);
+      // mouseup 仅桌面触发；移动端依赖 touchend / pointerup / selectionchange
+      currentRef.addEventListener('mouseup', scheduleHandleSelection);
+      currentRef.addEventListener('touchend', scheduleHandleSelection);
+      currentRef.addEventListener('pointerup', scheduleHandleSelection);
     }
+    document.addEventListener('selectionchange', scheduleHandleSelection);
+    document.addEventListener('click', handleClickOutside);
 
     return () => {
-      if (currentRef) {
-        currentRef.removeEventListener('mouseup', handleMouseUp);
+      if (selectionTimer) {
+        clearTimeout(selectionTimer);
       }
+      if (currentRef) {
+        currentRef.removeEventListener('mouseup', scheduleHandleSelection);
+        currentRef.removeEventListener('touchend', scheduleHandleSelection);
+        currentRef.removeEventListener('pointerup', scheduleHandleSelection);
+      }
+      document.removeEventListener('selectionchange', scheduleHandleSelection);
       document.removeEventListener('click', handleClickOutside);
     };
   }, [handleSelection, selectionTooltip.show, highlightModeEnabled]);
@@ -610,6 +630,8 @@ const TextHighlighter: React.FC<TextHighlighterProps> = ({
         ref={contentRef}
         style={{
           userSelect: 'text',
+          WebkitUserSelect: 'text',
+          touchAction: 'auto',
           lineHeight: '1.6',
           fontSize: '16px'
         }}
