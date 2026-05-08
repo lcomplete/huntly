@@ -120,8 +120,12 @@ sudo xattr -r -d com.apple.quarantine /YOUR_PATH/Huntly.app
 
 ## 参与贡献
 
-> [!IMPORTANT]
-> 所有 Pull Request 必须提交到 `dev` 分支。
+欢迎提交贡献。
+
+- 开始之前先查看现有的 issue 和 pull request，避免重复工作。
+- 如果是较大的改动，建议先发起 issue 或 discussion，对齐方案后再开始。
+- 保持 pull request 聚焦，并在需要时补充清晰的说明、测试信息或截图。
+- 当改动影响功能行为或用户使用流程时，请同步更新相关文档和测试。
 
 ## 成为赞助者
 
