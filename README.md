@@ -120,8 +120,12 @@ See the [Run the Server wiki](https://github.com/lcomplete/huntly/wiki/Run-the-S
 
 ## Contributing
 
-> [!IMPORTANT]
-> All Pull Requests must target the `dev` branch.
+Contributions are welcome.
+
+- Check existing issues and pull requests before starting to avoid duplicate work.
+- Open an issue or discussion first for larger changes so the approach can be aligned.
+- Keep pull requests focused and include a clear description, test notes, or screenshots when relevant.
+- Update related documentation and tests when your change affects behavior or user workflows.
 
 ## Become a Sponsor
 
