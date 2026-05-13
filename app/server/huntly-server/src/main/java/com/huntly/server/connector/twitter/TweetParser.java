@@ -41,19 +41,12 @@ public class TweetParser {
             }
 
             timeline.instructions.forEach(ins -> {
-                if (Objects.equals(ins.type, "TimelineAddEntries")) {
+                if (ins != null && ins.entries != null) {
                     ins.entries.forEach(entry -> {
-                        List<TweetsRoot.ItemContent> contents = Lists.newArrayList();
-                        if (entry.content.items != null) {
-                            entry.content.items.forEach(item -> {
-                                if (item.item != null && item.item.itemContent != null && Objects.equals(item.item.itemContent.itemType, "TimelineTweet")) {
-                                    contents.add(item.item.itemContent);
-                                }
-                            });
-                        } else {
-                            contents.add(entry.content.itemContent);
+                        if (entry == null) {
+                            return;
                         }
-                        contents.forEach(content -> {
+                        getTweetItemContents(entry.content).forEach(content -> {
                             var itemParsedPages = itemContentToParsedPages(tweets.getCategory(), content);
                             parsedPages.addAll(itemParsedPages);
                         });
@@ -69,39 +62,86 @@ public class TweetParser {
         return parsedPages;
     }
 
+    private List<TweetsRoot.ItemContent> getTweetItemContents(TweetsRoot.Content content) {
+        List<TweetsRoot.ItemContent> contents = Lists.newArrayList();
+        if (content == null) {
+            return contents;
+        }
+
+        addTweetItemContent(contents, content.itemContent);
+        if (content.items != null) {
+            content.items.forEach(item -> {
+                if (item != null && item.item != null) {
+                    addTweetItemContent(contents, item.item.itemContent);
+                }
+            });
+        }
+        return contents;
+    }
+
+    private void addTweetItemContent(List<TweetsRoot.ItemContent> contents, TweetsRoot.ItemContent itemContent) {
+        if (itemContent != null && (Objects.equals(itemContent.itemType, "TimelineTweet")
+                || Objects.equals(itemContent.__typename, "TimelineTweet")
+                || itemContent.tweet_results != null)) {
+            contents.add(itemContent);
+        }
+    }
+
     private List<ParsedTweetPage> itemContentToParsedPages(String category, TweetsRoot.ItemContent itemContent) {
         List<ParsedTweetPage> parsedPages = Lists.newArrayList();
-        if (itemContent == null || itemContent.tweet_results == null || itemContent.tweet_results.result == null) {
+        var tweetResult = getTweetResult(itemContent);
+        if (!hasTweetLegacy(tweetResult)) {
             return parsedPages;
         }
 
-        var tweet = ObjectUtils.firstNonNull(itemContent.tweet_results.result.tweet, itemContent.tweet_results.result);
-        var user = tweet.core.user_results.result.legacy;
-        if (user == null) {
-            return parsedPages;
-        }
+        var views = tweetResult.views;
+        var quotedTweet = getQuotedTweet(itemContent.tweet_results.result, tweetResult);
 
-        var views = tweet.views;
-        var quotedTweet = itemContent.tweet_results.result.quoted_status_result;
-        if (quotedTweet == null && tweet.legacy != null && tweet.legacy.retweeted_status_result != null) {
-            quotedTweet = tweet.legacy.retweeted_status_result.result.quoted_status_result;
-        }
-        // when tweet has been deleted by user, quotedTweet will be null
-        if (quotedTweet == null || quotedTweet.result == null || quotedTweet.result.core == null) {
-            quotedTweet = null;
-        }
-
-        ParsedTweetPage parsedPage = getParsedTweetPageFromDetail(category, tweet, user, views, quotedTweet, false);
+        ParsedTweetPage parsedPage = getParsedTweetPageFromDetail(category, tweetResult, views, quotedTweet, false);
         parsedPages.add(parsedPage);
         if (quotedTweet != null) {
-            ParsedTweetPage quotedParsedPage = getParsedTweetPageFromDetail(category, quotedTweet.result, quotedTweet.result.core.user_results.result.legacy, null, null, true);
+            var quotedTweetResult = normalizeTweetResult(quotedTweet.result);
+            ParsedTweetPage quotedParsedPage = getParsedTweetPageFromDetail(category, quotedTweetResult, quotedTweetResult.views, null, true);
             parsedPages.add(quotedParsedPage);
         }
         return parsedPages;
     }
 
-    private ParsedTweetPage getParsedTweetPageFromDetail(String category, TweetsRoot.Result tweetResult, TweetsRoot.Legacy user, TweetsRoot.Views views, TweetsRoot.QuotedStatusResult quotedTweet, boolean isFromQuote) {
-        TweetProperties tweetProperties = getTweetProperties(user, tweetResult, views, quotedTweet);
+    private TweetsRoot.Result getTweetResult(TweetsRoot.ItemContent itemContent) {
+        if (itemContent == null || itemContent.tweet_results == null || itemContent.tweet_results.result == null) {
+            return null;
+        }
+        return normalizeTweetResult(itemContent.tweet_results.result);
+    }
+
+    private TweetsRoot.Result normalizeTweetResult(TweetsRoot.Result tweetResult) {
+        if (tweetResult == null) {
+            return null;
+        }
+        return ObjectUtils.firstNonNull(tweetResult.tweet, tweetResult);
+    }
+
+    private boolean hasTweetLegacy(TweetsRoot.Result tweetResult) {
+        return tweetResult != null && tweetResult.legacy != null;
+    }
+
+    private TweetsRoot.QuotedStatusResult getQuotedTweet(TweetsRoot.Result originalResult, TweetsRoot.Result tweetResult) {
+        TweetsRoot.QuotedStatusResult quotedTweet = tweetResult.quoted_status_result;
+        if (quotedTweet == null && originalResult != null) {
+            quotedTweet = originalResult.quoted_status_result;
+        }
+        if (quotedTweet == null && tweetResult.legacy != null && tweetResult.legacy.retweeted_status_result != null
+                && tweetResult.legacy.retweeted_status_result.result != null) {
+            quotedTweet = tweetResult.legacy.retweeted_status_result.result.quoted_status_result;
+        }
+        if (quotedTweet == null || !hasTweetLegacy(normalizeTweetResult(quotedTweet.result))) {
+            return null;
+        }
+        return quotedTweet;
+    }
+
+    private ParsedTweetPage getParsedTweetPageFromDetail(String category, TweetsRoot.Result tweetResult, TweetsRoot.Views views, TweetsRoot.QuotedStatusResult quotedTweet, boolean isFromQuote) {
+        TweetProperties tweetProperties = getTweetProperties(tweetResult, views, quotedTweet);
         var tweet = tweetResult.legacy;
 
         TweetProperties realTweet = tweetProperties.getRetweetedTweet() != null ? tweetProperties.getRetweetedTweet() : tweetProperties;
@@ -126,40 +166,21 @@ public class TweetParser {
     private long calcVoteScore(TweetProperties tweetProperties) {
         int retweetCount = ObjectUtils.defaultIfNull(tweetProperties.getRetweetCount(), 0) + ObjectUtils.defaultIfNull(tweetProperties.getQuoteCount(), 0);
         int favoriteCount = ObjectUtils.defaultIfNull(tweetProperties.getFavoriteCount(), 0);
-        long tweetMilli = tweetProperties.getCreatedAt().toEpochMilli();
+        long tweetMilli = tweetProperties.getCreatedAt() != null ? tweetProperties.getCreatedAt().toEpochMilli() : 0L;
         return (retweetCount * 8L + favoriteCount) * 10000000000L + tweetMilli / 1000L;
     }
 
 
-    private TweetProperties getTweetProperties(TweetsRoot.Legacy user, TweetsRoot.Result tweetResult, TweetsRoot.Views views, TweetsRoot.QuotedStatusResult quotedTweet) {
+    private TweetProperties getTweetProperties(TweetsRoot.Result tweetResult, TweetsRoot.Views views, TweetsRoot.QuotedStatusResult quotedTweet) {
         var tweet = tweetResult.legacy;
+        var userResult = getUserResult(tweetResult);
         TweetProperties tweetProperties = new TweetProperties();
-        tweetProperties.setUserIdStr(tweet.user_id_str);
-        if (user.name != null) {
-            tweetProperties.setUserName(user.name);
-        }
-        else{
-            if(tweetResult.core != null && tweetResult.core.user_results != null && tweetResult.core.user_results.result != null && tweetResult.core.user_results.result.core != null) {
-                tweetProperties.setUserName(tweetResult.core.user_results.result.core.name);
-            }
-        }
-        if(user.screen_name != null) {
-            tweetProperties.setUserScreeName(user.screen_name);
-        }
-        else{
-            if(tweetResult.core != null && tweetResult.core.user_results != null && tweetResult.core.user_results.result != null && tweetResult.core.user_results.result.core != null) {
-                tweetProperties.setUserScreeName(tweetResult.core.user_results.result.core.screen_name);
-            }
-        }
-        if(user.profile_image_url_https != null) {
-            tweetProperties.setUserProfileImageUrl(user.profile_image_url_https);
-        }
-        else{
-            if(tweetResult.core != null && tweetResult.core.user_results != null && tweetResult.core.user_results.result != null && tweetResult.core.user_results.result.avatar != null) {
-                tweetProperties.setUserProfileImageUrl(tweetResult.core.user_results.result.avatar.image_url);
-            }
-        }
-        tweetProperties.setTweetIdStr(tweet.id_str);
+        String tweetId = StringUtils.defaultIfBlank(tweet.id_str, tweetResult.rest_id);
+        tweetProperties.setUserIdStr(StringUtils.defaultIfBlank(tweet.user_id_str, userResult != null ? userResult.rest_id : null));
+        tweetProperties.setUserName(getUserName(userResult));
+        tweetProperties.setUserScreeName(getUserScreenName(userResult));
+        tweetProperties.setUserProfileImageUrl(getUserProfileImageUrl(userResult));
+        tweetProperties.setTweetIdStr(tweetId);
         tweetProperties.setQuoteCount(tweet.quote_count);
         tweetProperties.setRetweetCount(tweet.retweet_count);
         tweetProperties.setReplyCount(tweet.reply_count);
@@ -175,19 +196,21 @@ public class TweetParser {
         //tweetProperties.setFullText(String.join("", textList));
         // FE handle full text
         tweetProperties.setFullText(tweet.full_text);
-        tweetProperties.setUrl("https://twitter.com/" + tweetProperties.getUserScreeName() + "/status/" + tweet.id_str);
+        tweetProperties.setUrl(buildTweetUrl(tweetProperties.getUserScreeName(), tweetId));
         // convert twitter datetime to instant
         String pattern = "EEE MMM dd HH:mm:ss ZZZZZ yyyy";
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, Locale.ENGLISH);
-        try {
-            Date date = simpleDateFormat.parse(tweet.created_at);
-            tweetProperties.setCreatedAt(date.toInstant());
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
+        if (StringUtils.isNotBlank(tweet.created_at)) {
+            try {
+                Date date = simpleDateFormat.parse(tweet.created_at);
+                tweetProperties.setCreatedAt(date.toInstant());
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
         }
         // note tweet
         var noteTweet = tweetResult.note_tweet;
-        if (noteTweet != null && noteTweet.note_tweet_results != null & noteTweet.note_tweet_results.result != null) {
+        if (noteTweet != null && noteTweet.note_tweet_results != null && noteTweet.note_tweet_results.result != null) {
             var noteResult = noteTweet.note_tweet_results.result;
             var entitySet = noteResult.entity_set;
             tweetProperties.setNoteTweet(true);
@@ -209,17 +232,20 @@ public class TweetParser {
         if (tweet.entities != null && tweet.entities.media != null) {
             List<TweetProperties.Media> medias = Lists.newArrayList();
             for (TweetsRoot.Medium media : tweet.entities.media) {
+                if (media == null) {
+                    continue;
+                }
                 var tweetMedia = new TweetProperties.Media();
                 tweetMedia.setMediaUrl(media.media_url_https);
                 tweetMedia.setSmallMediaUrl(getTweetSmallMediaUrl(media.media_url_https));
                 tweetMedia.setType(media.type);
-                tweetMedia.setRawSize(new TweetProperties.Size(media.original_info.width, media.original_info.height));
-                tweetMedia.setSmallSize(new TweetProperties.Size(media.sizes.small.w, media.sizes.small.h));
+                tweetMedia.setRawSize(getRawMediaSize(media.original_info));
+                tweetMedia.setSmallSize(getSmallMediaSize(media.sizes));
                 tweetMedia.setIndices(media.indices);
 
                 if (tweet.extended_entities != null && tweet.extended_entities.media != null) {
                     for (TweetsRoot.Medium extendedMedia : tweet.extended_entities.media) {
-                        if (extendedMedia.id_str.equals(media.id_str)) {
+                        if (extendedMedia != null && Objects.equals(extendedMedia.id_str, media.id_str)) {
                             tweetMedia.setType(extendedMedia.type);
                             // convert video_info to VideInfo
                             if (extendedMedia.video_info != null) {
@@ -227,12 +253,17 @@ public class TweetParser {
                                 videoInfo.setAspectRatio(extendedMedia.video_info.aspect_ratio);
                                 videoInfo.setDurationMillis(extendedMedia.video_info.duration_millis);
                                 List<TweetProperties.Variant> variants = Lists.newArrayList();
-                                for (TweetsRoot.Variant variant : extendedMedia.video_info.variants) {
-                                    var videoVariant = new TweetProperties.Variant();
-                                    videoVariant.setBitrate(variant.bitrate);
-                                    videoVariant.setContentType(variant.content_type);
-                                    videoVariant.setUrl(variant.url);
-                                    variants.add(videoVariant);
+                                if (!CollectionUtils.isEmpty(extendedMedia.video_info.variants)) {
+                                    for (TweetsRoot.Variant variant : extendedMedia.video_info.variants) {
+                                        if (variant == null) {
+                                            continue;
+                                        }
+                                        var videoVariant = new TweetProperties.Variant();
+                                        videoVariant.setBitrate(variant.bitrate);
+                                        videoVariant.setContentType(variant.content_type);
+                                        videoVariant.setUrl(variant.url);
+                                        variants.add(videoVariant);
+                                    }
                                 }
                                 videoInfo.setVariants(variants);
                                 tweetMedia.setVideoInfo(videoInfo);
@@ -285,29 +316,7 @@ public class TweetParser {
         }
         // link card
         if (tweetResult.card != null) {
-            var card = new TweetProperties.Card();
-            card.setType(tweetResult.card.legacy.name);
-            var bindingValues = tweetResult.card.legacy.binding_values;
-            for (JsonNode bindingValue : bindingValues) {
-                if (Objects.equals(bindingValue.get("key").asText(), "card_url")) {
-                    card.setUrl(bindingValue.get("value").get("string_value").asText());
-                }
-                if (Objects.equals(bindingValue.get("key").asText(), "title")) {
-                    card.setTitle(bindingValue.get("value").get("string_value").asText());
-                }
-                if (Objects.equals(bindingValue.get("key").asText(), "description")) {
-                    card.setDescription(bindingValue.get("value").get("string_value").asText());
-                }
-                if (Objects.equals(bindingValue.get("key").asText(), "summary_photo_image")) {
-                    card.setImageUrl(bindingValue.get("value").get("image_value").get("url").asText());
-                }
-                if (Objects.equals(bindingValue.get("key").asText(), "domain")) {
-                    card.setDomain(bindingValue.get("value").get("string_value").asText());
-                }
-                if (Objects.equals(bindingValue.get("key").asText(), "thumbnail_image")) {
-                    card.setThumbnailImageUrl(bindingValue.get("value").get("image_value").get("url").asText());
-                }
-            }
+            var card = getTweetCard(tweetResult.card);
             if (tweet.entities != null && !CollectionUtils.isEmpty(tweet.entities.urls)) {
                 card.setUrl(tweet.entities.urls.get(0).expanded_url);
             }
@@ -316,26 +325,164 @@ public class TweetParser {
         if (views != null) {
             tweetProperties.setViewCount(NumberUtils.toInt(views.count));
         }
-        if (quotedTweet != null && quotedTweet.result != null && quotedTweet.result.core != null && quotedTweet.result.core.user_results != null
-                && quotedTweet.result.core.user_results.result != null && quotedTweet.result.core.user_results.result.legacy != null) {
-            tweetProperties.setQuotedTweet(getTweetProperties(quotedTweet.result.core.user_results.result.legacy, quotedTweet.result, quotedTweet.result.views, null));
+        if (quotedTweet != null) {
+            var quotedTweetResult = normalizeTweetResult(quotedTweet.result);
+            if (hasTweetLegacy(quotedTweetResult)) {
+                tweetProperties.setQuotedTweet(getTweetProperties(quotedTweetResult, quotedTweetResult.views, null));
+            }
         }
         if (tweet.retweeted_status_result != null) {
-            if (tweet.retweeted_status_result != null && tweet.retweeted_status_result.result != null
-                    && tweet.retweeted_status_result.result.core != null && tweet.retweeted_status_result.result.core.user_results != null
-                    && tweet.retweeted_status_result.result.core.user_results.result != null && tweet.retweeted_status_result.result.core.user_results.result.legacy != null) {
-                tweetProperties.setRetweetedTweet(getTweetProperties(tweet.retweeted_status_result.result.core.user_results.result.legacy,
-                        tweet.retweeted_status_result.result, tweet.retweeted_status_result.result.views, tweet.retweeted_status_result.result.quoted_status_result));
+            var retweetedTweetResult = normalizeTweetResult(tweet.retweeted_status_result.result);
+            if (hasTweetLegacy(retweetedTweetResult)) {
+                tweetProperties.setRetweetedTweet(getTweetProperties(retweetedTweetResult,
+                        retweetedTweetResult.views, retweetedTweetResult.quoted_status_result));
             }
         }
         return tweetProperties;
     }
 
+    private TweetProperties.Size getRawMediaSize(TweetsRoot.OriginalInfo originalInfo) {
+        if (originalInfo == null) {
+            return null;
+        }
+        return new TweetProperties.Size(originalInfo.width, originalInfo.height);
+    }
+
+    private TweetProperties.Size getSmallMediaSize(TweetsRoot.Sizes sizes) {
+        if (sizes == null || sizes.small == null) {
+            return null;
+        }
+        return new TweetProperties.Size(sizes.small.w, sizes.small.h);
+    }
+
+    private TweetProperties.Card getTweetCard(TweetsRoot.Card rawCard) {
+        var card = new TweetProperties.Card();
+        card.setUrl(rawCard.rest_id);
+        if (rawCard.legacy == null) {
+            return card;
+        }
+
+        card.setType(rawCard.legacy.name);
+        setCardBindingValues(card, rawCard.legacy.binding_values);
+        return card;
+    }
+
+    private void setCardBindingValues(TweetProperties.Card card, JsonNode bindingValues) {
+        if (bindingValues == null || bindingValues.isNull()) {
+            return;
+        }
+        if (bindingValues.isObject()) {
+            bindingValues.fields().forEachRemaining(entry -> setCardBindingValue(card, entry.getKey(), entry.getValue()));
+            return;
+        }
+        for (JsonNode bindingValue : bindingValues) {
+            if (bindingValue == null || bindingValue.isNull()) {
+                continue;
+            }
+            setCardBindingValue(card, getJsonText(bindingValue.get("key")), bindingValue.get("value"));
+        }
+    }
+
+    private void setCardBindingValue(TweetProperties.Card card, String key, JsonNode value) {
+        if (StringUtils.isBlank(key) || value == null || value.isNull()) {
+            return;
+        }
+        if (Objects.equals(key, "card_url")) {
+            card.setUrl(getStringValue(value));
+        }
+        if (Objects.equals(key, "title")) {
+            card.setTitle(getStringValue(value));
+        }
+        if (Objects.equals(key, "description")) {
+            card.setDescription(getStringValue(value));
+        }
+        if (Objects.equals(key, "summary_photo_image")) {
+            card.setImageUrl(getImageUrl(value));
+        }
+        if (Objects.equals(key, "domain")) {
+            card.setDomain(getStringValue(value));
+        }
+        if (Objects.equals(key, "thumbnail_image")) {
+            card.setThumbnailImageUrl(getImageUrl(value));
+        }
+    }
+
+    private String getStringValue(JsonNode value) {
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        var stringValue = value.get("string_value");
+        return stringValue != null ? getJsonText(stringValue) : getJsonText(value);
+    }
+
+    private String getImageUrl(JsonNode value) {
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        var imageValue = value.get("image_value");
+        if (imageValue == null || imageValue.isNull()) {
+            return getJsonText(value.get("url"));
+        }
+        return getJsonText(imageValue.get("url"));
+    }
+
+    private String getJsonText(JsonNode node) {
+        return node == null || node.isNull() ? null : node.asText();
+    }
+
+    private TweetsRoot.Result getUserResult(TweetsRoot.Result tweetResult) {
+        if (tweetResult == null || tweetResult.core == null || tweetResult.core.user_results == null) {
+            return null;
+        }
+        return tweetResult.core.user_results.result;
+    }
+
+    private String getUserName(TweetsRoot.Result userResult) {
+        if (userResult == null) {
+            return null;
+        }
+        String legacyName = userResult.legacy != null ? userResult.legacy.name : null;
+        String coreName = userResult.core != null ? userResult.core.name : null;
+        return StringUtils.defaultIfBlank(legacyName, coreName);
+    }
+
+    private String getUserScreenName(TweetsRoot.Result userResult) {
+        if (userResult == null) {
+            return null;
+        }
+        String legacyScreenName = userResult.legacy != null ? userResult.legacy.screen_name : null;
+        String coreScreenName = userResult.core != null ? userResult.core.screen_name : null;
+        return StringUtils.defaultIfBlank(legacyScreenName, coreScreenName);
+    }
+
+    private String getUserProfileImageUrl(TweetsRoot.Result userResult) {
+        if (userResult == null) {
+            return null;
+        }
+        String legacyProfileImageUrl = userResult.legacy != null ? userResult.legacy.profile_image_url_https : null;
+        String avatarImageUrl = userResult.avatar != null ? userResult.avatar.image_url : null;
+        return StringUtils.defaultIfBlank(legacyProfileImageUrl, avatarImageUrl);
+    }
+
+    private String buildTweetUrl(String screenName, String tweetId) {
+        if (StringUtils.isBlank(tweetId)) {
+            return null;
+        }
+        if (StringUtils.isBlank(screenName)) {
+            return "https://x.com/i/web/status/" + tweetId;
+        }
+        return "https://x.com/" + screenName + "/status/" + tweetId;
+    }
+
     private String getTweetSmallMediaUrl(String mediaUrlHttps) {
+        if (StringUtils.isBlank(mediaUrlHttps)) {
+            return mediaUrlHttps;
+        }
         String smallMediaUrl = mediaUrlHttps;
-        String format = mediaUrlHttps.substring(mediaUrlHttps.lastIndexOf("."));
-        if (StringUtils.isNotEmpty(format)) {
-            smallMediaUrl = mediaUrlHttps.substring(0, mediaUrlHttps.lastIndexOf(".")) + "?format=" + format.substring(1) + "&name=small";
+        int formatIndex = mediaUrlHttps.lastIndexOf(".");
+        if (formatIndex >= 0 && formatIndex < mediaUrlHttps.length() - 1) {
+            String format = mediaUrlHttps.substring(formatIndex);
+            smallMediaUrl = mediaUrlHttps.substring(0, formatIndex) + "?format=" + format.substring(1) + "&name=small";
         }
         return smallMediaUrl;
     }
