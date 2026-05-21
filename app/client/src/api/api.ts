@@ -1362,6 +1362,18 @@ export interface GlobalSetting {
      */
     'changedOpenApiKey'?: boolean;
     /**
+     *
+     * @type {string}
+     * @memberof GlobalSetting
+     */
+    'backupPath'?: string;
+    /**
+     *
+     * @type {number}
+     * @memberof GlobalSetting
+     */
+    'backupKeepDays'?: number;
+    /**
      * 
      * @type {number}
      * @memberof GlobalSetting

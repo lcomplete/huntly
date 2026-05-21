@@ -61,6 +61,12 @@ public class GlobalSetting implements Serializable {
     @Column(name = "auto_save_tweet_min_likes")
     private Integer autoSaveTweetMinLikes;
 
+    @Column(name = "backup_path")
+    private String backupPath;
+
+    @Column(name = "backup_keep_days")
+    private Integer backupKeepDays;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

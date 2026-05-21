@@ -140,6 +140,19 @@ public class GlobalSettingService {
         }
         dbSetting.setMcpToken(globalSetting.getMcpToken());
         dbSetting.setAutoSaveTweetMinLikes(globalSetting.getAutoSaveTweetMinLikes());
+        if (StringUtils.isNotBlank(globalSetting.getBackupPath())) {
+            java.nio.file.Path normalized = java.nio.file.Paths.get(globalSetting.getBackupPath()).normalize();
+            if (!normalized.isAbsolute()) {
+                throw new IllegalArgumentException("backup path must be an absolute path");
+            }
+            if (normalized.toString().contains("..")) {
+                throw new IllegalArgumentException("backup path must not contain '..'");
+            }
+            dbSetting.setBackupPath(normalized.toString());
+        } else {
+            dbSetting.setBackupPath(null);
+        }
+        dbSetting.setBackupKeepDays(globalSetting.getBackupKeepDays());
         dbSetting.setUpdatedAt(globalSetting.getUpdatedAt());
 
         // Clear cache when setting is updated
