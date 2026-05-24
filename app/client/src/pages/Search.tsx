@@ -19,14 +19,26 @@ import SubHeader from "../components/SubHeader";
 import { useTranslation } from "react-i18next";
 import navLabels from "../components/Navigation/shared/NavLabels";
 import SearchIcon from "@mui/icons-material/Search";
+import PageFilters, {PageFilterOptions} from "../components/PageFilters";
+
+type SearchQueryWithDate = SearchQuery & {
+  startDate?: string;
+  endDate?: string;
+  dateField?: string;
+};
+
+const SEARCH_DATE_PARAMS = ['startDate', 'endDate', 'dateField'];
 
 export default function Search() {
   const {ref: inViewRef, inView} = useInView();
   const {enqueueSnackbar} = useSnackbar();
-  const { t } = useTranslation(['search', 'navigation']);
+  const { t } = useTranslation(['search', 'navigation', 'page']);
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q');
   const options = searchParams.get("op");
+  const startDate = searchParams.get("startDate") || undefined;
+  const endDate = searchParams.get("endDate") || undefined;
+  const dateField = searchParams.get("dateField") || undefined;
   const selectedPageId = safeInt(searchParams.get("p"));
   const hasSearchQuery = Boolean(q && q.trim().length > 0);
   const [draftQuery, setDraftQuery] = useState('');
@@ -57,7 +69,21 @@ export default function Search() {
     }
   }, [q, hasSearchQuery, searchDocumentTitle]);
 
-  const query: SearchQuery = {q, size: 10, queryOptions: options};
+  const dateFilterOptions: PageFilterOptions = {
+    defaultSortValue: 'CREATED_AT',
+    sortFields: [{
+      value: 'CREATED_AT',
+      label: t('page:sortByCreated')
+    }],
+    asc: false,
+    hideContentTypeFilter: true,
+    hideSortFilter: true,
+    hideOrderFilter: true,
+    startDate,
+    endDate
+  };
+
+  const query: SearchQueryWithDate = {q, size: 10, queryOptions: options, startDate, endDate, dateField};
   const queryKey = [PageQueryKey.Search, query];
   const queryClient = useQueryClient();
 
@@ -92,11 +118,53 @@ export default function Search() {
       return;
     }
     e.preventDefault();
-    setSearchParams({q: q || '', op: options || '', p: String(pageId)}, {preventScrollReset: true});
+    const nextParams = buildSearchParams();
+    nextParams.set('p', String(pageId));
+    setSearchParams(nextParams, {preventScrollReset: true});
   }
 
   function closePageDetail() {
-    setSearchParams({q: q || '', op: options || ''}, {preventScrollReset: true});
+    setSearchParams(buildSearchParams(), {preventScrollReset: true});
+  }
+
+  function buildSearchParams() {
+    const nextParams = new URLSearchParams();
+    if (q) {
+      nextParams.set('q', q);
+    }
+    if (options) {
+      nextParams.set('op', options);
+    }
+    if (startDate) {
+      nextParams.set('startDate', startDate);
+    }
+    if (endDate) {
+      nextParams.set('endDate', endDate);
+    }
+    if (dateField) {
+      nextParams.set('dateField', dateField);
+    }
+    return nextParams;
+  }
+
+  function handleDateFilterChange(options: PageFilterOptions) {
+    const nextParams = buildSearchParams();
+    if (options.startDate) {
+      nextParams.set('startDate', options.startDate);
+    } else {
+      nextParams.delete('startDate');
+    }
+    if (options.endDate) {
+      nextParams.set('endDate', options.endDate);
+    } else {
+      nextParams.delete('endDate');
+    }
+    if (options.startDate || options.endDate) {
+      nextParams.set('dateField', dateField || 'created_at');
+    } else {
+      nextParams.delete('dateField');
+    }
+    setSearchParams(nextParams, {preventScrollReset: true});
   }
 
   function operateSuccess(event: PageOperateEvent) {
@@ -183,6 +251,14 @@ export default function Search() {
           selectedKeywords={draftOptions}
           onSelectedKeywordsChange={setDraftOptions}
           focusSignal={focusSignal}
+          searchParamsToKeep={SEARCH_DATE_PARAMS}
+        />
+      </Box>
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+        <PageFilters
+          key={`search-empty-date-${startDate || ''}-${endDate || ''}`}
+          options={dateFilterOptions}
+          onChange={handleDateFilterChange}
         />
       </Box>
       <Box sx={{ mt: 5, color: '#94a3b8' }}>
@@ -230,9 +306,27 @@ export default function Search() {
   const renderResults = () => (
     <>
       {/* Search Box at top */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3.5, px: 2 }}>
-        <Box sx={{ width: '100%', maxWidth: 800 }}>
-          <SearchBox variant="large" />
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, px: 2 }}>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 900,
+            display: 'flex',
+            flexDirection: {xs: 'column', sm: 'row'},
+            alignItems: {xs: 'stretch', sm: 'center'},
+            gap: 1.5
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0, '& .search-wrapper': {width: '100%'} }}>
+            <SearchBox variant="large" searchParamsToKeep={SEARCH_DATE_PARAMS} />
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: {xs: 'flex-end', sm: 'flex-start'}, flexShrink: 0 }}>
+            <PageFilters
+              key={`search-results-date-${startDate || ''}-${endDate || ''}`}
+              options={dateFilterOptions}
+              onChange={handleDateFilterChange}
+            />
+          </Box>
         </Box>
       </Box>
 
@@ -333,6 +427,7 @@ export default function Search() {
       <SubHeader
         navLabel={navLabels.search}
         buttonOptions={{ markRead: false, viewSwitch: false }}
+        searchParamsToKeep={SEARCH_DATE_PARAMS}
       />
       <Box sx={{ pt: 3 }}>
         {hasSearchQuery ? renderResults() : renderEmptyState()}

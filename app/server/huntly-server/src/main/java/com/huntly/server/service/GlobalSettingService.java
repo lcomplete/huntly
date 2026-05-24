@@ -10,12 +10,15 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 /**
  * @author lcomplete
  */
 @Service
 public class GlobalSettingService {
+    private static final Pattern BACKUP_TIME_PATTERN = Pattern.compile("^([01]\\d|2[0-3]):[0-5]\\d$");
+
     private final GlobalSettingRepository settingRepository;
     private final HuntlyProperties huntlyProperties;
 
@@ -37,6 +40,9 @@ public class GlobalSettingService {
         defaultSetting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
         defaultSetting.setArticleSummaryPrompt(getDefaultArticleSummaryPrompt());
         defaultSetting.setDefaultFeedFetchIntervalMinutes(defaultFeedFetchIntervalMinutes);
+        defaultSetting.setEnableDatabaseBackup(false);
+        defaultSetting.setBackupKeepCount(AppConstants.DEFAULT_BACKUP_KEEP_COUNT);
+        defaultSetting.setBackupTime(AppConstants.DEFAULT_BACKUP_TIME);
         var setting = settingRepository.findAll().stream().findFirst().orElse(defaultSetting);
         if (setting.getColdDataKeepDays() == null || setting.getColdDataKeepDays() <= 0) {
             setting.setColdDataKeepDays(AppConstants.DEFAULT_COLD_DATA_KEEP_DAYS);
@@ -48,6 +54,15 @@ public class GlobalSettingService {
         // set default article summary prompt if not set
         if (StringUtils.isBlank(setting.getArticleSummaryPrompt())) {
             setting.setArticleSummaryPrompt(getDefaultArticleSummaryPrompt());
+        }
+        if (setting.getEnableDatabaseBackup() == null) {
+            setting.setEnableDatabaseBackup(false);
+        }
+        if (setting.getBackupKeepCount() == null || setting.getBackupKeepCount() <= 0) {
+            setting.setBackupKeepCount(AppConstants.DEFAULT_BACKUP_KEEP_COUNT);
+        }
+        if (StringUtils.isBlank(setting.getBackupTime()) || !BACKUP_TIME_PATTERN.matcher(setting.getBackupTime()).matches()) {
+            setting.setBackupTime(AppConstants.DEFAULT_BACKUP_TIME);
         }
         return setting;
     }
@@ -140,6 +155,7 @@ public class GlobalSettingService {
         }
         dbSetting.setMcpToken(globalSetting.getMcpToken());
         dbSetting.setAutoSaveTweetMinLikes(globalSetting.getAutoSaveTweetMinLikes());
+        dbSetting.setEnableDatabaseBackup(Boolean.TRUE.equals(globalSetting.getEnableDatabaseBackup()));
         if (StringUtils.isNotBlank(globalSetting.getBackupPath())) {
             java.nio.file.Path normalized = java.nio.file.Paths.get(globalSetting.getBackupPath()).normalize();
             if (!normalized.isAbsolute()) {
@@ -152,7 +168,16 @@ public class GlobalSettingService {
         } else {
             dbSetting.setBackupPath(null);
         }
-        dbSetting.setBackupKeepDays(globalSetting.getBackupKeepDays());
+        dbSetting.setBackupKeepCount(globalSetting.getBackupKeepCount() != null && globalSetting.getBackupKeepCount() > 0
+                ? globalSetting.getBackupKeepCount()
+                : AppConstants.DEFAULT_BACKUP_KEEP_COUNT);
+        if (StringUtils.isBlank(globalSetting.getBackupTime())) {
+            dbSetting.setBackupTime(AppConstants.DEFAULT_BACKUP_TIME);
+        } else if (BACKUP_TIME_PATTERN.matcher(globalSetting.getBackupTime()).matches()) {
+            dbSetting.setBackupTime(globalSetting.getBackupTime());
+        } else {
+            throw new IllegalArgumentException("backup time must use HH:mm format");
+        }
         dbSetting.setUpdatedAt(globalSetting.getUpdatedAt());
 
         // Clear cache when setting is updated

@@ -67,6 +67,8 @@ export type PageFilterOptions = {
   contentFilterType?: number,
   startDate?: string
   endDate?: string
+  hideSortFilter?: boolean
+  hideOrderFilter?: boolean
   showAllArticles?: boolean
   showAllArticlesOption?: boolean
   includeArchived?: boolean
@@ -92,7 +94,7 @@ function parseDateTimeString(dateStr: string | undefined) {
 
 export default function PageFilters(props: PageFilterProps) {
   const {options, onChange} = props;
-  const {sortFields, defaultSortValue, asc, hideContentTypeFilter, contentFilterType, startDate, endDate, showAllArticles, showAllArticlesOption, includeArchived, includeArchivedOption} = options;
+  const {sortFields, defaultSortValue, asc, hideContentTypeFilter, contentFilterType, startDate, endDate, hideSortFilter, hideOrderFilter, showAllArticles, showAllArticlesOption, includeArchived, includeArchivedOption} = options;
   const [pickerAnchorEl, setPickerAnchorEl] = React.useState(null);
   const parsedStart = parseDateTimeString(startDate);
   const parsedEnd = parseDateTimeString(endDate);
@@ -227,8 +229,8 @@ export default function PageFilters(props: PageFilterProps) {
   const contentLabel = contentLabelMap[contentFilterType || 0];
   const sortLabel = getSortLabel(defaultSortValue);
   const orderLabel = asc ? t('page:sortOldest') : t('page:sortNewest');
-  const showSort = sortFields.length > 1 || isPhone;
-  const showOrder = defaultSortValue !== 'VOTE_SCORE';
+  const showSort = !hideSortFilter && (sortFields.length > 1 || isPhone);
+  const showOrder = !hideOrderFilter && defaultSortValue !== 'VOTE_SCORE';
   const hasFilterChanges = !isDeepEqual(initialOptionsRef.current, options);
 
   function handleSortByChange(event, value) {

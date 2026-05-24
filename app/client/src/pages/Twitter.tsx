@@ -5,7 +5,7 @@ import {useState} from "react";
 import PageFilters, {PageFilterOptions} from "../components/PageFilters";
 import {getPageListFilter} from "../domain/utils";
 import {useSearchParams} from "react-router-dom";
-import {ContentType, SORT_VALUE} from "../model";
+import {SORT_VALUE} from "../model";
 import { useTranslation } from "react-i18next";
 
 export default function Twitter() {
@@ -14,7 +14,6 @@ export default function Twitter() {
 
   // Read URL parameters for hot tweets filtering
   const urlSort = searchParams.get("sort") as SORT_VALUE | null;
-  const urlContentType = searchParams.get("contentType") as ContentType | null;
   const urlStartDate = searchParams.get("startDate");
   const urlEndDate = searchParams.get("endDate");
 
@@ -35,6 +34,7 @@ export default function Twitter() {
     }],
     asc: false,
     hideContentTypeFilter: true,
+    contentFilterType: 2,
     startDate: urlStartDate || undefined,
     endDate: urlEndDate || undefined
   }));
@@ -46,8 +46,7 @@ export default function Twitter() {
   return <MainContainer>
     <PageList navLabel={navLabels.twitter}
               filters={{
-                ...getPageListFilter(pageFilterOptions),
-                contentType: urlContentType || 'TWEET'
+                ...getPageListFilter(pageFilterOptions)
               }}
               buttonOptions={{markRead: false}}
               filterComponent={<PageFilters options={pageFilterOptions} onChange={handleFilterChange}/>}

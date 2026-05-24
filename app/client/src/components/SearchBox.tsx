@@ -36,6 +36,7 @@ type SearchBoxProps = Readonly<{
   onSelectedKeywordsChange?: (keywords: string[]) => void;
   focusSignal?: number;
   defaultSearchText?: string;
+  searchParamsToKeep?: string[];
 }>;
 
 const defaultSearchOptions: SearchOption[] = [
@@ -107,7 +108,8 @@ export default function SearchBox({
   selectedKeywords,
   onSelectedKeywordsChange,
   focusSignal,
-  defaultSearchText
+  defaultSearchText,
+  searchParamsToKeep = []
 }: SearchBoxProps) {
   const [focus, setFocus] = useState(false);
   const [params] = useSearchParams();
@@ -194,16 +196,24 @@ export default function SearchBox({
       return;
     }
 
-    // use set search params
+    const nextSearchParams: Record<string, string> = {
+      'q': submitText,
+      'op': searchOptions
+        .filter((option) => defaultSearchOptionKeywords.has(option.keyword))
+        .map((option) => option.keyword)
+        .join(',')
+    };
+
+    searchParamsToKeep.forEach((paramName) => {
+      const paramValue = params.get(paramName);
+      if (paramValue) {
+        nextSearchParams[paramName] = paramValue;
+      }
+    });
+
     navigate({
       pathname: "/search",
-      search: `?${createSearchParams({
-        'q': submitText,
-        'op': searchOptions
-          .filter((option) => defaultSearchOptionKeywords.has(option.keyword))
-          .map((option) => option.keyword)
-          .join(',')
-      })}`
+      search: `?${createSearchParams(nextSearchParams)}`
     });
   }
 
