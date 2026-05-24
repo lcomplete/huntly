@@ -64,8 +64,14 @@ public class GlobalSetting implements Serializable {
     @Column(name = "backup_path")
     private String backupPath;
 
-    @Column(name = "backup_keep_days")
-    private Integer backupKeepDays;
+    @Column(name = "enable_database_backup")
+    private Boolean enableDatabaseBackup;
+
+    @Column(name = "backup_keep_count")
+    private Integer backupKeepCount;
+
+    @Column(name = "backup_time")
+    private String backupTime;
 
     @Column(name = "created_at")
     private Instant createdAt;

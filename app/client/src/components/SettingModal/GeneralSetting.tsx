@@ -1,20 +1,27 @@
-
 import { useSnackbar } from "notistack";
 import { useQuery } from "@tanstack/react-query";
 import { SettingControllerApiFactory } from "../../api";
 import { useFormik } from "formik";
 import * as yup from "yup";
 import {
+  Alert,
   Button,
   Checkbox,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   FormControl,
   IconButton,
   InputLabel,
+  Link,
   MenuItem,
   Select,
   TextField,
-  Tooltip
+  Tooltip,
+  Typography
 } from "@mui/material";
 import React from "react";
 import { useTranslation } from 'react-i18next';
@@ -26,7 +33,31 @@ import AutoModeIcon from '@mui/icons-material/AutoMode';
 import BlockIcon from '@mui/icons-material/Block';
 import TranslateIcon from '@mui/icons-material/Translate';
 import BackupIcon from '@mui/icons-material/Backup';
+import DownloadIcon from '@mui/icons-material/Download';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import SettingSectionTitle from "./SettingSectionTitle";
+import { DatabaseBackupInfo, fetchDatabaseBackups, getDatabaseBackupDownloadUrl } from "../../api/databaseBackup";
+
+function formatBytes(bytes?: number): string {
+  if (!bytes || bytes <= 0) {
+    return "0 B";
+  }
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function formatDateTime(value?: string): string {
+  if (!value) {
+    return "";
+  }
+  return new Date(value).toLocaleString();
+}
 
 export default function GeneralSetting() {
   const { t, i18n } = useTranslation('settings');
@@ -34,6 +65,10 @@ export default function GeneralSetting() {
   const { enqueueSnackbar } = useSnackbar();
   const api = SettingControllerApiFactory();
   const [needChangeOpenApiKey, setNeedChangeOpenApiKey] = React.useState(false);
+  const [backupDialogOpen, setBackupDialogOpen] = React.useState(false);
+  const [backupFiles, setBackupFiles] = React.useState<DatabaseBackupInfo[]>([]);
+  const [backupFilesLoading, setBackupFilesLoading] = React.useState(false);
+  const [backupFilesError, setBackupFilesError] = React.useState<string | null>(null);
   const apiKeyInputRef = React.useRef<HTMLInputElement>(null);
 
   const {
@@ -43,7 +78,10 @@ export default function GeneralSetting() {
   const formikGeneral = useFormik({
     enableReinitialize: true,
     initialValues: {
-      ...(globalSetting || {})
+      ...(globalSetting || {}),
+      enableDatabaseBackup: globalSetting?.enableDatabaseBackup || false,
+      backupKeepCount: globalSetting?.backupKeepCount || 3,
+      backupTime: globalSetting?.backupTime || "02:00"
     },
     validationSchema: yup.object({
       proxyHost: yup.string().nullable(),
@@ -54,16 +92,27 @@ export default function GeneralSetting() {
       openApiBaseUrl: yup.string().nullable(),
       openApiModel: yup.string().nullable(),
       autoSaveSiteBlacklists: yup.string().nullable(),
-      backupPath: yup.string().nullable(),
-      backupKeepDays: yup.number().nullable().min(1, t('backupKeepDaysMin'))
+      enableDatabaseBackup: yup.boolean().nullable(),
+      backupPath: yup.string().nullable().when('enableDatabaseBackup', {
+        is: true,
+        then: yup.string().nullable().required(t('backupPathRequired')),
+      }),
+      backupKeepCount: yup.number().nullable().min(1, t('backupKeepCountMin')),
+      backupTime: yup.string().nullable().matches(/^([01]\d|2[0-3]):[0-5]\d$/, t('backupTimeInvalid'))
     }),
     onSubmit: async (values) => {
       // 只有当 API 密钥真正改变时才设置 changedOpenApiKey 为 true
       // 考虑两个都为空/null 的情况，以及从有值变为空值的情况
       const initialKey = formikGeneral.initialValues.openApiKey || "";
       const currentKey = values.openApiKey || "";
-      values.changedOpenApiKey = initialKey !== currentKey;
-      api.saveGlobalSettingUsingPOST(values).then((res) => {
+      const savedValues = {
+        ...values,
+        changedOpenApiKey: initialKey !== currentKey,
+        enableDatabaseBackup: !!values.enableDatabaseBackup,
+        backupKeepCount: values.backupKeepCount || 3,
+        backupTime: values.backupTime || "02:00"
+      };
+      api.saveGlobalSettingUsingPOST(savedValues).then((res) => {
         enqueueSnackbar(t('saveSuccess'), {
           variant: "success",
           anchorOrigin: { vertical: "bottom", horizontal: "center" }
@@ -81,6 +130,25 @@ export default function GeneralSetting() {
     const newLang = event.target.value;
     i18n.changeLanguage(newLang);
   };
+
+  const loadBackupFiles = React.useCallback(async () => {
+    try {
+      setBackupFilesLoading(true);
+      setBackupFilesError(null);
+      setBackupFiles(await fetchDatabaseBackups());
+    } catch (error) {
+      console.error('Failed to load database backups', error);
+      setBackupFilesError(t('backupListLoadFailed'));
+    } finally {
+      setBackupFilesLoading(false);
+    }
+  }, [t]);
+
+  React.useEffect(() => {
+    if (backupDialogOpen) {
+      loadBackupFiles();
+    }
+  }, [backupDialogOpen, loadBackupFiles]);
 
   return <div className="settings-form-group">
     <form onSubmit={formikGeneral.handleSubmit}>
@@ -233,39 +301,80 @@ export default function GeneralSetting() {
 
       <SettingSectionTitle icon={BackupIcon}>{t('databaseBackup')}</SettingSectionTitle>
       <div className="flex flex-wrap items-center gap-3 mt-1">
-        <TextField
-          margin="dense"
-          size="small"
-          className="w-full sm:w-[320px]"
-          id="backupPath"
-          label={t('backupPath')}
-          value={formikGeneral.values.backupPath || ""}
-          onChange={formikGeneral.handleChange}
-          error={formikGeneral.touched.backupPath && Boolean(formikGeneral.errors.backupPath)}
-          helperText={formikGeneral.touched.backupPath && formikGeneral.errors.backupPath}
-          type="text"
-          variant="outlined"
-        />
-        <TextField
-          margin="dense"
-          size="small"
-          className="w-full sm:w-[180px]"
-          id="backupKeepDays"
-          label={t('backupKeepDays')}
-          placeholder={t('backupKeepDaysPlaceholder') || "30"}
-          value={formikGeneral.values.backupKeepDays === undefined || formikGeneral.values.backupKeepDays === null ? "" : formikGeneral.values.backupKeepDays}
-          onChange={formikGeneral.handleChange}
-          error={formikGeneral.touched.backupKeepDays && Boolean(formikGeneral.errors.backupKeepDays)}
-          helperText={formikGeneral.touched.backupKeepDays && formikGeneral.errors.backupKeepDays}
-          type="number"
-          variant="outlined"
-        />
-        <Tooltip title={t('backupPathHint')} placement="right">
-          <IconButton size="small" sx={{ color: '#94a3b8' }}>
-            <HelpOutlineIcon />
-          </IconButton>
-        </Tooltip>
+        <FormControlLabel
+          control={<Checkbox value={true} name={'enableDatabaseBackup'} onChange={formikGeneral.handleChange}
+            checked={!!formikGeneral.values.enableDatabaseBackup} />
+          }
+          label={t('enableDatabaseBackup')} />
+        <Link
+          component="button"
+          type="button"
+          onClick={() => setBackupDialogOpen(true)}
+          underline="hover"
+          color="primary"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.75,
+            fontSize: '0.875rem',
+            fontWeight: 500,
+          }}
+        >
+          <FolderOpenIcon sx={{ fontSize: 18 }} />
+          {t('viewBackups')}
+        </Link>
       </div>
+      {formikGeneral.values.enableDatabaseBackup && (
+        <div className="flex flex-wrap items-center gap-3 mt-1">
+          <TextField
+            margin="dense"
+            size="small"
+            className="w-full sm:w-[320px]"
+            id="backupPath"
+            label={t('backupPath')}
+            value={formikGeneral.values.backupPath || ""}
+            onChange={formikGeneral.handleChange}
+            error={formikGeneral.touched.backupPath && Boolean(formikGeneral.errors.backupPath)}
+            helperText={formikGeneral.touched.backupPath && formikGeneral.errors.backupPath}
+            type="text"
+            variant="outlined"
+          />
+          <TextField
+            margin="dense"
+            size="small"
+            className="w-full sm:w-[160px]"
+            id="backupTime"
+            label={t('backupTime')}
+            value={formikGeneral.values.backupTime || "02:00"}
+            onChange={formikGeneral.handleChange}
+            error={formikGeneral.touched.backupTime && Boolean(formikGeneral.errors.backupTime)}
+            helperText={formikGeneral.touched.backupTime && formikGeneral.errors.backupTime}
+            type="time"
+            variant="outlined"
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ step: 60 }}
+          />
+          <TextField
+            margin="dense"
+            size="small"
+            className="w-full sm:w-[180px]"
+            id="backupKeepCount"
+            label={t('backupKeepCount')}
+            placeholder={t('backupKeepCountPlaceholder') || "3"}
+            value={formikGeneral.values.backupKeepCount === undefined || formikGeneral.values.backupKeepCount === null ? "" : formikGeneral.values.backupKeepCount}
+            onChange={formikGeneral.handleChange}
+            error={formikGeneral.touched.backupKeepCount && Boolean(formikGeneral.errors.backupKeepCount)}
+            helperText={formikGeneral.touched.backupKeepCount && formikGeneral.errors.backupKeepCount}
+            type="number"
+            variant="outlined"
+          />
+          <Tooltip title={t('backupPathHint')} placement="right">
+            <IconButton size="small" sx={{ color: '#94a3b8' }}>
+              <HelpOutlineIcon />
+            </IconButton>
+          </Tooltip>
+        </div>
+      )}
 
       <SettingSectionTitle icon={BlockIcon}>{t('websiteBlacklist')}</SettingSectionTitle>
 
@@ -310,5 +419,55 @@ export default function GeneralSetting() {
         </Button>
       </div>
     </form >
+    <Dialog open={backupDialogOpen} onClose={() => setBackupDialogOpen(false)} fullWidth maxWidth="sm">
+      <DialogTitle>{t('backupListTitle')}</DialogTitle>
+      <DialogContent dividers>
+        {backupFilesLoading && (
+          <div className="flex items-center gap-3 py-4">
+            <CircularProgress size={20} />
+            <Typography variant="body2" color="text.secondary">{tCommon('loading')}</Typography>
+          </div>
+        )}
+        {!backupFilesLoading && backupFilesError && (
+          <Alert severity="error">{backupFilesError}</Alert>
+        )}
+        {!backupFilesLoading && !backupFilesError && backupFiles.length === 0 && (
+          <Alert severity="info">{t('noBackups')}</Alert>
+        )}
+        {!backupFilesLoading && !backupFilesError && backupFiles.length > 0 && (
+          <div className="divide-y divide-gray-100">
+            {backupFiles.map((backupFile) => (
+              <div key={backupFile.fileName} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                    {backupFile.fileName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formatBytes(backupFile.sizeBytes)}{backupFile.createdAt ? ` · ${formatDateTime(backupFile.createdAt)}` : ""}
+                  </Typography>
+                </div>
+                {backupFile.fileName && (
+                  <Button
+                    component="a"
+                    href={getDatabaseBackupDownloadUrl(backupFile.fileName)}
+                    target="_blank"
+                    rel="noreferrer"
+                    size="small"
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    sx={{ flexShrink: 0, textTransform: 'none' }}
+                  >
+                    {t('downloadBackup')}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setBackupDialogOpen(false)}>{tCommon('close')}</Button>
+      </DialogActions>
+    </Dialog>
   </div >
 }

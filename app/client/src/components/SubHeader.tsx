@@ -29,7 +29,8 @@ type SubHeaderProps = {
   rightContent?: ReactElement,
   hideSearchOnMobile?: boolean,
   defaultSearchKeywords?: string[],
-  defaultSearchText?: string
+  defaultSearchText?: string,
+  searchParamsToKeep?: string[]
 }
 
 const SubHeader = (props: SubHeaderProps) => {
@@ -43,7 +44,8 @@ const SubHeader = (props: SubHeaderProps) => {
     rightContent,
     hideSearchOnMobile = true,
     defaultSearchKeywords,
-    defaultSearchText
+    defaultSearchText,
+    searchParamsToKeep
   } = props;
   const defaultBtnOptions: ButtonOptions = {markRead: true, viewSwitch: false};
   const buttonOptions = {...defaultBtnOptions, ...props.buttonOptions};
@@ -138,7 +140,7 @@ const SubHeader = (props: SubHeaderProps) => {
       )}
       <div className={`subheader-right ${hideSearchOnMobile ? 'subheader-right-hide-mobile' : ''}`}>
         <div className={`subheader-search ${hasRightContent ? 'subheader-search-separated' : ''}`}>
-          <SearchBox selectedKeywords={defaultSearchKeywords} defaultSearchText={defaultSearchText} />
+          <SearchBox selectedKeywords={defaultSearchKeywords} defaultSearchText={defaultSearchText} searchParamsToKeep={searchParamsToKeep} />
         </div>
       </div>
     </div>

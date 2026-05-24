@@ -1361,18 +1361,30 @@ export interface GlobalSetting {
      * @memberof GlobalSetting
      */
     'changedOpenApiKey'?: boolean;
-    /**
-     *
-     * @type {string}
-     * @memberof GlobalSetting
-     */
-    'backupPath'?: string;
-    /**
-     *
-     * @type {number}
-     * @memberof GlobalSetting
-     */
-    'backupKeepDays'?: number;
+     /**
+      *
+      * @type {string}
+      * @memberof GlobalSetting
+      */
+     'backupPath'?: string;
+     /**
+      *
+      * @type {boolean}
+      * @memberof GlobalSetting
+      */
+     'enableDatabaseBackup'?: boolean;
+     /**
+      *
+      * @type {number}
+      * @memberof GlobalSetting
+      */
+     'backupKeepCount'?: number;
+     /**
+      *
+      * @type {string}
+      * @memberof GlobalSetting
+      */
+     'backupTime'?: string;
     /**
      * 
      * @type {number}

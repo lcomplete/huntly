@@ -22,8 +22,31 @@ class GlobalSettingServiceTest {
 
         GlobalSettingService globalSettingService = new GlobalSettingService(settingRepository, huntlyProperties);
 
+        GlobalSetting setting = globalSettingService.getGlobalSetting();
+        assertThat(setting.getEnableDatabaseBackup()).isFalse();
+        assertThat(setting.getBackupKeepCount()).isEqualTo(3);
+        assertThat(setting.getBackupTime()).isEqualTo("02:00");
         assertThat(globalSettingService.getDefaultFeedFetchIntervalMinutes()).isEqualTo(15);
         assertThat(globalSettingService.getDefaultFeedFetchIntervalSeconds()).isEqualTo(900);
+    }
+
+    @Test
+    void getGlobalSetting_returnsBackupDefaultsWhenPersistedBackupValuesAreInvalid() {
+        GlobalSettingRepository settingRepository = mock(GlobalSettingRepository.class);
+        HuntlyProperties huntlyProperties = new HuntlyProperties();
+        huntlyProperties.setDefaultFeedFetchIntervalSeconds(900);
+
+        GlobalSetting setting = new GlobalSetting();
+        setting.setBackupKeepCount(0);
+        setting.setBackupTime("25:00");
+        when(settingRepository.findAll()).thenReturn(List.of(setting));
+
+        GlobalSettingService globalSettingService = new GlobalSettingService(settingRepository, huntlyProperties);
+
+        GlobalSetting globalSetting = globalSettingService.getGlobalSetting();
+        assertThat(globalSetting.getEnableDatabaseBackup()).isFalse();
+        assertThat(globalSetting.getBackupKeepCount()).isEqualTo(3);
+        assertThat(globalSetting.getBackupTime()).isEqualTo("02:00");
     }
 
     @Test

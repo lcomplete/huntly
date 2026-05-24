@@ -10,6 +10,7 @@ import com.huntly.interfaces.external.model.FeedsSetting;
 import com.huntly.interfaces.external.model.GitHubSetting;
 import com.huntly.interfaces.external.model.LoginRequest;
 import com.huntly.server.connector.rss.FeedUtils;
+import com.huntly.server.domain.dto.DatabaseBackupInfo;
 import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.domain.entity.Folder;
 import com.huntly.server.domain.entity.GlobalSetting;
@@ -19,6 +20,7 @@ import com.rometools.rome.io.FeedException;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -31,6 +33,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
@@ -57,7 +61,9 @@ public class SettingController {
 
     private final GlobalSettingService globalSettingService;
 
-    public SettingController(TwitterUserSettingService twitterUserSettingService, ConnectorService connectorService, OPMLService opmlService, FeedsService feedsService, FolderService folderService, UserService userService, GlobalSettingService globalSettingService) {
+    private final DatabaseBackupService databaseBackupService;
+
+    public SettingController(TwitterUserSettingService twitterUserSettingService, ConnectorService connectorService, OPMLService opmlService, FeedsService feedsService, FolderService folderService, UserService userService, GlobalSettingService globalSettingService, DatabaseBackupService databaseBackupService) {
         this.twitterUserSettingService = twitterUserSettingService;
         this.connectorService = connectorService;
         this.opmlService = opmlService;
@@ -65,6 +71,7 @@ public class SettingController {
         this.folderService = folderService;
         this.userService = userService;
         this.globalSettingService = globalSettingService;
+        this.databaseBackupService = databaseBackupService;
     }
 
     @PostMapping("github/save-token")
@@ -215,6 +222,31 @@ public class SettingController {
     @PostMapping("general/saveGlobalSetting")
     public GlobalSetting saveGlobalSetting(@RequestBody GlobalSetting globalSetting) {
         return globalSettingService.saveGlobalSetting(globalSetting);
+    }
+
+    @GetMapping("general/database-backups")
+    public ApiResult<List<DatabaseBackupInfo>> getDatabaseBackups() {
+        return ApiResult.ok(databaseBackupService.listBackups());
+    }
+
+    @GetMapping("general/database-backups/download")
+    public ResponseEntity<Resource> downloadDatabaseBackup(@RequestParam String fileName) throws IOException {
+        Path backupPath;
+        try {
+            backupPath = databaseBackupService.resolveBackupPath(fileName);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.notFound().build();
+        }
+        if (Files.notExists(backupPath)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        FileSystemResource resource = new FileSystemResource(backupPath);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(resource.contentLength())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + backupPath.getFileName() + "\"")
+                .body(resource);
     }
 
     @PostMapping("general/generateMcpToken")
