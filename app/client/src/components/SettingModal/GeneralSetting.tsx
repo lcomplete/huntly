@@ -25,6 +25,7 @@ import RouterIcon from '@mui/icons-material/Router';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 import BlockIcon from '@mui/icons-material/Block';
 import TranslateIcon from '@mui/icons-material/Translate';
+import BackupIcon from '@mui/icons-material/Backup';
 import SettingSectionTitle from "./SettingSectionTitle";
 
 export default function GeneralSetting() {
@@ -52,7 +53,9 @@ export default function GeneralSetting() {
       openApiKey: yup.string().nullable(),
       openApiBaseUrl: yup.string().nullable(),
       openApiModel: yup.string().nullable(),
-      autoSaveSiteBlacklists: yup.string().nullable()
+      autoSaveSiteBlacklists: yup.string().nullable(),
+      backupPath: yup.string().nullable(),
+      backupKeepDays: yup.number().nullable().min(1, t('backupKeepDaysMin'))
     }),
     onSubmit: async (values) => {
       // 只有当 API 密钥真正改变时才设置 changedOpenApiKey 为 true
@@ -222,6 +225,42 @@ export default function GeneralSetting() {
           variant="outlined"
         />
         <Tooltip title={t('coldDataHint')} placement="right">
+          <IconButton size="small" sx={{ color: '#94a3b8' }}>
+            <HelpOutlineIcon />
+          </IconButton>
+        </Tooltip>
+      </div>
+
+      <SettingSectionTitle icon={BackupIcon}>{t('databaseBackup')}</SettingSectionTitle>
+      <div className="flex flex-wrap items-center gap-3 mt-1">
+        <TextField
+          margin="dense"
+          size="small"
+          className="w-full sm:w-[320px]"
+          id="backupPath"
+          label={t('backupPath')}
+          value={formikGeneral.values.backupPath || ""}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.backupPath && Boolean(formikGeneral.errors.backupPath)}
+          helperText={formikGeneral.touched.backupPath && formikGeneral.errors.backupPath}
+          type="text"
+          variant="outlined"
+        />
+        <TextField
+          margin="dense"
+          size="small"
+          className="w-full sm:w-[180px]"
+          id="backupKeepDays"
+          label={t('backupKeepDays')}
+          placeholder={t('backupKeepDaysPlaceholder') || "30"}
+          value={formikGeneral.values.backupKeepDays === undefined || formikGeneral.values.backupKeepDays === null ? "" : formikGeneral.values.backupKeepDays}
+          onChange={formikGeneral.handleChange}
+          error={formikGeneral.touched.backupKeepDays && Boolean(formikGeneral.errors.backupKeepDays)}
+          helperText={formikGeneral.touched.backupKeepDays && formikGeneral.errors.backupKeepDays}
+          type="number"
+          variant="outlined"
+        />
+        <Tooltip title={t('backupPathHint')} placement="right">
           <IconButton size="small" sx={{ color: '#94a3b8' }}>
             <HelpOutlineIcon />
           </IconButton>

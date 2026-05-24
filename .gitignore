@@ -51,5 +51,6 @@ db.sqlite*
 .agent/
 .shared/
 .codex/
+.antigravitycli/
 
 .mcp.json
