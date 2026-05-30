@@ -26,7 +26,7 @@ Self-hosted information hub with a powerful browser extension that captures, pro
 ## Features
 
 > [!TIP]
-> This project is under rapid development. Recommend using Docker with automatic updates (such as Watchtower) to stay on the latest version.
+> Recommend using Docker with automatic updates (such as Watchtower) to stay on the latest version.
 
 | Feature | Description |
 |---------|-------------|
