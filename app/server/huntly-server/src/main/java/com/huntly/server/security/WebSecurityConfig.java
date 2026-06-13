@@ -3,6 +3,7 @@ package com.huntly.server.security;
 import com.huntly.server.security.jwt.AuthTokenFilter;
 import com.huntly.server.security.jwt.UnAuthEntryPointJwt;
 import com.huntly.server.security.services.UserDetailsServiceImpl;
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,6 +60,7 @@ public class WebSecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/mcp/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
