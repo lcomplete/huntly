@@ -8,7 +8,7 @@ COPY app/client/ ./
 RUN yarn build
 
 # 构建阶段 - Maven 环境
-FROM maven:3.8-openjdk-11 AS server-builder
+FROM maven:3.9-eclipse-temurin-25 AS server-builder
 
 WORKDIR /app/server
 # 复制所有pom.xml文件以利用缓存
@@ -27,7 +27,7 @@ COPY --from=client-builder /app/client/build ../client/build
 RUN mvn clean package -B
 
 # 运行阶段
-FROM adoptopenjdk/openjdk11:latest
+FROM eclipse-temurin:25-jre-alpine
 
 LABEL maintainer="lcomplete"
 

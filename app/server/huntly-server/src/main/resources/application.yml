@@ -12,11 +12,11 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: update
-    database-platform: com.huntly.server.data.dialect.SQLiteDialect
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
     open-in-view: false
   mvc:
     pathmatch:
-      matching-strategy: ant_path_matcher # use this to make springfox work
+      matching-strategy: ant_path_matcher
 
 huntly:
   jwtSecret: MTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2YzMTI2ZTc1NzAtMjJlMy00MmVlLTkwYmQtOTVjNGM4ZTRhN2Yz

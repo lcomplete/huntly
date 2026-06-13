@@ -21,15 +21,15 @@
  */
 package com.huntly.jpa.spec;
 
-import static javax.persistence.criteria.Predicate.BooleanOperator.OR;
+import static jakarta.persistence.criteria.Predicate.BooleanOperator.OR;
 
 import com.huntly.jpa.spec.specification.*;
 import org.springframework.data.jpa.domain.Specification;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

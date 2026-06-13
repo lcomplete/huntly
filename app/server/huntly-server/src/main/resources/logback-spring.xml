@@ -23,7 +23,7 @@
     <property name="logfile" value="${LOG_FILE:-${BaseDir}/logging/${AppID}-spring.log}"/>
 
     <property name="LogPattern"
-              value="[${AppID}@${AppVersion}]${logEnv} %d{yyyy-MM-dd HH:mm:ssZZ} %-5p [%t] %C.%M\\(%F:%L\\) - %m%n"/>
+              value="[${AppID}@${AppVersion}]${logEnv} %d{yyyy-MM-dd HH:mm:ssZZ} %-5p [%t] %C.%method\(%F:%L\) - %m%n"/>
 
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -46,12 +46,20 @@
         </appender>
     </springProfile>
 
-    <root level="Info">
-        <appender-ref ref="Console"/>
-        <springProfile name="uat,pro">
+    <!-- dev/default profile: console only -->
+    <springProfile name="dev,default">
+        <root level="Info">
+            <appender-ref ref="Console"/>
+        </root>
+    </springProfile>
+
+    <!-- uat/pro profile: console + logstash -->
+    <springProfile name="uat,pro">
+        <root level="Info">
+            <appender-ref ref="Console"/>
             <appender-ref ref="logstash"/>
-        </springProfile>
-    </root>
+        </root>
+    </springProfile>
 
     <!-- JMX配置器在Docker容器中可能导致问题，仅在开发环境启用 -->
     <springProfile name="dev">

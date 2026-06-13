@@ -1,7 +1,7 @@
 package com.huntly.jpa.query.annotation;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Predicate;
 import java.util.Collection;
 
 public enum Operator {

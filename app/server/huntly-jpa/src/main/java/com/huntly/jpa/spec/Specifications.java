@@ -21,8 +21,8 @@
  */
 package com.huntly.jpa.spec;
 
-import static javax.persistence.criteria.Predicate.BooleanOperator.AND;
-import static javax.persistence.criteria.Predicate.BooleanOperator.OR;
+import static jakarta.persistence.criteria.Predicate.BooleanOperator.AND;
+import static jakarta.persistence.criteria.Predicate.BooleanOperator.OR;
 
 public final class Specifications {
 

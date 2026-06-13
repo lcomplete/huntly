@@ -7,8 +7,8 @@ import com.huntly.server.domain.entity.Connector;
 import com.huntly.server.service.ConnectorService;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * @author lcomplete

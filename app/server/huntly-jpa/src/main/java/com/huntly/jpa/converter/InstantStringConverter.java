@@ -1,7 +1,7 @@
 package com.huntly.jpa.converter;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

@@ -19,9 +19,9 @@
     </license>
   </licenses>
   <properties>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.target>25</maven.compiler.target>
     <node.version>v18.12.1</node.version>
-    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.source>25</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <frontend-src-dir>../../client</frontend-src-dir>
     <yarn.version>v1.22.19</yarn.version>
@@ -95,8 +95,8 @@
       <artifactId>mapstruct</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.springfox</groupId>
-      <artifactId>springfox-boot-starter</artifactId>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
     </dependency>
     <dependency>
       <groupId>com.rometools</groupId>
@@ -134,6 +134,10 @@
     <dependency>
       <groupId>cn.shenyanchao.ik-analyzer</groupId>
       <artifactId>ik-analyzer</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-community-dialects</artifactId>
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
@@ -175,7 +179,6 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
         <configuration>
           <source>${java.version}</source>
           <target>${java.version}</target>
